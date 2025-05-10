@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Get language code from command line argument
+const lang = process.argv[2];
+if (!lang) {
+  console.error('Please provide a language code (e.g., "fr" for French)');
+  process.exit(1);
+}
+
+const MESSAGES_DIR = path.join(__dirname, '..', 'messages');
+const langDir = path.join(MESSAGES_DIR, lang);
+const potFile = path.join(MESSAGES_DIR, 'translations.pot');
+const poFile = path.join(langDir, 'messages.po');
+
+// Create language directory if it doesn't exist
+if (!fs.existsSync(langDir)) {
+  fs.mkdirSync(langDir, { recursive: true });
+}
+
+if (fs.existsSync(potFile)) {
+  try {
+    // Initialize new language catalog
+    execSync(`msginit --input=${potFile} --locale=${lang} --output=${poFile}`);
+    console.log(`Successfully initialized catalog for ${lang}`);
+  } catch (error) {
+    console.error(`Error initializing catalog for ${lang}:`, error.message);
+  }
+} else {
+  console.error(`No POT file found at ${potFile}`);
+  process.exit(1);
+}

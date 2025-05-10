@@ -1,8 +1,6 @@
 """Invenio Stats Dashboard extension."""
 
 from flask import Blueprint
-from invenio_base.app import create_app_factory
-from invenio_base.utils import obj_or_import_string
 
 from . import config
 
@@ -32,5 +30,5 @@ class InvenioStatsDashboard:
     def init_config(self, app):
         """Initialize configuration."""
         for k in dir(config):
-            if k.startswith("INVENIO_STATS_DASHBOARD_"):
+            if k.startswith("STATS_DASHBOARD_"):
                 app.config.setdefault(k, getattr(config, k))

@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+invenio_stats_dashboard/__init__.py
+invenio_stats_dashboard/config.py
+invenio_stats_dashboard/ext.py
+invenio_stats_dashboard/version.py
+invenio_stats_dashboard/webpack.py
+invenio_stats_dashboard.egg-info/PKG-INFO
+invenio_stats_dashboard.egg-info/SOURCES.txt
+invenio_stats_dashboard.egg-info/dependency_links.txt
+invenio_stats_dashboard.egg-info/entry_points.txt
+invenio_stats_dashboard.egg-info/not-zip-safe
+invenio_stats_dashboard.egg-info/requires.txt
+invenio_stats_dashboard.egg-info/top_level.txt

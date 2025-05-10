@@ -1,12 +1,139 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "babel>2.8"]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
-line-length = 100
-target-version = ['py38']
-include = '\.pyi?$'
+[project]
+name = "invenio-stats-dashboard"
+version = "0.1.0"  # This will be dynamically set from version.py
+description = "Invenio Stats Dashboard"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "MESH Research", email = "info@meshresearch.net"}
+]
+keywords = ["invenio", "stats", "dashboard"]
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Development Status :: 4 - Beta",
+]
+dependencies = [
+    "invenio-base>=1.2.3",
+    "invenio-assets>=1.2.0",
+]
+
+[project.optional-dependencies]
+docs = [
+    "Sphinx>=3,<4",
+]
+tests = [
+    "pytest-invenio>=1.4.0",
+    "pytest-ruff>=0.1.0",
+    "pytest-mypy>=0.10.0",
+    "pytest-black>=0.6.0",
+    "pytest-isort>=4.0.0",
+    "pytest-mock",
+]
+dev = [
+    "black>=25.1.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/MESH-Research/invenio-stats-dashboard"
+
+[tool.setuptools]
+packages = ["invenio_stats_dashboard"]
+zip-safe = false
+
+[tool.setuptools.package-data]
+"*" = ["*"]
+
+[project.scripts]
+invenio-stats-dashboard = "invenio_stats_dashboard:InvenioStatsDashboard"
+
+[project.entry-points."invenio_base.apps"]
+invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
+
+[project.entry-points."invenio_base.api_apps"]
+invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
+
+[project.entry-points."invenio_base.api_blueprints"]
+invenio_stats_dashboard_api = "invenio_stats_dashboard.views.views:create_api_blueprint"
+
+[project.entry-points."invenio_base.blueprints"]
+invenio_stats_dashboard_views = "invenio_stats_dashboard.views.views:create_blueprint"
+invenio_stats_dashboard_menu_customization = "invenio_stats_dashboard.blueprints.menu_customization:create_blueprint"
+invenio_stats_dashboard_stats_dashboard_view = "invenio_stats_dashboard.stats_dashboard.views:create_blueprint"
+
+[project.entry-points."invenio_assets.webpack"]
+invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401", "D104", "E402"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "D", "DOC"]
+ignore = [
+    "E501", # Line too long
+    "I001", # Import sorting
+    "E1",   # Indentation
+    "W1",   # Indentation warnings
+    "W2",   # Whitespace warnings
+    "W3",   # Blank line warnings
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+warn_no_return = false
+ignore_missing_imports = true
+follow_imports = "skip"
+allow_untyped_globals = true
 
 [tool.isort]
 profile = "black"
+line_length = 88
+verbose = true
 multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+split_on_trailing_comma = true
+
+[tool.pytest.ini_options]
+addopts = """
+--black --ruff --isort --doctest-modules
+--cov=invenio_stats_dashboard --cov-report=term-missing
+"""
+log_cli_level = "DEBUG"
+isort_show_files = true
