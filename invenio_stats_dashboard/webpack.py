@@ -12,7 +12,12 @@ theme = WebpackThemeBundle(
                 "invenio-stats-dashboard": "./js/invenio_stats_dashboard/index.js",
             },
             dependencies={},
-            aliases={},
+            aliases={
+                "@js/invenio_stats_dashboard": "js/invenio_stats_dashboard",
+                "@translations/invenio_stats_dashboard": (
+                    "translations/invenio_stats_dashboard"
+                ),
+            },
         )
     },
 )

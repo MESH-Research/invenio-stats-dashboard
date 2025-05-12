@@ -1,19 +1,11 @@
-[console_scripts]
-invenio-stats-dashboard = invenio_stats_dashboard:InvenioStatsDashboard
-
 [invenio_assets.webpack]
 invenio_stats_dashboard_theme = invenio_stats_dashboard.webpack:theme
 
 [invenio_base.api_apps]
 invenio_stats_dashboard = invenio_stats_dashboard.ext:InvenioStatsDashboard
 
-[invenio_base.api_blueprints]
-invenio_stats_dashboard_api = invenio_stats_dashboard.views.views:create_api_blueprint
-
 [invenio_base.apps]
 invenio_stats_dashboard = invenio_stats_dashboard.ext:InvenioStatsDashboard
 
 [invenio_base.blueprints]
-invenio_stats_dashboard_menu_customization = invenio_stats_dashboard.blueprints.menu_customization:create_blueprint
-invenio_stats_dashboard_stats_dashboard_view = invenio_stats_dashboard.stats_dashboard.views:create_blueprint
-invenio_stats_dashboard_views = invenio_stats_dashboard.views.views:create_blueprint
+invenio_stats_dashboard = invenio_stats_dashboard.views.views:create_blueprint

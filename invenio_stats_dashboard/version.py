@@ -1,3 +1,3 @@
-"""Version information for Invenio Stats Dashboard."""
+"""Version information for Invenio-Stats-Dashboard."""
 
 __version__ = "0.1.0"
