@@ -36,48 +36,32 @@ export function formatNumber(number, format = 'default', options = {}) {
   }
 
   const { compactThreshold = 10_000_000 } = options;
-  // If number is above threshold and format is 'compact', use compact notation
-  if (number >= compactThreshold && format === 'compact') {
-    return i18next.t(`numberFormat.${format}`, {
-      number: number,
-      formatParams: {
-        number: {
-          notation: 'compact',
-          maximumFractionDigits: 2,
-          minimumFractionDigits: 0
-        }
-      }
-    });
-  }
 
-  // Otherwise use the specified format
-  return i18next.t(`numberFormat.${format}`, {
-    number: number,
-    formatParams: {
-      number: {
-        // Default format
-        default: {
-          maximumFractionDigits: 0,
-          minimumFractionDigits: 0
-        },
-        // Compact format for large numbers
-        compact: {
-          notation: 'compact',
-          maximumFractionDigits: 2,
-          minimumFractionDigits: 0
-        },
-        // Percentage format
-        percent: {
-          style: 'percent',
-          maximumFractionDigits: 1
-        },
-        // Currency format
-        currency: {
-          style: 'currency',
-          currency: 'USD',
-          maximumFractionDigits: 2
-        }
-      }[format]
+  // Create number formatter based on format type
+  const formatter = new Intl.NumberFormat(i18next.language, {
+    // Default format
+    default: {
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0
+    },
+    // Compact format for large numbers
+    compact: {
+      notation: 'compact',
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0
+    },
+    // Percentage format
+    percent: {
+      style: 'percent',
+      maximumFractionDigits: 1
+    },
+    // Currency format
+    currency: {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2
     }
-  });
+  }[format]);
+
+  return formatter.format(number);
 }
