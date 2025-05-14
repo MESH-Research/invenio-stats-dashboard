@@ -12,4 +12,5 @@
 {%- macro stats_dashboard() %}
 <div id="stats-dashboard" data-invenio-config='{{ config.STATS_DASHBOARD_TEMPLATE | tojson }}'></div>
 {{ webpack['invenio-stats-dashboard.js'] }}
+{{ webpack['invenio-stats-dashboard.css'] }}
 {%- endmacro %}

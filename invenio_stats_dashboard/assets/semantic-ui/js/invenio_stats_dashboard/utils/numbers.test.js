@@ -1,10 +1,15 @@
 // Mock i18next module used in numbers.js
-jest.mock('@translations/i18next', () => ({
+jest.mock('@translations/invenio_stats_dashboard/i18next', () => ({
   i18next: {
     language: 'en',
-    t: (key, args) => {
+    t: (key) => {
+      // Handle filesize unit translations
       if (key.startsWith('filesize.units.')) {
-        return key.split('.').pop();
+        const unit = key.split('.').pop();
+        // Special case for Bytes
+        if (unit === 'Bytes') return 'Bytes';
+        // Return the unit as is for other units
+        return unit;
       }
       return key;
     },

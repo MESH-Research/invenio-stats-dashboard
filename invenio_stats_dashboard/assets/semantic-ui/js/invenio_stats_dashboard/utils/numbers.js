@@ -1,4 +1,4 @@
-import { i18next } from "@translations/i18next";
+import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
 /**
  * Formats numbers for display, including compact, default, percent, currency, and filesize formats.
@@ -17,11 +17,11 @@ export function formatNumber(number, format = 'default', options = {}) {
       ? ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
       : ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
     if (number === 1) {
-      return i18next.t('filesize.units.Bytes');
+      return 'Bytes';
     } else if (number < base) {
       // Localize the number and the unit
       const localizedNumber = number.toLocaleString(i18next.language, { maximumFractionDigits: 0 });
-      return `${localizedNumber} ${i18next.t('filesize.units.Bytes')}`;
+      return `${localizedNumber} Bytes`;
     } else {
       let i = -1;
       let value = number;
@@ -30,8 +30,7 @@ export function formatNumber(number, format = 'default', options = {}) {
         i++;
       } while (value >= base && i < prefixes.length - 1);
       const localizedNumber = value.toLocaleString(i18next.language, { maximumFractionDigits: 1 });
-      const localizedUnit = i18next.t(`filesize.units.${prefixes[i]}`);
-      return `${localizedNumber} ${localizedUnit}`;
+      return `${localizedNumber} ${prefixes[i]}`;
     }
   }
 

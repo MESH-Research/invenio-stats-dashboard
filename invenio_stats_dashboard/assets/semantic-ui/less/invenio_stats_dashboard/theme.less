@@ -1,0 +1,132 @@
+.stats-dashboard {
+  .stats-dashboard-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+
+    .stats-date-range-picker {
+      flex: 1;
+      max-width: 600px;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+
+      :global {
+        .react-aria-DateRangePicker {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          width: 100%;
+
+          .react-aria-Label {
+            font-weight: 500;
+            color: #333;
+          }
+
+          .react-aria-Group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            .react-aria-DateInput {
+              flex: 1;
+              display: flex;
+              gap: 0.25rem;
+              padding: 0.5rem;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              background: white;
+
+              .react-aria-DateSegment {
+                padding: 0 0.125rem;
+                color: #333;
+                font-size: 14px;
+
+                &[data-placeholder] {
+                  color: #999;
+                }
+
+                &:focus {
+                  outline: none;
+                  color: #2185d0;
+                  background: #f0f0f0;
+                  border-radius: 2px;
+                }
+              }
+            }
+
+            .react-aria-Button {
+              padding: 0.5rem;
+              background: none;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              cursor: pointer;
+              color: #666;
+
+              &:hover {
+                background: #f0f0f0;
+              }
+
+              &:focus-visible {
+                outline: 2px solid #2185d0;
+                outline-offset: 2px;
+              }
+            }
+          }
+
+          .react-aria-Popover {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-top: 0.5rem;
+
+            .react-aria-Dialog {
+              padding: 1rem;
+
+              .react-aria-RangeCalendar {
+                .react-aria-CalendarGrid {
+                  display: grid;
+                  grid-template-columns: repeat(7, 1fr);
+                  gap: 0.25rem;
+
+                  .react-aria-CalendarCell {
+                    padding: 0.5rem;
+                    text-align: center;
+                    border-radius: 4px;
+                    cursor: pointer;
+
+                    &:hover {
+                      background: #f0f0f0;
+                    }
+
+                    &[data-selected] {
+                      background: #2185d0;
+                      color: white;
+                    }
+
+                    &[data-disabled] {
+                      color: #999;
+                      cursor: not-allowed;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .ui.button {
+      &.active {
+        background-color: #2185d0;
+        color: white;
+      }
+    }
+  }
+}

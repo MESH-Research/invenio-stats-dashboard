@@ -1,0 +1,11 @@
+export { LanguagesTable } from './LanguagesTable';
+export { SubjectsTable } from './SubjectsTable';
+export { FundersTable } from './FundersTable';
+export { AffiliationsTable } from './AffiliationsTable';
+export { ResourceTypesTable } from './ResourceTypesTable';
+export { LicensesTable } from './LicensesTable';
+export { AccessRightsTable } from './AccessRightsTable';
+export { TopReferrerDomainsTable } from './TopReferrerDomainsTable';
+export { TopCountriesTable } from './TopCountriesTable';
+export { MostViewedRecordsTable } from './MostViewedRecordsTable';
+export { MostDownloadedRecordsTable } from './MostDownloadedRecordsTable';
