@@ -10,7 +10,7 @@ theme = WebpackThemeBundle(
         "semantic-ui": dict(
             entry={
                 "invenio-stats-dashboard": "./js/invenio_stats_dashboard/index.js",
-                "invenio_stats_dashboard_css": (
+                "invenio-stats-dashboard-css": (
                     "./less/invenio_stats_dashboard/stats_dashboard.less"
                 ),
             },
