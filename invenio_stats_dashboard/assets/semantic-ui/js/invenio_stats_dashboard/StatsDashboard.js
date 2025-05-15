@@ -199,18 +199,17 @@ const StatsDashboard = ({ config, stats, title, description, maxHistoryYears = 1
 
                 {chartData.length > 0 && (
                   <Grid.Row>
-                    <Grid.Column width={16}>
-                      <StatsChart
-                        data={chartData}
-                        title={i18next.t("Traffic Over Time")}
-                        xAxisLabel={i18next.t("Date")}
-                        yAxisLabel={i18next.t("Count")}
-                        stacked={true}
-                        areaStyle={true}
-                        granularity={granularity}
-                        dateRange={dateRange}
-                      />
-                    </Grid.Column>
+                    <StatsChart
+                      data={chartData}
+                      title={null}
+                      xAxisLabel={i18next.t("Date")}
+                      yAxisLabel={i18next.t("Count")}
+                      stacked={false}
+                      areaStyle={true}
+                      granularity={granularity}
+                      dateRange={dateRange}
+                      classnames="sixteen wide column"
+                    />
                   </Grid.Row>
                 )}
 

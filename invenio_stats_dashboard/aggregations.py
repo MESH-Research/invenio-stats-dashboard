@@ -1,9 +1,9 @@
 from invenio_search.proxies import current_search_client
 from opensearchpy import OpenSearch
-from datetime import datetime
+from collections import defaultdict
 
 
-def get_record_counts_for_periods(start_date, end_date, search_domain=None):
+def get_records_created_for_periods(start_date, end_date, search_domain=None):
     """Query opensearch for record counts for each time period.
 
     Note: Returns a dictionary with the following structure:
@@ -14,7 +14,18 @@ def get_record_counts_for_periods(start_date, end_date, search_domain=None):
         ],
         "by_month": [...],
         "by_week": [...],
-        "by_day": [...]
+        "by_day": [...],
+        "by_community": {
+            "community_id_1": {
+                "by_year": [...],
+                "by_month": [...],
+                "by_week": [...],
+                "by_day": [...]
+            },
+            "community_id_2": {
+                ...
+            }
+        }
     }
     The "key_as_string" is the date in human readable format, and "key" is the date
     in epoch time.
@@ -47,15 +58,9 @@ def get_record_counts_for_periods(start_date, end_date, search_domain=None):
     else:
         client = current_search_client
 
-    # Initial search query
-    search_body = {
-        "size": 1000,  # Process 1000 documents at a time
-        "query": {
-            "range": {
-                "created": {"gte": start_date, "lte": end_date, "format": "yyyy-MM-dd"}
-            }
-        },
-        "aggs": {
+    # Helper function to create date histogram aggregations
+    def create_date_histogram_aggs():
+        return {
             "by_year": {
                 "date_histogram": {
                     "field": "created",
@@ -84,11 +89,50 @@ def get_record_counts_for_periods(start_date, end_date, search_domain=None):
                     "format": "yyyy-MM-dd",
                 }
             },
+        }
+
+    # Initial search query
+    search_body = {
+        "size": 10000,  # Process 10000 documents at a time
+        "query": {
+            "range": {
+                "created": {"gte": start_date, "lte": end_date, "format": "yyyy-MM-dd"}
+            }
+        },
+        "aggs": {
+            # Global aggregations
+            **create_date_histogram_aggs(),
+            # Community-specific aggregations
+            "by_community": {
+                "nested": {"path": "parent.communities.entries"},
+                "aggs": {
+                    "community_ids": {
+                        "terms": {
+                            "field": "parent.communities.entries.id",
+                            "size": (
+                                1000  # Adjust based on expected number of communities
+                            ),
+                        },
+                        "aggs": create_date_histogram_aggs(),
+                    }
+                },
+            },
         },
     }
 
-    # Initialize combined aggregations
-    combined_aggs = {"by_year": [], "by_month": [], "by_week": [], "by_day": []}
+    # Initialize combined aggregations using defaultdict
+    def create_agg_dict():
+        return defaultdict(list)
+
+    combined_aggs = {
+        "by_year": [],
+        "by_month": [],
+        "by_week": [],
+        "by_day": [],
+        "by_community": defaultdict(
+            lambda: {"by_year": [], "by_month": [], "by_week": [], "by_day": []}
+        ),
+    }
 
     # Helper function to merge buckets
     def merge_buckets(existing_buckets, new_buckets):
@@ -110,10 +154,22 @@ def get_record_counts_for_periods(start_date, end_date, search_domain=None):
     scroll_id = response["_scroll_id"]
 
     # Process initial batch
+    # Global aggregations
     for agg_type in ["by_year", "by_month", "by_week", "by_day"]:
         combined_aggs[agg_type] = merge_buckets(
             combined_aggs[agg_type], response["aggregations"][agg_type]["buckets"]
         )
+
+    # Community aggregations
+    for community_bucket in response["aggregations"]["by_community"]["community_ids"][
+        "buckets"
+    ]:
+        community_id = community_bucket["key"]
+        for agg_type in ["by_year", "by_month", "by_week", "by_day"]:
+            combined_aggs["by_community"][community_id][agg_type] = merge_buckets(
+                combined_aggs["by_community"][community_id][agg_type],
+                community_bucket[agg_type]["buckets"],
+            )
 
     # Process remaining hits using scroll
     while True:
@@ -123,12 +179,23 @@ def get_record_counts_for_periods(start_date, end_date, search_domain=None):
         if not scroll_response["hits"]["hits"]:
             break
 
-        # Merge aggregations from this batch
+        # Global aggregations
         for agg_type in ["by_year", "by_month", "by_week", "by_day"]:
             combined_aggs[agg_type] = merge_buckets(
                 combined_aggs[agg_type],
                 scroll_response["aggregations"][agg_type]["buckets"],
             )
+
+        # Community aggregations
+        for community_bucket in scroll_response["aggregations"]["by_community"][
+            "community_ids"
+        ]["buckets"]:
+            community_id = community_bucket["key"]
+            for agg_type in ["by_year", "by_month", "by_week", "by_day"]:
+                combined_aggs["by_community"][community_id][agg_type] = merge_buckets(
+                    combined_aggs["by_community"][community_id][agg_type],
+                    community_bucket[agg_type]["buckets"],
+                )
 
         # Update scroll_id for next iteration
         scroll_id = scroll_response["_scroll_id"]
@@ -136,57 +203,79 @@ def get_record_counts_for_periods(start_date, end_date, search_domain=None):
     # Clean up the scroll context
     client.clear_scroll(scroll_id=scroll_id)
 
-    return combined_aggs
+    # Convert defaultdict to regular dict for final output
+    result = dict(combined_aggs)
+    result["by_community"] = {k: dict(v) for k, v in result["by_community"].items()}
+
+    return result
 
 
-def get_records_created_as_of_dates(start_date, end_date):
+def get_record_totals_as_of_dates(start_date, end_date, search_domain=None):
+    """Calculate cumulative totals of records as of each date in the period.
+
+    Args:
+        start_date (str): The start date to query.
+        end_date (str): The end date to query.
+        search_domain (str, optional): The search domain to use. If provided,
+            creates a new client instance. If None, uses the default
+            current_search_client.
+
+    Returns:
+        dict: A dictionary containing cumulative totals with the following structure:
+        {
+            "daily_totals": {
+                "2024-01-01": 100,
+                "2024-01-02": 150,
+                ...
+            },
+            "by_community": {
+                "community_id_1": {
+                    "daily_totals": {
+                        "2024-01-01": 50,
+                        "2024-01-02": 75,
+                        ...
+                    }
+                },
+                "community_id_2": {
+                    "daily_totals": {
+                        "2024-01-01": 30,
+                        "2024-01-02": 45,
+                        ...
+                    }
+                }
+            }
+        }
+    """
     # Get aggregation data from helper function
-    aggs = get_record_counts_for_periods(start_date, end_date)
+    aggs = get_records_created_for_periods(start_date, end_date, search_domain)
 
-    # Extract daily buckets
-    buckets = aggs["by_day"]
+    # Initialize result structure
+    result = {
+        "daily_totals": {},
+        "by_community": defaultdict(lambda: {"daily_totals": {}}),
+    }
 
-    # Calculate cumulative totals
-    daily_totals = {}
+    # Process global daily totals
     cumulative = 0
-    for bucket in buckets:
+    for bucket in aggs["by_day"]:
         date = bucket["key_as_string"]
         count = bucket["doc_count"]
         cumulative += count
-        daily_totals[date] = cumulative
+        result["daily_totals"][date] = cumulative
 
-    # Helper functions to get last day of week, month, year
-    def is_last_of_period(date_str, period):
-        date = datetime.strptime(date_str, "%Y-%m-%d")
-        if period == "week":
-            # ISO week: Sunday is the last day (weekday() == 6)
-            return date.weekday() == 6
-        elif period == "month":
-            from calendar import monthrange
+    # Process community-specific daily totals
+    for community_id, community_aggs in aggs["by_community"].items():
+        cumulative = 0
+        for bucket in community_aggs["by_day"]:
+            date = bucket["key_as_string"]
+            count = bucket["doc_count"]
+            cumulative += count
+            result["by_community"][community_id]["daily_totals"][date] = cumulative
 
-            return date.day == monthrange(date.year, date.month)[1]
-        elif period == "year":
-            return date.month == 12 and date.day == 31
-        return False
+    # Convert defaultdict to regular dict for final output
+    result["by_community"] = {k: dict(v) for k, v in result["by_community"].items()}
 
-    weekly_totals = {}
-    monthly_totals = {}
-    yearly_totals = {}
-
-    for date, total in daily_totals.items():
-        if is_last_of_period(date, "week"):
-            weekly_totals[date] = total
-        if is_last_of_period(date, "month"):
-            monthly_totals[date] = total
-        if is_last_of_period(date, "year"):
-            yearly_totals[date] = total
-
-    return {
-        "daily_totals": daily_totals,
-        "weekly_totals": weekly_totals,
-        "monthly_totals": monthly_totals,
-        "yearly_totals": yearly_totals,
-    }
+    return result
 
 
 def do_get_record_counts(start_date, end_date):
@@ -195,25 +284,18 @@ def do_get_record_counts(start_date, end_date):
     end_date = end_date or "2024-12-31"
 
     try:
-        results = get_records_created_as_of_dates(start_date, end_date)
+        results = get_record_totals_as_of_dates(start_date, end_date)
 
         # Print the results in a readable format
-        print("\nAggregations by time period:")
-        print("\nBy Year:")
-        for bucket in results["by_year"]:
-            print(f"{bucket['key']}: {bucket['doc_count']}")
+        print("\nDaily Totals:")
+        for date, total in sorted(results["daily_totals"].items()):
+            print(f"{date}: {total}")
 
-        print("\nBy Month:")
-        for bucket in results["by_month"]:
-            print(f"{bucket['key']}: {bucket['doc_count']}")
-
-        print("\nBy Week:")
-        for bucket in results["by_week"]:
-            print(f"{bucket['key']}: {bucket['doc_count']}")
-
-        print("\nBy Day:")
-        for bucket in results["by_day"]:
-            print(f"{bucket['key']}: {bucket['doc_count']}")
+        print("\nCommunity-specific Daily Totals:")
+        for community_id, community_data in sorted(results["by_community"].items()):
+            print(f"\nCommunity {community_id}:")
+            for date, total in sorted(community_data["daily_totals"].items()):
+                print(f"  {date}: {total}")
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")

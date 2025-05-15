@@ -34,6 +34,7 @@ const StatsTable = ({ headers = [], rows = [], title, label }) => {
         >
           <Table.Header>
             <Table.Row>
+              <Table.HeaderCell scope="col" />  {/* Icon column */}
               {headers.map((header, index) => (
                 <Table.HeaderCell key={index} scope="col">
                   {header}

@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Button, ButtonGroup, Icon } from "semantic-ui-react";
+import { Button, Dropdown, Icon } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
   Button as AriaButton,
@@ -25,6 +25,13 @@ const DateRangeSelector = ({
   onGranularityChange,
   maxHistoryYears = 15
 }) => {
+  const granularityOptions = [
+    { key: 'day', text: i18next.t('Day'), value: 'day' },
+    { key: 'week', text: i18next.t('Week'), value: 'week' },
+    { key: 'month', text: i18next.t('Month'), value: 'month' },
+    { key: 'year', text: i18next.t('Year'), value: 'year' }
+  ];
+
   return (
     <div className="stats-dashboard-controls">
       <div className="stats-date-range-picker">
@@ -45,9 +52,9 @@ const DateRangeSelector = ({
             <DateInput slot="end">
               {(segment) => <DateSegment segment={segment} />}
             </DateInput>
-            <Button>
+            <AriaButton className="ui button">
               <Icon name="calendar" />
-            </Button>
+            </AriaButton>
           </Group>
           <Popover>
             <Dialog>
@@ -56,40 +63,13 @@ const DateRangeSelector = ({
           </Popover>
         </DateRangePicker>
       </div>
-      <ButtonGroup>
-        <Button
-          toggle
-          active={granularity === 'day'}
-          onClick={() => onGranularityChange('day')}
-          aria-pressed={granularity === 'day'}
-        >
-          {i18next.t('Day')}
-        </Button>
-        <Button
-          toggle
-          active={granularity === 'week'}
-          onClick={() => onGranularityChange('week')}
-          aria-pressed={granularity === 'week'}
-        >
-          {i18next.t('Week')}
-        </Button>
-        <Button
-          toggle
-          active={granularity === 'month'}
-          onClick={() => onGranularityChange('month')}
-          aria-pressed={granularity === 'month'}
-        >
-          {i18next.t('Month')}
-        </Button>
-        <Button
-          toggle
-          active={granularity === 'year'}
-          onClick={() => onGranularityChange('year')}
-          aria-pressed={granularity === 'year'}
-        >
-          {i18next.t('Year')}
-        </Button>
-      </ButtonGroup>
+      <Dropdown
+        selection
+        value={granularity}
+        options={granularityOptions}
+        onChange={(e, { value }) => onGranularityChange(value)}
+        aria-label={i18next.t("Select time granularity")}
+      />
     </div>
   );
 };

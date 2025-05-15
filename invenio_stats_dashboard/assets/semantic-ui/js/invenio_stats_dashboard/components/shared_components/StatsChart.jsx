@@ -4,6 +4,18 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Button, ButtonGroup, Card } from 'semantic-ui-react';
 import ReactECharts from "echarts-for-react";
 
+// Define colors for different series
+const SERIES_COLORS = [
+  '#5470c6',  // Blue
+  '#91cc75',  // Green
+  '#fac858',  // Yellow
+  '#ee6666',  // Red
+  '#73c0de',  // Light Blue
+  '#3ba272',  // Dark Green
+  '#fc8452',  // Orange
+  '#9a60b4',  // Purple
+];
+
 const aggregateData = (data, granularity) => {
   const aggregated = data.map(series => {
     const aggregatedPoints = new Map();
@@ -48,6 +60,7 @@ const aggregateData = (data, granularity) => {
 };
 
 const StatsChart = ({
+  classnames,
   data,
   title,
   xAxisLabel,
@@ -62,8 +75,6 @@ const StatsChart = ({
   showGrid = true,
   showAxisLabels = true,
   showSeriesControls = true,
-  showGranularityControls = true,
-  availableGranularities = ["day", "week", "month", "year"],
   gridConfig = {
     left: "3%",
     right: "4%",
@@ -88,34 +99,23 @@ const StatsChart = ({
     },
   },
 }) => {
-  const [selectedSeries, setSelectedSeries] = useState(data.map(series => series.name));
-  const [granularityState, setGranularityState] = useState(granularity);
+  const [selectedSeries, setSelectedSeries] = useState(data[0]?.name || '');
 
-  const handleSeriesToggle = (seriesName) => {
-    setSelectedSeries(prev =>
-      prev.includes(seriesName)
-        ? prev.filter(name => name !== seriesName)
-        : [...prev, seriesName]
-    );
+  const handleSeriesSelect = (seriesName) => {
+    setSelectedSeries(seriesName);
   };
 
-  const handleGranularityChange = (newGranularity) => {
-    setGranularityState(newGranularity);
-  };
-
-  const filteredData = data.filter(series => selectedSeries.includes(series.name));
-  const aggregatedData = aggregateData(filteredData, granularityState);
+  const filteredData = data.filter(series => series.name === selectedSeries);
+  const aggregatedData = aggregateData(filteredData, granularity);
 
   const option = {
-    title: title ? {
-      text: title,
-      left: "center",
-    } : undefined,
+    ...(title && {
+      title: {
+        text: title,
+        left: "center",
+      }
+    }),
     tooltip: showTooltip ? tooltipConfig : undefined,
-    legend: showLegend ? {
-      data: data.map((series) => series.name),
-      bottom: 0,
-    } : undefined,
     grid: showGrid ? gridConfig : undefined,
     xAxis: {
       type: "time",
@@ -129,7 +129,7 @@ const StatsChart = ({
       nameLocation: "middle",
       nameGap: 40,
     },
-    series: aggregatedData.map((series) => ({
+    series: aggregatedData.map((series, index) => ({
       name: series.name,
       type: "line",
       stack: stacked ? "Total" : undefined,
@@ -138,40 +138,39 @@ const StatsChart = ({
       emphasis: {
         focus: "series",
       },
+      itemStyle: {
+        color: SERIES_COLORS[index % SERIES_COLORS.length]
+      },
+      lineStyle: {
+        color: SERIES_COLORS[index % SERIES_COLORS.length]
+      },
+      areaStyle: areaStyle ? {
+        color: SERIES_COLORS[index % SERIES_COLORS.length],
+        opacity: 0.3
+      } : undefined
     })),
   };
 
   return (
-    <Card className="stats-chart" role="region" aria-label={title || "Statistics Chart"}>
+    <Card className={`stats-chart ${classnames} ml-15 mr-15`} role="region" aria-label={title || "Statistics Chart"}>
       <Card.Content>
         {showControls && (
-          <div className="stats-chart-controls">
+          <div className="stats-chart-controls" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
             {showSeriesControls && (
               <ButtonGroup>
-                {data.map(series => (
+                {data.map((series, index) => (
                   <Button
                     key={series.name}
                     toggle
-                    active={selectedSeries.includes(series.name)}
-                    onClick={() => handleSeriesToggle(series.name)}
-                    aria-pressed={selectedSeries.includes(series.name)}
+                    active={selectedSeries === series.name}
+                    onClick={() => handleSeriesSelect(series.name)}
+                    aria-pressed={selectedSeries === series.name}
+                    style={{
+                      backgroundColor: selectedSeries === series.name ? SERIES_COLORS[index % SERIES_COLORS.length] : undefined,
+                      color: selectedSeries === series.name ? 'white' : undefined
+                    }}
                   >
                     {series.name}
-                  </Button>
-                ))}
-              </ButtonGroup>
-            )}
-            {showGranularityControls && (
-              <ButtonGroup>
-                {availableGranularities.map(gran => (
-                  <Button
-                    key={gran}
-                    toggle
-                    active={granularityState === gran}
-                    onClick={() => handleGranularityChange(gran)}
-                    aria-pressed={granularityState === gran}
-                  >
-                    {i18next.t(gran.charAt(0).toUpperCase() + gran.slice(1))}
                   </Button>
                 ))}
               </ButtonGroup>
@@ -183,7 +182,7 @@ const StatsChart = ({
             option={option}
             style={{ height }}
             aria-label={title || "Statistics Chart"}
-            aria-description={`Chart showing ${aggregatedData.map(s => s.name).join(", ")} over time`}
+            aria-description={`Chart showing ${selectedSeries} over time`}
           />
         </div>
       </Card.Content>
@@ -211,8 +210,6 @@ StatsChart.propTypes = {
   showGrid: PropTypes.bool,
   showAxisLabels: PropTypes.bool,
   showSeriesControls: PropTypes.bool,
-  showGranularityControls: PropTypes.bool,
-  availableGranularities: PropTypes.arrayOf(PropTypes.oneOf(["day", "week", "month", "year"])),
   gridConfig: PropTypes.object,
   tooltipConfig: PropTypes.object,
 };
