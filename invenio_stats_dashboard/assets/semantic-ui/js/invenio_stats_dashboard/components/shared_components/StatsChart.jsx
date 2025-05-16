@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Button, ButtonGroup, Card } from 'semantic-ui-react';
 import ReactECharts from "echarts-for-react";
+import { useStatsDashboard } from '../../context/StatsDashboardContext';
 
 // Define colors for different series
 const SERIES_COLORS = [
@@ -152,7 +153,7 @@ const StatsChart = ({
   };
 
   return (
-    <Card className={`stats-chart ${classnames} ml-15 mr-15`} role="region" aria-label={title || "Statistics Chart"}>
+    <Card className={`stats-chart ${classnames} ml-15 mr-15`} fluid role="region" aria-label={title || "Statistics Chart"}>
       <Card.Content>
         {showControls && (
           <div className="stats-chart-controls" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>

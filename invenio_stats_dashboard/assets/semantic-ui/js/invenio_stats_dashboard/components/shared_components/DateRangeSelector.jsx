@@ -17,72 +17,76 @@ import {
   RangeCalendar
 } from 'react-aria-components';
 import { today, getLocalTimeZone } from "@internationalized/date";
+import { useStatsDashboard } from '../../context/StatsDashboardContext';
 
-const DateRangeSelector = ({
-  dateRange,
-  onDateRangeChange,
-  granularity,
-  onGranularityChange,
-  maxHistoryYears = 15
-}) => {
+const DateRangeSelector = ({ maxHistoryYears, defaultRange }) => {
+  const { dateRange, setDateRange, granularity, setGranularity } = useStatsDashboard();
+
+  const handleGranularityChange = (e, { value }) => {
+    setGranularity(value);
+  };
+
   const granularityOptions = [
-    { key: 'day', text: i18next.t('Day'), value: 'day' },
-    { key: 'week', text: i18next.t('Week'), value: 'week' },
-    { key: 'month', text: i18next.t('Month'), value: 'month' },
-    { key: 'year', text: i18next.t('Year'), value: 'year' }
+    { key: 'day', text: 'Day', value: 'day' },
+    { key: 'week', text: 'Week', value: 'week' },
+    { key: 'month', text: 'Month', value: 'month' },
+    { key: 'year', text: 'Year', value: 'year' },
   ];
 
   return (
-    <div className="stats-dashboard-controls">
-      <div className="stats-date-range-picker">
-        <DateRangePicker
-          value={dateRange}
-          onChange={onDateRangeChange}
-          granularity={granularity}
-          maxValue={today(getLocalTimeZone())}
-          minValue={today(getLocalTimeZone()).subtract({ years: maxHistoryYears })}
-          locale={i18next.language}
+    <div className="date-range-selector">
+      <ButtonGroup>
+        <Button
+          onClick={() => setDateRange({
+            start: today(getLocalTimeZone()).subtract({ days: 7 }),
+            end: today(getLocalTimeZone())
+          })}
+          active={dateRange.start?.equals(today(getLocalTimeZone()).subtract({ days: 7 }))}
         >
-          <Label>{i18next.t("Select date range")}</Label>
-          <Group>
-            <DateInput slot="start">
-              {(segment) => <DateSegment segment={segment} />}
-            </DateInput>
-            <span aria-hidden="true">–</span>
-            <DateInput slot="end">
-              {(segment) => <DateSegment segment={segment} />}
-            </DateInput>
-            <AriaButton className="ui button">
-              <Icon name="calendar" />
-            </AriaButton>
-          </Group>
-          <Popover>
-            <Dialog>
-              <RangeCalendar />
-            </Dialog>
-          </Popover>
-        </DateRangePicker>
-      </div>
+          Last 7 days
+        </Button>
+        <Button
+          onClick={() => setDateRange({
+            start: today(getLocalTimeZone()).subtract({ days: 30 }),
+            end: today(getLocalTimeZone())
+          })}
+          active={dateRange.start?.equals(today(getLocalTimeZone()).subtract({ days: 30 }))}
+        >
+          Last 30 days
+        </Button>
+        <Button
+          onClick={() => setDateRange({
+            start: today(getLocalTimeZone()).subtract({ months: 6 }),
+            end: today(getLocalTimeZone())
+          })}
+          active={dateRange.start?.equals(today(getLocalTimeZone()).subtract({ months: 6 }))}
+        >
+          Last 6 months
+        </Button>
+        <Button
+          onClick={() => setDateRange({
+            start: today(getLocalTimeZone()).subtract({ years: 1 }),
+            end: today(getLocalTimeZone())
+          })}
+          active={dateRange.start?.equals(today(getLocalTimeZone()).subtract({ years: 1 }))}
+        >
+          Last year
+        </Button>
+      </ButtonGroup>
       <Dropdown
         selection
-        value={granularity}
         options={granularityOptions}
-        onChange={(e, { value }) => onGranularityChange(value)}
-        aria-label={i18next.t("Select time granularity")}
+        value={granularity}
+        onChange={handleGranularityChange}
+        className="granularity-selector"
       />
     </div>
   );
 };
 
 DateRangeSelector.propTypes = {
-  dateRange: PropTypes.shape({
-    start: PropTypes.object.isRequired,
-    end: PropTypes.object.isRequired,
-  }).isRequired,
-  onDateRangeChange: PropTypes.func.isRequired,
-  granularity: PropTypes.oneOf(['day', 'week', 'month', 'year']).isRequired,
-  onGranularityChange: PropTypes.func.isRequired,
   maxHistoryYears: PropTypes.number,
+  defaultRange: PropTypes.string,
 };
 
 export { DateRangeSelector };

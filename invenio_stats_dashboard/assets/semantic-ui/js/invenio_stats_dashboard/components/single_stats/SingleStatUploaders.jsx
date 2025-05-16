@@ -1,20 +1,27 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { SingleStatBox } from '../shared_components';
+import { SingleStatBox } from '../shared_components/SingleStatBox';
 import { formatNumber } from '../../utils';
+import { useStatsDashboard } from '../../context/StatsDashboardContext';
 
-export const SingleStatUploaders = ({ value, compactThreshold = 1_000_000 }) => {
+const SingleStatUploaders = ({ title = i18next.t("Uploaders"), icon = "users", compactThreshold = 1_000_000 }) => {
+  const { stats } = useStatsDashboard();
+  const value = stats.uploaders?.reduce((sum, point) => sum + point.value, 0) || 0;
+
   return (
     <SingleStatBox
-      title={i18next.t("Uploaders")}
+      title={title}
       value={formatNumber(value, 'compact', { compactThreshold })}
-      icon="upload"
+      icon={icon}
     />
   );
 };
 
 SingleStatUploaders.propTypes = {
-  value: PropTypes.number.isRequired,
+  title: PropTypes.string,
+  icon: PropTypes.string,
   compactThreshold: PropTypes.number,
 };
+
+export { SingleStatUploaders };

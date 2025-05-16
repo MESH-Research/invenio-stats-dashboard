@@ -14,7 +14,7 @@ import { PropTypes } from "prop-types";
  * @param {string} label - Optional label for class names. If not provided, will be derived from title
  * @returns {React.ReactElement} - The StatsTable component.
  */
-const StatsTable = ({ headers = [], rows = [], title, label }) => {
+const StatsTable = ({ headers = [], rows = [], title, label, labelIcon }) => {
   const tableLabel = label || (title ? title.toLowerCase().replace(/\s+/g, '-') : 'stats');
 
   return (
@@ -37,6 +37,13 @@ const StatsTable = ({ headers = [], rows = [], title, label }) => {
               <Table.HeaderCell scope="col" />  {/* Icon column */}
               {headers.map((header, index) => (
                 <Table.HeaderCell key={index} scope="col">
+                  {labelIcon && (
+                    <Icon
+                      name={labelIcon}
+                      className="stats-table-icon"
+                      aria-hidden="true"
+                    />
+                  )}
                   {header}
                 </Table.HeaderCell>
               ))}

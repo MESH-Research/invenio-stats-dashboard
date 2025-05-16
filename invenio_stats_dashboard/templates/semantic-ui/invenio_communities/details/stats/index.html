@@ -1,0 +1,19 @@
+{# -*- coding: utf-8 -*-
+  Part of Invenio-Stats-Dashboard
+  Copyright (C) 2025 Mesh Research
+
+  Invenio-Stats-Dashboard is free software; you can redistribute and/or modify it under the terms of the MIT License; see LICENSE file for more details.
+#}
+{% extends "invenio_communities/details/base.html" %}
+{% from config.STATS_DASHBOARD_TEMPLATES["macro"] import stats_dashboard %}
+{% set active_community_header_menu_item = "stats" %}
+{%- block page_body %}
+    {{ super() }}
+    {{ stats_dashboard(dashboard_config, community=community) }}
+{%- endblock page_body -%}
+
+{%- block javascript %}
+    {{ super() }}
+    {{ webpack['invenio-stats-dashboard.js'] }}
+    {{ webpack['invenio-stats-dashboard-css.css'] }}
+{%- endblock javascript %}

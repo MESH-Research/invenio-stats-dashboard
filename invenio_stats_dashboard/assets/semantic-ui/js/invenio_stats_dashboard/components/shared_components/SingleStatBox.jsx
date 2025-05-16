@@ -8,7 +8,7 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
 
   return (
     <Statistic
-      className="stats-single-stat-container"
+      className="stats-single-stat-container centered"
       role="region"
       aria-label={title}
       aria-describedby={descriptionId}

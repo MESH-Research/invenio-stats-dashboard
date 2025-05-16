@@ -1,8 +1,9 @@
+import React from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsTable } from "../shared_components/StatsTable";
 import { PropTypes } from "prop-types";
 
-const FundersTable = ({ headers = ["Funder", "Records"], rows = [
+const FundersTable = ({ title = i18next.t("Content by Funder"), icon: labelIcon = "money bill alternate", headers = [i18next.t("Funder"), i18next.t("Records")], rows = [
   ["money bill alternate", "National Science Foundation", "5,432", "nsf"],
   ["money bill alternate", "European Research Council", "4,321", "erc"],
   ["money bill alternate", "National Institutes of Health", "3,210", "nih"],
@@ -20,13 +21,17 @@ const FundersTable = ({ headers = ["Funder", "Records"], rows = [
       label="funders"
       headers={headers}
       rows={rowsWithLinks}
-      title={i18next.t("Content by Funder")}
+      title={title}
+      labelIcon={labelIcon}
     />
   );
 };
 
 FundersTable.propTypes = {
-  funderItems: PropTypes.array.isRequired,
+  title: PropTypes.string,
+  icon: PropTypes.string,
+  headers: PropTypes.array,
+  rows: PropTypes.array,
 };
 
 export { FundersTable };

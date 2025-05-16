@@ -74,6 +74,9 @@ invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_blueprint"
 [project.entry-points."invenio_assets.webpack"]
 invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
 
+[project.entry-points."invenio_base.finalize_app"]
+invenio_stats_dashboard = "invenio_stats_dashboard.ext:finalize_app"
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

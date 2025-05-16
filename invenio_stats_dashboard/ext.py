@@ -1,5 +1,8 @@
 """Invenio Stats Dashboard extension."""
 
+from flask_menu import current_menu
+from invenio_i18n import lazy_gettext as _
+
 from . import config
 
 
@@ -21,3 +24,17 @@ class InvenioStatsDashboard:
         for k in dir(config):
             if k.startswith("STATS_DASHBOARD_"):
                 app.config.setdefault(k, getattr(config, k))
+
+
+def finalize_app(app):
+    """Finalize app."""
+    register_menus(app)
+
+
+def register_menus(app):
+    """Register menu."""
+    current_menu.submenu("main.stats").register(
+        endpoint="invenio_stats_dashboard.global_stats_dashboard",
+        text=_("Stats"),
+        order=1,
+    )

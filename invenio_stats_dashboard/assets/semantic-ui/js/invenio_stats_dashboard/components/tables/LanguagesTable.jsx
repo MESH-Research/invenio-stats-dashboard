@@ -1,8 +1,9 @@
+import React from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsTable } from "../shared_components/StatsTable";
 import { PropTypes } from "prop-types";
 
-const LanguagesTable = ({ headers = ["Language", "Records"], rows = [
+const LanguagesTable = ({ title = i18next.t("Content by Language"), icon: labelIcon = "globe", headers = [i18next.t("Language"), i18next.t("Records")], rows = [
   ["globe", "English", "12,345", "en"],
   ["globe", "Spanish", "8,765", "es"],
   ["globe", "French", "6,543", "fr"],
@@ -20,13 +21,17 @@ const LanguagesTable = ({ headers = ["Language", "Records"], rows = [
       label="languages"
       headers={headers}
       rows={rowsWithLinks}
-      title={i18next.t("Content by Language")}
+      title={title}
+      labelIcon={labelIcon}
     />
   );
 };
 
 LanguagesTable.propTypes = {
-  languageItems: PropTypes.array.isRequired,
+  title: PropTypes.string,
+  icon: PropTypes.string,
+  headers: PropTypes.array,
+  rows: PropTypes.array,
 };
 
 export { LanguagesTable };

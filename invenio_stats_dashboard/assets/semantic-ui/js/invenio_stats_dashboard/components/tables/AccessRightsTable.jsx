@@ -1,8 +1,9 @@
+import React from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsTable } from "../shared_components/StatsTable";
 import { PropTypes } from "prop-types";
 
-const AccessRightsTable = ({ headers = ["Access Rights", "Records"], rows = [
+const AccessRightsTable = ({ title = i18next.t("Content by Access Rights"), icon: labelIcon = "lock", headers = [i18next.t("Access Rights"), i18next.t("Records")], rows = [
   ["lock open", "Open Access", "45,432", "open"],
   ["lock", "Restricted Access", "15,321", "restricted"],
   ["lock", "Embargoed Access", "12,210", "embargoed"],
@@ -20,13 +21,17 @@ const AccessRightsTable = ({ headers = ["Access Rights", "Records"], rows = [
       label="access-rights"
       headers={headers}
       rows={rowsWithLinks}
-      title={i18next.t("Content by Access Rights")}
+      title={title}
+      labelIcon={labelIcon}
     />
   );
 };
 
 AccessRightsTable.propTypes = {
-  accessRightsItems: PropTypes.array.isRequired,
+  title: PropTypes.string,
+  icon: PropTypes.string,
+  headers: PropTypes.array,
+  rows: PropTypes.array,
 };
 
 export { AccessRightsTable };
