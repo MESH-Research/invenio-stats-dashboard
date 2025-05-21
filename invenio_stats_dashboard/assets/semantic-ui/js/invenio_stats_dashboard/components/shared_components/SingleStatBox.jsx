@@ -8,7 +8,7 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
 
   return (
     <Statistic
-      className="stats-single-stat-container centered"
+      className="stats-single-stat-container centered rel-mb-2 rel-mt-2"
       role="region"
       aria-label={title}
       aria-describedby={descriptionId}
@@ -16,8 +16,8 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
       <Statistic.Value aria-label={`${value} ${title}`}>
         {value}
       </Statistic.Value>
-      <Statistic.Label className="stats-single-stat-header">
-        {icon && <Icon name={icon} aria-hidden="true" />}
+      <Statistic.Label className="stats-single-stat-header mt-5">
+        {icon && <Icon name={icon} aria-hidden="true" className="mr-10" />}
         {title}
       </Statistic.Label>
       {description && (

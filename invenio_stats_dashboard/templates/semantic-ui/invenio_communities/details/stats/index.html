@@ -12,8 +12,3 @@
     {{ stats_dashboard(dashboard_config, community=community) }}
 {%- endblock page_body -%}
 
-{%- block javascript %}
-    {{ super() }}
-    {{ webpack['invenio-stats-dashboard.js'] }}
-    {{ webpack['invenio-stats-dashboard-css.css'] }}
-{%- endblock javascript %}

@@ -53,13 +53,28 @@ const sampleRecords = [
   }
 ];
 
+// Sample country data for the map
+const sampleCountries = [
+  { name: "United States", value: 1000 },
+  { name: "United Kingdom", value: 800 },
+  { name: "Germany", value: 600 },
+  { name: "France", value: 500 },
+  { name: "Japan", value: 400 },
+  { name: "Canada", value: 300 },
+  { name: "Australia", value: 250 },
+  { name: "Brazil", value: 200 },
+  { name: "India", value: 150 },
+  { name: "China", value: 100 }
+];
+
 const testStats = {
   views: generateDataPoints(1000, 500),
   downloads: generateDataPoints(500, 300),
   dataVolume: generateDataPoints(2000, 1000),
   traffic: generateDataPoints(1500, 800),
   uploaders: generateDataPoints(50, 30),
-  recordCount: generateDataPoints(200, 100)
+  recordCount: generateDataPoints(200, 100),
+  topCountries: sampleCountries
 };
 
 const testRecordData = {

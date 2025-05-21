@@ -7,8 +7,8 @@
 #}
 {%- set title = _("Stats Dashboard") %}
 {% from config.STATS_DASHBOARD_TEMPLATES["macro"] import stats_dashboard %}
-{% extends config.BASE_TEMPLATE %}
+{% extends config.THEME_BASE_TEMPLATE %}
 
 {%- block page_body %}
-{{ stats_dashboard(dashboard_config) }}
+    {{ stats_dashboard(dashboard_config) }}
 {%- endblock page_body %}

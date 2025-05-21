@@ -1,18 +1,21 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { StatsDashboard } from "./StatsDashboard";
+import { StatsDashboardPage } from "./StatsDashboardPage";
+import { StatsDashboardLayout } from "./StatsDashboardLayout";
 import { CommunityStatsDashboardLayout } from "./CommunityStatsDashboardLayout";
 import { GlobalStatsDashboardLayout } from "./GlobalStatsDashboardLayout";
-import { testStats } from "./testData";
+import { testStatsData } from "./components/test_data";
 
 // Initialize the dashboard if the container exists
 const domContainer = document.getElementById("stats-dashboard");
 console.log("domContainer", domContainer);
 if (domContainer) {
-  const config = JSON.parse(domContainer.dataset.dashboardConfig || '{}');
+  const config = JSON.parse(domContainer.dataset.dashboardConfig || "{}");
   console.log("config", config);
-  const community = JSON.parse(domContainer.dataset.community || '{}');
-  console.log("community", community);
+  console.log("community", domContainer.dataset.community);
+  const community = ["None", null, undefined].includes(domContainer.dataset.community)
+    ? null
+    : JSON.parse(domContainer.dataset.community);
 
   let DashboardComponent;
   switch (config.dashboard_type) {
@@ -23,22 +26,28 @@ if (domContainer) {
       DashboardComponent = GlobalStatsDashboardLayout;
       break;
     default:
-      DashboardComponent = StatsDashboard;
+      DashboardComponent = StatsDashboardLayout;
   }
-  console.log("DashboardComponent", DashboardComponent);
 
   ReactDOM.render(
     <DashboardComponent
-      community={community}
+      {...(community && { community })}
       dashboardConfig={config}
-      stats={testStats}
+      stats={testStatsData}
     />,
     domContainer
   );
 }
 
 // Export all components
-export * from './components';
-export * from './api';
-export * from './utils';
-export { CommunityStatsDashboardLayout, GlobalStatsDashboardLayout, StatsDashboard };
+export * from "./components";
+export * from "./api";
+export * from "./utils";
+export * from "./context";
+export {
+  CommunityStatsDashboardLayout,
+  GlobalStatsDashboardLayout,
+  StatsDashboardPage,
+  StatsDashboardLayout,
+  testStatsData,
+};

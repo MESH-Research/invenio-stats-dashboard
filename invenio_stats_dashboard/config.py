@@ -1,5 +1,7 @@
 """Configuration for Invenio Stats Dashboard."""
 
+from invenio_i18n import gettext as _
+
 STATS_DASHBOARD_TEMPLATES = {
     "macro": "invenio_stats_dashboard/macros/stats_dashboard_macro.html",
     "global": "invenio_stats_dashboard/stats_dashboard.html",
@@ -15,15 +17,29 @@ STATS_DASHBOARD_ROUTES = {
 
 STATS_DASHBOARD_UI_CONFIG = {
     "global": {
-        "title": "Statistics Dashboard",
-        "description": "This is the global stats dashboard.",
+        "title": _("Statistics"),
+        "description": _("This is the global stats dashboard."),
         "maxHistoryYears": 15,
+        "default_granularity": "day",
+        "show_title": True,
+        "show_description": False,
     },
     "community": {
-        "title": "Community Statistics Dashboard",
-        "description": "This is the community stats dashboard.",
+        "title": _("Statistics"),
+        "description": _("This is the community stats dashboard."),
         "maxHistoryYears": 15,
+        "default_granularity": "day",
+        "show_title": True,
+        "show_description": False,
     },
+}
+
+STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
+    "day": "30days",
+    "week": "1week",
+    "month": "1month",
+    "quarter": "currentQuarter",
+    "year": "currentYear",
 }
 
 STATS_DASHBOARD_LAYOUT = {
@@ -31,38 +47,126 @@ STATS_DASHBOARD_LAYOUT = {
         "tabs": [
             {
                 "name": "content",
-                "label": "Content",
+                "label": _("Content"),
+                "icon": "chart pie",
                 "rows": [
                     {
-                        "name": "date-range-selector",
+                        "name": "single-stats",
                         "components": [
                             {
-                                "component": "DateRangeSelector",
-                                "width": 16,
+                                "component": "SingleStatRecordCountCumulative",
+                                "width": 5,
+                                "props": {"title": "Total Records", "icon": "file"},
+                            },
+                            {
+                                "component": "SingleStatUploadersCumulative",
+                                "width": 6,
+                                "props": {"title": "Total Uploaders", "icon": "users"},
+                            },
+                            {
+                                "component": "SingleStatDataVolumeCumulative",
+                                "width": 5,
                                 "props": {
-                                    "maxHistoryYears": 15,
-                                    "defaultRange": "last30days",
+                                    "title": "Total Data Volume",
+                                    "icon": "database",
                                 },
                             },
                         ],
                     },
+                    {
+                        "name": "charts",
+                        "components": [
+                            {
+                                "component": "ContentStatsChartCumulative",
+                                "width": 16,
+                                "props": {
+                                    "height": 300,
+                                    "title": "Cumulative Content Totals Over Time",
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        "name": "tables",
+                        "components": [
+                            {
+                                "component": "ResourceTypesMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Work Types",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                },
+                            },
+                            {
+                                "component": "AccessRightsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Access Rights",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                },
+                            },
+                            {
+                                "component": "LicensesMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Licenses",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "AffiliationsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Affiliations",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "FundersMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Funders",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "name": "contributions",
+                "label": _("Contributions"),
+                "icon": "users",
+                "rows": [
                     {
                         "name": "single-stats",
                         "components": [
                             {
                                 "component": "SingleStatRecordCount",
                                 "width": 5,
-                                "props": {"title": "Total Records", "icon": "file"},
+                                "props": {"title": "New Records", "icon": "file"},
                             },
                             {
                                 "component": "SingleStatUploaders",
                                 "width": 6,
-                                "props": {"title": "Total Uploaders", "icon": "users"},
+                                "props": {"title": "Active Uploaders", "icon": "users"},
                             },
                             {
                                 "component": "SingleStatDataVolume",
                                 "width": 5,
-                                "props": {"title": "Data Volume", "icon": "database"},
+                                "props": {
+                                    "title": "New Data Uploaded",
+                                    "icon": "database",
+                                },
                             },
                         ],
                     },
@@ -72,37 +176,7 @@ STATS_DASHBOARD_LAYOUT = {
                             {
                                 "component": "ContentStatsChart",
                                 "width": 16,
-                                "props": {"title": "Content Statistics", "height": 400},
-                            },
-                        ],
-                    },
-                    {
-                        "name": "tables",
-                        "components": [
-                            {
-                                "component": "ResourceTypesTable",
-                                "width": 8,
-                                "props": {"title": "Resource Types", "pageSize": 10},
-                            },
-                            {
-                                "component": "AccessRightsTable",
-                                "width": 8,
-                                "props": {"title": "Access Rights", "pageSize": 10},
-                            },
-                            {
-                                "component": "LicensesTable",
-                                "width": 8,
-                                "props": {"title": "Licenses", "pageSize": 10},
-                            },
-                            {
-                                "component": "AffiliationsTable",
-                                "width": 8,
-                                "props": {"title": "Affiliations", "pageSize": 10},
-                            },
-                            {
-                                "component": "FundersTable",
-                                "width": 8,
-                                "props": {"title": "Funders", "pageSize": 10},
+                                "props": {"height": 300},
                             },
                         ],
                     },
@@ -110,21 +184,9 @@ STATS_DASHBOARD_LAYOUT = {
             },
             {
                 "name": "traffic",
-                "label": "Traffic",
+                "label": _("Traffic"),
+                "icon": "world",
                 "rows": [
-                    {
-                        "name": "date-range-selector",
-                        "components": [
-                            {
-                                "component": "DateRangeSelector",
-                                "width": 16,
-                                "props": {
-                                    "maxHistoryYears": 15,
-                                    "defaultRange": "last30days",
-                                },
-                            },
-                        ],
-                    },
                     {
                         "name": "single-stats",
                         "components": [
@@ -155,9 +217,12 @@ STATS_DASHBOARD_LAYOUT = {
                         "name": "charts",
                         "components": [
                             {
-                                "component": "TrafficStatsChart",
+                                "component": "TrafficStatsChartCumulative",
                                 "width": 16,
-                                "props": {"title": "Traffic Statistics", "height": 400},
+                                "props": {
+                                    "height": 300,
+                                    "title": "Cumulative Traffic Totals Over Time",
+                                },
                             },
                         ],
                     },
@@ -165,32 +230,23 @@ STATS_DASHBOARD_LAYOUT = {
                         "name": "tables",
                         "components": [
                             {
-                                "component": "MostDownloadedRecordsTable",
+                                "component": "TopCountriesMultiDisplay",
                                 "width": 8,
                                 "props": {
-                                    "title": "Most Downloaded Records",
-                                    "pageSize": 10,
+                                    "title": "Top Countries",
+                                    "pageSize": 6,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
                                 },
                             },
                             {
-                                "component": "MostViewedRecordsTable",
-                                "width": 8,
-                                "props": {
-                                    "title": "Most Viewed Records",
-                                    "pageSize": 10,
-                                },
-                            },
-                            {
-                                "component": "TopCountriesTable",
-                                "width": 8,
-                                "props": {"title": "Top Countries", "pageSize": 10},
-                            },
-                            {
-                                "component": "TopReferrerDomainsTable",
+                                "component": "TopReferrerDomainsMultiDisplay",
                                 "width": 8,
                                 "props": {
                                     "title": "Top Referrer Domains",
-                                    "pageSize": 10,
+                                    "pageSize": 6,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
                                 },
                             },
                         ],
@@ -202,9 +258,80 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "StatsMap",
                                 "width": 16,
                                 "props": {
-                                    "title": "World Map of Site Visits",
-                                    "height": 500,
+                                    "title": "Top Countries by Visits",
+                                    "height": 400,
                                     "minHeight": 400,
+                                    "zoom": 1.3,
+                                    "center": [0, 20],
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "name": "usage",
+                "label": _("Usage"),
+                "icon": "download",
+                "rows": [
+                    {
+                        "name": "single-stats",
+                        "components": [
+                            {
+                                "component": "SingleStatViews",
+                                "width": 5,
+                                "props": {"title": "Record Views", "icon": "eye"},
+                            },
+                            {
+                                "component": "SingleStatDownloads",
+                                "width": 6,
+                                "props": {
+                                    "title": "Record Downloads",
+                                    "icon": "download",
+                                },
+                            },
+                            {
+                                "component": "SingleStatTraffic",
+                                "width": 5,
+                                "props": {
+                                    "title": "Data Downloaded",
+                                    "icon": "chart line",
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        "name": "charts",
+                        "components": [
+                            {
+                                "component": "TrafficStatsChart",
+                                "width": 16,
+                                "props": {
+                                    "height": 300,
+                                    "title": "Usage Over Time",
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        "name": "tables",
+                        "components": [
+                            {
+                                "component": "MostDownloadedRecordsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Most Downloaded Works",
+                                    "pageSize": 6,
+                                    "available_views": ["list"],
+                                },
+                            },
+                            {
+                                "component": "MostViewedRecordsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Most Viewed Works",
+                                    "pageSize": 6,
+                                    "available_views": ["list"],
                                 },
                             },
                         ],

@@ -21,10 +21,13 @@ def global_stats_dashboard():
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["global"],
         dashboard_config={
             "display_binary_sizes": not current_app.config.get(
-                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", False
+                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
             ),
             "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global"],
             "dashboard_type": "global",
+            "default_range_options": current_app.config[
+                "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
+            ],
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -41,7 +44,7 @@ def community_stats_dashboard(pid_value, community, community_ui):
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
         dashboard_config={
             "display_binary_sizes": not current_app.config.get(
-                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", False
+                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
             ),
             "layout": (
                 current_app.config["STATS_DASHBOARD_LAYOUT"].get(
@@ -50,6 +53,9 @@ def community_stats_dashboard(pid_value, community, community_ui):
                 )
             ),
             "dashboard_type": "community",
+            "default_range_options": current_app.config[
+                "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
+            ],
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
         },
         community=community_ui,

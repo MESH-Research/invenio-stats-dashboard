@@ -1,4 +1,130 @@
-.stats-dashboard {
+#stats-dashboard {
+  .button {
+    &.green {
+      background-color: #1C4036 !important;
+      color: #fff !important;
+    }
+
+    &.teal {
+      background-color: #669999 !important; // #547d7d
+      color: #fff !important;
+    }
+
+    &.purple {
+      background-color: #581c87 !important;
+      color: #fff !important;
+    }
+
+    &.olive {
+      background-color: #6c7839 !important;
+      color: #fff !important;
+    }
+
+    &.yellow {
+      background-color: #b29017 !important;
+      color: #fff !important;
+    }
+
+    &.teal {
+      background-color: #276f86 !important;
+      color: #fff !important;
+    }
+
+    &.red {
+      background-color: #b54f1e !important;
+      color: #fff !important;
+    }
+  }
+
+  .communities-detail-body {
+    .top.attached.header {
+      padding-left: 1.65rem;
+      & > .icon {
+        color: #547d7d;
+        font-size: 1.5rem;
+        position: absolute;
+        top: 1.65rem;
+        left: 0;
+      }
+      &.stats-multi-display-header {
+        .button {
+          float: right;
+          position: relative;
+          padding: 0.685rem 0.685rem;
+          top: -0.35rem;
+          color: #547d7d !important;
+          border: 1px solid #DEEEEA;
+          box-shadow: none;
+          &.active {
+            background-color: #eff6f4 !important;
+            color: #1C4036 !important;
+          }
+        }
+      }
+    }
+  }
+
+  .stats-dashboard-sidebar {
+    .segment {
+      background-color: #eff6f4;
+      padding: 1rem;
+      border: 1px solid #DEEEEA;
+      box-shadow: none;
+      label {
+        color: #547d7d;
+      }
+      .ui.button.fluid.labeled.icon {
+        padding-left: 1rem !important;
+        text-align: left;
+      }
+      .button {
+        background-color: transparent;
+      }
+    }
+    .ui.menu {
+      box-shadow: none;
+      border: none;
+      .item {
+        // background-color: transparent;
+        // border-left: 2px solid #547d7d;
+        // color: rgba(0, 0, 0, 0.87) !important;
+        // border-radius: 0;
+        // &.active {
+        //   background-color: #547d7d !important;
+        //   color: #fff !important;
+        // }
+        .icon {
+          float: right;
+        }
+      }
+    }
+  }
+  label.stats-dashboard-field-label {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  .buttons.separated {
+    .button {
+        border-radius: 0.25rem;
+    }
+    &.vertical {
+      .button {
+        margin-bottom: 0.5rem;
+        &:last-child {
+          margin-right: 0;
+        }
+      }
+    }
+    &:not(.vertical) {
+      .button {
+        margin-right: 0.5rem;
+        &:last-child {
+          margin-right: 0;
+        }
+      }
+    }
+  }
   .stats-dashboard-controls {
     display: flex;
     align-items: center;
@@ -8,135 +134,5 @@
     background: #f8f9fa;
     border-radius: 4px;
 
-    .stats-date-range-picker {
-      flex: 1;
-      max-width: 600px;
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-
-      .react-aria-DateRangePicker {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        width: 100%;
-
-        .react-aria-Label {
-          font-weight: 500;
-          color: #333;
-          margin-bottom: 0.5rem;
-        }
-
-        .react-aria-Group {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          width: 100%;
-
-          .react-aria-DateInput {
-            flex: 1;
-            display: flex;
-            gap: 0.25rem;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background: white;
-
-            .react-aria-DateSegment {
-              padding: 0 0.125rem;
-              color: #333;
-              font-size: 14px;
-              border: none;
-              background: none;
-              min-width: 1.5rem;
-              text-align: center;
-
-              &[data-placeholder] {
-                color: #999;
-              }
-
-              &:focus {
-                outline: none;
-                color: #2185d0;
-                background: #f0f0f0;
-                border-radius: 2px;
-              }
-            }
-          }
-
-          .react-aria-Button {
-            padding: 0.5rem;
-            background: none;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #666;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            &:hover {
-              background: #f0f0f0;
-            }
-
-            &:focus-visible {
-              outline: 2px solid #2185d0;
-              outline-offset: 2px;
-            }
-          }
-        }
-
-        .react-aria-Popover {
-          background: white;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          margin-top: 0.5rem;
-          z-index: 1000;
-
-          .react-aria-Dialog {
-            padding: 1rem;
-            outline: none;
-
-            .react-aria-RangeCalendar {
-              .react-aria-CalendarGrid {
-                display: grid;
-                grid-template-columns: repeat(7, 1fr);
-                gap: 0.25rem;
-
-                .react-aria-CalendarCell {
-                  padding: 0.5rem;
-                  text-align: center;
-                  border-radius: 4px;
-                  cursor: pointer;
-
-                  &:hover {
-                    background: #f0f0f0;
-                  }
-
-                  &[data-selected] {
-                    background: #2185d0;
-                    color: white;
-                  }
-
-                  &[data-disabled] {
-                    color: #999;
-                    cursor: not-allowed;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .ui.button {
-      &.active {
-        background-color: #2185d0;
-        color: white;
-      }
-    }
   }
 }

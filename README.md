@@ -145,14 +145,24 @@ STATS_DASHBOARD_CONFIG = {
         "title": "Statistics Dashboard",
         "description": "This is the global stats dashboard.",
         "maxHistoryYears": 15,
+        "show_title": True,
+        "show_description": False,
     },
     "community": {
         "title": "Community Statistics Dashboard",
         "description": "This is the community stats dashboard.",
         "maxHistoryYears": 15,
+        "show_title": True,
+        "show_description": False,
     },
 }
 ```
+
+#### Title and description display
+
+The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.
+
+The `show_title` and `show_description` options can be used to control whether the title and description are displayed for the global and community dashboards.
 
 ## Statistics
 

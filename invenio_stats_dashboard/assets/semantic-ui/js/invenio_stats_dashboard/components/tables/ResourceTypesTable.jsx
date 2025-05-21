@@ -1,37 +1,35 @@
-import React from "react";
-import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { StatsTable } from "../shared_components/StatsTable";
-import { PropTypes } from "prop-types";
+const getChartOption = () => {
+  const chartData = rows.map(([_, label, count, id]) => ({
+    name: label,
+    value: parseInt(count.replace(/,/g, '')),
+    id: id
+  }));
 
-const ResourceTypesTable = ({ title = i18next.t("Content by Resource Type"), icon: labelIcon = "file", headers = [i18next.t("Resource Type"), i18next.t("Records")], rows = [
-  ["file", "Journal Article", "25,432", "publication-article"],
-  ["file", "Dataset", "15,321", "dataset"],
-  ["file", "Conference Paper", "12,210", "publication-conferencepaper"],
-  ["file", "Book Chapter", "8,109", "publication-chapter"],
-  ["file", "Software", "5,098", "software"]
-] }) => {
-  const rowsWithLinks = rows.map(([icon, label, count, id]) => [
-    icon,
-    <a href={`/search?q=metadata.resource_type.id:${id}`} target="_blank" rel="noopener noreferrer">{label}</a>,
-    count
-  ]);
-
-  return (
-    <StatsTable
-      label="resource-types"
-      headers={headers}
-      rows={rowsWithLinks}
-      title={i18next.t("Content by Resource Type")}
-      labelIcon={labelIcon}
-    />
-  );
+  return {
+    grid: {
+      top: '10%',
+      right: '5%',
+      bottom: '10%',
+      left: '5%',
+      containLabel: true
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)'
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: '50%',
+        data: chartData,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  };
 };
-
-ResourceTypesTable.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  headers: PropTypes.array,
-  rows: PropTypes.array,
-};
-
-export { ResourceTypesTable };

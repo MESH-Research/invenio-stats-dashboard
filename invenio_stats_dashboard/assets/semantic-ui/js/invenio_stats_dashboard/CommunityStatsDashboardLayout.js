@@ -1,68 +1,131 @@
 /**
- * Community stats dashboard layout
- *
  * Part of Invenio-Stats-Dashboard
  * Copyright (C) 2025 Mesh Research
  *
  * Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
  * it under the terms of the MIT License; see LICENSE file for more details.
  */
+
 import React, { useState } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Button, ButtonGroup, Grid, Header, Transition } from "semantic-ui-react";
-import { StatsDashboard } from "./StatsDashboard";
+import {
+  Container,
+  Grid,
+  Icon,
+  Menu,
+  Transition,
+} from "semantic-ui-react";
+import { StatsDashboardPage } from "./StatsDashboardPage";
+import { DateRangeSelector } from "./components/controls/DateRangeSelector";
+import { GranularitySelector } from "./components/controls/GranularitySelector";
+import { ReportSelector } from "./components/controls/ReportSelector";
+import { StatsDashboardProvider } from "./context/StatsDashboardContext";
 import PropTypes from "prop-types";
 
 /**
  * Community stats dashboard layout
  */
 const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) => {
-  const [selectedTab, setSelectedTab] = useState("content");
+  const availableTabs = dashboardConfig?.layout?.tabs?.map(tab => ({
+    name: tab.name,
+    label: i18next.t(tab.label),
+    icon: tab.icon,
+  }));
+  const [selectedTab, setSelectedTab] = useState(availableTabs[0].name);
+  const showTitle = ["true", "True", "TRUE", "1", true].includes(
+    dashboardConfig?.show_title
+  );
+  const showDescription = ["true", "True", "TRUE", "1", true].includes(
+    dashboardConfig?.show_description
+  );
+  const maxHistoryYears = dashboardConfig?.max_history_years || 15;
+  const binary_sizes = dashboardConfig?.display_binary_sizes || false;
+  const [dateRange, setDateRange] = useState();
+  console.log("dateRange", dateRange);
+  const [granularity, setGranularity] = useState(
+    dashboardConfig?.default_granularity || "day"
+  );
 
-  const handleTabChange = (e, { value }) => {
-    setSelectedTab(value);
+  const handleTabChange = (e, { name }) => {
+    setSelectedTab(name);
   };
 
+  const contextValue = {
+    dateRange,
+    setDateRange,
+    stats,
+    maxHistoryYears,
+    binary_sizes,
+    community,
+    granularity,
+    setGranularity,
+  };
   return (
-    <Grid id="communities-detail-stats-dashboard" class={`communities-detail-body rel-m-2 ${community.slug}`}>
-      <Grid.Row>
-        <Grid.Column width={3} className="communities-detail-left-sidebar">
-          <Header as="h2" className="stats-dashboard-header">
-            {dashboardConfig.title || i18next.t("Community Statistics")}
-          </Header>
-          <ButtonGroup vertical>
-            <Button value="content" onClick={handleTabChange} active={selectedTab === "content"}>
-              {i18next.t("Content")}
-            </Button>
-            <Button value="traffic" onClick={handleTabChange} active={selectedTab === "traffic"}>
-              {i18next.t("Traffic")}
-            </Button>
-          </ButtonGroup>
-        </Grid.Column>
-        <Grid.Column width={13} className="communities-detail-body communities-detail-stats">
-          <Transition.Group animation="fade" duration={{ show: 1000, hide: 20 }}>
-            {selectedTab === "content" && (
-              <StatsDashboard
-                community={community}
-                dashboardConfig={dashboardConfig}
-                stats={stats}
-                variant={"content"}
-                key="content"
-              />
+    <StatsDashboardProvider value={contextValue}>
+      <Container
+        className={`grid communities-stats ${community.slug} rel-m-2`}
+        id="communities-detail-stats-dashboard"
+      >
+        <Grid.Row>
+          <Grid.Column computer={3} tablet={16} mobile={16} className="communities-detail-left-sidebar stats-dashboard-sidebar rel-mt-2">
+            {showTitle && (
+              <h2 className="stats-dashboard-header tablet computer widescreen large-monitor only">
+                {dashboardConfig.title || i18next.t("Statistics")}
+              </h2>
             )}
-            {selectedTab === "traffic" && (
-              <StatsDashboard
-                community={community}
-                dashboardConfig={dashboardConfig}
-                stats={stats}
-                variant={"traffic"}
-                key="traffic"
-              />
+            <Menu
+              fluid
+              vertical
+              className="stats-dashboard-sidebar-menu rel-mt-2 rel-mb-2 theme-primary-menu horizontal tablet horizontal mobile"
+            >
+              {availableTabs.map(tab => (
+                <Menu.Item
+                  key={tab.name}
+                  name={tab.name}
+                  onClick={handleTabChange}
+                  active={selectedTab === tab.name}
+                >
+                  <Icon name={tab.icon} />
+                  {tab.label}
+                </Menu.Item>
+              ))}
+            </Menu>
+            {showDescription && (
+              <p class="ui description">{dashboardConfig?.description || ""}</p>
             )}
-          </Transition.Group>
-        </Grid.Column>
-      </Grid.Row>
-    </Grid>
+            <DateRangeSelector
+              dateRange={dateRange}
+              defaultRangeOptions={dashboardConfig?.default_range_options}
+              granularity={granularity}
+              maxHistoryYears={maxHistoryYears}
+              setDateRange={setDateRange}
+            />
+            <GranularitySelector
+              defaultGranularity={dashboardConfig?.default_granularity}
+              granularity={granularity}
+              setGranularity={setGranularity}
+            />
+            <ReportSelector />
+          </Grid.Column>
+          <Grid.Column
+            width={13}
+            className="communities-detail-body communities-detail-stats"
+          >
+            <Transition.Group animation="fade" duration={{ show: 1000, hide: 20 }}>
+              {selectedTab && (
+                <StatsDashboardPage
+                  community={community}
+                  dashboardConfig={dashboardConfig}
+                  stats={stats}
+                  variant={selectedTab}
+                  key={selectedTab}
+                />
+              )}
+            </Transition.Group>
+          </Grid.Column>
+        </Grid.Row>
+      </Container>
+    </StatsDashboardProvider>
   );
 };
 

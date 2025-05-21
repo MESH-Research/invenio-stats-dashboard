@@ -1,6 +1,5 @@
 import React from "react";
-import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Table, Header, Segment, Icon } from "semantic-ui-react";
+import { Table, Icon } from "semantic-ui-react";
 import { PropTypes } from "prop-types";
 
 /**
@@ -14,64 +13,53 @@ import { PropTypes } from "prop-types";
  * @param {string} label - Optional label for class names. If not provided, will be derived from title
  * @returns {React.ReactElement} - The StatsTable component.
  */
-const StatsTable = ({ headers = [], rows = [], title, label, labelIcon }) => {
-  const tableLabel = label || (title ? title.toLowerCase().replace(/\s+/g, '-') : 'stats');
-
+const StatsTable = ({ headers = [], rows = [], title, label }) => {
   return (
-    <div className={`stats-table-container ${tableLabel}-stats-table-container`} role="region" aria-label={title}>
-      {title && (
-        <Header as="h3" className="stats-table-header" id={`${tableLabel}-stats-table-header`} attached="top">
-          {title}
-        </Header>
-      )}
-      <Segment attached>
-        <Table
-          id={`${tableLabel}-stats-table`}
-          aria-labelledby={`${tableLabel}-stats-table-header`}
-          basic="very"
-          compact
-          unstackable
-        >
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell scope="col" />  {/* Icon column */}
-              {headers.map((header, index) => (
-                <Table.HeaderCell key={index} scope="col">
-                  {labelIcon && (
-                    <Icon
-                      name={labelIcon}
-                      className="stats-table-icon"
-                      aria-hidden="true"
-                    />
-                  )}
-                  {header}
-                </Table.HeaderCell>
-              ))}
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map(([iconName, ...values], rowIndex) => (
-              <Table.Row key={rowIndex}>
-                <Table.Cell>
-                  {iconName && (
-                    <Icon
-                      name={iconName}
-                      className="stats-table-icon"
-                      aria-hidden="true"
-                    />
-                  )}
-                </Table.Cell>
-                {values.map((value, cellIndex) => (
-                  <Table.Cell key={cellIndex}>
-                    {value}
-                  </Table.Cell>
-                ))}
-              </Table.Row>
+    <Table
+      id={`${label}-stats-table`}
+      aria-labelledby={`${label}-stats-table-header`}
+      basic="very"
+      compact
+      unstackable
+    >
+      <Table.Header>
+        <Table.Row>
+          {/* Icon column */}
+          <Table.HeaderCell
+            scope="col"
+            className="stats-table-header-cell collapsing pr-0"
+          />
+          {headers.map((header, index) => (
+            <Table.HeaderCell
+              key={index}
+              scope="col"
+              className="stats-table-header-cell"
+            >
+              {header}
+            </Table.HeaderCell>
+          ))}
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {rows.map(([iconName, ...values], rowIndex) => (
+          <Table.Row key={rowIndex}>
+            <Table.Cell collapsing className="stats-table-icon-cell pr-0">
+              {iconName && (
+                <Icon
+                  name={iconName}
+                  className="stats-table-icon"
+                  aria-hidden="true"
+                  size="small"
+                />
+              )}
+            </Table.Cell>
+            {values.map((value, cellIndex) => (
+              <Table.Cell key={cellIndex}>{value}</Table.Cell>
             ))}
-          </Table.Body>
-        </Table>
-      </Segment>
-    </div>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
   );
 };
 
