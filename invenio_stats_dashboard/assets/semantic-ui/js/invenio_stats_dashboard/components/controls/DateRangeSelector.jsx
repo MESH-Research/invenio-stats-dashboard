@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import PropTypes from "prop-types";
-import { Dropdown, Button, Popup, Card, Form, Segment } from "semantic-ui-react";
+import { Dropdown, Button, Popup, Card, Form, Select, Segment } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { today, getLocalTimeZone } from "@internationalized/date";
 
-const getDateRange = (todayDate, period) => {
+const getDateRange = (todayDate, period, maxHistoryYears) => {
   let startDate = todayDate.subtract({ days: 30 });
   let endDate = todayDate;
   const currentMonth = todayDate.month;
@@ -58,6 +58,9 @@ const getDateRange = (todayDate, period) => {
     case "6months":
       startDate = todayDate.subtract({ months: 6 });
       break;
+    case "12months":
+      startDate = todayDate.subtract({ months: 12 });
+      break;
 
     // Quarter periods
     // The periods for 2 quarters, 3 quarters and 4 quarters include the current quarter
@@ -109,9 +112,15 @@ const getDateRange = (todayDate, period) => {
     case "4years":
       startDate = todayDate.subtract({ years: 4 }).set({ month: 1, day: 1 });
       break;
+    case "5years":
+      startDate = todayDate.subtract({ years: 5 }).set({ month: 1, day: 1 });
+      break;
 
     default:
       startDate = todayDate.subtract({ days: 30 });
+  }
+  if (maxHistoryYears && startDate < todayDate.subtract({ years: maxHistoryYears }) ) {
+    startDate = todayDate.subtract({ years: maxHistoryYears }).set({ month: 1, day: 1 });
   }
 
   return { start: startDate, end: endDate };
@@ -119,11 +128,11 @@ const getDateRange = (todayDate, period) => {
 
 const getCurrentPeriod = (dateRange, granularity) => {
   const todayDate = today(getLocalTimeZone());
-  const diff = todayDate.subtract(dateRange.start);
-  const startMonth = dateRange.start.month;
-  const startDay = dateRange.start.day;
-  const endMonth = dateRange.end.month;
-  const endDay = dateRange.end.day;
+  const diff = todayDate.subtract(dateRange?.start);
+  const startMonth = dateRange?.start?.month;
+  const startDay = dateRange?.start?.day;
+  const endMonth = dateRange?.end?.month;
+  const endDay = dateRange?.end?.day;
 
   switch (granularity) {
     case "day":
@@ -184,6 +193,7 @@ const getCurrentPeriod = (dateRange, granularity) => {
           if (diff.years === 2) return "2years";
           if (diff.years === 3) return "3years";
           if (diff.years === 4) return "4years";
+          if (diff.years === 5) return "5years";
         }
       }
       break;
@@ -227,7 +237,7 @@ const monthPeriodOptions = [
   { key: "1month", text: i18next.t("Past 1 month"), value: "1month" },
   { key: "3months", text: i18next.t("Past 3 months"), value: "3months" },
   { key: "6months", text: i18next.t("Past 6 months"), value: "6months" },
-  { key: "1year", text: i18next.t("Past year"), value: "1year" },
+  { key: "12months", text: i18next.t("Past year"), value: "12months" },
 ];
 
 const quarterPeriodOptions = [
@@ -252,6 +262,7 @@ const yearPeriodOptions = [
   { key: "2years", text: i18next.t("Past 2 years"), value: "2years" },
   { key: "3years", text: i18next.t("Past 3 years"), value: "3years" },
   { key: "4years", text: i18next.t("Past 4 years"), value: "4years" },
+  { key: "5years", text: i18next.t("Past 5 years"), value: "5years" },
 ];
 
 const periodOptions = {
@@ -271,59 +282,96 @@ const DateRangeSelector = ({
 }) => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
   const todayDate = today(getLocalTimeZone());
   const currentPeriodOptions = periodOptions[granularity];
-  console.log(dateRange);
-  console.log(defaultRangeOptions);
-  console.log(granularity);
-  console.log(todayDate);
-  console.log(currentPeriodOptions);
-  console.log(isOpen);
+  const [currentSelectedOption, setCurrentSelectedOption] = useState(dateRange ? getCurrentPeriod(dateRange, granularity) : currentPeriodOptions[0].value);
+  console.log("dateRange", dateRange);
+  console.log("defaultRangeOptions", defaultRangeOptions);
+  console.log("granularity", granularity);
+  console.log("todayDate", todayDate);
+  console.log("currentPeriodOptions", currentPeriodOptions);
+  console.log("currentSelectedOption", currentSelectedOption);
 
   useEffect(() => {
+    console.log("first render");
     if (!dateRange) {
       const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
-      const initialDateRange = getDateRange(todayDate, defaultPeriod);
+      const initialDateRange = getDateRange(todayDate, defaultPeriod, maxHistoryYears);
       setDateRange(initialDateRange);
+      setCurrentSelectedOption(defaultPeriod);
       console.log(dateRange);
     }
-  }, [dateRange, defaultRangeOptions, granularity, setDateRange, todayDate]);
+  }, []);
+
+  useEffect(() => {
+    console.log("granularity changed");
+    console.log(granularity);
+    const newDefaultPeriod = defaultRangeOptions?.[granularity];
+    console.log("newDefaultPeriod", newDefaultPeriod);
+    setCurrentSelectedOption(newDefaultPeriod);
+    const newDateRange = getDateRange(todayDate, newDefaultPeriod, maxHistoryYears);
+    console.log("newDateRange", newDateRange);
+    setDateRange(newDateRange);
+  }, [granularity]);
 
   const handlePeriodChange = (e, { value }) => {
     console.log("setting date range");
     console.log(value);
-    const newDateRange = getDateRange(todayDate, value);
+    setCurrentSelectedOption(value);
+    const newDateRange = getDateRange(todayDate, value, maxHistoryYears);
+    console.log(newDateRange);
     setDateRange(newDateRange);
     setIsOpen(false);
   };
 
-  const handleCustomRangeChange = (startDate, endDate) => {
-    setDateRange({ start: startDate, end: endDate });
-    setIsPopupOpen(false);
-  };
+  // const handleCustomRangeChange = (startDate, endDate) => {
+  //   setDateRange({ start: startDate, end: endDate });
+  //   setIsPopupOpen(false);
+  // };
 
   return (
     <Segment className="date-range-selector" style={{ position: 'relative', zIndex: 1000 }}>
+      <label id="date-range-selector-label" className="stats-dashboard-field-label" htmlFor="date-range-selector">{i18next.t("for the")}</label>
       <Dropdown
         id="date-range-selector"
-        fluid
         selection
+        fluid
         options={currentPeriodOptions}
-        value={
-          dateRange
-            ? getCurrentPeriod(dateRange, granularity)
-            : defaultRangeOptions?.[granularity] || "30days"
-        }
+        value={currentSelectedOption}
         onChange={handlePeriodChange}
         className="period-selector"
+        closeOnBlur={true}
+        closeOnChange={false}
+        selectOnBlur={true}
         open={isOpen}
         onOpen={() => setIsOpen(true)}
-        onClose={() => setIsOpen(false)}
-        selectOnBlur={false}
-        closeOnBlur={true}
-        closeOnChange={true}
+        onClose={() => {
+          console.log("closing");
+          setIsOpen(false);
+
+          // Clear menu styles after a delay
+          setTimeout(() => {
+            const menuElement = document.querySelector('.period-selector .menu');
+            if (menuElement) {
+              menuElement.style = '';
+            }
+          }, 100);
+        }}
+        onBlur={() => {
+          console.log("blur");
+
+          // Clear menu styles after a delay
+          setTimeout(() => {
+            const menuElement = document.querySelector('.period-selector .menu');
+            if (menuElement) {
+              menuElement.style = '';
+            }
+          }, 100);
+        }}
+        ref={menuRef}
       />
-      <Popup
+      {/* <Popup
         content={
           <Card>
             <Card.Content>
@@ -371,7 +419,7 @@ const DateRangeSelector = ({
             className="custom-range-button mt-10"
           />
         }
-      />
+      /> */}
     </Segment>
   );
 };

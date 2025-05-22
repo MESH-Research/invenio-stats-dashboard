@@ -4,7 +4,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from '../shared_components/StatsMultiDisplay';
 import { formatNumber } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { SERIES_COLORS } from '../../constants';
+import { CHART_COLORS } from '../../constants';
 
 const MostViewedRecordsMultiDisplay = ({
   title = i18next.t("Most Viewed Works"),
@@ -21,7 +21,7 @@ const MostViewedRecordsMultiDisplay = ({
     percentage: record.percentage,
     link: `/records/${record.id}`,
     itemStyle: {
-      color: SERIES_COLORS[index % SERIES_COLORS.length][1]
+      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][0]
     }
   })) || [];
 
@@ -37,7 +37,7 @@ const MostViewedRecordsMultiDisplay = ({
     percentage: 0,
     link: null,
     itemStyle: {
-      color: SERIES_COLORS[7][1] // Use grey color for "Other"
+      color: CHART_COLORS.secondary[7][0] // Use grey color for "Other"
     }
   }) : null;
 

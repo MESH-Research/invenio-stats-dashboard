@@ -18,7 +18,7 @@ const TopCountriesMultiDisplay = ({
   const { stats, dateRange } = useStatsDashboard();
 
   // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.countries?.slice(0, pageSize).map((country, index) => ({
+  const transformedData = stats.topCountries?.slice(0, pageSize).map((country, index) => ({
     name: country.name,
     value: country.count,
     percentage: country.percentage,
@@ -28,7 +28,7 @@ const TopCountriesMultiDisplay = ({
     }
   })) || [];
 
-  const remainingItems = stats.countries?.slice(pageSize) || [];
+  const remainingItems = stats.topCountries?.slice(pageSize) || [];
   const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, country) => {
     acc.value += country.count;
     acc.percentage += country.percentage;

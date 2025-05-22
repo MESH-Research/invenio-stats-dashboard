@@ -36,10 +36,10 @@ STATS_DASHBOARD_UI_CONFIG = {
 
 STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
     "day": "30days",
-    "week": "1week",
-    "month": "1month",
-    "quarter": "currentQuarter",
-    "year": "currentYear",
+    "week": "12weeks",
+    "month": "12months",
+    "quarter": "4quarters",
+    "year": "5years",
 }
 
 STATS_DASHBOARD_LAYOUT = {

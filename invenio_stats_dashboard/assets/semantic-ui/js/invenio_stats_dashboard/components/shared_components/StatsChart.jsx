@@ -5,6 +5,7 @@ import { Button, Container, Header, Segment } from 'semantic-ui-react';
 import ReactECharts from "echarts-for-react";
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { CHART_COLORS } from '../../constants';
+import { formatNumber } from '../../utils';
 
 // Define colors for different series
 const SERIES_COLORS = [
@@ -130,7 +131,7 @@ const StatsChart = ({
   showAxisLabels = true,
   showSeriesControls = true,
   gridConfig = {
-    left: "80px",  // Fixed width for y-axis label
+    left: "40px",  // Fixed width for y-axis label
     right: "40px", // Fixed width for right margin
     bottom: "10%",
     top: "10%",
@@ -201,17 +202,7 @@ const StatsChart = ({
       nameGap: 50,
       axisLabel: {
         formatter: function(value) {
-          // Format large numbers with K/M/B suffixes
-          if (value >= 1000000000) {
-            return (value / 1000000000).toFixed(1) + 'B';
-          }
-          if (value >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M';
-          }
-          if (value >= 1000) {
-            return (value / 1000).toFixed(1) + 'K';
-          }
-          return value;
+          return formatNumber(value, selectedSeries.name === 'New Data Volume' ? "filesize" : "compact");
         }
       }
     },
@@ -228,13 +219,13 @@ const StatsChart = ({
         focus: "series",
       },
       itemStyle: {
-        color: CHART_COLORS.primary[selectedSeriesIndex % CHART_COLORS.primary.length]
+        color: CHART_COLORS.secondary[selectedSeriesIndex % CHART_COLORS.secondary.length]
       },
       lineStyle: {
-        color: CHART_COLORS.primary[selectedSeriesIndex % CHART_COLORS.primary.length]
+        color: CHART_COLORS.secondary[selectedSeriesIndex % CHART_COLORS.secondary.length]
       },
       areaStyle: areaStyle ? {
-        color: CHART_COLORS.primary[selectedSeriesIndex % CHART_COLORS.primary.length],
+        color: CHART_COLORS.secondary[selectedSeriesIndex % CHART_COLORS.secondary.length],
         opacity: 0.3
       } : undefined
     })),
@@ -283,7 +274,7 @@ const StatsChart = ({
                       onClick={() => handleSeriesSelect(series.name)}
                       aria-pressed={selectedSeries === series.name}
                       {...(selectedSeries === series.name && {
-                        color: CHART_COLORS.primary[index % CHART_COLORS.primary.length],
+                        color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][0],
                       })}
                     >
                       {series.name}
