@@ -169,7 +169,7 @@ The `show_title` and `show_description` options can be used to control whether t
 We want to show the following statistics:
 
 - Number of records in collection
-  - Total at a given point of time (time series for histogram)
+  - Cumulative total at a given point of time (time series for histogram)
 - Number of new records added
   - Total during a given period (time series for histogram)
 - Number of record views
@@ -214,6 +214,219 @@ We want to show the following statistics:
 
 
 All record statistics should be presentable either for individual versions or for parents (all versions at once).
+
+Time series data is very expensive to compute for large collections or for an entire instance. This cost is magnified if we want to cross-reference multiple time-series. So we pre-generate aggregated daily totals in search indices. One document is generated for each community for each day. If an instance has 10000 communities, this means 10000 documents per day. If we want to store 10 years of data, this means 10000 * 365 * 10 = 36_500_000 documents. To ensure the indices remain a manageable size (even for very large instances), we use separate annual indices. These are then linked by a common alias to facilitate easy searching across all years.
+
+** visit counts for community landing page **
+
+## Search indices for statistics
+
+**Assume that STATS_REGISTER_INDEX_TEMPLATES is set to True.**
+
+### stats-community-contents-snapshot
+
+```json
+{
+  "timestamp": "2025-01-01",
+  "community_id": "123",
+  "period_start": "2025-01-01",
+  "period_end": "2025-01-01",
+  "record_count": 100,
+  "parent_count": 10,
+  "uploaders": 10,
+  "subcounts": {
+    "by_resource_type": [
+      {
+        "id": "textDocument-journalArticle",
+        "label": {"en": "Journal Article"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "by_access_right": [
+      {
+        "id": "open",
+        "label": {"en": "Open Access"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "by_language": [
+      {
+        "id": "en",
+        "label": {"en": "English"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "top_affiliations": [
+      {
+        "id": "University of California, Berkeley",
+        "label": {"en": "University of California, Berkeley"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "top_funders": [
+      {
+        "id": "National Science Foundation",
+        "label": {"en": "National Science Foundation"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "top_subjects": [
+      {
+        "id": "123",
+        "label": {"en": "Subject 1"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "top_publishers": [
+      {
+        "id": "University of California Press",
+        "label": {"en": "University of California Press"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "top_periodicals": [
+      {
+        "id": "123",
+        "label": {"en": "Periodical 1"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+  },
+}
+```
+
+### stats-community-contents-delta
+
+```json
+{
+  "timestamp": "2025-01-01",
+  "community_id": "123",
+  "records_added": 100,
+  "records_removed": 10,
+  "parents_added": 10,
+  "parents_removed": 10,
+  "uploaders": 10,
+  "subcounts": {
+    "by_resource_type": [
+      {
+        id: "textDocument-journalArticle",
+        records_added: 100,
+        records_removed: 10,
+        parents_added: 10,
+        parents_removed: 10,
+      },
+    ],
+    "by_access_right": [
+      {
+        id: "open",
+        label: {"en": "Open Access"},
+        records_added: 100,
+        records_removed: 10,
+        parents_added: 10,
+        parents_removed: 10,
+      },
+    ],
+    "by_language": [
+      {
+        id: "en",
+        label: {"en": "English"},
+        records_added: 100,
+        records_removed: 10,
+        parents_added: 10,
+        parents_removed: 10,
+      },
+    ],
+    "by_affiliation": [
+      {
+        id: "University of California, Berkeley",
+        records_added: 100,
+        records_removed: 10,
+        parents_added: 10,
+        parents_removed: 10,
+      },
+    ],
+    "by_funder": [
+      {
+        id: "National Science Foundation",
+        records_added: 100,
+        records_removed: 10,
+        parents_added: 10,
+        parents_removed: 10,
+      },
+    ],
+    "by_subject": [
+      {
+        "id": "123",
+        "label": {"en": "Subject 1"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "by_publisher": [
+      {
+        "id": "123",
+        "label": {"en": "Publisher 1"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ],
+    "by_periodical": [
+      {
+        "id": "123",
+        "label": {"en": "Periodical 1"},
+        "record_count": 100,
+        "parent_count": 10,
+      },
+    ]
+  },
+],
+},
+}
+```
+
+- stats_community_record_usage
+    - timestamp
+    - community_id
+    - period_record_views
+    - cumulative_record_views
+    - record_views
+    - parent_views
+    - record_views_to_date
+    - parent_views_to_date
+    - record_downloads
+    - record_downloads_to_date
+    - parent_downloads
+    - parent_downloads_to_date
+    - downloaded_data_volume
+    - downloaded_data_volume_to_date
+    - parent_downloaded_data_volume
+    - parent_downloaded_data_volume_to_date
+    - subcounts for
+        - metadata.resource_type.id
+        - metadata.access.???
+        - metadata.rights.id
+        - metadata.languages.id
+        - country
+        - referrer
+        - metadata.creators.[n].affiliations[n].name
+        - metadata.contributors.[n].affiliations[n].name
+        - metadata.funding.funder.id
+        - metadata.publisher
+        - metadata.subjects[n].id
+        - imprint:imprint.place
+        - journal:journal.title
+        - code:programmingLanguage[n]
+        - code:developmentStatus
+        - kcr:ai_usage.ai_used
+        - kcr:commons_domain
 
 
 ## Development

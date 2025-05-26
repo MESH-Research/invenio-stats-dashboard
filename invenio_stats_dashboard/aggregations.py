@@ -1,6 +1,134 @@
+from collections import defaultdict
+
 from invenio_search.proxies import current_search_client
 from opensearchpy import OpenSearch
-from collections import defaultdict
+from invenio_stats.aggregations import StatAggregator
+
+
+def register_aggregations():
+    return {
+        "community-records-snapshot-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_records_snapshot"
+            ),
+            "cls": CommunityRecordsSnapshotAggregator,
+            "params": {
+                "client": current_search_client,
+                "event": None,
+                "aggregation_field": None,
+                "aggregation_interval": "day",
+                "copy_fields": {
+                    "file_key": "file_key",
+                    "bucket_id": "bucket_id",
+                    "file_id": "file_id",
+                },
+            },
+        },
+        "community-records-delta-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_records_delta"
+            ),
+            "cls": CommunityRecordsDeltaAggregator,
+            "params": {
+                "client": current_search_client,
+                "event": "",
+                "aggregation_field": "unique_id",
+                "aggregation_interval": "day",
+                "copy_fields": {
+                    "file_key": "file_key",
+                    "bucket_id": "bucket_id",
+                    "file_id": "file_id",
+                },
+            },
+        },
+        "community-records-usage-snapshot-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_usage_snapshot"
+            ),
+            "cls": CommunityUsageSnapshotAggregator,
+            "params": {
+                "client": current_search_client,
+                "event": "",
+                "aggregation_field": "unique_id",
+                "aggregation_interval": "day",
+                "copy_fields": {
+                    "file_key": "file_key",
+                    "bucket_id": "bucket_id",
+                    "file_id": "file_id",
+                },
+            },
+        },
+        "community-records-usage-delta-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_usage_delta"
+            ),
+            "cls": CommunityUsageDeltaAggregator,
+            "params": {
+                "client": current_search_client,
+                "event": "",
+            },
+        },
+    }
+
+
+class CommunityRecordsSnapshotAggregator(StatAggregator):
+
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.event = None
+        self.aggregation_field = None
+        self.aggregation_interval = "day"
+        self.copy_fields = {
+            "file_key": "file_key",
+            "bucket_id": "bucket_id",
+            "file_id": "file_id",
+        }
+
+
+class CommunityRecordsDeltaAggregator(StatAggregator):
+
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.event = ""
+        self.aggregation_field = "unique_id"
+        self.aggregation_interval = "day"
+        self.copy_fields = {
+            "file_key": "file_key",
+            "bucket_id": "bucket_id",
+            "file_id": "file_id",
+        }
+
+
+class CommunityUsageSnapshotAggregator(StatAggregator):
+
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.event = ""
+        self.aggregation_field = "unique_id"
+        self.aggregation_interval = "day"
+        self.copy_fields = {
+            "file_key": "file_key",
+            "bucket_id": "bucket_id",
+            "file_id": "file_id",
+        }
+
+
+class CommunityUsageDeltaAggregator(StatAggregator):
+
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.event = ""
+        self.aggregation_field = "unique_id"
+        self.aggregation_interval = "day"
+        self.copy_fields = {
+            "file_key": "file_key",
+            "bucket_id": "bucket_id",
+            "file_id": "file_id",
+        }
 
 
 def get_records_created_for_periods(start_date, end_date, search_domain=None):

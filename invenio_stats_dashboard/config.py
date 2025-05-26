@@ -2,6 +2,17 @@
 
 from invenio_i18n import gettext as _
 
+from .aggregations import register_aggregations
+from .tasks import CommunityStatsAggregationTask
+
+COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+    "stats-aggregate-community-record-stats": {
+        **CommunityStatsAggregationTask,
+    },
+}
+
+COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
+
 STATS_DASHBOARD_TEMPLATES = {
     "macro": "invenio_stats_dashboard/macros/stats_dashboard_macro.html",
     "global": "invenio_stats_dashboard/stats_dashboard.html",
@@ -20,7 +31,7 @@ STATS_DASHBOARD_UI_CONFIG = {
         "title": _("Statistics"),
         "description": _("This is the global stats dashboard."),
         "maxHistoryYears": 15,
-        "default_granularity": "day",
+        "default_granularity": "month",
         "show_title": True,
         "show_description": False,
     },
@@ -28,7 +39,7 @@ STATS_DASHBOARD_UI_CONFIG = {
         "title": _("Statistics"),
         "description": _("This is the community stats dashboard."),
         "maxHistoryYears": 15,
-        "default_granularity": "day",
+        "default_granularity": "month",
         "show_title": True,
         "show_description": False,
     },
@@ -49,6 +60,7 @@ STATS_DASHBOARD_LAYOUT = {
                 "name": "content",
                 "label": _("Content"),
                 "icon": "chart pie",
+                "date_range_phrase": _("Cumulative totals as of"),
                 "rows": [
                     {
                         "name": "single-stats",
@@ -81,7 +93,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "width": 16,
                                 "props": {
                                     "height": 300,
-                                    "title": "Cumulative Content Totals Over Time",
+                                    "title": "Cumulative Content Totals",
                                 },
                             },
                         ],
@@ -114,7 +126,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "Top Licenses",
                                     "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
+                                    "available_views": ["pie", "list"],
                                     "default_view": "list",
                                 },
                             },
@@ -146,6 +158,7 @@ STATS_DASHBOARD_LAYOUT = {
                 "name": "contributions",
                 "label": _("Contributions"),
                 "icon": "users",
+                "date_range_phrase": _("Activity during"),
                 "rows": [
                     {
                         "name": "single-stats",
@@ -176,7 +189,10 @@ STATS_DASHBOARD_LAYOUT = {
                             {
                                 "component": "ContentStatsChart",
                                 "width": 16,
-                                "props": {"height": 300},
+                                "props": {
+                                    "height": 300,
+                                    "title": "New Contribution Rates",
+                                },
                             },
                         ],
                     },
@@ -185,6 +201,7 @@ STATS_DASHBOARD_LAYOUT = {
             {
                 "name": "traffic",
                 "label": _("Traffic"),
+                "date_range_phrase": _("Cumulative totals as of"),
                 "icon": "world",
                 "rows": [
                     {
@@ -221,7 +238,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "width": 16,
                                 "props": {
                                     "height": 300,
-                                    "title": "Cumulative Traffic Totals Over Time",
+                                    "title": "Cumulative Traffic Totals",
                                 },
                             },
                         ],
@@ -236,7 +253,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Countries",
                                     "pageSize": 6,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "list",
+                                    "default_view": "bar",
                                 },
                             },
                             {
@@ -246,7 +263,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Referrer Domains",
                                     "pageSize": 6,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "list",
+                                    "default_view": "pie",
                                 },
                             },
                         ],
@@ -273,6 +290,7 @@ STATS_DASHBOARD_LAYOUT = {
                 "name": "usage",
                 "label": _("Usage"),
                 "icon": "download",
+                "date_range_phrase": _("Activity during"),
                 "rows": [
                     {
                         "name": "single-stats",
@@ -308,7 +326,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "width": 16,
                                 "props": {
                                     "height": 300,
-                                    "title": "Usage Over Time",
+                                    "title": "Usage Rates",
                                 },
                             },
                         ],

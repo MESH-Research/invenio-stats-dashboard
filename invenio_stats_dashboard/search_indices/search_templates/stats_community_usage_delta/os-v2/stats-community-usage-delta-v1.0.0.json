@@ -1,0 +1,166 @@
+{
+    "index_patterns": ["__SEARCH_INDEX_PREFIX__stats-community-usage-delta-*"],
+    "template": {
+        "settings": {
+            "index": {
+                "refresh_interval": "5s",
+                "number_of_shards": 1,
+                "number_of_replicas": 1
+            }
+        },
+        "mappings": {
+            "date_detection": false,
+            "dynamic": "strict",
+            "numeric_detection": false,
+            "properties": {
+                "timestamp": {
+                    "type": "date",
+                    "format": "strict_date_hour_minute_second"
+                },
+                "community_id": {
+                    "type": "keyword"
+                },
+                "community_parent_id": {
+                    "type": "keyword"
+                },
+                "period_start": {
+                    "type": "date",
+                    "format": "date_optional_time"
+                },
+                "period_end": {
+                    "type": "date",
+                    "format": "date_optional_time"
+                },
+                "record_views": {
+                    "type": "object",
+                    "properties": {
+                        "metadata_only": {
+                            "type": "integer"
+                        },
+                        "with_files": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "parent_views": {
+                    "type": "object",
+                    "properties": {
+                        "metadata_only": {
+                            "type": "integer"
+                        },
+                        "with_files": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "file_downloads": {
+                    "type": "object",
+                    "properties": {
+                        "file_count": {
+                            "type": "integer"
+                        },
+                        "data_volume": {
+                            "type": "long"
+                        }
+                    }
+                },
+                "parent_file_downloads": {
+                    "type": "object",
+                    "properties": {
+                        "file_count": {
+                            "type": "integer"
+                        },
+                        "data_volume": {
+                            "type": "long"
+                        }
+                    }
+                },
+                "unique_visitors": {
+                    "type": "keyword"
+                },
+                "subcounts": {
+                    "type": "object",
+                    "properties": {
+                        "by_resource_type": { "$ref": "subcount" },
+                        "by_access_right": { "$ref": "subcount" },
+                        "by_language": { "$ref": "subcount" },
+                        "by_affiliation": { "$ref": "subcount" },
+                        "by_funder": { "$ref": "subcount" },
+                        "by_subject": { "$ref": "subcount" },
+                        "by_publisher": { "$ref": "subcount" },
+                        "by_periodical": { "$ref": "subcount" },
+                        "by_country": { "$ref": "subcount" },
+                        "by_user_agent": { "$ref": "subcount" },
+                        "by_referrer": { "$ref": "subcount" }
+                    }
+                },
+                "updated_timestamp": {
+                    "type": "date",
+                    "format": "strict_date_hour_minute_second"
+                }
+            },
+            "definitions": {
+                "subcount": {
+                    "type": "nested",
+                    "properties": {
+                        "id": {
+                            "type": "keyword"
+                        },
+                        "label": {
+                            "type": "object",
+                            "properties": {
+                                "lang": {
+                                    "type": "keyword"
+                                },
+                                "value": {
+                                    "type": "keyword"
+                                }
+                            }
+                        },
+                        "record_views": {
+                            "type": "object",
+                            "properties": {
+                                "metadata_only": {
+                                    "type": "integer"
+                                },
+                                "with_files": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "parent_views": {
+                            "type": "object",
+                            "properties": {
+                                "metadata_only": {
+                                    "type": "integer"
+                                },
+                                "with_files": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "file_downloads": {
+                            "type": "object",
+                            "properties": {
+                                "file_count": {
+                                    "type": "integer"
+                                },
+                                "data_volume": {
+                                    "type": "long"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "aliases": {
+            "__SEARCH_INDEX_PREFIX__stats-community-usage-delta": {}
+        }
+    },
+    "priority": 100,
+    "version": 1,
+    "_meta": {
+        "description": "Counts of community record and file usage between two dates, including subcounts based on several record metadata fields."
+    }
+}

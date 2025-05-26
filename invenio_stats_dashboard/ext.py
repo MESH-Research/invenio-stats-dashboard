@@ -24,6 +24,16 @@ class InvenioStatsDashboard:
         for k in dir(config):
             if k.startswith("STATS_DASHBOARD_"):
                 app.config.setdefault(k, getattr(config, k))
+        existing_schedule = app.config.get("CELERYBEAT_SCHEDULE", {})
+        app.config["CELERYBEAT_SCHEDULE"] = {
+            **existing_schedule,
+            **config.COMMUNITY_STATS_CELERYBEAT_SCHEDULE,
+        }
+        existing_aggregations = app.config.get("STATS_AGGREGATIONS", {})
+        app.config["STATS_AGGREGATIONS"] = {
+            **existing_aggregations,
+            **config.COMMUNITY_STATS_AGGREGATIONS,
+        }
 
 
 def finalize_app(app):
