@@ -1,10 +1,33 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Statistic, Icon } from "semantic-ui-react";
 import { PropTypes } from "prop-types";
 
 const SingleStatBox = ({ title, value, icon = undefined, description }) => {
   const descriptionId = description ? `${title.toLowerCase().replace(/\s+/g, '-')}-description` : null;
+  const valueRef = useRef(null);
+
+  useEffect(() => {
+    const adjustFontSize = () => {
+      const element = valueRef.current;
+      if (!element) return;
+
+      const parent = element.parentElement;
+      const parentWidth = parent.offsetWidth;
+      const elementWidth = element.offsetWidth;
+
+      if (elementWidth > parentWidth) {
+        const scale = parentWidth / elementWidth;
+        element.style.transform = `scale(${Math.max(0.7, scale)})`;
+      } else {
+        element.style.transform = 'scale(1)';
+      }
+    };
+
+    adjustFontSize();
+    window.addEventListener('resize', adjustFontSize);
+    return () => window.removeEventListener('resize', adjustFontSize);
+  }, [value]);
 
   return (
     <Statistic
@@ -13,7 +36,11 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
       aria-label={title}
       aria-describedby={descriptionId}
     >
-      <Statistic.Value aria-label={`${value} ${title}`}>
+      <Statistic.Value
+        ref={valueRef}
+        className="stats-single-stat-value"
+        aria-label={`${value} ${title}`}
+      >
         {value}
       </Statistic.Value>
       <Statistic.Label className="stats-single-stat-header mt-5">
@@ -23,7 +50,7 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
       {description && (
         <Statistic.Label
           id={descriptionId}
-          className="stats-single-stat-description"
+          className="stats-single-stat-description mt-5"
           aria-label={description}
         >
           {description}

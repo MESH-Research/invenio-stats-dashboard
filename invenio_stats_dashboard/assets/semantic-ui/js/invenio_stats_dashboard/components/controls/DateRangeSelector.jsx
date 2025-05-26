@@ -14,6 +14,9 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
   const quarterStartMonth = currentQuarterIndex * 3 + 1;
 
   switch (period) {
+    case "allTime":
+      startDate = todayDate.subtract({ years: maxHistoryYears }).set({ month: 1, day: 1 });
+      break;
     // Day periods
     case "7days":
       startDate = todayDate.subtract({ days: 7 });
@@ -126,13 +129,18 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
   return { start: startDate, end: endDate };
 };
 
-const getCurrentPeriod = (dateRange, granularity) => {
+const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
   const todayDate = today(getLocalTimeZone());
   const diff = todayDate.subtract(dateRange?.start);
   const startMonth = dateRange?.start?.month;
   const startDay = dateRange?.start?.day;
   const endMonth = dateRange?.end?.month;
   const endDay = dateRange?.end?.day;
+
+  // Check if the date range spans the maximum history
+  if (startDay === 1 && startMonth === 1 && diff.years >= maxHistoryYears) {
+    return "allTime";
+  }
 
   switch (granularity) {
     case "day":
@@ -204,15 +212,15 @@ const getCurrentPeriod = (dateRange, granularity) => {
     case "day":
       return "30days";
     case "week":
-      return "1week";
+      return "12weeks";
     case "month":
-      return "1month";
+      return "12months";
     case "quarter":
-      return "currentQuarter";
+      return "4quarters";
     case "year":
-      return "currentYear";
+      return "5years";
     default:
-      return "30days";
+      return "allTime";
   }
 };
 
@@ -222,6 +230,7 @@ const dayPeriodOptions = [
   { key: "90days", text: i18next.t("Past 90 days"), value: "90days" },
   { key: "6months", text: i18next.t("Past 6 months"), value: "6months" },
   { key: "1year", text: i18next.t("Past year"), value: "1year" },
+  { key: "allTime", text: i18next.t("All time"), value: "allTime" },
 ];
 
 const weekPeriodOptions = [
@@ -231,6 +240,7 @@ const weekPeriodOptions = [
   { key: "8weeks", text: i18next.t("Past 8 weeks"), value: "8weeks" },
   { key: "12weeks", text: i18next.t("Past 12 weeks"), value: "12weeks" },
   { key: "24weeks", text: i18next.t("Past 24 weeks"), value: "24weeks" },
+  { key: "allTime", text: i18next.t("All time"), value: "allTime" },
 ];
 
 const monthPeriodOptions = [
@@ -238,6 +248,7 @@ const monthPeriodOptions = [
   { key: "3months", text: i18next.t("Past 3 months"), value: "3months" },
   { key: "6months", text: i18next.t("Past 6 months"), value: "6months" },
   { key: "12months", text: i18next.t("Past year"), value: "12months" },
+  { key: "allTime", text: i18next.t("All time"), value: "allTime" },
 ];
 
 const quarterPeriodOptions = [
@@ -254,6 +265,7 @@ const quarterPeriodOptions = [
   { key: "2quarters", text: i18next.t("Past 2 quarters"), value: "2quarters" },
   { key: "3quarters", text: i18next.t("Past 3 quarters"), value: "3quarters" },
   { key: "4quarters", text: i18next.t("Past 4 quarters"), value: "4quarters" },
+  { key: "allTime", text: i18next.t("All time"), value: "allTime" },
 ];
 
 const yearPeriodOptions = [
@@ -263,6 +275,7 @@ const yearPeriodOptions = [
   { key: "3years", text: i18next.t("Past 3 years"), value: "3years" },
   { key: "4years", text: i18next.t("Past 4 years"), value: "4years" },
   { key: "5years", text: i18next.t("Past 5 years"), value: "5years" },
+  { key: "allTime", text: i18next.t("All time"), value: "allTime" },
 ];
 
 const periodOptions = {
@@ -285,7 +298,7 @@ const DateRangeSelector = ({
   const menuRef = useRef(null);
   const todayDate = today(getLocalTimeZone());
   const currentPeriodOptions = periodOptions[granularity];
-  const [currentSelectedOption, setCurrentSelectedOption] = useState(dateRange ? getCurrentPeriod(dateRange, granularity) : currentPeriodOptions[0].value);
+  const [currentSelectedOption, setCurrentSelectedOption] = useState(dateRange ? getCurrentPeriod(dateRange, granularity, maxHistoryYears) : currentPeriodOptions[0].value);
   console.log("dateRange", dateRange);
   console.log("defaultRangeOptions", defaultRangeOptions);
   console.log("granularity", granularity);
@@ -330,8 +343,31 @@ const DateRangeSelector = ({
   //   setIsPopupOpen(false);
   // };
 
+  const handleMenuOpen = () => {
+    setIsOpen(true);
+    const selectorElement = document.querySelector('.period-selector');
+    if (selectorElement) {
+      selectorElement.style.position = 'relative';
+      selectorElement.style.zIndex = '1000';
+    }
+  };
+
+  const handleMenuClose = () => {
+    setIsOpen(false);
+    setTimeout(() => {
+      const selectorElement = document.querySelector('.period-selector');
+      const menuElement = document.querySelector('.period-selector .menu');
+      if (selectorElement) {
+        selectorElement.style = '';
+      }
+      if (menuElement) {
+        menuElement.style = '';
+      }
+    }, 100);
+  };
+
   return (
-    <Segment className="date-range-selector" style={{ position: 'relative', zIndex: 1000 }}>
+    <Segment className="date-range-selector">
       <label id="date-range-selector-label" className="stats-dashboard-field-label" htmlFor="date-range-selector">{i18next.t("for the")}</label>
       <Dropdown
         id="date-range-selector"
@@ -345,30 +381,9 @@ const DateRangeSelector = ({
         closeOnChange={false}
         selectOnBlur={true}
         open={isOpen}
-        onOpen={() => setIsOpen(true)}
-        onClose={() => {
-          console.log("closing");
-          setIsOpen(false);
-
-          // Clear menu styles after a delay
-          setTimeout(() => {
-            const menuElement = document.querySelector('.period-selector .menu');
-            if (menuElement) {
-              menuElement.style = '';
-            }
-          }, 100);
-        }}
-        onBlur={() => {
-          console.log("blur");
-
-          // Clear menu styles after a delay
-          setTimeout(() => {
-            const menuElement = document.querySelector('.period-selector .menu');
-            if (menuElement) {
-              menuElement.style = '';
-            }
-          }, 100);
-        }}
+        onOpen={handleMenuOpen}
+        onClose={handleMenuClose}
+        onBlur={handleMenuClose}
         ref={menuRef}
       />
       {/* <Popup

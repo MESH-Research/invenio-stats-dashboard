@@ -16,23 +16,144 @@ const generateDates = () => {
   return dates;
 };
 
-// Generate random data points
-const generateDataPoints = (baseValue, variance) => {
-  return generateDates().map(date => ({
-    date,
-    value: Math.floor(baseValue + (Math.random() * variance))
-  }));
+// Define resource types with IDs and labels
+const RESOURCE_TYPES = {
+  'dataset': {
+    id: 'dataset',
+    label: 'Dataset',
+    ratio: 0.4
+  },
+  'software': {
+    id: 'software',
+    label: 'Software',
+    ratio: 0.2
+  },
+  'research_paper': {
+    id: 'research_paper',
+    label: 'Research Paper',
+    ratio: 0.3
+  },
+  'other': {
+    id: 'other',
+    label: 'Other',
+    ratio: 0.1
+  }
 };
 
-// Generate cumulative data points
+// Define subject headings with IDs and labels
+const SUBJECT_HEADINGS = {
+  'computer_science': {
+    id: 'computer_science',
+    label: 'Computer Science',
+    ratio: 0.25
+  },
+  'environmental_science': {
+    id: 'environmental_science',
+    label: 'Environmental Science',
+    ratio: 0.2
+  },
+  'biology': {
+    id: 'biology',
+    label: 'Biology',
+    ratio: 0.15
+  },
+  'physics': {
+    id: 'physics',
+    label: 'Physics',
+    ratio: 0.15
+  },
+  'social_sciences': {
+    id: 'social_sciences',
+    label: 'Social Sciences',
+    ratio: 0.15
+  },
+  'other': {
+    id: 'other',
+    label: 'Other',
+    ratio: 0.1
+  }
+};
+
+// Generate random data points with sub-counts
+const generateDataPoints = (baseValue, variance) => {
+  return generateDates().map(date => {
+    const totalValue = Math.floor(baseValue + (Math.random() * variance));
+    const resourceTypeCounts = {};
+    const subjectHeadingCounts = {};
+
+    // Generate resource type sub-counts
+    Object.values(RESOURCE_TYPES).forEach(({ id, label, ratio }) => {
+      resourceTypeCounts[id] = {
+        count: Math.floor(totalValue * ratio * (0.8 + Math.random() * 0.4)),
+        label: label
+      };
+    });
+
+    // Generate subject heading sub-counts
+    Object.values(SUBJECT_HEADINGS).forEach(({ id, label, ratio }) => {
+      subjectHeadingCounts[id] = {
+        count: Math.floor(totalValue * ratio * (0.8 + Math.random() * 0.4)),
+        label: label
+      };
+    });
+
+    return {
+      date,
+      value: totalValue,
+      resourceTypes: resourceTypeCounts,
+      subjectHeadings: subjectHeadingCounts
+    };
+  });
+};
+
+// Generate cumulative data points with sub-counts
 const generateCumulativeDataPoints = (baseValue, dailyBaseValue, dailyVariance) => {
   let cumulative = baseValue;
+  let cumulativeResourceTypes = {};
+  let cumulativeSubjectHeadings = {};
+
+  // Initialize cumulative counts
+  Object.values(RESOURCE_TYPES).forEach(({ id, label, ratio }) => {
+    cumulativeResourceTypes[id] = {
+      count: Math.floor(baseValue * ratio),
+      label: label
+    };
+  });
+
+  Object.values(SUBJECT_HEADINGS).forEach(({ id, label, ratio }) => {
+    cumulativeSubjectHeadings[id] = {
+      count: Math.floor(baseValue * ratio),
+      label: label
+    };
+  });
+
   return generateDates().map(date => {
     const dailyValue = Math.floor(dailyBaseValue + (Math.random() * dailyVariance));
     cumulative += dailyValue;
+
+    // Update cumulative resource type counts
+    Object.values(RESOURCE_TYPES).forEach(({ id, label, ratio }) => {
+      const dailyTypeValue = Math.floor(dailyValue * ratio * (0.8 + Math.random() * 0.4));
+      cumulativeResourceTypes[id] = {
+        count: cumulativeResourceTypes[id].count + dailyTypeValue,
+        label: label
+      };
+    });
+
+    // Update cumulative subject heading counts
+    Object.values(SUBJECT_HEADINGS).forEach(({ id, label, ratio }) => {
+      const dailySubjectValue = Math.floor(dailyValue * ratio * (0.8 + Math.random() * 0.4));
+      cumulativeSubjectHeadings[id] = {
+        count: cumulativeSubjectHeadings[id].count + dailySubjectValue,
+        label: label
+      };
+    });
+
     return {
       date,
-      value: cumulative
+      value: cumulative,
+      resourceTypes: { ...cumulativeResourceTypes },
+      subjectHeadings: { ...cumulativeSubjectHeadings }
     };
   });
 };
@@ -245,16 +366,12 @@ const testStatsData = {
     { name: "Metadata Only", count: 8109, percentage: 8.1 }
   ],
 
-  // Resource types data
+  // Resource types data with IDs and labels
   resourceTypes: [
-    { name: "Dataset", count: 25000, percentage: 25.0 },
-    { name: "Publication", count: 20000, percentage: 20.0 },
-    { name: "Software", count: 15000, percentage: 15.0 },
-    { name: "Image", count: 10000, percentage: 10.0 },
-    { name: "Video", count: 8000, percentage: 8.0 },
-    { name: "Audio", count: 6000, percentage: 6.0 },
-    { name: "Presentation", count: 5000, percentage: 5.0 },
-    { name: "Other", count: 10000, percentage: 11.0 }
+    { id: 'dataset', name: 'Dataset', count: 25000, percentage: 25.0 },
+    { id: 'research_paper', name: 'Research Paper', count: 20000, percentage: 20.0 },
+    { id: 'software', name: 'Software', count: 15000, percentage: 15.0 },
+    { id: 'other', name: 'Other', count: 10000, percentage: 10.0 }
   ],
 
   // Referrer domains data
@@ -283,4 +400,4 @@ const testStatsData = {
   })),
 };
 
-export { testStatsData, generateDataPoints, generateCumulativeDataPoints, sampleRecords };
+export { testStatsData, generateDataPoints, generateCumulativeDataPoints, sampleRecords, RESOURCE_TYPES, SUBJECT_HEADINGS };

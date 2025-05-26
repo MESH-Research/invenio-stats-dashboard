@@ -2,35 +2,37 @@
 export const CHART_COLORS = {
   // Main color palette
   primary: [
-    "#1C4036", // Dark green
-    "#547d7d", // Teal
-    "#581c87", // Purple
-    "#6c7839", // Olive
-    "#b29017", // Yellow
-    "#276f86", // Blue teal
-    "#b54f1e", // Red
+    ["blue", "#276f86"], // Blue teal
+    ["red", "#b54f1e"], // Red
+    ["teal", "#547d7d"], // Teal
+    ["purple", "#581c87"], // Purple
+    ["yellow", "#b29017"], // Yellow
+    ["green", "#1C4036"], // Dark green
+    ["olive", "#6c7839"], // Olive
+    ["grey", "#808080"], // Grey
   ],
 
   // Alternative color palette
   secondary: [
-    "#2c5c4c", // Lighter green
-    "#669999", // Lighter teal
-    "#6b2ca3", // Lighter purple
-    "#7c8a43", // Lighter olive
-    "#c8a41b", // Lighter yellow
-    "#3189a2", // Lighter blue teal
-    "#c95f22", // Lighter red
+    ["blue", "#3189a2"], // Lighter blue teal
+    ["red", "#c95f22"], // Lighter red
+    ["teal", "#669999"], // Lighter teal
+    ["purple", "#6b2ca3"], // Lighter purple
+    ["yellow", "#c8a41b"], // Lighter yellow
+    ["green", "#2c5c4c"], // Lighter green
+    ["olive", "#7c8a43"], // Lighter olive
+    ["grey", "#808080"], // Lighter grey
   ],
 
   // Pastel color palette
   pastel: [
-    "#e8f0ee", // Pastel green
-    "#e6efef", // Pastel teal
-    "#efe6f0", // Pastel purple
-    "#f0f1e6", // Pastel olive
-    "#f5f0e6", // Pastel yellow
-    "#e6f0f5", // Pastel blue teal
-    "#f5e6e0", // Pastel red
+    ["green", "#e8f0ee"], // Pastel green
+    ["teal", "#e6efef"], // Pastel teal
+    ["purple", "#efe6f0"], // Pastel purple
+    ["olive", "#f0f1e6"], // Pastel olive
+    ["yellow", "#f5f0e6"], // Pastel yellow
+    ["blue", "#e6f0f5"], // Pastel blue teal
+    ["red", "#f5e6e0"], // Pastel red
   ],
 };
 

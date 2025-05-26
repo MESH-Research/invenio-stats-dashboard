@@ -12,15 +12,16 @@ const TrafficStatsChart = ({ title = undefined, height = 300, ...otherProps }) =
   const transformedData = [
     {
       name: i18next.t('Unique Views'),
-      data: filterByDateRange(stats.views, dateRange)?.map(point => [point.date, point.value]) || []
+      data: filterByDateRange(stats.views, dateRange)?.map(point => [point.date, point.value, point.resourceTypes, point.subjectHeadings]) || []
     },
     {
       name: i18next.t('Unique Downloads'),
-      data: filterByDateRange(stats.downloads, dateRange)?.map(point => [point.date, point.value]) || []
+      data: filterByDateRange(stats.downloads, dateRange)?.map(point => [point.date, point.value, point.resourceTypes, point.subjectHeadings]) || []
     },
     {
       name: i18next.t('Downloaded Data'),
-      data: filterByDateRange(stats.traffic, dateRange)?.map(point => [point.date, point.value]) || []
+      data: filterByDateRange(stats.traffic, dateRange)?.map(point => [point.date, point.value, point.resourceTypes, point.subjectHeadings]) || [],
+      valueType: 'filesize'
     }
   ];
 

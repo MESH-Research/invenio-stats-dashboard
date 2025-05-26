@@ -45,20 +45,23 @@ const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) =>
   const [granularity, setGranularity] = useState(
     dashboardConfig?.default_granularity || "day"
   );
+  const [displaySeparately, setDisplaySeparately] = useState(null);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
   };
 
   const contextValue = {
-    dateRange,
-    setDateRange,
-    stats,
-    maxHistoryYears,
     binary_sizes,
     community,
+    dateRange,
+    displaySeparately,
     granularity,
+    maxHistoryYears,
+    setDateRange,
+    setDisplaySeparately,
     setGranularity,
+    stats,
   };
   return (
     <StatsDashboardProvider value={contextValue}>
@@ -67,7 +70,7 @@ const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) =>
         id="communities-detail-stats-dashboard"
       >
         <Grid.Row>
-          <Grid.Column computer={3} tablet={16} mobile={16} className="communities-detail-left-sidebar stats-dashboard-sidebar rel-mt-2">
+          <Grid.Column computer={3} tablet={16} mobile={16} className="communities-detail-left-sidebar stats-dashboard-sidebar rel-mt-0">
             {showTitle && (
               <h2 className="stats-dashboard-header tablet computer widescreen large-monitor only">
                 {dashboardConfig.title || i18next.t("Statistics")}
@@ -108,7 +111,9 @@ const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) =>
             <ReportSelector />
           </Grid.Column>
           <Grid.Column
-            width={13}
+            computer={13}
+            tablet={16}
+            mobile={16}
             className="communities-detail-body communities-detail-stats"
           >
             <Transition.Group animation="fade" duration={{ show: 1000, hide: 20 }}>

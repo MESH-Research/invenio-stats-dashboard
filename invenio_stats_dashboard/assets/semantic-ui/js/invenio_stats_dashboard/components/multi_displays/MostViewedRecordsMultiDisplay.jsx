@@ -21,7 +21,7 @@ const MostViewedRecordsMultiDisplay = ({
     percentage: record.percentage,
     link: `/records/${record.id}`,
     itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][0]
+      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
     }
   })) || [];
 
@@ -37,7 +37,7 @@ const MostViewedRecordsMultiDisplay = ({
     percentage: 0,
     link: null,
     itemStyle: {
-      color: CHART_COLORS.secondary[7][0] // Use grey color for "Other"
+      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
     }
   }) : null;
 
@@ -72,8 +72,9 @@ const MostViewedRecordsMultiDisplay = ({
         series: [
           {
             type: "pie",
-            radius: ["20%", "70%"],
+            radius: ["30%", "70%"],
             data: [...transformedData, otherData],
+            spacing: 2,
             label: {
               show: true,
               fontSize: 14
@@ -84,6 +85,10 @@ const MostViewedRecordsMultiDisplay = ({
                 shadowOffsetX: 0,
                 shadowColor: "rgba(0, 0, 0, 0.5)",
               },
+            },
+            itemStyle: {
+              borderWidth: 2,
+              borderColor: '#fff'
             },
           },
         ],

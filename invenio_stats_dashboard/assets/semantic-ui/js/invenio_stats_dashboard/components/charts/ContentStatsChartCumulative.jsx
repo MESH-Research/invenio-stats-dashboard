@@ -12,17 +12,18 @@ const ContentStatsChartCumulative = ({ title = undefined, height = 300, ...other
   const transformedData = [
     {
       name: i18next.t('Records'),
-      data: filterByDateRange(stats.cumulativeRecordCount, dateRange).map(point => [point.date, point.value]),
+      data: filterByDateRange(stats.cumulativeRecordCount, dateRange).map(point => [point.date, point.value, point.resourceTypes, point.subjectHeadings]),
       type: 'bar'
     },
     {
       name: i18next.t('Data Volume'),
-      data: filterByDateRange(stats.cumulativeDataVolume, dateRange).map(point => [point.date, point.value]),
-      type: 'bar'
+      data: filterByDateRange(stats.cumulativeDataVolume, dateRange).map(point => [point.date, point.value, point.resourceTypes, point.subjectHeadings]),
+      type: 'bar',
+      valueType: 'filesize'
     },
     {
       name: i18next.t('Uploaders'),
-      data: filterByDateRange(stats.cumulativeUploaders, dateRange).map(point => [point.date, point.value]),
+      data: filterByDateRange(stats.cumulativeUploaders, dateRange).map(point => [point.date, point.value, point.resourceTypes, point.subjectHeadings]),
       type: 'bar'
     },
   ];

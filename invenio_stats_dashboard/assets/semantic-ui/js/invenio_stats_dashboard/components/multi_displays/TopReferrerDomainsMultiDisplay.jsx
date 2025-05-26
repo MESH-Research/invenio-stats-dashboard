@@ -87,6 +87,10 @@ const TopReferrerDomainsMultiDisplay = ({
             type: "pie",
             radius: ["20%", "70%"],
             data: transformedData,
+            itemStyle: {
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
             label: {
               show: true,
               fontSize: 14

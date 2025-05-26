@@ -25,7 +25,7 @@ const AccessRightsMultiDisplay = ({
     id: right.name.toLowerCase().replace(/\s+/g, '-'),
     link: `/search?q=metadata.access_right.id:${right.name.toLowerCase().replace(/\s+/g, '-')}`,
     itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length]
+      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
     }
   })) || [];
 
@@ -40,7 +40,7 @@ const AccessRightsMultiDisplay = ({
     value: 0,
     percentage: 0,
     itemStyle: {
-      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1] // Use last color for "Other"
+      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
     }
   }) : null;
 
@@ -75,8 +75,13 @@ const AccessRightsMultiDisplay = ({
         series: [
           {
             type: "pie",
-            radius: ["20%", "70%"],
+            radius: ["30%", "70%"],
             data: [...transformedData, otherData],
+            spacing: 2,
+            itemStyle: {
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
             label: {
               show: true,
               fontSize: 14
@@ -133,14 +138,14 @@ const AccessRightsMultiDisplay = ({
                 percentage: item.percentage,
                 id: item.id,
                 itemStyle: {
-                  color: CHART_COLORS.primary[index % CHART_COLORS.primary.length]
+                  color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
                 },
                 label: {
                   show: true,
                   formatter: "{b}",
                   fontSize: 14,
                   position: item.value < maxValue * 0.3 ? 'right' : 'inside',
-                  color: item.value < maxValue * 0.3 ? CHART_COLORS.primary[index % CHART_COLORS.primary.length] : '#fff',
+                  color: item.value < maxValue * 0.3 ? CHART_COLORS.primary[index % CHART_COLORS.primary.length][1] : '#fff',
                   align: item.value < maxValue * 0.3 ? 'left' : 'center',
                   verticalAlign: 'middle'
                 }

@@ -1,5 +1,12 @@
+@verdigris: #669999;
+@verdigrisDark: #547d7d;
+
 #stats-dashboard {
   .button {
+    &.blue {
+      background-color: #276f86 !important;
+      color: #fff !important;
+    }
     &.green {
       background-color: #1C4036 !important;
       color: #fff !important;
@@ -37,10 +44,25 @@
   }
 
   .communities-detail-body {
+    .stats-dashboard-date-range-label {
+      font-size: 1rem;
+      display: block;
+    }
+
+    .stats-chart-filter-selector {
+      color: @verdigrisDark !important;
+      border: 1px solid #DEEEEA;
+      box-shadow: none;
+    }
+
     .top.attached.header {
       padding-left: 1.65rem;
+      border-bottom: none;
+      .sub.header {
+        color: @verdigrisDark !important;
+      }
       & > .icon {
-        color: #547d7d;
+        color: @verdigris;
         font-size: 1.5rem;
         position: absolute;
         top: 1.65rem;
@@ -52,7 +74,7 @@
           position: relative;
           padding: 0.685rem 0.685rem;
           top: -0.35rem;
-          color: #547d7d !important;
+          color: @verdigrisDark !important;
           border: 1px solid #DEEEEA;
           box-shadow: none;
           &.active {
@@ -61,6 +83,10 @@
           }
         }
       }
+    }
+
+    .segment.bottom.attached {
+      border-top: none;
     }
   }
 
@@ -71,7 +97,7 @@
       border: 1px solid #DEEEEA;
       box-shadow: none;
       label {
-        color: #547d7d;
+        color: @verdigrisDark;
       }
       .ui.button.fluid.labeled.icon {
         padding-left: 1rem !important;
@@ -134,5 +160,18 @@
     background: #f8f9fa;
     border-radius: 4px;
 
+  }
+
+  .statistic {
+    .stats-single-stat-value {
+      white-space: nowrap !important;
+      transform-origin: center !important;
+    }
+    .stats-single-stat-description {
+      color: @verdigrisDark;
+      font-size: 1rem;
+      font-weight: normal;
+      text-transform: none;
+    }
   }
 }

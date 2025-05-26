@@ -11,6 +11,23 @@ const GRANULARITY_OPTIONS = [
   { key: "year", text: i18next.t("Year"), value: "year" },
 ];
 
+/**
+ * GranularitySelector component to select the aggregation granularity
+ *
+ * Options are "day", "week", "month", "quarter", "year"
+ *
+ * The granularity state is managed by the parent component and made available
+ * via the context.
+ *
+ * FIXME: There is a bug in the semantic-ui-react library that causes the
+ * dropdown to not close once the menu is opened. Currently we are using
+ * a javascript workaround to close the menu when the dropdown is blurred.
+ *
+ * @param {Object} props - The component props
+ * @param {string} props.defaultGranularity - The default granularity
+ * @param {string} props.granularity - The current granularity
+ * @param {Function} props.setGranularity - The function to set the granularity
+ */
 const GranularitySelector = ({ defaultGranularity, granularity, setGranularity }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState(granularity || defaultGranularity);
@@ -18,12 +35,34 @@ const GranularitySelector = ({ defaultGranularity, granularity, setGranularity }
   const handleGranularityChange = (e, { value }) => {
     setSelectedOption(value);
     setGranularity(value);
-    setIsOpen(false);
   };
 
   useEffect(() => {
     setSelectedOption(granularity || defaultGranularity);
   }, [granularity, defaultGranularity]);
+
+  const handleMenuOpen = () => {
+    setIsOpen(true);
+    const menuElement = document.querySelector('.stats-dashboard-granularity-selector');
+    if (menuElement) {
+      menuElement.style.position = 'relative';
+      menuElement.style.zIndex = '1000';
+    }
+  };
+
+  const handleMenuClose = () => {
+    setIsOpen(false);
+    setTimeout(() => {
+      const selectorElement = document.querySelector('.stats-dashboard-granularity-selector');
+      const menuElement = document.querySelector('.stats-dashboard-granularity-selector .menu');
+      if (menuElement) {
+        menuElement.style = '';
+      }
+      if (selectorElement) {
+        selectorElement.style = '';
+      }
+    }, 100);
+  };
 
   return (
     <Segment className="stats-dashboard-granularity-selector rel-mt-1 rel-mb-1 communities-detail-stats-sidebar-segment">
@@ -46,30 +85,10 @@ const GranularitySelector = ({ defaultGranularity, granularity, setGranularity }
         closeOnBlur={true}
         closeOnChange={false}
         selectOnBlur={true}
-        onOpen={() => setIsOpen(true)}
-        onClose={() => {
-          console.log("closing");
-          setIsOpen(false);
-
-          // Clear menu styles after a delay
-          setTimeout(() => {
-            const menuElement = document.querySelector('.stats-dashboard-granularity-selector .menu');
-            if (menuElement) {
-              menuElement.style = '';
-            }
-          }, 100);
-        }}
-        onBlur={() => {
-          console.log("blur");
-
-          // Clear menu styles after a delay
-          setTimeout(() => {
-            const menuElement = document.querySelector('.stats-dashboard-granularity-selector .menu');
-            if (menuElement) {
-              menuElement.style = '';
-            }
-          }, 100);
-        }}
+        openOnFocus={false}
+        onOpen={handleMenuOpen}
+        onClose={handleMenuClose}
+        onBlur={handleMenuClose}
       />
     </Segment>
   );

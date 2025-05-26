@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { Grid } from "semantic-ui-react";
+import { Label, Grid } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { componentsMap } from './components/components_map';
+import { useStatsDashboard } from './context/StatsDashboardContext';
+import { formatDate, formatDateRange } from './utils/dates';
 
 /**
  * StatsDashboard page layout component
@@ -17,6 +19,16 @@ import { componentsMap } from './components/components_map';
  */
 const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, variant, ...otherProps }) => {
   const layout = dashboardConfig.layout;
+  const pageDateRangePhrase = layout?.tabs?.find(tab => tab.name === variant)?.date_range_phrase;
+  const [displayDateRange, setDisplayDateRange] = useState(null);
+  const { dateRange } = useStatsDashboard();
+
+  useEffect(() => {
+    if (dateRange) {
+      const newDisplayDateRange = ['content', 'traffic'].includes(variant) ? formatDate(dateRange.end, true, false) : formatDateRange(dateRange, true);
+      setDisplayDateRange(newDisplayDateRange);
+    }
+  }, [dateRange, variant]);
 
   const renderComponent = (componentConfig) => {
     const Component = componentsMap[componentConfig.component];
@@ -25,7 +37,7 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
     }
 
     return (
-      <Grid.Column width={componentConfig.width} key={componentConfig.component}
+      <Grid.Column computer={componentConfig.width} tablet={16} mobile={16} key={componentConfig.component}
         className={`${componentConfig.component.startsWith('SingleStat') ? 'centered' : ''}`}
       >
         <Component {...componentConfig.props} />
@@ -43,11 +55,16 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
 
   return (
     <Grid className={`container stats-dashboard-content ${variant}`} role="main" aria-label={dashboardConfig.title || defaultTitle} {...otherProps}>
-        {currentTab.rows.map((row, index) => (
-          <Grid.Row key={row.name} className="stats-dashboard-row pb-0 pt-0">
-            {row.components.map(componentConfig => renderComponent(componentConfig))}
-          </Grid.Row>
-        ))}
+      <Grid.Row className="pb-0">
+        <Grid.Column width={16} className="centered">
+          <Label className="stats-dashboard-date-range-label" pointing="below">{pageDateRangePhrase} {displayDateRange}</Label>
+        </Grid.Column>
+      </Grid.Row>
+      {currentTab.rows.map((row, index) => (
+        <Grid.Row key={row.name} className="stats-dashboard-row pb-0 pt-0">
+          {row.components.map(componentConfig => renderComponent(componentConfig))}
+        </Grid.Row>
+      ))}
     </Grid>
   );
 };
