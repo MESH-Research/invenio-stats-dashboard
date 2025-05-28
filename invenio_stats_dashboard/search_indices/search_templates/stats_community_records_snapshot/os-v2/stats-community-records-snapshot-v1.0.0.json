@@ -25,7 +25,7 @@
         },
         "snapshot_date": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "date_optional_time"
         },
         "record_count": {
           "type": "object",
@@ -60,87 +60,703 @@
             }
           }
         },
+        "parent_files": {
+          "type": "object",
+          "properties": {
+            "file_count": {
+              "type": "long"
+            },
+            "data_volume": {
+              "type": "long"
+            }
+          }
+        },
         "uploaders": {
           "type": "integer"
         },
         "subcounts": {
           "type": "object",
           "properties": {
-            "all_resource_types": { "$ref": "subcount"
+            "all_resource_types": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
             },
-            "all_access_rights": { "$ref": "subcount"
+            "all_access_rights": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
             },
-            "all_languages": { "$ref": "subcount"
+            "all_licenses": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                }
+              }
             },
-            "top_affiliations": { "$ref": "subcount"
+            "all_languages": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
             },
-            "top_funders": { "$ref": "subcount"
+            "top_affiliations": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
             },
-            "top_subjects": { "$ref": "subcount"
+            "top_funders": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
             },
-            "top_publishers": { "$ref": "subcount"
+            "top_subjects": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
             },
-            "top_periodicals": { "$ref": "subcount"
+            "top_publishers": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                },
+                "subcounts": {
+                  "type": "object"
+                }
+              }
+            },
+            "top_periodicals": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                }
+              }
+            },
+            "top_keywords": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "properties": {
+                    "lang": {
+                      "type": "keyword"
+                    },
+                    "value": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "record_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_count": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parent_files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "uploaders": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
         "updated_timestamp": {
           "type": "date",
           "format": "strict_date_hour_minute_second"
-        }
-      }
-    },
-    "definitions": {
-      "subcount": {
-        "type": "nested",
-        "properties": {
-          "id": {
-            "type": "keyword"
-          },
-          "label": {
-            "type": "object",
-            "properties": {
-              "lang": {
-                "type": "keyword"
-              },
-              "value": {
-                "type": "keyword"
-              }
-            }
-          },
-          "record_count": {
-            "type": "object",
-            "properties": {
-              "metadata_only": {
-                "type": "long"
-              },
-              "with_files": {
-                "type": "long"
-              }
-            }
-          },
-          "parent_count": {
-            "type": "object",
-            "properties": {
-              "metadata_only": {
-                "type": "long"
-              },
-              "with_files": {
-                "type": "long"
-              }
-            }
-          },
-          "files": {
-            "type": "object",
-            "properties": {
-              "file_count": {
-                "type": "long"
-              },
-              "data_volume": {
-                "type": "long"
-              }
-            }
-          }
         }
       }
     },

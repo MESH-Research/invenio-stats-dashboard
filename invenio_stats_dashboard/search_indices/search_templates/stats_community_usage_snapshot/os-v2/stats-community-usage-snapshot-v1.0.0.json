@@ -1,4 +1,5 @@
 {
+    "index_patterns": ["__SEARCH_INDEX_PREFIX__stats-community-usage-snapshot-*"],
     "template": {
         "settings": {
             "index": {
@@ -85,97 +86,714 @@
                 "subcounts": {
                     "type": "object",
                     "properties": {
-                        "all_resource_types": { "$ref": "subcount" },
-                        "all_access_rights": { "$ref": "subcount" },
-                        "all_languages": { "$ref": "subcount" },
-                        "top_affiliations": { "$ref": "subcount" },
-                        "top_funders": { "$ref": "subcount" },
-                        "top_subjects": { "$ref": "subcount" },
-                        "top_publishers": { "$ref": "subcount" },
-                        "top_periodicals": { "$ref": "subcount" },
-                        "top_countries": { "$ref": "subcount" },
-                        "top_user_agents": { "$ref": "subcount" },
-                        "top_referrers": { "$ref": "subcount" }
+                        "all_resource_types": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "all_access_rights": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "all_languages": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_affiliations": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_funders": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_subjects": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_publishers": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_periodicals": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_countries": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_user_agents": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_referrers": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lang": {
+                                            "type": "keyword"
+                                        },
+                                        "value": {
+                                            "type": "keyword"
+                                        }
+                                    }
+                                },
+                                "record_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "parent_views": {
+                                    "type": "object",
+                                    "properties": {
+                                        "metadata_only": {
+                                            "type": "integer"
+                                        },
+                                        "with_files": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                },
+                                "parent_file_downloads": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file_count": {
+                                            "type": "long"
+                                        },
+                                        "data_volume": {
+                                            "type": "long"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 "updated_timestamp": {
                     "type": "date",
                     "format": "strict_date_hour_minute_second"
                 }
-            },
-            "definitions": {
-                "subcount": {
-                    "type": "nested",
-                    "properties": {
-                        "id": {
-                            "type": "keyword"
-                        },
-                        "label": {
-                            "type": "object",
-                            "properties": {
-                                "lang": {
-                                    "type": "keyword"
-                                },
-                                "value": {
-                                    "type": "keyword"
-                                }
-                            }
-                        },
-                        "record_views": {
-                            "type": "object",
-                            "properties": {
-                                "metadata_only": {
-                                    "type": "integer"
-                                },
-                                "with_files": {
-                                    "type": "integer"
-                                }
-                            }
-                        },
-                        "parent_views": {
-                            "type": "object",
-                            "properties": {
-                                "metadata_only": {
-                                    "type": "integer"
-                                },
-                                "with_files": {
-                                    "type": "integer"
-                                }
-                            }
-                        },
-                        "file_downloads": {
-                            "type": "object",
-                            "properties": {
-                                "file_count": {
-                                    "type": "long"
-                                },
-                                "data_volume": {
-                                    "type": "long"
-                                }
-                            }
-                        },
-                        "parent_file_downloads": {
-                            "type": "object",
-                            "properties": {
-                                "file_count": {
-                                    "type": "long"
-                                },
-                                "data_volume": {
-                                    "type": "long"
-                                }
-                            }
-                        }
-                    }
-                }
             }
         },
         "aliases": {
             "__SEARCH_INDEX_PREFIX__stats-community-usage-snapshot": {}
-        },
-        "priority": 100,
-        "version": 1,
-        "_meta": {
-            "description": "Cumulative counts of community record and file usage at a point in time, including subcounts based on several record metadata fields."
         }
+    },
+    "priority": 100,
+    "version": 1,
+    "_meta": {
+        "description": "Cumulative counts of community record and file usage at a point in time, including subcounts based on several record metadata fields."
     }
 }

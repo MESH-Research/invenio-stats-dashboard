@@ -43,7 +43,7 @@ def register_aggregations():
                 },
             },
         },
-        "community-records-usage-snapshot-agg": {
+        "community-usage-snapshot-agg": {
             "templates": (
                 "invenio_stats_dashboard.search_indices.search_templates."
                 "stats_community_usage_snapshot"
@@ -61,7 +61,7 @@ def register_aggregations():
                 },
             },
         },
-        "community-records-usage-delta-agg": {
+        "community-usage-delta-agg": {
             "templates": (
                 "invenio_stats_dashboard.search_indices.search_templates."
                 "stats_community_usage_delta"

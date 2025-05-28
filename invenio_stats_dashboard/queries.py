@@ -5,6 +5,102 @@ from collections import defaultdict
 from opensearchpy import OpenSearch
 
 
+def daily_record_cumulative_counts_query(community_id, start_date, end_date):
+    return {
+        "size": 0,
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"community_id": community_id}},
+                    {"range": {"snapshot_date": {"gte": start_date, "lte": end_date}}},
+                ]
+            }
+        },
+        "aggs": {
+            "daily_totals": {
+                "date_histogram": {
+                    "field": "snapshot_date",
+                    "calendar_interval": "day",
+                    "format": "yyyy-MM-dd",
+                },
+                "aggs": {
+                    "metadata_only": {"sum": {"field": "record_count.metadata_only"}},
+                    "with_files": {"sum": {"field": "record_count.with_files"}},
+                    "cumulative_metadata": {
+                        "cumulative_sum": {"buckets_path": "metadata_only"}
+                    },
+                    "cumulative_with_files": {
+                        "cumulative_sum": {"buckets_path": "with_files"}
+                    },
+                },
+            }
+        },
+    }
+
+
+def daily_record_delta_query(community_id, start_date, end_date):
+    return {
+        "size": 0,
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"community_id": community_id}},
+                    {"range": {"created": {"gte": start_date, "lte": end_date}}},
+                ]
+            }
+        },
+        "aggs": {
+            "by_day": {
+                "date_histogram": {
+                    "field": "created",
+                    "calendar_interval": "day",
+                    "format": "yyyy-MM-dd",
+                },
+                "aggs": {
+                    "by_language": {"terms": {"field": "metadata.languages.id"}},
+                    "by_license": {"terms": {"field": "metadata.rights.id"}},
+                    "by_access_rights": {"terms": {"field": "access.status"}},
+                    "by_resource_type": {
+                        "terms": {"field": "metadata.resource_type.id"}
+                    },
+                    "by_affiliations_creator": {
+                        "terms": {"field": "creators.affiliations.id"}
+                    },
+                    "by_affiliations_contributor": {
+                        "terms": {"field": "metadata.contributors.affiliations.id"}
+                    },
+                    "by_funder": {"terms": {"field": "metadata.funding.funder.id"}},
+                    "by_subject": {"terms": {"field": "metadata.subjects.id"}},
+                },
+            }
+        },
+    }
+
+
+DAILY_CUMULATIVE_COUNTS_QUERY = {
+    "size": 0,
+    "aggs": {
+        "daily_totals": {
+            "date_histogram": {
+                "field": "snapshot_date",
+                "calendar_interval": "day",
+                "format": "yyyy-MM-dd",
+            },
+            "aggs": {
+                "metadata_only": {"sum": {"field": "record_count.metadata_only"}},
+                "with_files": {"sum": {"field": "record_count.with_files"}},
+                "cumulative_metadata": {
+                    "cumulative_sum": {"buckets_path": "metadata_only"}
+                },
+                "cumulative_with_files": {
+                    "cumulative_sum": {"buckets_path": "with_files"}
+                },
+            },
+        }
+    },
+}
+
+
 def get_most_viewed_records(
     start_date, end_date, all_versions=False, size=10, search_domain=None
 ):
