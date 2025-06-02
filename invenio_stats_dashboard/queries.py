@@ -57,20 +57,289 @@ def daily_record_delta_query(community_id, start_date, end_date):
                     "format": "yyyy-MM-dd",
                 },
                 "aggs": {
-                    "by_language": {"terms": {"field": "metadata.languages.id"}},
-                    "by_license": {"terms": {"field": "metadata.rights.id"}},
-                    "by_access_rights": {"terms": {"field": "access.status"}},
+                    "total_records": {"value_count": {"field": "_id"}},
+                    "with_files": {
+                        "filter": {"term": {"files.enabled": True}},
+                        "aggs": {
+                            "unique_parents": {"cardinality": {"field": "parent.id"}}
+                        },
+                    },
+                    "without_files": {
+                        "filter": {"term": {"files.enabled": False}},
+                        "aggs": {
+                            "unique_parents": {"cardinality": {"field": "parent.id"}}
+                        },
+                    },
+                    "uploaders": {
+                        "cardinality": {"field": "parent.access.owned_by.id"},
+                    },
+                    "files": {
+                        "terms": {"field": "files.entries.file_id"},
+                        "aggs": {
+                            "count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
                     "by_resource_type": {
-                        "terms": {"field": "metadata.resource_type.id"}
+                        "terms": {"field": "metadata.resource_type.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
                     },
-                    "by_affiliations_creator": {
-                        "terms": {"field": "creators.affiliations.id"}
+                    "by_access_rights": {
+                        "terms": {"field": "access.status"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
                     },
-                    "by_affiliations_contributor": {
-                        "terms": {"field": "metadata.contributors.affiliations.id"}
+                    "by_language": {
+                        "terms": {"field": "metadata.languages.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
                     },
-                    "by_funder": {"terms": {"field": "metadata.funding.funder.id"}},
-                    "by_subject": {"terms": {"field": "metadata.subjects.id"}},
+                    "by_affiliation_creator": {
+                        "terms": {"field": "creators.affiliations.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_affiliation_contributor": {
+                        "terms": {"field": "metadata.contributors.affiliations.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_funder": {
+                        "terms": {"field": "metadata.funding.funder.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_subject": {
+                        "terms": {"field": "metadata.subjects.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_publisher": {
+                        "terms": {"field": "metadata.publisher"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_periodical": {
+                        "terms": {"field": "custom_fields.journal:journal.title"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_file_type": {
+                        "terms": {"field": "files.entries.ext"},
+                        "aggs": {
+                            "unique_records": {"cardinality": {"field": "_id"}},
+                            "unique_parents": {"cardinality": {"field": "parent.id"}},
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
+                    "by_license": {
+                        "terms": {"field": "metadata.rights.id"},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
+                            },
+                            "file_count": {
+                                "value_count": {"field": "files.entries.file_id"}
+                            },
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                        },
+                    },
                 },
             }
         },
