@@ -27,7 +27,7 @@
           "type": "date",
           "format": "date_optional_time"
         },
-        "record_count": {
+        "total_records": {
           "type": "object",
           "properties": {
             "metadata_only": {
@@ -38,7 +38,7 @@
             }
           }
         },
-        "parent_count": {
+        "total_parents": {
           "type": "object",
           "properties": {
             "metadata_only": {

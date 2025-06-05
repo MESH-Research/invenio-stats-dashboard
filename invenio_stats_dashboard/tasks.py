@@ -19,7 +19,11 @@ CommunityStatsAggregationTask = {
 
 @shared_task
 def aggregate_community_record_stats(
-    aggregations, start_date=None, end_date=None, update_bookmark=True
+    aggregations,
+    start_date=None,
+    end_date=None,
+    update_bookmark=True,
+    ignore_bookmark=False,
 ):
     """Aggregate community record stats from created records."""
     start_date = dateutil_parse(start_date) if start_date else None
