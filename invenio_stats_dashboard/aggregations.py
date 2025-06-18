@@ -1,22 +1,29 @@
 from collections import defaultdict
 from collections.abc import Generator
+from functools import wraps
 from pprint import pformat
-from typing import Callable
+from typing import Any, Callable
 
 import datetime
 
 import arrow
 from flask import current_app
 from invenio_access.permissions import system_identity
+from opensearchpy import AttrDict, AttrList
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
+from invenio_stats.bookmark import BookmarkAPI
 from opensearchpy.helpers.actions import bulk
-from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.aggs import Bucket
+from opensearchpy.helpers.query import Q
+from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.search import Search
 from invenio_stats.aggregations import StatAggregator
-from invenio_stats.bookmark import BookmarkAPI
+from invenio_stats.bookmark import (
+    BookmarkAPI,
+    SUPPORTED_INTERVALS,
+)
 from invenio_stats_dashboard.queries import (
     daily_record_cumulative_counts_query,
     daily_record_delta_query,
@@ -95,20 +102,97 @@ def register_aggregations():
     }
 
 
+class CommunityBookmarkAPI(BookmarkAPI):
+    """Bookmark API for community statistics aggregators.
+
+    This is a copy of the BookmarkAPI class in invenio-stats, but with the
+    community_id added to the index to allow separate bookmarks for each community.
+    """
+
+    MAPPINGS = {
+        "mappings": {
+            "dynamic": "strict",
+            "properties": {
+                "date": {"type": "date", "format": "date_optional_time"},
+                "aggregation_type": {"type": "keyword"},
+                "community_id": {"type": "keyword"},
+            },
+        }
+    }
+
+    @staticmethod
+    def _ensure_index_exists(func):
+        """Decorator for ensuring the bookmarks index exists."""
+
+        @wraps(func)
+        def wrapped(self, *args, **kwargs):
+            if not Index(self.bookmark_index, using=self.client).exists():
+                self.client.indices.create(
+                    index=self.bookmark_index, body=CommunityBookmarkAPI.MAPPINGS
+                )
+            return func(self, *args, **kwargs)
+
+        return wrapped
+
+    @_ensure_index_exists
+    def set_bookmark(self, community_id: str, value: str):
+        """Set the bookmark for a community."""
+        self.client.index(
+            index=self.bookmark_index,
+            body={
+                "date": value,
+                "aggregation_type": self.agg_type,
+                "community_id": community_id,
+            },
+        )
+        self.new_timestamp = None
+
+    @_ensure_index_exists
+    def get_bookmark(self, community_id: str, refresh_time=60):
+        """Get last aggregation date."""
+        # retrieve the oldest bookmark
+        query_bookmark = (
+            Search(using=self.client, index=self.bookmark_index)
+            .query(
+                Q(
+                    "bool",
+                    must=[
+                        Q("term", aggregation_type=self.agg_type),
+                        Q("term", community_id=community_id),
+                    ],
+                )
+            )
+            .sort({"date": {"order": "desc"}})
+            .extra(size=1)  # fetch one document only
+        )
+        bookmark = next(iter(query_bookmark.execute()), None)
+        if bookmark:
+            my_date = arrow.get(bookmark.date)
+            # By default, the bookmark returns a slightly sooner date, to make
+            # sure that documents that had arrived before the previous run and
+            # where not indexed by the engine are caught in this run. This means
+            # that some events might be processed twice
+            if refresh_time:
+                my_date = my_date.shift(seconds=-refresh_time)
+            return my_date
+
+
 class CommunityAggregatorBase(StatAggregator):
     """Base class for community statistics aggregators."""
 
     def __init__(self, name, *args, **kwargs):
         self.name = name
         self.event = ""
-        self.aggregation_field = None
-        self.copy_fields = {}
-        self.event_index = None
-        self.aggregation_index = None
-        self.community_ids = []
-        self.interval = "day"
+        self.aggregation_field: str | None = None
+        self.copy_fields: dict[str, str] = {}
+        self.event_index: str | list[str] | None = None
+        self.aggregation_index: str | None = None
+        self.community_ids: list[str] = kwargs.get("community_ids", [])
+        self.agg_interval = "day"
         self.client = kwargs.get("client") or current_search_client
-        self.bookmark_api = BookmarkAPI(self.client, self.name, self.interval)
+        self.bookmark_api = CommunityBookmarkAPI(
+            self.client, self.name, self.agg_interval
+        )
 
     def agg_iter(
         self,
@@ -125,29 +209,41 @@ class CommunityAggregatorBase(StatAggregator):
         end_date: datetime.datetime | str | None = None,
         update_bookmark: bool = True,
         ignore_bookmark: bool = False,
-    ):
-        """Perform the aggregation for a given community's daily records deltas."""
+        return_results: bool = False,
+    ) -> list[tuple[int, int | list[dict]]]:
+        """Perform an aggregation for community and global stats.
+
+        This method will perform an aggregation as defined by the child class.
+
+        It maintains a separate bookmark for each community as well as for the
+        InvenioRDM instance as a whole.
+
+        Args:
+            start_date: The start date for the aggregation.
+            end_date: The end date for the aggregation.
+            update_bookmark: Whether to update the bookmark.
+            ignore_bookmark: Whether to ignore the bookmark.
+            return_results: Whether to return the error results from the bulk
+                aggregation or only the error count. This is primarily used in testing.
+
+        Returns:
+            A list of tuples representing results from the bulk aggregation. If
+            return_results is True, the first element of the tuple is the number of
+            records indexed and the second element is the number of errors. If
+            return_results is False, the first element of the tuple is the number of
+            records indexed and the second element is a list of dictionaries, where
+            each dictionary describes an error.
+        """
         # If no records have been indexed there is nothing to aggregate
-        if not Index(self.event_index, using=self.client).exists():
-            return
-
-        previous_bookmark = self.bookmark_api.get_bookmark()
-        if not ignore_bookmark:
-            if start_date:
-                lower_limit = arrow.get(start_date).naive
-            elif previous_bookmark:
-                lower_limit = arrow.get(previous_bookmark).naive
-            else:
-                lower_limit = arrow.utcnow().naive
-        else:
-            lower_limit = (
-                arrow.get(start_date).naive if start_date else arrow.utcnow().naive
-            )
-
-        end_date = arrow.get(end_date).naive if end_date else end_date
-        upper_limit: datetime.datetime = self._upper_limit(end_date)
-
-        next_bookmark = arrow.utcnow().isoformat()
+        if (
+            isinstance(self.event_index, str)
+            and not Index(self.event_index, using=self.client).exists()
+        ):
+            return [(0, [])]
+        elif isinstance(self.event_index, list):
+            for label, index in self.event_index:
+                if not Index(index, using=self.client).exists():
+                    return [(0, [])]
 
         if self.community_ids:
             all_communities = self.community_ids
@@ -156,19 +252,44 @@ class CommunityAggregatorBase(StatAggregator):
                 c["id"]
                 for c in current_communities.service.read_all(system_identity, [])
             ]
+        all_communities.append("global")  # Global stats are always aggregated
 
         results = []
         for community_id in all_communities:
+
+            previous_bookmark = self.bookmark_api.get_bookmark(community_id)
+            if not ignore_bookmark:
+                if start_date:
+                    lower_limit = arrow.get(start_date).naive
+                elif previous_bookmark:
+                    lower_limit = arrow.get(previous_bookmark).naive
+                else:
+                    lower_limit = arrow.utcnow().naive
+            else:
+                lower_limit = (
+                    arrow.get(start_date).naive if start_date else arrow.utcnow().naive
+                )
+
+            end_date = arrow.get(end_date).naive if end_date else end_date
+            upper_limit: datetime.datetime = self._upper_limit(end_date)
+
+            next_bookmark = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS")
+            current_app.logger.error(
+                f"Lower limit: {lower_limit}, upper limit: {upper_limit}"
+                f"for community {community_id}"
+            )
+
             results.append(
                 bulk(
                     self.client,
                     self.agg_iter(community_id, lower_limit, upper_limit),
-                    stats_only=True,
+                    stats_only=False if return_results else True,
                     chunk_size=50,
                 )
             )
-        if update_bookmark:
-            self.bookmark_api.set_bookmark(next_bookmark)
+            if update_bookmark:
+                self.bookmark_api.set_bookmark(community_id, next_bookmark)
+
         return results
 
     def delete_aggregation(
@@ -180,7 +301,9 @@ class CommunityAggregatorBase(StatAggregator):
         self.client.delete(index=index_name, id=document_id)
         self.client.indices.refresh(index=index_name)
 
-    def _get_nested_value(self, data: dict, path: list, key: str | None = None) -> dict:
+    def _get_nested_value(
+        self, data: dict | AttrDict, path: list, key: str | None = None
+    ) -> Any:
         """Get a nested value from a dictionary using a list of path segments.
 
         Args:
@@ -193,10 +316,10 @@ class CommunityAggregatorBase(StatAggregator):
         """
         current = data
         for idx, segment in enumerate(path):
-            if isinstance(current, dict):
+            if isinstance(current, dict) or isinstance(current, AttrDict):
                 current = current.get(segment, {})
-            elif isinstance(current, list):
-                # For arrays, we need to find the item that matches our key
+            elif isinstance(current, list) or isinstance(current, AttrList):
+                # For arrays, we sometimes need to find the item that matches our key
                 # This is used for fields like subjects where we need to match the specific subject
                 if key is not None:
                     matching_items = [
@@ -320,7 +443,7 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
                     if len(SUBCOUNT_TYPES[subcount_type]) > 1
                     else None
                 )
-                # For subjects, we need to find the specific subject that matches the key
+                # For subjects, we need to find the subject that matches the key
                 if subcount_type == "subject" and label_path:
                     label = self._get_nested_value(
                         added,
@@ -450,7 +573,17 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
         start_date: arrow.Arrow | datetime.datetime,
         end_date: arrow.Arrow | datetime.datetime,
     ) -> Generator[dict, None, None]:
-        """Create a dictionary representing the aggregation result for indexing."""
+        """Create a dictionary representing the aggregation result for indexing.
+
+        Args:
+            community_id: The ID of the community to aggregate.
+            start_date: The start date for the aggregation.
+            end_date: The end date for the aggregation.
+
+        Returns:
+            A generator of dictionaries, where each dictionary is an aggregation
+            document for a single day to be indexed.
+        """
 
         # Make sure we don't miss any old records
         earliest_date = arrow.get("1900-01-01").floor("day")
@@ -619,13 +752,49 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
 
+        # Get last snapshot document for the community
+        last_snapshot_search = (
+            Search(using=self.client, index=self.aggregation_index)
+            .query(
+                Q(
+                    "bool",
+                    must=[
+                        Q("term", community_id=community_id),
+                        Q(
+                            "range",
+                            period_start={
+                                "lte": (
+                                    end_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss")
+                                )
+                            },
+                        ),
+                    ],
+                ),
+            )
+            .sort("period_start", order="desc")
+            .extra(size=1)
+        )  # fetch one document only
+        last_snapshot_results = last_snapshot_search.execute()
+        if not last_snapshot_results.hits.hits:
+            last_snapshot_document = None
+        else:
+            last_snapshot_document = last_snapshot_results.hits.hits[0]
+            last_snapshot_document = last_snapshot_document.to_dict()
+            current_app.logger.error(
+                f"Last snapshot document: {pformat(last_snapshot_document)}"
+            )
+
         # Get all daily delta records for the community
         delta_records = self._get_daily_deltas(community_id, start_date, end_date)
         if not delta_records:
             return
 
         # Initialize cumulative totals
-        cumulative_totals = {}
+        cumulative_totals = (
+            last_snapshot_document["_source"]["totals"]
+            if last_snapshot_document
+            else {}
+        )
         current_iteration_date = start_date
 
         while current_iteration_date <= end_date:
@@ -761,9 +930,14 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         create a new document in the temporary index for each event with its enriched
         metadata.
 
+        If the community_id is "global", we will process all events in the event
+        index without restricting by community. Restriction by community is performed
+        when we search for the record metadata matching the event's record id, since
+        the record's communities are not stored in the event index.
+
         Parameters:
         - temp_index: The name of the temporary index to use for the enriched documents
-        - community_id: The ID of the community to process events for
+        - community_id: The ID of the community to process events for or "global".
         - date: The date to process events for
         - event_type: The type of event to process
         - event_index: The name of the index to search for events
@@ -842,25 +1016,28 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             for hit in hits_search.scan():
                 hits_by_recid[hit["recid"]].append(hit)
 
+            # Filter for community here if not global
             meta_for_recids = self._get_metadata_for_records(community_id, record_ids)
+            record_ids = {i for i in meta_for_recids.keys()}
 
-            docs = self._create_enriched_docs_from_aggs(
-                record_ids,
-                meta_for_recids,
-                temp_index,
-                community_id,
-                event_type,
-                hits_by_recid,
-            )
+            if len(record_ids):
+                docs = self._create_enriched_docs_from_aggs(
+                    record_ids,
+                    meta_for_recids,
+                    temp_index,
+                    community_id,
+                    event_type,
+                    hits_by_recid,
+                )
 
-            if docs:
-                bulk(self.client, docs)
-                current_app.logger.error(f"Bulk indexed {len(docs)} documents")
-                current_app.logger.error(f"Doc 0: {pformat(docs[0])}")
-                # Force a refresh to make the documents searchable
-                self.client.indices.refresh(index=temp_index)
+                if docs:
+                    bulk(self.client, docs)
+                    current_app.logger.error(f"Bulk indexed {len(docs)} documents")
+                    current_app.logger.error(f"Doc 0: {pformat(docs[0])}")
+                    # Force a refresh to make the documents searchable
+                    self.client.indices.refresh(index=temp_index)
 
-            # Get the after_key for the next page
+            # Get the after_key for the next page of per_recid aggregation buckets
             after_key = response.aggregations.by_record.after_key if buckets else None
             if not after_key:
                 current_app.logger.error(
@@ -878,7 +1055,10 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             using=self.client, index=prefix_index("rdmrecords-records")
         )
         meta_search = meta_search.filter("terms", id=list(record_ids))
-        meta_search = meta_search.filter("term", parent__communities__ids=community_id)
+        if community_id != "global":
+            meta_search = meta_search.filter(
+                "term", parent__communities__ids=community_id
+            )
         meta_search = meta_search.source(
             [
                 "access.status",
@@ -971,12 +1151,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         ],
                     },
                 }
-                current_app.logger.error(
-                    f"Doc['subjects']: {pformat(doc['_source']['subjects'])}"
-                )
-                current_app.logger.error(
-                    f"Doc['licenses']: {pformat(doc['_source']['licenses'])}"
-                )
 
                 for contributor in list(getattr(meta.metadata, "creators", [])) + list(
                     getattr(meta.metadata, "contributors", [])
@@ -1047,7 +1221,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         agg_search: Search,
         agg_name: str,
         agg_field: str | None = None,
-        title_field: str | None = None,
+        title_field: str | list[str] | None = None,
         field_bucket: Bucket | None = None,
     ):
         """Add a search aggregation to the search object."""
@@ -1076,48 +1250,61 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 "title",
                 "top_hits",
                 size=1,
-                _source={"includes": [title_field]},
+                _source={"includes": title_field},
                 sort=[{"_score": "desc"}],
             )
 
         return agg_search
 
-    def _create_aggregation_doc(
-        self, temp_index: str, community_id: str, date: arrow.Arrow
-    ) -> dict:
-        """Create the final aggregation document from the temporary index."""
+    def _temp_index_search_query(
+        self, temp_index: str, date: arrow.Arrow, community_id: str
+    ) -> Search:
+        """Create a search query for the temporary index."""
         agg_search = Search(using=self.client, index=temp_index)
-        agg_search = agg_search.query(
-            "bool",
-            filter=[
-                {
-                    "range": {
-                        "timestamp": {
-                            "gte": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                            "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                        }
-                    }
-                }
-            ],
-        )
+        must_clauses = [
+            Q(
+                "range",
+                timestamp={
+                    "gte": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+                    "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                },
+            )
+        ]
+        if community_id != "global":
+            must_clauses.append(Q("term", community_id=community_id))
+
+        agg_search = agg_search.query(Q("bool", must=must_clauses))
         current_app.logger.error(
             f"Counting {agg_search.count()} records in temp index {temp_index}"
         )
 
         self.add_search_agg(
-            agg_search, "by_resource_type", "resource_type.id", "resource_type.title"
+            agg_search,
+            "by_resource_type",
+            "resource_type.id",
+            ["resource_type.title", "resource_type.id"],
         )
         self.add_search_agg(agg_search, "by_access_rights", "access_rights", None)
         self.add_search_agg(
-            agg_search, "by_language", "languages.id", "languages.title"
+            agg_search,
+            "by_language",
+            "languages.id",
+            ["languages.title", "languages.id"],
         )
-        self.add_search_agg(agg_search, "by_subject", "subjects.id", "subjects.subject")
-        self.add_search_agg(agg_search, "by_license", "licenses.id", "licenses.title")
-        self.add_search_agg(agg_search, "by_funder", "funders.id", "funders.title")
+        self.add_search_agg(
+            agg_search, "by_subject", "subjects.id", ["subjects.title", "subjects.id"]
+        )
+        self.add_search_agg(
+            agg_search, "by_license", "licenses.id", ["licenses.title", "licenses.id"]
+        )
+        self.add_search_agg(
+            agg_search, "by_funder", "funders.id", ["funders.title", "funders.id"]
+        )
         self.add_search_agg(agg_search, "by_periodical", "periodical", None)
         self.add_search_agg(agg_search, "by_publisher", "publisher", None)
         self.add_search_agg(agg_search, "by_file_type", "file_type", None)
         self.add_search_agg(agg_search, "by_country", "country", None)
+        self.add_search_agg(agg_search, "by_referrer", "referrer", None)
 
         # Aggregate by affiliation
         affiliation_agg = agg_search.aggs.bucket(
@@ -1137,13 +1324,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             field_bucket=affiliation_agg,
         )
 
-        self.add_search_agg(
-            agg_search,
-            "by_referrer",
-            "referrer",
-            None,
-        )
-
         # Add top-level metrics
         for event_type in ["view", "download"]:
             event_bucket = agg_search.aggs.bucket(
@@ -1155,9 +1335,17 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             # Add metrics to the event type bucket
             self._add_metrics_to_agg(event_bucket, event_type)
 
+        return agg_search
+
+    def _create_aggregation_doc(
+        self, temp_index: str, community_id: str, date: arrow.Arrow
+    ) -> dict:
+        """Create the final aggregation document from the temporary index."""
+
+        agg_search = self._temp_index_search_query(temp_index, date, community_id)
         results = agg_search.execute()
 
-        current_app.logger.error(f"Results: {pformat(results.aggregations.to_dict())}")
+        # current_app.logger.error(f"Results: {pformat(results.aggregations.to_dict())}")
 
         # Get top-level metrics
         views_bucket = results.aggregations.view if results.aggregations.view else None
@@ -1177,23 +1365,32 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 # Get title if available
                 if title_path:
                     if callable(title_path):
-                        current_app.logger.error(f"Title path: {title_path}")
-                        current_app.logger.error(f"Bucket: {pformat(bucket)}")
                         field_label = title_path(bucket)
-                        current_app.logger.error(f"Field label: {field_label}")
                     else:
                         title_hits = (
                             bucket.get("title", {}).get("hits", {}).get("hits", [])
                         )
                         if title_hits and title_hits[0].get("_source"):
                             source = title_hits[0]["_source"]
-                            current_app.logger.error(f"Title path: {title_path}")
-                            current_app.logger.error(f"Source: {pformat(source)}")
-                            if title_path[0] == "metadata":
-                                title_path = title_path[1:]
-                            # Get the title directly from the source using the path
-                            field_label = self._get_nested_value(source, title_path)
-                            current_app.logger.error(f"Field label: {field_label}")
+                            if (
+                                0 in title_path
+                                and title_path.index(0) != len(title_path) - 1
+                            ):
+                                pivot = title_path.index(0)
+                                category_path, item_path = (
+                                    title_path[:pivot],
+                                    title_path[pivot + 1 :],  # noqa: E203
+                                )
+                                item = [
+                                    i
+                                    for i in self._get_nested_value(
+                                        source, category_path
+                                    )
+                                    if i.get("id") == bucket.get("key")
+                                ][0]
+                                field_label = self._get_nested_value(item, item_path)
+                            else:
+                                field_label = self._get_nested_value(source, title_path)
 
                 # Get metrics for each event type
                 metrics = {}
@@ -1217,7 +1414,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 # Add to results
                 subcount_list.append(
                     {
-                        "id": field_value,
+                        "id": (
+                            field_value
+                            if isinstance(field_value, str)
+                            else field_value.id
+                        ),
                         "label": field_label,
                         **metrics,
                     }
@@ -1262,49 +1463,51 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     ),
                 },
             },
-            "by_resource_type": add_subcount_to_doc(
-                results.aggregations.by_resource_type.buckets,
-                ["resource_type", "title"],
-            ),
-            "by_license": add_subcount_to_doc(
-                results.aggregations.by_license.buckets,
-                ["licenses", "0", "title"],
-            ),
-            "by_funder": add_subcount_to_doc(
-                results.aggregations.by_funder.buckets,
-                ["funders", "0", "title"],
-            ),
-            "by_periodical": add_subcount_to_doc(
-                results.aggregations.by_periodical.buckets
-            ),
-            "by_language": add_subcount_to_doc(
-                results.aggregations.by_language.buckets,
-                [
-                    "languages",
-                    "0",
-                    "title",
-                ],  # SUBCOUNT_TYPES["language"][1].split("."),
-            ),
-            "by_subject": add_subcount_to_doc(
-                results.aggregations.by_subject.buckets,
-                lambda subj_bucket: subj_bucket.get("key", {}).get("subject"),
-            ),
-            "by_publisher": add_subcount_to_doc(
-                results.aggregations.by_publisher.buckets
-            ),
-            "by_affiliation": add_subcount_to_doc(
-                results.aggregations.by_affiliation.buckets,
-                lambda aff_bucket: aff_bucket.get("key", {}).get("name"),
-            ),
-            "by_country": add_subcount_to_doc(
-                results.aggregations.by_country.buckets, None
-            ),
-            "by_referrer": add_subcount_to_doc(
-                results.aggregations.by_referrer.buckets
-            ),
-            "by_file_type": add_subcount_to_doc(
-                results.aggregations.by_file_type.buckets,
-            ),
+            "subcounts": {
+                "by_resource_type": add_subcount_to_doc(
+                    results.aggregations.by_resource_type.buckets,
+                    ["resource_type", "title"],
+                ),
+                "by_license": add_subcount_to_doc(
+                    results.aggregations.by_license.buckets,
+                    ["licenses", 0, "title"],
+                ),
+                "by_funder": add_subcount_to_doc(
+                    results.aggregations.by_funder.buckets,
+                    ["funders", 0, "title"],
+                ),
+                "by_periodical": add_subcount_to_doc(
+                    results.aggregations.by_periodical.buckets
+                ),
+                "by_language": add_subcount_to_doc(
+                    results.aggregations.by_language.buckets,
+                    [
+                        "languages",
+                        0,
+                        "title",
+                    ],  # SUBCOUNT_TYPES["language"][1].split("."),
+                ),
+                "by_subject": add_subcount_to_doc(
+                    results.aggregations.by_subject.buckets,
+                    ["subjects", 0, "title"],
+                ),
+                "by_publisher": add_subcount_to_doc(
+                    results.aggregations.by_publisher.buckets
+                ),
+                "by_affiliation": add_subcount_to_doc(
+                    results.aggregations.by_affiliation.buckets,
+                    lambda aff_bucket: aff_bucket.get("key", {}).get("name"),
+                ),
+                "by_country": add_subcount_to_doc(
+                    results.aggregations.by_country.buckets, None
+                ),
+                "by_referrer": add_subcount_to_doc(
+                    results.aggregations.by_referrer.buckets
+                ),
+                "by_file_type": add_subcount_to_doc(
+                    results.aggregations.by_file_type.buckets,
+                ),
+            },
         }
 
         return final_dict
@@ -1318,11 +1521,14 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         """Create a dictionary representing the aggregation result for indexing."""
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
-        temp_index = f"temp-usage-stats-{community_id}-{arrow.utcnow().format('YYYY-MM-DD-HH-mm-ss')}"
+        temp_index = prefix_index(
+            f"temp-usage-stats-{community_id}-"
+            f"{arrow.utcnow().format('YYYY-MM-DD-HH-mm-ss')}"
+        )
 
         # Clean up any existing temporary indices for this community
         existing_indices = self.client.indices.get_alias(
-            f"temp-usage-stats-{community_id}-*"
+            prefix_index(f"temp-usage-stats-{community_id}-*")
         )
         for index_name in existing_indices:
             self.client.indices.delete(index=index_name, ignore=[400, 404])
@@ -1332,6 +1538,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             current_iteration_date = start_date
 
             while current_iteration_date <= end_date:
+                current_app.logger.error(
+                    f"Processing date: {current_iteration_date} for community {community_id}"
+                )
                 for event_type, event_index in self.event_index:
                     self._process_event_type(
                         temp_index,
@@ -1345,13 +1554,18 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     temp_index, community_id, current_iteration_date
                 )
 
+                index_name = prefix_index(
+                    "{0}-{1}".format(
+                        self.aggregation_index, current_iteration_date.year
+                    )
+                )
                 doc_id = f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
-                if self.client.exists(index=self.aggregation_index, id=doc_id):
-                    self.delete_aggregation(self.aggregation_index, doc_id)
+                if self.client.exists(index=index_name, id=doc_id):
+                    self.delete_aggregation(index_name, doc_id)
 
                 yield {
                     "_id": doc_id,
-                    "_index": self.aggregation_index,
+                    "_index": index_name,
                     "_source": agg_doc,
                 }
 
@@ -1625,6 +1839,7 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
+        app.logger.error(f"Agg dict: {pformat(agg_dict)}")
         return agg_dict
 
     def agg_iter(
