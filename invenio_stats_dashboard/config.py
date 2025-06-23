@@ -3,6 +3,14 @@
 from invenio_i18n import gettext as _
 
 from .aggregations import register_aggregations
+from .queries import (
+    CommunityRecordDeltaResultsQuery,
+    CommunityRecordSnapshotResultsQuery,
+    CommunityUsageDeltaResultsQuery,
+    CommunityUsageSnapshotResultsQuery,
+    CommunityStatsResultsQuery,
+)
+from .permissions import CommunityStatsPermissionFactory
 from .tasks import CommunityStatsAggregationTask
 
 COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
@@ -357,5 +365,72 @@ STATS_DASHBOARD_LAYOUT = {
                 ],
             },
         ],
+    },
+}
+
+COMMUNITY_STATS_QUERIES = {
+    "community-record-delta-created": {
+        "cls": CommunityRecordDeltaResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-record-delta-created",
+            "doc_type": "community-record-delta-created-agg",
+        },
+    },
+    "community-record-delta-published": {
+        "cls": CommunityRecordDeltaResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-record-delta-published",
+            "doc_type": "community-record-delta-published-agg",
+        },
+    },
+    "community-record-delta-added": {
+        "cls": CommunityRecordDeltaResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-record-delta-added",
+            "doc_type": "community-record-delta-added-agg",
+        },
+    },
+    "community-record-snapshot": {
+        "cls": CommunityRecordSnapshotResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-record-snapshot",
+            "doc_type": "community-record-snapshot-agg",
+        },
+    },
+    "community-usage-delta": {
+        "cls": CommunityUsageDeltaResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-usage-delta",
+            "doc_type": "community-usage-delta-agg",
+        },
+    },
+    "community-usage-snapshot": {
+        "cls": CommunityUsageSnapshotResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-usage-snapshot",
+            "doc_type": "community-usage-snapshot-agg",
+        },
+    },
+    "community-stats": {
+        "cls": CommunityStatsResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {  # These are actually not used
+            "index": "stats-community-record-delta",
+            "doc_type": "community-record-delta-agg",
+        },
+    },
+    "global-stats": {
+        "cls": CommunityStatsResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {  # These are actually not used
+            "index": "stats-community-record-delta",
+            "doc_type": "community-record-delta-agg",
+        },
     },
 }

@@ -25,7 +25,7 @@ import PropTypes from "prop-types";
 /**
  * Community stats dashboard layout
  */
-const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) => {
+const CommunityStatsDashboardLayout = ({ community, dashboardConfig }) => {
   const availableTabs = dashboardConfig?.layout?.tabs?.map(tab => ({
     name: tab.name,
     label: i18next.t(tab.label),
@@ -46,10 +46,15 @@ const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) =>
     dashboardConfig?.default_granularity || "day"
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
+  const [stats, setStats] = useState(null);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
   };
+
+  useEffect(() => {
+    statsApiClient.getStats(community.id, DASHBOARD_TYPES.COMMUNITY).then(setStats);
+  }, [selectedTab, dateRange]);
 
   const contextValue = {
     binary_sizes,

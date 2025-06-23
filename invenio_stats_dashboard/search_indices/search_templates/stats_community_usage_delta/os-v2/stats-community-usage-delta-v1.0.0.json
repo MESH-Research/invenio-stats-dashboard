@@ -31,19 +31,19 @@
                 "totals": {
                     "type": "object",
                     "properties": {
-                        "views": {
+                        "view": {
                             "type": "object",
                             "properties": {
-                                "total": { "type": "integer" },
+                                "total_events": { "type": "integer" },
                                 "unique_visitors": { "type": "integer" },
                                 "unique_records": { "type": "integer" },
                                 "unique_parents": { "type": "integer" }
                             }
                         },
-                        "downloads": {
+                        "download": {
                             "type": "object",
                             "properties": {
-                                "total": { "type": "integer" },
+                                "total_events": { "type": "integer" },
                                 "unique_visitors": { "type": "integer" },
                                 "unique_records": { "type": "integer" },
                                 "unique_parents": { "type": "integer" },
@@ -56,7 +56,7 @@
                 "subcounts": {
                     "type": "object",
                     "properties": {
-                        "by_resource_type": {
+                        "by_resource_types": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -110,7 +110,7 @@
                                 }
                             }
                         },
-                        "by_language": {
+                        "by_languages": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -137,7 +137,7 @@
                                 }
                             }
                         },
-                        "by_subject": {
+                        "by_subjects": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -164,7 +164,7 @@
                                 }
                             }
                         },
-                        "by_license": {
+                        "by_licenses": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -191,7 +191,7 @@
                                 }
                             }
                         },
-                        "by_funder": {
+                        "by_funders": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -218,7 +218,7 @@
                                 }
                             }
                         },
-                        "by_periodical": {
+                        "by_periodicals": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -245,7 +245,7 @@
                                 }
                             }
                         },
-                        "by_publisher": {
+                        "by_publishers": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -272,7 +272,7 @@
                                 }
                             }
                         },
-                        "by_affiliation": {
+                        "by_affiliations": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -299,7 +299,7 @@
                                 }
                             }
                         },
-                        "by_country": {
+                        "by_countries": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -326,7 +326,7 @@
                                 }
                             }
                         },
-                        "by_file_type": {
+                        "by_file_types": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -353,7 +353,7 @@
                                 }
                             }
                         },
-                        "by_referrer": {
+                        "by_referrers": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },

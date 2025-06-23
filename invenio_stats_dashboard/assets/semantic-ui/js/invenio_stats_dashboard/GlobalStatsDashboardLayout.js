@@ -25,7 +25,7 @@ import PropTypes from "prop-types";
 /**
  * Global stats dashboard layout
  */
-const GlobalStatsDashboardLayout = ({ dashboardConfig, stats }) => {
+const GlobalStatsDashboardLayout = ({ dashboardConfig }) => {
   const availableTabs = dashboardConfig?.layout?.tabs?.map(tab => ({
     name: tab.name,
     label: i18next.t(tab.label),
@@ -44,10 +44,15 @@ const GlobalStatsDashboardLayout = ({ dashboardConfig, stats }) => {
   const [granularity, setGranularity] = useState(
     dashboardConfig?.default_granularity || "day"
   );
+  const [stats, setStats] = useState(null);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
   };
+
+  useEffect(() => {
+    statsApiClient.getStats(DASHBOARD_TYPES.GLOBAL).then(setStats);
+  }, [selectedTab, dateRange]);
 
   const contextValue = {
     dateRange,

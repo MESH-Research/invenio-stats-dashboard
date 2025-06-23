@@ -9,7 +9,9 @@ CommunityStatsAggregationTask = {
     "args": [
         (
             "community-records-snapshot-agg",
-            "community-records-delta-agg",
+            "community-records-delta-created-agg",
+            "community-records-delta-published-agg",
+            "community-records-delta-added-agg",
             "community-records-usage-snapshot-agg",
             "community-records-usage-delta-agg",
         )

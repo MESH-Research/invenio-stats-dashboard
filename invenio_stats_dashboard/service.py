@@ -122,3 +122,47 @@ class CommunityStatsService:
                     model.custom_fields = custom_fields
                     assert uow
                     uow.register(RecordCommitOp(model))
+
+    def get_community_stats(self, community_id: str) -> dict:
+        """Get statistics for a community."""
+        daily_record_deltas = (
+            Search(
+                using=self.client, index=prefix_index("stats-community-record-delta")
+            )
+            .query(Q("term", community_id=community_id))
+            .sort("period_start")
+            .extra(size=10_000)
+            .execute()
+        )
+        daily_record_snapshots = (
+            Search(
+                using=self.client,
+                index=prefix_index("stats-community-record-snapshot"),
+            )
+            .query(Q("term", community_id=community_id))
+            .sort("snapshot_date")
+            .extra(size=10_000)
+            .execute()
+        )
+        daily_usage_deltas = (
+            Search(using=self.client, index=prefix_index("stats-community-usage-delta"))
+            .query(Q("term", community_id=community_id))
+            .sort("period_start")
+            .extra(size=10_000)
+            .execute()
+        )
+        daily_usage_snapshots = (
+            Search(
+                using=self.client, index=prefix_index("stats-community-usage-snapshot")
+            )
+            .query(Q("term", community_id=community_id))
+            .sort("snapshot_date")
+            .extra(size=10_000)
+            .execute()
+        )
+        return {
+            "daily_record_deltas": daily_record_deltas.hits.hits.to_dict(),
+            "daily_record_snapshots": daily_record_snapshots.hits.hits.to_dict(),
+            "daily_usage_deltas": daily_usage_deltas.hits.hits.to_dict(),
+            "daily_usage_snapshots": daily_usage_snapshots.hits.hits.to_dict(),
+        }

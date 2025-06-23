@@ -1,3 +1,4 @@
+import copy
 from collections import defaultdict
 from collections.abc import Generator
 from functools import wraps
@@ -22,12 +23,10 @@ from opensearchpy.helpers.search import Search
 from invenio_stats.aggregations import StatAggregator
 from invenio_stats.bookmark import (
     BookmarkAPI,
-    SUPPORTED_INTERVALS,
 )
 from invenio_stats_dashboard.queries import (
     daily_record_cumulative_counts_query,
     daily_record_delta_query,
-    daily_usage_delta_query,
 )
 
 SUBCOUNT_TYPES = {
@@ -69,15 +68,29 @@ def register_aggregations():
                 "client": current_search_client,
             },
         },
-        "community-records-delta-agg": {
+        "community-records-delta-created-agg": {
             "templates": (
                 "invenio_stats_dashboard.search_indices.search_templates."
-                "stats_community_records_delta"
+                "stats_community_records_delta_created"
             ),
-            "cls": CommunityRecordsDeltaAggregator,
+            "cls": CommunityRecordsDeltaCreatedAggregator,
             "params": {
                 "client": current_search_client,
             },
+        },
+        "community-records-delta-published-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_records_delta_published"
+            ),
+            "cls": CommunityRecordsDeltaPublishedAggregator,
+        },
+        "community-records-delta-added-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_records_delta_added"
+            ),
+            "cls": CommunityRecordsDeltaAddedAggregator,
         },
         "community-usage-snapshot-agg": {
             "templates": (
@@ -348,8 +361,8 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
 
     def create_agg_dict(
         self,
-        current_day: arrow.Arrow,
         community_id: str,
+        current_day: arrow.Arrow,
         added_bucket: dict,
         removed_bucket: dict,
     ) -> dict:
@@ -359,12 +372,12 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
             combined_keys = list(
                 set(
                     b.key
-                    for b in added_bucket.get("by_file_type", {}).get("buckets", [])
+                    for b in added_bucket.get("by_file_types", {}).get("buckets", [])
                     if b.key != "doc_count"
                 )
                 | set(
                     b.key
-                    for b in removed_bucket.get("by_file_type", {}).get("buckets", [])
+                    for b in removed_bucket.get("by_file_types", {}).get("buckets", [])
                     if b.key != "doc_count"
                 )
             )
@@ -373,14 +386,14 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
                 added_list = list(
                     filter(
                         lambda x: x["key"] == key,
-                        added_bucket.get("by_file_type", {}).get("buckets", []),
+                        added_bucket.get("by_file_types", {}).get("buckets", []),
                     )
                 )
                 added = added_list[0] if added_list else {}
                 removed_list = list(
                     filter(
                         lambda x: x["key"] == key,
-                        removed_bucket.get("by_file_type", {}).get("buckets", []),
+                        removed_bucket.get("by_file_types", {}).get("buckets", []),
                     )
                 )
                 removed = removed_list[0] if removed_list else {}
@@ -408,6 +421,35 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
             return file_type_list
 
         def make_subcount_dict(subcount_type):
+            # Merge affiliation id and name buckets
+            # This is necessary because we can't aggregate on the id and name fields
+            # at the same time in the query, so we need to merge them into a single
+            # bucket for the aggregation document
+            if subcount_type in [
+                "by_affiliation_creator",
+                "by_affiliation_contributor",
+            ]:
+                added_bucket[subcount_type] = {
+                    "buckets": (
+                        added_bucket[subcount_type]["by_affiliation_creator_id"][
+                            "buckets"
+                        ]
+                        + added_bucket[subcount_type]["by_affiliation_creator_name"][
+                            "buckets"
+                        ]
+                    )
+                }
+                removed_bucket[subcount_type] = {
+                    "buckets": (
+                        removed_bucket[subcount_type]["by_affiliation_creator_id"][
+                            "buckets"
+                        ]
+                        + removed_bucket[subcount_type]["by_affiliation_creator_name"][
+                            "buckets"
+                        ]
+                    )
+                }
+
             combined_keys = list(
                 set(
                     b.key
@@ -547,24 +589,25 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
                 - removed_bucket.get("uploaders", {}).get("value", 0)
             ),
             "subcounts": {
-                "all_resource_types": make_subcount_dict("by_resource_type"),
+                "all_resource_types": make_subcount_dict("by_resource_types"),
                 "all_access_rights": make_subcount_dict("by_access_rights"),
-                "all_languages": make_subcount_dict("by_language"),
+                "all_languages": make_subcount_dict("by_languages"),
                 "top_affiliations_creator": make_subcount_dict(
                     "by_affiliation_creator"
                 ),
                 "top_affiliations_contributor": make_subcount_dict(
                     "by_affiliation_contributor"
                 ),
-                "top_funders": make_subcount_dict("by_funder"),
-                "top_subjects": make_subcount_dict("by_subject"),
-                "top_publishers": make_subcount_dict("by_publisher"),
-                "top_periodicals": make_subcount_dict("by_periodical"),
-                "all_licenses": make_subcount_dict("by_license"),
+                "top_funders": make_subcount_dict("by_funders"),
+                "top_subjects": make_subcount_dict("by_subjects"),
+                "top_publishers": make_subcount_dict("by_publishers"),
+                "top_periodicals": make_subcount_dict("by_periodicals"),
+                "all_licenses": make_subcount_dict("by_licenses"),
                 "all_file_types": make_file_type_dict(),
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
+        current_app.logger.error(f"Agg dict: {pformat(agg_dict)}")
         return agg_dict
 
     def agg_iter(
@@ -648,99 +691,264 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         self.aggregation_index = prefix_index("stats-community-usage-snapshot")
 
     def _create_aggregation_doc(
-        self, community_id: str, date: arrow.Arrow, cumulative_totals: dict
+        self,
+        community_id: str,
+        date: arrow.Arrow,
+        cumulative_totals: dict,
+        cumulative_subcounts: dict,
     ) -> dict:
         """Create the final aggregation document from cumulative totals."""
         return {
             "community_id": community_id,
-            "period_start": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-            "period_end": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "snapshot_date": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
             "totals": cumulative_totals,
-            "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+            "subcounts": cumulative_subcounts,
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
 
     def _get_daily_deltas(
         self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
-    ) -> list:
-        """Get daily delta records for a community between start and end dates."""
-        search = Search(using=self.client, index=self.event_index)
-        search = search.filter("term", community_id=community_id)
-        search = search.filter(
-            "range",
-            period_start={
-                "gte": start_date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                "lte": end_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-            },
-        )
-        search = search.sort("period_start")
-        return list(search.scan())
+    ) -> tuple[list, list]:
+        """Get daily delta records for a community between start and end dates.
 
-    def _update_cumulative_totals(self, current_totals: dict, delta_doc: dict) -> dict:
+        Also returns the daily delta records for the community before the start date
+        so that we can use them to update the top subcounts.
+
+        Returns:
+            A tuple containing:
+            - prior_daily_deltas: All daily delta records for the community before
+                the start date
+            - period_daily_deltas: Daily delta records for the community between
+                start and end dates
+        """
+        search = Search(using=self.client, index=self.event_index)
+        search = search.filter(
+            "bool",
+            must=[
+                Q("term", community_id=community_id),
+                Q(
+                    "range",
+                    period_start={
+                        "lte": end_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                    },
+                ),
+            ],
+        ).sort("period_start")
+
+        all_daily_deltas = list(search.scan())
+        prior_daily_deltas = []
+        period_daily_deltas = []
+        for delta in all_daily_deltas:
+            if arrow.get(delta.period_start) >= start_date.floor("day"):
+                period_daily_deltas.append(delta)
+            else:
+                prior_daily_deltas.append(delta)
+        return prior_daily_deltas, period_daily_deltas
+
+    def _map_delta_to_snapshot_subcounts(self, delta_doc: dict) -> dict:
+        """Map delta document subcount field names to snapshot field names."""
+        field_mapping = {
+            "by_resource_types": "all_resource_types",
+            "by_access_rights": "all_access_rights",
+            "by_languages": "all_languages",
+            "by_file_types": "all_file_types",
+            "by_licenses": "top_licenses",
+            "by_subjects": "top_subjects",
+            "by_publishers": "top_publishers",
+            "by_periodicals": "top_periodicals",
+            "by_funders": "top_funders",
+            "by_countries": "top_countries",
+            "by_referrers": "top_referrers",
+            "by_affiliations": "top_affiliations",
+        }
+
+        mapped_doc = delta_doc.copy()
+        mapped_subcounts = {}
+
+        for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
+            snapshot_field = field_mapping.get(delta_field)
+            if snapshot_field:
+                mapped_subcounts[snapshot_field] = delta_items
+
+        mapped_doc["subcounts"] = mapped_subcounts
+        return mapped_doc
+
+    def _update_cumulative_totals(
+        self,
+        current_totals: dict,
+        current_subcounts: dict,
+        delta_doc: dict,
+    ) -> tuple[dict, dict]:
         """Update cumulative totals with values from a daily delta document."""
+
+        def update_totals(current_totals: dict, delta_totals: dict) -> Any:
+            """Update cumulative totals with values from a daily delta document."""
+            for key, value in delta_totals.items():
+                if key in current_totals:
+                    if isinstance(value, dict):
+                        update_totals(current_totals[key], value)
+                    elif isinstance(value, list):
+                        # Handle lists by recursively processing each item
+                        if not current_totals[key]:
+                            current_totals[key] = []
+                        for idx, item in enumerate(value):
+                            matching_item = next(
+                                (
+                                    existing_item
+                                    for existing_item in current_totals[key]
+                                    if existing_item["id"] == item["id"]
+                                ),
+                                None,
+                            )
+                            if matching_item:
+                                update_totals(matching_item, item)
+                            else:
+                                current_totals[key].append(item)
+                    else:
+                        # Sum all numeric values since these are daily deltas
+                        if isinstance(current_totals[key], int) or isinstance(
+                            current_totals[key], float
+                        ):
+                            current_totals[key] = current_totals[key] + value
+                        else:
+                            # Keep strings as is (id and label)
+                            current_totals[key] = value
+                else:
+                    current_totals[key] = value
+
+        counts_default = {
+            "view": {
+                "total_events": 0,
+                "unique_visitors": 0,
+                "unique_records": 0,
+                "unique_parents": 0,
+            },
+            "download": {
+                "total_events": 0,
+                "unique_visitors": 0,
+                "unique_records": 0,
+                "unique_parents": 0,
+                "unique_files": 0,
+                "total_volume": 0,
+            },
+        }
+
         if not current_totals:
             # Initialize totals from first delta
-            return {
-                "views": {
-                    "total": delta_doc["totals"]["views"]["total"],
-                    "unique_visitors": delta_doc["totals"]["views"]["unique_visitors"],
-                    "unique_records": delta_doc["totals"]["views"]["unique_records"],
-                    "unique_parents": delta_doc["totals"]["views"]["unique_parents"],
-                },
-                "downloads": {
-                    "total": delta_doc["totals"]["downloads"]["total"],
-                    "unique_visitors": delta_doc["totals"]["downloads"][
-                        "unique_visitors"
-                    ],
-                    "unique_records": delta_doc["totals"]["downloads"][
-                        "unique_records"
-                    ],
-                    "unique_parents": delta_doc["totals"]["downloads"][
-                        "unique_parents"
-                    ],
-                    "unique_files": delta_doc["totals"]["downloads"]["unique_files"],
-                    "total_volume": delta_doc["totals"]["downloads"]["total_volume"],
-                },
+            current_totals = copy.deepcopy(counts_default)
+
+        if not current_subcounts:
+            # Initialize subcounts from first delta
+            current_subcounts = {
+                "all_resource_types": [],
+                "all_access_rights": [],
+                "all_languages": [],
+                "all_file_types": [],
             }
 
-        # Add delta values to current totals
-        current_totals["views"]["total"] += delta_doc["totals"]["views"]["total"]
-        current_totals["views"]["unique_visitors"] = max(
-            current_totals["views"]["unique_visitors"],
-            delta_doc["totals"]["views"]["unique_visitors"],
-        )
-        current_totals["views"]["unique_records"] = max(
-            current_totals["views"]["unique_records"],
-            delta_doc["totals"]["views"]["unique_records"],
-        )
-        current_totals["views"]["unique_parents"] = max(
-            current_totals["views"]["unique_parents"],
-            delta_doc["totals"]["views"]["unique_parents"],
+        update_totals(current_totals, delta_doc["totals"])
+        update_totals(
+            current_subcounts,
+            {
+                "all_resource_types": (
+                    delta_doc["subcounts"].get("all_resource_types", {})
+                ),
+                "all_access_rights": (
+                    delta_doc["subcounts"].get("all_access_rights", {})
+                ),
+                "all_languages": delta_doc["subcounts"].get("all_languages", {}),
+                "all_file_types": delta_doc["subcounts"].get("all_file_types", {}),
+            },
         )
 
-        current_totals["downloads"]["total"] += delta_doc["totals"]["downloads"][
-            "total"
-        ]
-        current_totals["downloads"]["unique_visitors"] = max(
-            current_totals["downloads"]["unique_visitors"],
-            delta_doc["totals"]["downloads"]["unique_visitors"],
-        )
-        current_totals["downloads"]["unique_records"] = max(
-            current_totals["downloads"]["unique_records"],
-            delta_doc["totals"]["downloads"]["unique_records"],
-        )
-        current_totals["downloads"]["unique_parents"] = max(
-            current_totals["downloads"]["unique_parents"],
-            delta_doc["totals"]["downloads"]["unique_parents"],
-        )
-        current_totals["downloads"]["unique_files"] = max(
-            current_totals["downloads"]["unique_files"],
-            delta_doc["totals"]["downloads"]["unique_files"],
-        )
-        current_totals["downloads"]["total_volume"] += delta_doc["totals"]["downloads"][
-            "total_volume"
-        ]
+        return current_totals, current_subcounts
 
-        return current_totals
+    def _update_top_subcounts(
+        self,
+        current_subcounts: dict,
+        delta_records: list,
+    ) -> dict:
+        """Update top subcounts with values from a daily delta document.
+
+        These are the subcounts that only include the top 10 values for each field.
+        (E.g. top_subjects, top_publishers, etc.) We can't just add the new deltas
+        to the current subcounts because the top 10 values for each field may have
+        changed.
+
+        We need to:
+        - Sum the cumulative subcounts for the whole history of the community,
+          including the new delta. E.g. for top_subjects, we need to sum the
+          cumulative totals for *all* subjects from *all* daily usage deltas.
+        - Sort the items in each subcount list by total sum
+        - Take the items with the top 10 sums as the new list for each subcount
+
+        Args:
+            current_subcounts: The current subcounts to update.
+            delta_records: The daily delta records to update the subcounts with.
+                These are the daily delta records for the community between
+                the community's inception (not the start date) and the end date.
+
+        Returns:
+            The updated top subcounts.
+        """
+
+        top_subcount_types = {
+            "top_subjects": "by_subjects",
+            "top_publishers": "by_publishers",
+            "top_periodicals": "by_periodicals",
+            "top_funders": "by_funders",
+            "top_countries": "by_countries",
+            "top_user_agents": "by_user_agents",
+            "top_referrers": "by_referrers",
+            "top_affiliations": "by_affiliations",
+            "top_licenses": "by_licenses",
+        }
+
+        all_subcount_totals = {}
+        for delta in delta_records:
+            for subcount_type in top_subcount_types:
+                mapped_type = top_subcount_types[subcount_type]
+                if mapped_type not in delta["subcounts"]:
+                    continue
+                for delta_item in delta["subcounts"].get(mapped_type, []):
+                    # delta_item is an opensearchpy.helpers.utils.AttrDict
+                    delta_item = delta_item.to_dict()
+                    updated_item = all_subcount_totals.get(subcount_type, {}).get(
+                        delta_item["id"], {}
+                    )
+                    updated_item["id"] = delta_item["id"]
+                    updated_item["label"] = delta_item["label"]
+
+                    for scope in ["view", "download"]:
+                        for stat_label, stat_value in delta_item[scope].items():
+                            updated_item.setdefault(scope, {})[stat_label] = (
+                                updated_item.get(scope, {}).get(stat_label, 0)
+                                + stat_value
+                            )
+                    all_subcount_totals.setdefault(subcount_type, {})[
+                        delta_item["id"]
+                    ] = updated_item
+
+        # Now sort and assign top subcounts after processing all deltas
+        for subcount_type in top_subcount_types:
+            if subcount_type in all_subcount_totals:
+                sorted_by_views = sorted(
+                    all_subcount_totals[subcount_type].values(),
+                    key=lambda x: x["view"]["total_events"],
+                    reverse=True,
+                )[:10]
+                sorted_by_downloads = sorted(
+                    all_subcount_totals[subcount_type].values(),
+                    key=lambda x: x["download"]["total_events"],
+                    reverse=True,
+                )[:10]
+                subcount = {
+                    "by_view": [v_item for v_item in sorted_by_views],
+                    "by_download": [d_item for d_item in sorted_by_downloads],
+                }
+                current_subcounts[subcount_type] = subcount
+
+        return current_subcounts
 
     def agg_iter(
         self,
@@ -753,58 +961,82 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         end_date = arrow.get(end_date)
 
         # Get last snapshot document for the community
-        last_snapshot_search = (
-            Search(using=self.client, index=self.aggregation_index)
-            .query(
-                Q(
-                    "bool",
-                    must=[
-                        Q("term", community_id=community_id),
-                        Q(
-                            "range",
-                            period_start={
-                                "lte": (
-                                    end_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss")
-                                )
-                            },
-                        ),
-                    ],
-                ),
-            )
-            .sort("period_start", order="desc")
-            .extra(size=1)
-        )  # fetch one document only
-        last_snapshot_results = last_snapshot_search.execute()
-        if not last_snapshot_results.hits.hits:
-            last_snapshot_document = None
-        else:
-            last_snapshot_document = last_snapshot_results.hits.hits[0]
-            last_snapshot_document = last_snapshot_document.to_dict()
-            current_app.logger.error(
-                f"Last snapshot document: {pformat(last_snapshot_document)}"
-            )
+        last_snapshot_document = None
+        if self.client.indices.exists(self.aggregation_index):
+            last_snapshot_search = (
+                Search(using=self.client, index=self.aggregation_index)
+                .query(
+                    Q(
+                        "bool",
+                        must=[
+                            Q("term", community_id=community_id),
+                            Q(
+                                "range",
+                                snapshot_date={
+                                    "lte": (
+                                        end_date.ceil("day").format(
+                                            "YYYY-MM-DDTHH:mm:ss"
+                                        )
+                                    )
+                                },
+                            ),
+                        ],
+                    ),
+                )
+                .sort({"snapshot_date": {"order": "desc"}})
+                .extra(size=1)
+            )  # fetch one document only
+            last_snapshot_results = last_snapshot_search.execute()
+            if last_snapshot_results.hits.hits:
+                last_snapshot_document = last_snapshot_results.hits.hits[0]
+                last_snapshot_document = last_snapshot_document.to_dict()
+                current_app.logger.error(
+                    f"Last snapshot document: {pformat(last_snapshot_document)}"
+                )
 
         # Get all daily delta records for the community
-        delta_records = self._get_daily_deltas(community_id, start_date, end_date)
-        if not delta_records:
+        prior_delta_records, period_delta_records = self._get_daily_deltas(
+            community_id, start_date, end_date
+        )
+        if not prior_delta_records and not period_delta_records:
             return
 
         # Initialize cumulative totals
-        cumulative_totals = (
-            last_snapshot_document["_source"]["totals"]
+        cumulative_totals, cumulative_subcounts = (
+            (
+                last_snapshot_document["_source"]["totals"],
+                last_snapshot_document["_source"]["subcounts"],
+            )
             if last_snapshot_document
-            else {}
+            else ({}, {})
         )
         current_iteration_date = start_date
+        current_delta_index = 0
 
         while current_iteration_date <= end_date:
             # Update cumulative totals with any delta records for the current day
-            for delta in delta_records:
-                delta_date = arrow.get(delta.period_start)
-                if delta_date.floor("day") == current_iteration_date.floor("day"):
-                    cumulative_totals = self._update_cumulative_totals(
-                        cumulative_totals, delta.to_dict()
+            current_delta = period_delta_records[current_delta_index]
+            delta_date = arrow.get(current_delta.period_start)
+            if delta_date.floor("day") == current_iteration_date.floor("day"):
+                # Map delta document to snapshot format before updating
+                mapped_delta_doc = self._map_delta_to_snapshot_subcounts(
+                    current_delta.to_dict()
+                )
+                cumulative_totals, cumulative_subcounts = (
+                    self._update_cumulative_totals(
+                        cumulative_totals, cumulative_subcounts, mapped_delta_doc
                     )
+                )
+                cumulative_subcounts = self._update_top_subcounts(
+                    cumulative_subcounts,
+                    prior_delta_records
+                    + period_delta_records[: current_delta_index + 1],
+                )
+                current_delta_index += 1
+            elif delta_date.floor("day") < current_iteration_date.floor("day"):
+                # Delta is from a previous day, skip ahead to the next delta
+                current_delta_index += 1
+                continue
 
             # Create and yield the snapshot document for the current day
             index_name = prefix_index(
@@ -823,7 +1055,10 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
                 "_id": document_id,
                 "_index": index_name,
                 "_source": self._create_aggregation_doc(
-                    community_id, current_iteration_date, cumulative_totals
+                    community_id,
+                    current_iteration_date,
+                    cumulative_totals,
+                    cumulative_subcounts,
                 ),
             }
 
@@ -1280,35 +1515,35 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         self.add_search_agg(
             agg_search,
-            "by_resource_type",
+            "by_resource_types",
             "resource_type.id",
             ["resource_type.title", "resource_type.id"],
         )
         self.add_search_agg(agg_search, "by_access_rights", "access_rights", None)
         self.add_search_agg(
             agg_search,
-            "by_language",
+            "by_languages",
             "languages.id",
             ["languages.title", "languages.id"],
         )
         self.add_search_agg(
-            agg_search, "by_subject", "subjects.id", ["subjects.title", "subjects.id"]
+            agg_search, "by_subjects", "subjects.id", ["subjects.title", "subjects.id"]
         )
         self.add_search_agg(
-            agg_search, "by_license", "licenses.id", ["licenses.title", "licenses.id"]
+            agg_search, "by_licenses", "licenses.id", ["licenses.title", "licenses.id"]
         )
         self.add_search_agg(
-            agg_search, "by_funder", "funders.id", ["funders.title", "funders.id"]
+            agg_search, "by_funders", "funders.id", ["funders.title", "funders.id"]
         )
-        self.add_search_agg(agg_search, "by_periodical", "periodical", None)
-        self.add_search_agg(agg_search, "by_publisher", "publisher", None)
-        self.add_search_agg(agg_search, "by_file_type", "file_type", None)
-        self.add_search_agg(agg_search, "by_country", "country", None)
-        self.add_search_agg(agg_search, "by_referrer", "referrer", None)
+        self.add_search_agg(agg_search, "by_periodicals", "periodical", None)
+        self.add_search_agg(agg_search, "by_publishers", "publisher", None)
+        self.add_search_agg(agg_search, "by_file_types", "file_type", None)
+        self.add_search_agg(agg_search, "by_countries", "country", None)
+        self.add_search_agg(agg_search, "by_referrers", "referrer", None)
 
         # Aggregate by affiliation
         affiliation_agg = agg_search.aggs.bucket(
-            "by_affiliation",
+            "by_affiliations",
             "composite",
             size=100,
             sources=[
@@ -1318,7 +1553,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         )
         self.add_search_agg(
             agg_search,
-            "by_affiliation",
+            "by_affiliations",
             agg_field=None,
             title_field=None,
             field_bucket=affiliation_agg,
@@ -1425,13 +1660,21 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 )
             return subcount_list
 
+        current_app.logger.error(
+            f"period_start: {date.floor('day').format('YYYY-MM-DDTHH:mm:ss')}"
+        )
+        current_app.logger.error(
+            f"period_end: {date.ceil('day').format('YYYY-MM-DDTHH:mm:ss')}"
+        )
+
         final_dict = {
             "community_id": community_id,
             "period_start": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
             "period_end": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
             "totals": {
-                "views": {
-                    "total": views_bucket.doc_count if views_bucket else 0,
+                "view": {
+                    "total_events": views_bucket.doc_count if views_bucket else 0,
                     "unique_visitors": (
                         views_bucket.unique_visitors.value if views_bucket else 0
                     ),
@@ -1442,8 +1685,10 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         views_bucket.unique_parents.value if views_bucket else 0
                     ),
                 },
-                "downloads": {
-                    "total": downloads_bucket.doc_count if downloads_bucket else 0,
+                "download": {
+                    "total_events": (
+                        downloads_bucket.doc_count if downloads_bucket else 0
+                    ),
                     "unique_visitors": (
                         downloads_bucket.unique_visitors.value
                         if downloads_bucket
@@ -1464,48 +1709,51 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 },
             },
             "subcounts": {
-                "by_resource_type": add_subcount_to_doc(
-                    results.aggregations.by_resource_type.buckets,
+                "by_access_rights": add_subcount_to_doc(
+                    results.aggregations.by_access_rights.buckets, None
+                ),
+                "by_resource_types": add_subcount_to_doc(
+                    results.aggregations.by_resource_types.buckets,
                     ["resource_type", "title"],
                 ),
-                "by_license": add_subcount_to_doc(
-                    results.aggregations.by_license.buckets,
+                "by_licenses": add_subcount_to_doc(
+                    results.aggregations.by_licenses.buckets,
                     ["licenses", 0, "title"],
                 ),
-                "by_funder": add_subcount_to_doc(
-                    results.aggregations.by_funder.buckets,
+                "by_funders": add_subcount_to_doc(
+                    results.aggregations.by_funders.buckets,
                     ["funders", 0, "title"],
                 ),
-                "by_periodical": add_subcount_to_doc(
-                    results.aggregations.by_periodical.buckets
+                "by_periodicals": add_subcount_to_doc(
+                    results.aggregations.by_periodicals.buckets
                 ),
-                "by_language": add_subcount_to_doc(
-                    results.aggregations.by_language.buckets,
+                "by_languages": add_subcount_to_doc(
+                    results.aggregations.by_languages.buckets,
                     [
                         "languages",
                         0,
                         "title",
                     ],  # SUBCOUNT_TYPES["language"][1].split("."),
                 ),
-                "by_subject": add_subcount_to_doc(
-                    results.aggregations.by_subject.buckets,
+                "by_subjects": add_subcount_to_doc(
+                    results.aggregations.by_subjects.buckets,
                     ["subjects", 0, "title"],
                 ),
-                "by_publisher": add_subcount_to_doc(
-                    results.aggregations.by_publisher.buckets
+                "by_publishers": add_subcount_to_doc(
+                    results.aggregations.by_publishers.buckets
                 ),
-                "by_affiliation": add_subcount_to_doc(
-                    results.aggregations.by_affiliation.buckets,
+                "by_affiliations": add_subcount_to_doc(
+                    results.aggregations.by_affiliations.buckets,
                     lambda aff_bucket: aff_bucket.get("key", {}).get("name"),
                 ),
-                "by_country": add_subcount_to_doc(
-                    results.aggregations.by_country.buckets, None
+                "by_countries": add_subcount_to_doc(
+                    results.aggregations.by_countries.buckets, None
                 ),
-                "by_referrer": add_subcount_to_doc(
-                    results.aggregations.by_referrer.buckets
+                "by_referrers": add_subcount_to_doc(
+                    results.aggregations.by_referrers.buckets
                 ),
-                "by_file_type": add_subcount_to_doc(
-                    results.aggregations.by_file_type.buckets,
+                "by_file_types": add_subcount_to_doc(
+                    results.aggregations.by_file_types.buckets,
                 ),
             },
         }
@@ -1576,12 +1824,16 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             self.client.indices.delete(index=temp_index, ignore=[400, 404])
 
 
-class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
+class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
+    """Aggregator for community record deltas.
+
+    Uses the date the record was created as the initial date of the record.
+    """
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.event_index = prefix_index("rdmrecords-records")
-        self.aggregation_index = prefix_index("stats-community-records-delta")
+        self.aggregation_index = prefix_index("stats-community-records-delta-created")
 
     def create_agg_dict(
         self,
@@ -1731,10 +1983,14 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
                             },
                             "removed": {
                                 "metadata_only": (
-                                    removed.get("without_files", {}).get("doc_count", 0)
+                                    removed.get("without_files", {})
+                                    .get("unique_parents", {})
+                                    .get("value", 0)
                                 ),
                                 "with_files": (
-                                    removed.get("with_files", {}).get("doc_count", 0)
+                                    removed.get("with_files", {})
+                                    .get("unique_parents", {})
+                                    .get("value", 0)
                                 ),
                             },
                         },
@@ -1763,7 +2019,7 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
         agg_dict = {
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
             "community_id": community_id,
-            "period_start": current_day.format("YYYY-MM-DDTHH:mm:ss"),
+            "period_start": current_day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
             "period_end": current_day.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
             "records": {
                 "added": {
@@ -1839,7 +2095,7 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
-        app.logger.error(f"Agg dict: {pformat(agg_dict)}")
+        current_app.logger.error(f"Agg dict: {pformat(agg_dict)}")
         return agg_dict
 
     def agg_iter(
@@ -1870,72 +2126,51 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
             year_start_date = max(arrow.get(f"{year}-01-01"), start_date)
             year_end_date = min(arrow.get(f"{year}-12-31"), end_date)
 
-            year_search_added = Search(using=self.client, index=self.event_index)
-            year_search_added.update_from_dict(
-                daily_record_delta_query(
-                    year_start_date.format("YYYY-MM-DD"),
-                    year_end_date.format("YYYY-MM-DD"),
-                    community_id=community_id,
+            index_name = prefix_index("{0}-{1}".format(self.aggregation_index, year))
+
+            for day in arrow.Arrow.range("day", year_start_date, year_end_date):
+                day_start_date = day.floor("day")
+                day_end_date = day.ceil("day")
+
+                year_search_added = Search(using=self.client, index=self.event_index)
+                year_search_added.update_from_dict(
+                    daily_record_delta_query(
+                        day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        community_id=community_id,
+                        use_added_dates=self.aggregation_index
+                        == "stats-community-records-delta-added",
+                        use_published_dates=self.aggregation_index
+                        == "stats-community-records-delta-published",
+                    )
                 )
-            )
 
-            year_results_added = year_search_added.execute()
-            buckets_added = year_results_added.aggregations["by_day"]["buckets"]
+                day_results_added = year_search_added.execute()
+                buckets_added = day_results_added.aggregations["by_day"]["buckets"]
 
-            year_search_removed = Search(using=self.client, index=self.event_index)
-            year_search_removed.update_from_dict(
-                daily_record_delta_query(
-                    year_start_date.format("YYYY-MM-DD"),
-                    year_end_date.format("YYYY-MM-DD"),
-                    community_id=community_id,
-                    find_deleted=True,
+                day_search_removed = Search(using=self.client, index=self.event_index)
+                day_search_removed.update_from_dict(
+                    daily_record_delta_query(
+                        day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        community_id=community_id,
+                        find_deleted=True,
+                    )
                 )
-            )
 
-            year_results_removed = year_search_removed.execute()
-            buckets_removed = year_results_removed.aggregations["by_day"]["buckets"]
+                day_results_removed = day_search_removed.execute()
+                buckets_removed = day_results_removed.aggregations["by_day"]["buckets"]
 
-            # We have to align uneven
-            added_iteration_marker = 0
-            removed_iteration_marker = 0
-            next_date = min(
-                (
-                    arrow.get(buckets_added[0]["key_as_string"])
-                    if buckets_added
-                    else arrow.get(year_end_date)
-                ),
-                (
-                    arrow.get(buckets_removed[0]["key_as_string"])
-                    if buckets_removed
-                    else arrow.get(year_end_date)
-                ),
-            )
-            final_date = max(
-                (
-                    arrow.get(buckets_added[-1]["key_as_string"])
-                    if buckets_added
-                    else arrow.get(year_start_date)
-                ),
-                (
-                    arrow.get(buckets_removed[-1]["key_as_string"])
-                    if buckets_removed
-                    else arrow.get(year_start_date)
-                ),
-            )
-            current_app.logger.error(f"Final date: {pformat(final_date)}")
-
-            while next_date <= final_date:
-                current_app.logger.error(f"Next date: {pformat(next_date)}")
                 added_bucket = next(
                     filter(
-                        lambda x: arrow.get(x["key_as_string"]) == next_date,
+                        lambda x: arrow.get(x["key_as_string"]) == day_start_date,
                         buckets_added,
                     ),
                     {},
                 )
                 removed_bucket = next(
                     filter(
-                        lambda x: arrow.get(x["key_as_string"]) == next_date,
+                        lambda x: arrow.get(x["key_as_string"]) == day_start_date,
                         buckets_removed,
                     ),
                     {},
@@ -1943,10 +2178,7 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
 
                 # Check if an aggregation already exists for this date
                 # If it does, delete it (we'll re-create it below)
-                index_name = prefix_index(
-                    "{0}-{1}".format(self.aggregation_index, next_date.year)
-                )
-                document_id = f"{community_id}-{next_date.format('YYYY-MM-DD')}"
+                document_id = f"{community_id}-{day_start_date.format('YYYY-MM-DD')}"
                 if self.client.exists(index=index_name, id=document_id):
                     self.delete_aggregation(index_name, document_id)
 
@@ -1956,20 +2188,22 @@ class CommunityRecordsDeltaAggregator(CommunityAggregatorBase):
                     "_id": document_id,
                     "_index": index_name,
                     "_source": self.create_agg_dict(
-                        community_id, next_date, added_bucket, removed_bucket
+                        community_id, day_start_date, added_bucket, removed_bucket
                     ),
                 }
 
-                # Increment markers if we found matches
-                if added_bucket and added_iteration_marker < len(buckets_added):
-                    added_iteration_marker += 1
-                if removed_bucket and removed_iteration_marker < len(buckets_removed):
-                    removed_iteration_marker += 1
 
-                # Increment next date if we haven't reached the end of both lists
-                if added_iteration_marker < len(
-                    buckets_added
-                ) or removed_iteration_marker < len(buckets_removed):
-                    next_date = next_date.shift(days=1)
-                else:
-                    break
+class CommunityRecordsDeltaAddedAggregator(CommunityRecordsDeltaCreatedAggregator):
+    """Aggregator for community records delta added."""
+
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.aggregation_index = prefix_index("stats-community-records-delta-added")
+
+
+class CommunityRecordsDeltaPublishedAggregator(CommunityRecordsDeltaCreatedAggregator):
+    """Aggregator for community records delta published."""
+
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.aggregation_index = prefix_index("stats-community-records-delta-published")

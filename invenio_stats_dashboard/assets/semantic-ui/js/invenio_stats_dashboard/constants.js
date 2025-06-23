@@ -1,3 +1,8 @@
+export const DASHBOARD_TYPES = {
+  GLOBAL: "global",
+  COMMUNITY: "community",
+};
+
 // Color arrays for charts and visualizations
 export const CHART_COLORS = {
   // Main color palette

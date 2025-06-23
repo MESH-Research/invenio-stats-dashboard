@@ -26,7 +26,7 @@ class CommunityEventsCF(BaseListCF):
     def mapping(self):
         """Notes search mappings."""
         return {
-            "type": "object",
+            "type": "nested",
             "properties": {
                 "community_id": {"type": "keyword"},
                 "added": {"type": "date"},

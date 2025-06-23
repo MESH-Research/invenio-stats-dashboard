@@ -34,6 +34,11 @@ class InvenioStatsDashboard:
             **existing_aggregations,
             **config.COMMUNITY_STATS_AGGREGATIONS,
         }
+        existing_queries = app.config.get("STATS_QUERIES", {})
+        app.config["STATS_QUERIES"] = {
+            **existing_queries,
+            **config.COMMUNITY_STATS_QUERIES,
+        }
 
 
 def finalize_app(app):

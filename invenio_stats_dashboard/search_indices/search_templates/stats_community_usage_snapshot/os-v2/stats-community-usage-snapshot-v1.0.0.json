@@ -27,61 +27,30 @@
                     "type": "date",
                     "format": "strict_date_hour_minute_second"
                 },
-                "record_views": {
+                "totals": {
                     "type": "object",
                     "properties": {
-                        "metadata_only": {
-                            "type": "integer"
+                        "view": {
+                            "type": "object",
+                            "properties": {
+                                "total_events": { "type": "integer" },
+                                "unique_visitors": { "type": "integer" },
+                                "unique_records": { "type": "integer" },
+                                "unique_parents": { "type": "integer" }
+                            }
                         },
-                        "with_files": {
-                            "type": "integer"
+                        "download": {
+                            "type": "object",
+                            "properties": {
+                                "total_events": { "type": "integer" },
+                                "unique_visitors": { "type": "integer" },
+                                "unique_records": { "type": "integer" },
+                                "unique_parents": { "type": "integer" },
+                                "unique_files": { "type": "integer" },
+                                "total_volume": { "type": "long" }
+                            }
                         }
                     }
-                },
-                "parent_views": {
-                    "type": "object",
-                    "properties": {
-                        "metadata_only": {
-                            "type": "integer"
-                        },
-                        "with_files": {
-                            "type": "integer"
-                        }
-                    }
-                },
-                "file_downloads": {
-                    "type": "object",
-                    "properties": {
-                        "file_count": {
-                            "type": "long"
-                        },
-                        "data_volume": {
-                            "type": "long"
-                        }
-                    }
-                },
-                "parent_file_downloads": {
-                    "type": "object",
-                    "properties": {
-                        "file_count": {
-                            "type": "long"
-                        },
-                        "data_volume": {
-                            "type": "long"
-                        }
-                    }
-                },
-                "unique_visitors": {
-                    "type": "keyword"
-                },
-                "referrers": {
-                    "type": "keyword"
-                },
-                "countries": {
-                    "type": "keyword"
-                },
-                "user_agents": {
-                    "type": "keyword"
                 },
                 "subcounts": {
                     "type": "object",
@@ -93,58 +62,26 @@
                                     "type": "keyword"
                                 },
                                 "label": {
+                                    "type": "keyword"
+                                },
+                                "view": {
                                     "type": "object",
                                     "properties": {
-                                        "lang": {
-                                            "type": "keyword"
-                                        },
-                                        "value": {
-                                            "type": "keyword"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" }
                                     }
                                 },
-                                "record_views": {
+                                "download": {
                                     "type": "object",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" },
+                                        "unique_files": { "type": "integer" },
+                                        "total_volume": { "type": "long" }
                                     }
                                 }
                             }
@@ -156,58 +93,26 @@
                                     "type": "keyword"
                                 },
                                 "label": {
+                                    "type": "keyword"
+                                },
+                                "view": {
                                     "type": "object",
                                     "properties": {
-                                        "lang": {
-                                            "type": "keyword"
-                                        },
-                                        "value": {
-                                            "type": "keyword"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" }
                                     }
                                 },
-                                "record_views": {
+                                "download": {
                                     "type": "object",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" },
+                                        "unique_files": { "type": "integer" },
+                                        "total_volume": { "type": "long" }
                                     }
                                 }
                             }
@@ -219,58 +124,57 @@
                                     "type": "keyword"
                                 },
                                 "label": {
+                                    "type": "keyword"
+                                },
+                                "view": {
                                     "type": "object",
                                     "properties": {
-                                        "lang": {
-                                            "type": "keyword"
-                                        },
-                                        "value": {
-                                            "type": "keyword"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" }
                                     }
                                 },
-                                "record_views": {
+                                "download": {
                                     "type": "object",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" },
+                                        "unique_files": { "type": "integer" },
+                                        "total_volume": { "type": "long" }
+                                    }
+                                }
+                            }
+                        },
+                        "all_file_types": {
+                            "type": "nested",
+                            "properties": {
+                                "id": {
+                                    "type": "keyword"
+                                },
+                                "label": {
+                                    "type": "keyword"
+                                },
+                                "view": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" }
                                     }
                                 },
-                                "parent_views": {
+                                "download": {
                                     "type": "object",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
+                                        "total_events": { "type": "integer" },
+                                        "unique_visitors": { "type": "integer" },
+                                        "unique_records": { "type": "integer" },
+                                        "unique_parents": { "type": "integer" },
+                                        "unique_files": { "type": "integer" },
+                                        "total_volume": { "type": "long" }
                                     }
                                 }
                             }
@@ -278,61 +182,65 @@
                         "top_affiliations": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "label": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -341,61 +249,65 @@
                         "top_funders": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "label": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -404,61 +316,65 @@
                         "top_subjects": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "label": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -467,61 +383,65 @@
                         "top_publishers": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "label": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -530,61 +450,65 @@
                         "top_periodicals": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "label": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -593,61 +517,61 @@
                         "top_countries": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": { "type": "keyword" },
+                                        "label": { "type": "keyword" },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -656,61 +580,97 @@
                         "top_user_agents": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "top_licenses": {
+                            "type": "nested",
+                            "properties": {
+                                "by_view": {
+                                    "type": "nested",
+                                    "properties": {
+                                        "id": {
+                                            "type": "keyword"
+                                        },
+                                        "label": {
+                                            "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": { "type": "keyword" },
+                                        "label": { "type": "keyword" },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
-                                        },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
@@ -719,61 +679,65 @@
                         "top_referrers": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "lang": {
+                                        "id": {
                                             "type": "keyword"
                                         },
-                                        "value": {
+                                        "label": {
                                             "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 },
-                                "record_views": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "id": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "parent_views": {
-                                    "type": "object",
-                                    "properties": {
-                                        "metadata_only": {
-                                            "type": "integer"
+                                        "label": {
+                                            "type": "keyword"
                                         },
-                                        "with_files": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
                                         },
-                                        "data_volume": {
-                                            "type": "long"
-                                        }
-                                    }
-                                },
-                                "parent_file_downloads": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_count": {
-                                            "type": "long"
-                                        },
-                                        "data_volume": {
-                                            "type": "long"
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
                                         }
                                     }
                                 }
