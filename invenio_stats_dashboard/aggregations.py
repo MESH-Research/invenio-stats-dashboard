@@ -30,29 +30,29 @@ from invenio_stats_dashboard.queries import (
 )
 
 SUBCOUNT_TYPES = {
-    "resource_type": (
+    "resource_type": [
         "metadata.resource_type.id",
         "metadata.resource_type.title.en",
-    ),
-    "access_rights": "access.status",
-    "language": ("metadata.languages.id", "metadata.languages.title.en"),
-    "affiliation_creator": (
+    ],
+    "access_rights": ["access.status"],
+    "language": ["metadata.languages.id", "metadata.languages.title.en"],
+    "affiliation_creator": [
         "metadata.creators.affiliations.id",
         "metadata.creators.affiliations.name.keyword",
-    ),
-    "affiliation_contributor": (
+    ],
+    "affiliation_contributor": [
         "metadata.contributors.affiliations.id",
         "metadata.contributors.affiliations.name.keyword",
-    ),
-    "funder": (
+    ],
+    "funder": [
         "metadata.funding.funder.id",
         "metadata.funding.funder.title.en",
-    ),
-    "subject": ("metadata.subjects.id", "metadata.subjects.subject"),
-    "publisher": "metadata.publisher.keyword",
-    "periodical": "custom_fields.journal:journal.title.keyword",
-    "file_type": "files.entries.ext",
-    "license": ("metadata.rights.id", "metadata.rights.title.en"),
+    ],
+    "subject": ["metadata.subjects.id", "metadata.subjects.subject"],
+    "publisher": ["metadata.publisher.keyword"],
+    "periodical": ["custom_fields.journal:journal.title.keyword"],
+    "file_type": ["files.entries.ext"],
+    "license": ["metadata.rights.id", "metadata.rights.title.en"],
 }
 
 
@@ -327,6 +327,7 @@ class CommunityAggregatorBase(StatAggregator):
         Returns:
             The value at the end of the path, or an empty dict if not found
         """
+        current_app.logger.error(f"Getting nested value in {data}")
         current = data
         for idx, segment in enumerate(path):
             if isinstance(current, dict) or isinstance(current, AttrDict):
@@ -401,15 +402,15 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
                     {
                         "id": key,
                         "label": {},
-                        "record_count": (
+                        "records": (
                             added.get("unique_records", {}).get("value", 0)
                             - removed.get("unique_records", {}).get("value", 0)
                         ),
-                        "parent_count": (
+                        "parents": (
                             added.get("unique_parents", {}).get("value", 0)
                             - removed.get("unique_parents", {}).get("value", 0)
                         ),
-                        "file_count": (
+                        "files": (
                             added.get("doc_count", 0) - removed.get("doc_count", 0)
                         ),
                         "data_volume": (
@@ -500,7 +501,7 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
                     {
                         "id": key,
                         "label": label,
-                        "record_count": {
+                        "records": {
                             "metadata_only": (
                                 added.get("without_files", {}).get("doc_count", 0)
                                 - removed.get("without_files", {}).get("doc_count", 0)
@@ -510,7 +511,7 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
                                 - removed.get("with_files", {}).get("doc_count", 0)
                             ),
                         },
-                        "parent_count": {
+                        "parents": {
                             "metadata_only": (
                                 added.get("without_files", {})
                                 .get("unique_parents", {})
@@ -1839,8 +1840,8 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
         self,
         community_id: str,
         current_day: arrow.Arrow,
-        added_bucket: dict,
-        removed_bucket: dict,
+        aggs_added: dict,
+        aggs_removed: dict,
     ) -> dict:
         """Create a dictionary representing the aggregation result for indexing."""
 
@@ -1848,12 +1849,12 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             combined_keys = list(
                 set(
                     b.key
-                    for b in added_bucket.get("by_file_type", {}).get("buckets", [])
+                    for b in aggs_added.get("by_file_type", {}).get("buckets", [])
                     if b.key != "doc_count"
                 )
                 | set(
                     b.key
-                    for b in removed_bucket.get("by_file_type", {}).get("buckets", [])
+                    for b in aggs_removed.get("by_file_type", {}).get("buckets", [])
                     if b.key != "doc_count"
                 )
             )
@@ -1862,21 +1863,21 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 added_list = list(
                     filter(
                         lambda x: x["key"] == key,
-                        added_bucket.get("by_file_type", {}).get("buckets", []),
+                        aggs_added.get("by_file_type", {}).get("buckets", []),
                     )
                 )
                 added = added_list[0] if added_list else {}
                 removed_list = list(
                     filter(
                         lambda x: x["key"] == key,
-                        removed_bucket.get("by_file_type", {}).get("buckets", []),
+                        aggs_removed.get("by_file_type", {}).get("buckets", []),
                     )
                 )
                 removed = removed_list[0] if removed_list else {}
                 file_type_list.append(
                     {
                         "id": key,
-                        "label": {},
+                        "label": "",
                         "added": {
                             "records": added.get("unique_records", {}).get("value", 0),
                             "parents": added.get("unique_parents", {}).get("value", 0),
@@ -1899,58 +1900,60 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 )
             return file_type_list
 
-        def make_subcount_dict(subcount_type):
+        def find_item_label(added, removed, subcount_def, key):
+            label = ""
+
+            if len(subcount_def) > 1:
+                label_item = added if added else removed
+                label_field = subcount_def[1]
+                source_path = ["label", "hits", "hits", 0, "_source"]
+                label_path_stem = source_path + label_field.split(".")[:2]
+                label_path_leaf = label_field.split(".")[2:]
+
+                # We need to find the specific item that matches the key
+                # Because the non-nested top-hits agg returns all items
+                label_options = self._get_nested_value(label_item, label_path_stem)
+                if isinstance(label_options, AttrList) and len(label_options) > 0:
+                    matching_option = next(
+                        (
+                            label_option
+                            for label_option in label_options
+                            if label_option.get("id") == key
+                        ),
+                        None,
+                    )
+                    if matching_option:
+                        label = self._get_nested_value(
+                            matching_option, label_path_leaf, key=key
+                        )
+                elif isinstance(label_options, AttrDict):
+                    label = self._get_nested_value(
+                        label_options, label_path_leaf, key=key
+                    )
+            return label
+
+        def make_subcount_list(subcount_type):
+            added_items = aggs_added.get(subcount_type, {}).get("buckets", [])
+            removed_items = aggs_removed.get(subcount_type, {}).get("buckets", [])
             combined_keys = list(
-                set(
-                    b.key
-                    for b in added_bucket.get(subcount_type, {}).get("buckets", [])
-                    if b.key != "doc_count"
-                )
-                | set(
-                    b.key
-                    for b in removed_bucket.get(subcount_type, {}).get("buckets", [])
-                    if b.key != "doc_count"
-                )
+                set(b.key for b in added_items) | set(b.key for b in removed_items)
             )
             subcount_list = []
-
             for key in combined_keys:
-                added_list = list(
-                    filter(
-                        lambda x: x["key"] == key,
-                        added_bucket.get(subcount_type, {}).get("buckets", []),
-                    )
+                added_filtered = list(filter(lambda x: x["key"] == key, added_items))
+                added = added_filtered[0] if added_filtered else {}
+                removed_filtered = list(
+                    filter(lambda x: x["key"] == key, removed_items)
                 )
-                added = added_list[0] if added_list else {}
-                removed_list = list(
-                    filter(
-                        lambda x: x["key"] == key,
-                        removed_bucket.get(subcount_type, {}).get("buckets", []),
-                    )
+                removed = removed_filtered[0] if removed_filtered else {}
+                label = find_item_label(
+                    added, removed, SUBCOUNT_TYPES[subcount_type[3:]], key
                 )
-                removed = removed_list[0] if removed_list else {}
-                label_field = SUBCOUNT_TYPES[subcount_type][1]
-                label_path = (
-                    f"label.hits.hits.0._source.{label_field}".split(".")
-                    if len(SUBCOUNT_TYPES[subcount_type]) > 1
-                    else None
-                )
-                # For subjects, we need to find the specific subject that matches the key
-                if subcount_type == "subject" and label_path:
-                    label = self._get_nested_value(
-                        added,
-                        ["label", "hits", "hits", 0, "_source", "metadata", "subjects"],
-                        key=key,
-                    ).get("subject", {})
-                else:
-                    label = (
-                        self._get_nested_value(added, label_path) if label_path else {}
-                    )
                 subcount_list.append(
                     {
                         "id": key,
                         "label": label,
-                        "record_count": {
+                        "records": {
                             "added": {
                                 "metadata_only": (
                                     added.get("without_files", {}).get("doc_count", 0)
@@ -2024,42 +2027,40 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             "records": {
                 "added": {
                     "metadata_only": (
-                        added_bucket.get("without_files", {}).get("doc_count", 0)
+                        aggs_added.get("without_files", {}).get("doc_count", 0)
                     ),
-                    "with_files": (
-                        added_bucket.get("with_files", {}).get("doc_count", 0)
-                    ),
+                    "with_files": aggs_added.get("with_files", {}).get("doc_count", 0),
                 },
                 "removed": {
                     "metadata_only": (
-                        removed_bucket.get("without_files", {}).get("doc_count", 0)
+                        aggs_removed.get("without_files", {}).get("doc_count", 0)
                     ),
                     "with_files": (
-                        removed_bucket.get("with_files", {}).get("doc_count", 0)
+                        aggs_removed.get("with_files", {}).get("doc_count", 0)
                     ),
                 },
             },
             "parents": {
                 "added": {
                     "metadata_only": (
-                        added_bucket.get("without_files", {})
+                        aggs_added.get("without_files", {})
                         .get("unique_parents", {})
                         .get("value", 0)
                     ),
                     "with_files": (
-                        added_bucket.get("with_files", {})
+                        aggs_added.get("with_files", {})
                         .get("unique_parents", {})
                         .get("value", 0)
                     ),
                 },
                 "removed": {
                     "metadata_only": (
-                        removed_bucket.get("without_files", {})
+                        aggs_removed.get("without_files", {})
                         .get("unique_parents", {})
                         .get("value", 0)
                     ),
                     "with_files": (
-                        removed_bucket.get("with_files", {})
+                        aggs_removed.get("with_files", {})
                         .get("unique_parents", {})
                         .get("value", 0)
                     ),
@@ -2067,30 +2068,28 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             },
             "files": {
                 "added": {
-                    "file_count": added_bucket.get("file_count", {}).get("value", 0),
-                    "data_volume": added_bucket.get("total_bytes", {}).get("value", 0),
+                    "file_count": aggs_added.get("file_count", {}).get("value", 0),
+                    "data_volume": aggs_added.get("total_bytes", {}).get("value", 0),
                 },
                 "removed": {
-                    "file_count": removed_bucket.get("file_count", {}).get("value", 0),
-                    "data_volume": (
-                        removed_bucket.get("total_bytes", {}).get("value", 0)
-                    ),
+                    "file_count": aggs_removed.get("file_count", {}).get("value", 0),
+                    "data_volume": aggs_removed.get("total_bytes", {}).get("value", 0),
                 },
             },
-            "uploaders": added_bucket.get("uploaders", {}).get("value", 0),
+            "uploaders": aggs_added.get("uploaders", {}).get("value", 0),
             "subcounts": {
-                "by_resource_type": make_subcount_dict("by_resource_type"),
-                "by_access_rights": make_subcount_dict("by_access_rights"),
-                "by_language": make_subcount_dict("by_language"),
-                "by_affiliation_creator": make_subcount_dict("by_affiliation_creator"),
-                "by_affiliation_contributor": make_subcount_dict(
+                "by_resource_type": make_subcount_list("by_resource_type"),
+                "by_access_rights": make_subcount_list("by_access_rights"),
+                "by_language": make_subcount_list("by_language"),
+                "by_affiliation_creator": make_subcount_list("by_affiliation_creator"),
+                "by_affiliation_contributor": make_subcount_list(
                     "by_affiliation_contributor"
                 ),
-                "by_funder": make_subcount_dict("by_funder"),
-                "by_subject": make_subcount_dict("by_subject"),
-                "by_publisher": make_subcount_dict("by_publisher"),
-                "by_periodical": make_subcount_dict("by_periodical"),
-                "by_license": make_subcount_dict("by_license"),
+                "by_funder": make_subcount_list("by_funder"),
+                "by_subject": make_subcount_list("by_subject"),
+                "by_publisher": make_subcount_list("by_publisher"),
+                "by_periodical": make_subcount_list("by_periodical"),
+                "by_license": make_subcount_list("by_license"),
                 "by_file_type": make_file_type_dict(),
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
@@ -2138,15 +2137,15 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                         day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
                         day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
                         community_id=community_id,
-                        use_added_dates=self.aggregation_index
+                        use_included_dates=self.aggregation_index
                         == "stats-community-records-delta-added",
                         use_published_dates=self.aggregation_index
-                        == "stats-community-records-delta-published",
+                        == "stats-community-records-delta-published",  # noqa: E501
                     )
                 )
 
                 day_results_added = year_search_added.execute()
-                buckets_added = day_results_added.aggregations["by_day"]["buckets"]
+                aggs_added = day_results_added.aggregations
 
                 day_search_removed = Search(using=self.client, index=self.event_index)
                 day_search_removed.update_from_dict(
@@ -2159,22 +2158,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 )
 
                 day_results_removed = day_search_removed.execute()
-                buckets_removed = day_results_removed.aggregations["by_day"]["buckets"]
-
-                added_bucket = next(
-                    filter(
-                        lambda x: arrow.get(x["key_as_string"]) == day_start_date,
-                        buckets_added,
-                    ),
-                    {},
-                )
-                removed_bucket = next(
-                    filter(
-                        lambda x: arrow.get(x["key_as_string"]) == day_start_date,
-                        buckets_removed,
-                    ),
-                    {},
-                )
+                aggs_removed = day_results_removed.aggregations
 
                 # Check if an aggregation already exists for this date
                 # If it does, delete it (we'll re-create it below)
@@ -2188,7 +2172,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                     "_id": document_id,
                     "_index": index_name,
                     "_source": self.create_agg_dict(
-                        community_id, day_start_date, added_bucket, removed_bucket
+                        community_id, day_start_date, aggs_added, aggs_removed
                     ),
                 }
 

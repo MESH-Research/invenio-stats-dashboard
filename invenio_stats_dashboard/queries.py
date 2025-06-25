@@ -78,7 +78,8 @@ def daily_record_cumulative_counts_query(
     end_date: str,
     community_id: str | None = None,
     find_deleted: bool = False,
-    use_added_dates: bool = False,
+    use_included_dates: bool = False,
+    use_published_dates: bool = False,
 ):
     """Build the query for a snapshot of one day's cumulative record counts.
 
@@ -162,24 +163,11 @@ def daily_record_cumulative_counts_query(
                         "label": {
                             "top_hits": {
                                 "size": 1,
-                                "_source": {
-                                    "includes": [
-                                        (
-                                            "metadata.subjects"
-                                            if subcount_type[0] == "subject"
-                                            else subcount_type[2]
-                                        )
-                                    ]
-                                },
+                                "_source": {"includes": subcount_type[2]},
                             }
                         }
                     }
                     if len(subcount_type) > 2
-                    and subcount_type[0]
-                    not in [
-                        "affiliation_creator",
-                        "affiliation_contributor",
-                    ]
                     else {}
                 ),
             },

@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["__SEARCH_INDEX_PREFIX__stats-community-records-delta-*"],
+  "index_patterns": ["__SEARCH_INDEX_PREFIX__stats-community-records-delta-added-*"],
   "template": {
     "settings": {
         "index": {
@@ -122,15 +122,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -222,15 +214,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -322,15 +306,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -422,15 +398,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -522,15 +490,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -622,15 +582,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -722,15 +674,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -822,15 +766,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -922,15 +858,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -1022,15 +950,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "added": {
                                 "type": "object",
@@ -1075,15 +995,7 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "object",
-                                "properties": {
-                                    "lang": {
-                                        "type": "keyword"
-                                    },
-                                    "value": {
-                                        "type": "keyword"
-                                    }
-                                }
+                                "type": "keyword"
                             },
                             "records": {
                                 "type": "object",
@@ -1177,12 +1089,12 @@
         }
     },
     "aliases": {
-        "__SEARCH_INDEX_PREFIX__stats-community-records-delta": {}
+        "__SEARCH_INDEX_PREFIX__stats-community-records-delta-added": {}
     }
   },
   "priority": 100,
   "version": 1,
   "_meta": {
-    "description": "Changes in community record counts over time periods, including subcounts based on several record metadata fields."
+    "description": "Changes in community record counts over time periods, including subcounts based on several record metadata fields. Uses the date the record was added as the initial date of the record."
   }
 }
