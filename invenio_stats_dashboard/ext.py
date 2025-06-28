@@ -3,7 +3,13 @@
 from flask_menu import current_menu
 from invenio_i18n import lazy_gettext as _
 
+from invenio_records_resources.services.base.config import ConfiguratorMixin, FromConfig
 from . import config
+from .components import (
+    CommunityAcceptedEventComponent,
+    RecordCommunityEventComponent,
+    RecordCommunityEventTrackingComponent,
+)
 
 
 class InvenioStatsDashboard:
@@ -39,6 +45,27 @@ class InvenioStatsDashboard:
             **existing_queries,
             **config.COMMUNITY_STATS_QUERIES,
         }
+        app.config["REQUESTS_EVENTS_SERVICE_COMPONENTS"] = [
+            *app.config.get("REQUESTS_EVENTS_SERVICE_COMPONENTS", []),
+            CommunityAcceptedEventComponent,
+        ]
+        existing_rdm_record_components = app.config.get(
+            "RDM_RECORDS_SERVICE_COMPONENTS", []
+        )
+        app.logger.error(
+            f"existing_rdm_record_components: {existing_rdm_record_components}"
+        )
+        app.config["RDM_RECORDS_SERVICE_COMPONENTS"] = [
+            *existing_rdm_record_components,
+            RecordCommunityEventComponent,
+        ]
+        existing_record_communities_components = app.config.get(
+            "RDM_RECORD_COMMUNITIES_SERVICE_COMPONENTS", []
+        )
+        app.config["RDM_RECORD_COMMUNITIES_SERVICE_COMPONENTS"] = [
+            *existing_record_communities_components,
+            RecordCommunityEventTrackingComponent,
+        ]
 
 
 def finalize_app(app):

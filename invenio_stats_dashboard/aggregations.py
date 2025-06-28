@@ -25,7 +25,7 @@ from invenio_stats.bookmark import (
     BookmarkAPI,
 )
 from invenio_stats_dashboard.queries import (
-    daily_record_cumulative_counts_query,
+    daily_record_snapshot_query,
     daily_record_delta_query,
 )
 
@@ -111,6 +111,13 @@ def register_aggregations():
             "params": {
                 "client": current_search_client,
             },
+        },
+        "community-events-agg": {
+            "templates": (
+                "invenio_stats_dashboard.search_indices.search_templates."
+                "stats_community_events"
+            ),
+            "cls": CommunityEventsIndexAggregator,
         },
     }
 
@@ -637,7 +644,7 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
 
             snapshot_added_search = Search(using=self.client, index=self.event_index)
 
-            snapshot_query_added = daily_record_cumulative_counts_query(
+            snapshot_query_added = daily_record_snapshot_query(
                 earliest_date.format("YYYY-MM-DD"),
                 current_iteration_date.format("YYYY-MM-DD"),
                 community_id=community_id,
@@ -649,7 +656,7 @@ class CommunityRecordsSnapshotAggregator(CommunityAggregatorBase):
 
             snapshot_removed_search = Search(using=self.client, index=self.event_index)
 
-            snapshot_query_removed = daily_record_cumulative_counts_query(
+            snapshot_query_removed = daily_record_snapshot_query(
                 earliest_date.format("YYYY-MM-DD"),
                 current_iteration_date.format("YYYY-MM-DD"),
                 community_id=community_id,
@@ -2191,3 +2198,26 @@ class CommunityRecordsDeltaPublishedAggregator(CommunityRecordsDeltaCreatedAggre
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.aggregation_index = prefix_index("stats-community-records-delta-published")
+
+
+class CommunityEventsIndexAggregator(CommunityAggregatorBase):
+    """Dummy aggregator for registering the community events index template.
+
+    This aggregator doesn't actually perform any aggregation - it's just used
+    to register the index template with the invenio-stats system.
+    """
+
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        # This aggregator doesn't need any specific configuration
+
+    def agg_iter(
+        self,
+        community_id: str,
+        start_date: arrow.Arrow | datetime.datetime,
+        end_date: arrow.Arrow | datetime.datetime,
+    ) -> Generator[dict, None, None]:
+        """This aggregator doesn't perform any aggregation."""
+        # Return empty generator - no aggregation needed
+        return
+        yield  # This line is never reached but satisfies the generator requirement

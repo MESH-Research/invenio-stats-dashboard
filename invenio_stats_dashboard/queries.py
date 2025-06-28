@@ -1,6 +1,6 @@
 """Queries for the stats dashboard."""
 
-import arrow
+import copy
 from flask import current_app
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
@@ -8,72 +8,67 @@ from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
-NESTED_AGGREGATIONS = [
-    (
-        "resource_type",
+NESTED_AGGREGATIONS = {
+    "resource_type": [
         "metadata.resource_type.id",
         ["metadata.resource_type.title.en", "metadata.resource_type.id"],
-    ),
-    ("access_rights", "access.status"),
-    (
-        "language",
+    ],
+    "access_rights": ["access.status"],
+    "language": [
         "metadata.languages.id",
         ["metadata.languages.title.en", "metadata.languages.id"],
-    ),
-    (
-        "affiliation_creator_id",
+    ],
+    "affiliation_creator_id": [
         "metadata.creators.affiliations.id",
         [
             "metadata.creators.affiliations.name.keyword",
             "metadata.creators.affiliations.id",
         ],
-    ),
-    (
-        "affiliation_creator_name",
+    ],
+    "affiliation_creator_name": [
         "metadata.creators.affiliations.name.keyword",
         [
             "metadata.creators.affiliations.name.keyword",
             "metadata.creators.affiliations.id",
         ],
-    ),
-    (
-        "affiliation_contributor_id",
+    ],
+    "affiliation_contributor_id": [
         "metadata.contributors.affiliations.id",
         [
             "metadata.contributors.affiliations.name.keyword",
             "metadata.contributors.affiliations.id",
         ],
-    ),
-    (
-        "affiliation_contributor_name",
+    ],
+    "affiliation_contributor_name": [
         "metadata.contributors.affiliations.name.keyword",
         [
             "metadata.contributors.affiliations.name.keyword",
             "metadata.contributors.affiliations.id",
         ],
-    ),
-    (
-        "funder",
+    ],
+    "funder": [
         "metadata.funding.funder.id",
         ["metadata.funding.funder.title.en", "metadata.funding.funder.id"],
-    ),
-    (
-        "subject",
+    ],
+    "subject": [
         "metadata.subjects.id",
-        ["metadata.subjects.subject", "metadata.subjects.id"],
-    ),
-    ("publisher", "metadata.publisher.keyword"),
-    ("periodical", "custom_fields.journal:journal.title.keyword"),
-    ("file_type", "files.entries.ext"),
-    (
-        "license",
+        [
+            "metadata.subjects.subject",
+            "metadata.subjects.id",
+            "metadata.subjects.scheme",
+        ],
+    ],
+    "publisher": ["metadata.publisher.keyword"],
+    "periodical": ["custom_fields.journal:journal.title.keyword"],
+    "file_type": ["files.entries.ext"],
+    "license": [
         "metadata.rights.id",
         ["metadata.rights.title.en", "metadata.rights.id"],
-    ),
-]
+    ],
+}
 
 
-def daily_record_cumulative_counts_query(
+def daily_record_snapshot_query(
     start_date: str,
     end_date: str,
     community_id: str | None = None,
@@ -96,29 +91,246 @@ def daily_record_cumulative_counts_query(
     Returns:
         dict: The query for the daily record cumulative counts.
     """
-    date_series_field = "tombstone.removal_date" if find_deleted else "created"
+    date_series_field = (
+        "metadata.publication_date" if use_published_dates else "created"
+    )
 
-    # Build the must clause conditionally
-    must_clauses: list[dict] = [
-        {
-            "range": {
-                date_series_field: {
-                    "gte": (
-                        arrow.get(start_date).floor("day").format("YYYY-MM-DDTHH:mm:ss")
-                    ),
-                    "lte": (
-                        arrow.get(end_date).ceil("day").format("YYYY-MM-DDTHH:mm:ss")
-                    ),
+    community_id_field = "custom_fields.stats:community_events.community_id"
+    added_field = "custom_fields.stats:community_events.added"
+    removed_field = "custom_fields.stats:community_events.removed"
+
+    must_clauses: list[dict] = []  # Build the must clause conditionally
+    if find_deleted and not community_id:
+        must_clauses.append(
+            {
+                "bool": {
+                    "must": [
+                        {"range": {"tombstone.removal_date": {"lte": end_date}}},
+                        {"range": {date_series_field: {"lte": end_date}}},
+                        {"term": {"is_published": True}},
+                    ],
                 }
             }
-        }
-    ]
-    if community_id:
-        must_clauses.append({"term": {"parent.communities.ids": community_id}})
+        )
+    elif find_deleted and community_id and use_included_dates:
+        must_clauses.append(
+            {
+                "nested": {
+                    "path": "custom_fields.stats:community_events",
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"term": {community_id_field: community_id}},
+                                {"range": {removed_field: {"lte": end_date}}},
+                            ],
+                            "must_not": [
+                                {
+                                    "nested": {
+                                        "path": "custom_fields.stats:community_events",
+                                        "query": {
+                                            "bool": {
+                                                "must": [
+                                                    {
+                                                        "term": {
+                                                            community_id_field: (
+                                                                community_id
+                                                            )
+                                                        }
+                                                    },
+                                                    {
+                                                        "range": {
+                                                            added_field: {
+                                                                "lte": end_date
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "bool": {
+                                                            "should": [
+                                                                {
+                                                                    "bool": {
+                                                                        "must_not": {
+                                                                            "exists": {
+                                                                                "field": (
+                                                                                    removed_field
+                                                                                )
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "range": {
+                                                                        removed_field: {
+                                                                            "gt": (
+                                                                                end_date
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                },
+                                                            ]
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                },
+            }
+        )
+        must_clauses.append({"term": {"is_published": True}})
+    elif find_deleted and community_id and not use_included_dates:
+        must_clauses.append(
+            {
+                "nested": {
+                    "path": "custom_fields.stats:community_events",
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"term": {community_id_field: community_id}},
+                                {"range": {removed_field: {"lte": end_date}}},
+                            ],
+                            "must_not": [
+                                {
+                                    "nested": {
+                                        "path": "custom_fields.stats:community_events",
+                                        "query": {
+                                            "bool": {
+                                                "must": [
+                                                    {
+                                                        "term": {
+                                                            community_id_field: (
+                                                                community_id
+                                                            )
+                                                        }
+                                                    },
+                                                    {
+                                                        "range": {
+                                                            added_field: {
+                                                                "lte": end_date
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "bool": {
+                                                            "should": [
+                                                                {
+                                                                    "bool": {
+                                                                        "must_not": {
+                                                                            "exists": {
+                                                                                "field": (
+                                                                                    removed_field
+                                                                                )
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "range": {
+                                                                        removed_field: {
+                                                                            "gt": (
+                                                                                end_date
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                },
+                                                            ]
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                },
+            }
+        )
+        must_clauses.append({"range": {date_series_field: {"lte": end_date}}})
+        must_clauses.append({"term": {"is_published": True}})
+    elif not find_deleted and community_id and not use_included_dates:
+        must_clauses.append(
+            {
+                "nested": {
+                    "path": "custom_fields.stats:community_events",
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"term": {community_id_field: community_id}},
+                                {"range": {added_field: {"lte": end_date}}},
+                                {
+                                    "bool": {
+                                        "should": [
+                                            {
+                                                "bool": {
+                                                    "must_not": {
+                                                        "exists": {
+                                                            "field": removed_field
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "range": {
+                                                    removed_field: {"gt": end_date}
+                                                }
+                                            },
+                                        ]
+                                    }
+                                },
+                            ]
+                        }
+                    },
+                }
+            }
+        )
+        must_clauses.append({"range": {date_series_field: {"lte": end_date}}})
+        must_clauses.append(
+            {
+                "bool": {
+                    "should": [
+                        {
+                            "bool": {
+                                "must_not": {"exists": {"field": "tombstone.deleted"}}
+                            }
+                        },
+                        {"range": {"tombstone.deleted": {"gt": end_date}}},
+                    ]
+                }
+            }
+        )
+    else:
+        must_clauses.append(
+            {
+                "bool": {
+                    "must": [
+                        {"range": {date_series_field: {"lte": end_date}}},
+                        {"term": {"is_published": True}},
+                    ]
+                }
+            }
+        )
 
-    # Only add by_license aggregation if we have license filters
+    subcount_types = copy.deepcopy(NESTED_AGGREGATIONS)
+    subcount_types["affiliation_creator"] = subcount_types["affiliation_creator_id"]
+    subcount_types["affiliation_contributor"] = subcount_types[
+        "affiliation_contributor_id"
+    ]
+    for type_name in [
+        "affiliation_creator_id",
+        "affiliation_contributor_id",
+        "affiliation_creator_name",
+        "affiliation_contributor_name",
+    ]:
+        del subcount_types[type_name]
+
     sub_aggs = {
-        f"by_{subcount_type[0]}": {
+        f"by_{subcount_label}": {
             **(
                 {
                     "composite": {
@@ -127,7 +339,7 @@ def daily_record_cumulative_counts_query(
                             {
                                 "id": {
                                     "terms": {
-                                        "field": subcount_type[1],
+                                        "field": subcount_fields[0],
                                         "missing_bucket": True,
                                     }
                                 }
@@ -135,7 +347,7 @@ def daily_record_cumulative_counts_query(
                             {
                                 "label": {
                                     "terms": {
-                                        "field": subcount_type[2],
+                                        "field": subcount_fields[1][0],
                                         "missing_bucket": True,
                                     }
                                 }
@@ -143,9 +355,8 @@ def daily_record_cumulative_counts_query(
                         ],
                     }
                 }
-                if subcount_type[0]
-                in ["affiliation_creator", "affiliation_contributor"]
-                else {"terms": {"field": subcount_type[1]}}
+                if subcount_label.startswith("affiliation_")
+                else {"terms": {"field": subcount_fields[0]}}
             ),
             "aggs": {
                 "with_files": {
@@ -163,16 +374,23 @@ def daily_record_cumulative_counts_query(
                         "label": {
                             "top_hits": {
                                 "size": 1,
-                                "_source": {"includes": subcount_type[2]},
+                                "_source": {
+                                    "includes": (
+                                        subcount_fields[1]
+                                        if len(subcount_fields) > 1
+                                        else subcount_fields[0]
+                                    )
+                                },
                             }
                         }
                     }
-                    if len(subcount_type) > 2
+                    if len(subcount_fields) > 1
+                    and not subcount_label.startswith("affiliation_")
                     else {}
                 ),
             },
         }
-        for subcount_type in NESTED_AGGREGATIONS
+        for subcount_label, subcount_fields in subcount_types.items()
     }
 
     return {
@@ -234,7 +452,8 @@ def daily_record_delta_query(
             records based on their created date, it will find deleted records based
             on their removal date.
         use_included_dates (bool, optional): Whether to use the dates when the record
-            was included to the community instead of the created date. (Can only be used if the community_id is not "global")
+            was included to the community instead of the created date.
+            (Can only be used if the community_id is not "global")
         use_published_dates (bool, optional): Whether to use the metadata publication
             date instead of the created date. (This is not the date of invenio
             publication but the date of the record's publication
@@ -259,8 +478,8 @@ def daily_record_delta_query(
         {"term": {"is_published": True}},
     ]
     community_id_field = "custom_fields.stats:community_events.community_id"
-    if (use_included_dates or find_deleted) and community_id != "global":
-        # Ensure we're finding records added/removed during the period
+    if use_included_dates and community_id != "global":
+        # Ensure we're finding records *added* during the period
         must_clauses.append(
             {
                 "nested": {
@@ -319,8 +538,8 @@ def daily_record_delta_query(
         )
 
     sub_aggs = {
-        f"by_{subcount_type[0]}": {
-            "terms": {"field": subcount_type[1]},
+        f"by_{subcount_label}": {
+            "terms": {"field": subcount_fields[0]},
             "aggs": {
                 "with_files": {
                     "filter": {"term": {"files.enabled": True}},
@@ -337,16 +556,22 @@ def daily_record_delta_query(
                         "label": {
                             "top_hits": {
                                 "size": 1,
-                                "_source": {"includes": subcount_type[2]},
+                                "_source": {
+                                    "includes": (
+                                        subcount_fields[1]
+                                        if len(subcount_fields) > 1
+                                        else subcount_fields[0]
+                                    )
+                                },
                             }
                         }
                     }
-                    if len(subcount_type) > 2
+                    if len(subcount_fields) > 1
                     else {}
                 ),
             },
         }
-        for subcount_type in NESTED_AGGREGATIONS
+        for subcount_label, subcount_fields in NESTED_AGGREGATIONS.items()
     }
 
     return {
