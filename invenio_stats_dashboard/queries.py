@@ -1,7 +1,9 @@
 """Queries for the stats dashboard."""
 
-import copy
+import arrow
 from flask import current_app
+from invenio_search.utils import prefix_index
+from pprint import pformat
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.index import Index
@@ -68,296 +70,257 @@ NESTED_AGGREGATIONS = {
 }
 
 
-def daily_record_snapshot_query(
+def get_relevant_record_ids_from_events(
+    start_date: str,
+    end_date: str,
+    community_id: str,
+    find_deleted: bool = False,
+    use_included_dates: bool = False,
+    use_published_dates: bool = False,
+    client=None,
+):
+    """Get relevant record IDs from the events index.
+
+    This function queries the stats-community-events index to find record IDs
+    that match the given criteria.
+
+    Args:
+        start_date (str): The start date to query.
+        end_date (str): The end date to query.
+        community_id (str): The community ID. Must not be "global" unless use_published_dates=True.
+        find_deleted (bool, optional): Whether to find deleted records.
+        use_included_dates (bool, optional): Whether to use the dates when the record
+            was added to the community instead of the created date.
+        use_published_dates (bool, optional): Whether to use the metadata publication
+            date instead of the created date.
+        client: The OpenSearch client to use.
+
+    Returns:
+        set: A set of record IDs that match the criteria.
+
+    Raises:
+        ValueError: If community_id is "global" and use_published_dates=False.
+    """
+    if client is None:
+        from invenio_search.proxies import current_search_client
+
+        client = current_search_client
+
+    # Validate that community_id is not "global" unless use_published_dates=True
+    # Global queries are only supported for published dates since we now have global events
+    if community_id == "global" and not use_published_dates:
+        raise ValueError(
+            "get_relevant_record_ids_from_events should not be called with community_id='global' "
+            "unless use_published_dates=True. Other global queries should use record date fields directly."
+        )
+
+    # Determine which date field to use based on the parameters
+    if use_published_dates:
+        date_field = "record_published_date"
+    elif use_included_dates:
+        date_field = "event_date"
+    else:
+        date_field = "record_created_date"
+
+    # Build the query for the events index
+    should_clauses = []
+
+    if find_deleted:
+        # For deleted records, we need to find records that were deleted in the given period
+        # We look for either "removed" events OR records marked as deleted
+        removed_event_clause = {
+            "bool": {
+                "must": [
+                    {"term": {"event_type": "removed"}},
+                    {"range": {"event_date": {"gte": start_date, "lte": end_date}}},
+                    {"term": {"community_id": community_id}},
+                ]
+            }
+        }
+        should_clauses.append(removed_event_clause)
+
+        deleted_event_clause = {
+            "bool": {
+                "must": [
+                    {"term": {"is_deleted": True}},
+                    {"range": {"deleted_date": {"gte": start_date, "lte": end_date}}},
+                    {"term": {"community_id": community_id}},
+                ]
+            }
+        }
+        should_clauses.append(deleted_event_clause)
+    else:
+        # For non-deleted records, we need to find records that were created/added/published
+        # in the given period and are still active (not deleted)
+        must_clauses = [
+            {"range": {date_field: {"gte": start_date, "lte": end_date}}},
+            {"term": {"community_id": community_id}},
+        ]
+
+        # For non-deleted records, we want to exclude records that were deleted
+        # before the end of our search period
+        must_not_clauses = [
+            {
+                "bool": {
+                    "must": [
+                        {"term": {"is_deleted": True}},
+                        {"range": {"deleted_date": {"lte": end_date}}},
+                    ]
+                }
+            }
+        ]
+
+        should_clauses.append(
+            {
+                "bool": {
+                    "must": must_clauses,
+                    "must_not": must_not_clauses,
+                }
+            }
+        )
+
+    # Execute the query
+    query = {
+        "query": {
+            "bool": {
+                "should": should_clauses,
+                "minimum_should_match": 1,
+            }
+        },
+        "size": 10000,  # Adjust as needed
+        "_source": ["record_id"],
+    }
+
+    result = client.search(index=prefix_index("stats-community-events"), body=query)
+
+    # Extract record IDs from the results
+    record_ids = set()
+    for hit in result["hits"]["hits"]:
+        record_id = hit["_source"]["record_id"]
+        record_ids.add(record_id)
+
+    return record_ids
+
+
+def daily_record_snapshot_query_with_events(
     start_date: str,
     end_date: str,
     community_id: str | None = None,
     find_deleted: bool = False,
     use_included_dates: bool = False,
     use_published_dates: bool = False,
+    client=None,
 ):
-    """Build the query for a snapshot of one day's cumulative record counts.
+    """Build the query for a snapshot of one day's cumulative record counts using events index.
+
+    This function first queries the events index to find relevant record IDs,
+    then builds a query for the records index using those IDs.
+
+    For global community queries (community_id="global"), this function uses
+    the events index when use_published_dates=True (since we now have global
+    events with parsed publication dates), otherwise uses record date fields directly.
 
     Args:
         start_date (str): The start date to query.
         end_date (str): The end date to query.
-        community_id (str, optional): The community ID. If None, no community filter
-            is applied.
-        find_deleted (bool, optional): Whether to find deleted records. If True,
-            the query will find deleted records. Instead of finding currently published
-            records based on their created date, it will find deleted records based
-            on their removal date.
+        community_id (str, optional): The community ID. If "global", uses events index
+            when use_published_dates=True, otherwise uses record date fields directly.
+        find_deleted (bool, optional): Whether to find deleted records.
+        use_included_dates (bool, optional): Whether to use the dates when the
+            record was included to the community instead of the created date.
+            (Ignored for global queries)
+        use_published_dates (bool, optional): Whether to use the metadata
+            publication date instead of the created date.
+        client: The OpenSearch client to use.
 
     Returns:
         dict: The query for the daily record cumulative counts.
     """
-    date_series_field = (
-        "metadata.publication_date" if use_published_dates else "created"
-    )
+    if community_id is None:
+        raise ValueError("community_id must not be None")
 
-    community_id_field = "custom_fields.stats:community_events.community_id"
-    added_field = "custom_fields.stats:community_events.added"
-    removed_field = "custom_fields.stats:community_events.removed"
-
-    must_clauses: list[dict] = []  # Build the must clause conditionally
-    if find_deleted and not community_id:
-        must_clauses.append(
-            {
-                "bool": {
-                    "must": [
-                        {"range": {"tombstone.removal_date": {"lte": end_date}}},
-                        {"range": {date_series_field: {"lte": end_date}}},
-                        {"term": {"is_published": True}},
-                    ],
-                }
-            }
-        )
-    elif find_deleted and community_id and use_included_dates:
-        must_clauses.append(
-            {
-                "nested": {
-                    "path": "custom_fields.stats:community_events",
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"term": {community_id_field: community_id}},
-                                {"range": {removed_field: {"lte": end_date}}},
-                            ],
-                            "must_not": [
-                                {
-                                    "nested": {
-                                        "path": "custom_fields.stats:community_events",
-                                        "query": {
-                                            "bool": {
-                                                "must": [
-                                                    {
-                                                        "term": {
-                                                            community_id_field: (
-                                                                community_id
-                                                            )
-                                                        }
-                                                    },
-                                                    {
-                                                        "range": {
-                                                            added_field: {
-                                                                "lte": end_date
-                                                            }
-                                                        }
-                                                    },
-                                                    {
-                                                        "bool": {
-                                                            "should": [
-                                                                {
-                                                                    "bool": {
-                                                                        "must_not": {
-                                                                            "exists": {
-                                                                                "field": (
-                                                                                    removed_field
-                                                                                )
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                },
-                                                                {
-                                                                    "range": {
-                                                                        removed_field: {
-                                                                            "gt": (
-                                                                                end_date
-                                                                            )
-                                                                        }
-                                                                    }
-                                                                },
-                                                            ]
-                                                        }
-                                                    },
-                                                ]
-                                            }
-                                        },
-                                    }
-                                }
-                            ],
-                        }
-                    },
-                },
-            }
-        )
-        must_clauses.append({"term": {"is_published": True}})
-    elif find_deleted and community_id and not use_included_dates:
-        must_clauses.append(
-            {
-                "nested": {
-                    "path": "custom_fields.stats:community_events",
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"term": {community_id_field: community_id}},
-                                {"range": {removed_field: {"lte": end_date}}},
-                            ],
-                            "must_not": [
-                                {
-                                    "nested": {
-                                        "path": "custom_fields.stats:community_events",
-                                        "query": {
-                                            "bool": {
-                                                "must": [
-                                                    {
-                                                        "term": {
-                                                            community_id_field: (
-                                                                community_id
-                                                            )
-                                                        }
-                                                    },
-                                                    {
-                                                        "range": {
-                                                            added_field: {
-                                                                "lte": end_date
-                                                            }
-                                                        }
-                                                    },
-                                                    {
-                                                        "bool": {
-                                                            "should": [
-                                                                {
-                                                                    "bool": {
-                                                                        "must_not": {
-                                                                            "exists": {
-                                                                                "field": (
-                                                                                    removed_field
-                                                                                )
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                },
-                                                                {
-                                                                    "range": {
-                                                                        removed_field: {
-                                                                            "gt": (
-                                                                                end_date
-                                                                            )
-                                                                        }
-                                                                    }
-                                                                },
-                                                            ]
-                                                        }
-                                                    },
-                                                ]
-                                            }
-                                        },
-                                    }
-                                }
-                            ],
-                        }
-                    },
-                },
-            }
-        )
-        must_clauses.append({"range": {date_series_field: {"lte": end_date}}})
-        must_clauses.append({"term": {"is_published": True}})
-    elif not find_deleted and community_id and not use_included_dates:
-        must_clauses.append(
-            {
-                "nested": {
-                    "path": "custom_fields.stats:community_events",
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"term": {community_id_field: community_id}},
-                                {"range": {added_field: {"lte": end_date}}},
-                                {
-                                    "bool": {
-                                        "should": [
-                                            {
-                                                "bool": {
-                                                    "must_not": {
-                                                        "exists": {
-                                                            "field": removed_field
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "range": {
-                                                    removed_field: {"gt": end_date}
-                                                }
-                                            },
-                                        ]
-                                    }
-                                },
-                            ]
-                        }
-                    },
-                }
-            }
-        )
-        must_clauses.append({"range": {date_series_field: {"lte": end_date}}})
-        must_clauses.append(
-            {
-                "bool": {
-                    "should": [
-                        {
-                            "bool": {
-                                "must_not": {"exists": {"field": "tombstone.deleted"}}
-                            }
-                        },
-                        {"range": {"tombstone.deleted": {"gt": end_date}}},
-                    ]
-                }
-            }
-        )
-    else:
-        must_clauses.append(
-            {
-                "bool": {
-                    "must": [
-                        {"range": {date_series_field: {"lte": end_date}}},
-                        {"term": {"is_published": True}},
-                    ]
-                }
-            }
+    # For global queries with use_published_dates=True, use the events index
+    # since we now have global events with properly parsed publication dates
+    if community_id == "global" and use_published_dates:
+        # Get relevant record IDs from the events index
+        record_ids = get_relevant_record_ids_from_events(
+            start_date=start_date,
+            end_date=end_date,
+            community_id="global",
+            find_deleted=find_deleted,
+            use_included_dates=use_included_dates,
+            use_published_dates=use_published_dates,
+            client=client,
         )
 
-    subcount_types = copy.deepcopy(NESTED_AGGREGATIONS)
-    subcount_types["affiliation_creator"] = subcount_types["affiliation_creator_id"]
-    subcount_types["affiliation_contributor"] = subcount_types[
-        "affiliation_contributor_id"
-    ]
-    for type_name in [
-        "affiliation_creator_id",
-        "affiliation_contributor_id",
-        "affiliation_creator_name",
-        "affiliation_contributor_name",
-    ]:
-        del subcount_types[type_name]
+        # If no records found, return empty query
+        if not record_ids:
+            # Use an impossible query that will return no results but still execute aggregations
+            must_clauses = [{"term": {"_id": "no-matching-records"}}]
+        else:
+            # Build the query for the records index using the found record IDs
+            must_clauses = [
+                {"terms": {"id": list(record_ids)}},
+                {"term": {"is_published": True}},
+            ]
+    elif community_id == "global":
+        # For global queries without use_published_dates, use record date fields directly
+        # Field to use to find the period's records
+        date_series_field = "created"
+        if find_deleted:
+            date_series_field = "tombstone.removal_date"
 
-    sub_aggs = {
-        f"by_{subcount_label}": {
-            **(
+        must_clauses: list[dict] = []
+        if find_deleted:
+            must_clauses.append(
                 {
-                    "composite": {
-                        "size": 1000,
-                        "sources": [
-                            {
-                                "id": {
-                                    "terms": {
-                                        "field": subcount_fields[0],
-                                        "missing_bucket": True,
-                                    }
-                                }
-                            },
-                            {
-                                "label": {
-                                    "terms": {
-                                        "field": subcount_fields[1][0],
-                                        "missing_bucket": True,
-                                    }
-                                }
-                            },
+                    "bool": {
+                        "must": [
+                            {"range": {"tombstone.removal_date": {"lte": end_date}}},
+                            {"range": {date_series_field: {"lte": end_date}}},
+                            {"term": {"is_published": True}},
                         ],
                     }
                 }
-                if subcount_label.startswith("affiliation_")
-                else {"terms": {"field": subcount_fields[0]}}
-            ),
+            )
+        else:
+            must_clauses.append(
+                {
+                    "bool": {
+                        "must": [
+                            {"range": {date_series_field: {"lte": end_date}}},
+                            {"term": {"is_published": True}},
+                        ]
+                    }
+                }
+            )
+    else:
+        # Get relevant record IDs from the events index
+        record_ids = get_relevant_record_ids_from_events(
+            start_date=start_date,
+            end_date=end_date,
+            community_id=community_id,
+            find_deleted=find_deleted,
+            use_included_dates=use_included_dates,
+            use_published_dates=use_published_dates,
+            client=client,
+        )
+
+        # If no records found, return empty query
+        if not record_ids:
+            # Use an impossible query that will return no results but still execute aggregations
+            must_clauses = [{"term": {"_id": "no-matching-records"}}]
+        else:
+            # Build the query for the records index using the found record IDs
+            must_clauses = [
+                {"terms": {"id": list(record_ids)}},
+                {"term": {"is_published": True}},
+            ]
+
+    # Build aggregations (same for both global and community queries)
+    sub_aggs = {
+        f"by_{subcount_label}": {
+            "terms": {"field": subcount_fields[0]},
             "aggs": {
                 "with_files": {
                     "filter": {"term": {"files.enabled": True}},
@@ -390,19 +353,13 @@ def daily_record_snapshot_query(
                 ),
             },
         }
-        for subcount_label, subcount_fields in subcount_types.items()
+        for subcount_label, subcount_fields in NESTED_AGGREGATIONS.items()
     }
 
-    return {
+    query = {
         "size": 0,
         "query": {"bool": {"must": must_clauses}},
         "aggs": {
-            "date_field_min": {
-                "min": {"field": date_series_field, "format": "yyyy-MM-dd'T'HH:mm:ss"}
-            },
-            "date_field_max": {
-                "max": {"field": date_series_field, "format": "yyyy-MM-dd'T'HH:mm:ss"}
-            },
             "total_records": {"value_count": {"field": "_id"}},
             "with_files": {
                 "filter": {"term": {"files.enabled": True}},
@@ -431,112 +388,111 @@ def daily_record_snapshot_query(
         },
     }
 
+    return query
 
-def daily_record_delta_query(
-    start_date,
-    end_date,
-    community_id=None,
-    find_deleted=False,
-    use_included_dates=False,
-    use_published_dates=False,
+
+def daily_record_delta_query_with_events(
+    start_date: str,
+    end_date: str,
+    community_id: str | None = None,
+    find_deleted: bool = False,
+    use_included_dates: bool = False,
+    use_published_dates: bool = False,
+    client=None,
 ):
-    """Build the query for a delta of records created or deleted between two dates.
+    """Build the query for a delta of records using events index.
+
+    This function first queries the events index to find relevant record IDs,
+    then builds a query for the records index using those IDs.
+
+    For global community queries (community_id="global"), this function uses
+    the events index when use_published_dates=True (since we now have global
+    events with parsed publication dates), otherwise uses record date fields directly.
 
     Args:
         start_date (str): The start date to query.
         end_date (str): The end date to query.
-        community_id (str, optional): The community ID. If None, no community filter
-            is applied.
-        find_deleted (bool, optional): Whether to find deleted records. If True,
-            the query will find deleted records. Instead of finding currently published
-            records based on their created date, it will find deleted records based
-            on their removal date.
+        community_id (str, optional): The community ID. If "global", uses events index
+            when use_published_dates=True, otherwise uses record date fields directly.
+        find_deleted (bool, optional): Whether to find deleted records.
         use_included_dates (bool, optional): Whether to use the dates when the record
             was included to the community instead of the created date.
-            (Can only be used if the community_id is not "global")
+            (Ignored for global queries)
         use_published_dates (bool, optional): Whether to use the metadata publication
-            date instead of the created date. (This is not the date of invenio
-            publication but the date of the record's publication
-            (metadata.publication_date).)
+            date instead of the created date.
+        client: The OpenSearch client to use.
+
+    Returns:
+        dict: The query for the daily record delta counts.
     """
+    if community_id is None:
+        raise ValueError("community_id must not be None")
 
-    # Field to use to find the period's records
-    date_series_field = "created"
-    if find_deleted:
-        date_series_field = "tombstone.removal_date"
-    elif use_published_dates:
-        date_series_field = "metadata.publication_date"
-
-    # Field to use to find community add/remove events for the period
-    event_date_field = (
-        "custom_fields.stats:community_events.removed"
-        if find_deleted
-        else "custom_fields.stats:community_events.added"
-    )
-
-    must_clauses: list[dict] = [
-        {"term": {"is_published": True}},
-    ]
-    community_id_field = "custom_fields.stats:community_events.community_id"
-    if use_included_dates and community_id != "global":
-        # Ensure we're finding records *added* during the period
-        must_clauses.append(
-            {
-                "nested": {
-                    "path": "custom_fields.stats:community_events",
-                    "query": {
-                        "range": {
-                            event_date_field: {"gte": start_date, "lte": end_date}
-                        }
-                    },
-                }
-            }
+    # For global queries with use_published_dates=True, use the events index
+    if community_id == "global" and use_published_dates:
+        # Get relevant record IDs from the events index
+        record_ids = get_relevant_record_ids_from_events(
+            start_date=start_date,
+            end_date=end_date,
+            community_id="global",
+            find_deleted=find_deleted,
+            use_included_dates=use_included_dates,
+            use_published_dates=use_published_dates,
+            client=client,
         )
+
+        # If no records found, return empty query
+        if not record_ids:
+            must_clauses = [{"term": {"_id": "no-matching-records"}}]
+        else:
+            # Build the query for the records index using the found record IDs
+            must_clauses = [
+                {"terms": {"id": list(record_ids)}},
+                {"term": {"is_published": True}},
+            ]
+    elif community_id == "global":
+        # For global queries without use_published_dates, use record date fields directly
+        # Field to use to find the period's records
+        date_series_field = "created"
+        if find_deleted:
+            date_series_field = "tombstone.removal_date"
+
+        must_clauses: list[dict] = [
+            {"term": {"is_published": True}},
+        ]
+
+        if find_deleted:
+            must_clauses.append({"term": {"is_deleted": True}})
+            must_clauses.append(
+                {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
+            )
+        else:
+            must_clauses.append(
+                {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
+            )
     else:
-        must_clauses.append(
-            {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
+        # Get relevant record IDs from the events index
+        record_ids = get_relevant_record_ids_from_events(
+            start_date=start_date,
+            end_date=end_date,
+            community_id=community_id,
+            find_deleted=find_deleted,
+            use_included_dates=use_included_dates,
+            use_published_dates=use_published_dates,
+            client=client,
         )
 
-    if find_deleted and community_id in ["global", None]:
-        must_clauses.append({"term": {"is_deleted": True}})
+        # If no records found, return empty query
+        if not record_ids:
+            must_clauses = [{"term": {"_id": "no-matching-records"}}]
+        else:
+            # Build the query for the records index using the found record IDs
+            must_clauses = [
+                {"terms": {"id": list(record_ids)}},
+                {"term": {"is_published": True}},
+            ]
 
-    # Have to look at community events record in case the record has since been removed
-    if community_id and community_id != "global":
-        must_clauses.append(
-            {
-                "bool": {
-                    "should": [
-                        {"term": {"parent.communities.ids": community_id}},
-                        {
-                            "nested": {
-                                "path": "custom_fields.stats:community_events",
-                                "query": {
-                                    "bool": {
-                                        "must": [
-                                            {
-                                                "term": {
-                                                    community_id_field: community_id
-                                                }
-                                            },
-                                            {
-                                                "range": {
-                                                    event_date_field: {
-                                                        "gte": start_date,
-                                                        "lte": end_date,
-                                                    }
-                                                }
-                                            },
-                                        ]
-                                    }
-                                },
-                            }
-                        },
-                    ],
-                    "minimum_should_match": 1,
-                }
-            }
-        )
-
+    # Build aggregations (same for both global and community queries)
     sub_aggs = {
         f"by_{subcount_label}": {
             "terms": {"field": subcount_fields[0]},
@@ -623,7 +579,6 @@ class CommunityStatsResultsQueryBase(Query):
     ):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
-        # self.date_field = "snapshot_date"
 
     def run(self, community_id="global", start_date=None, end_date=None):
         """Run the query.
@@ -641,46 +596,54 @@ class CommunityStatsResultsQueryBase(Query):
         must_clauses: list[dict] = [
             {"term": {"community_id": community_id}},
         ]
-        range_clauses: dict[str, dict[str, str]] = {}
+        range_clauses = {self.date_field: {}}
         if start_date:
-            range_clauses[self.date_field]["gte"] = start_date
+            range_clauses[self.date_field]["gte"] = (
+                arrow.get(start_date).floor("day").format("YYYY-MM-DDTHH:mm:ss")
+            )
         if end_date:
-            range_clauses[self.date_field]["lte"] = end_date
+            range_clauses[self.date_field]["lte"] = (
+                arrow.get(end_date).ceil("day").format("YYYY-MM-DDTHH:mm:ss")
+            )
         if range_clauses:
             must_clauses.append({"range": range_clauses})
         try:
             assert Index(using=self.client, name=self.index).exists()
-            snapshot_search = Search(using=self.client, index=self.index).query(
-                Q("bool", must=must_clauses)
+
+            agg_search = (
+                Search(using=self.client, index=self.index)
+                .query(Q("bool", must=must_clauses))
+                .extra(size=10_000)
             )
-            snapshot_search.sort(self.date_field)
-            snapshot_search.extra(size=10_000)
-            count = snapshot_search.count()
+            agg_search.sort(self.date_field)
+
+            count = agg_search.count()
+            current_app.logger.error(f"Count: {count}")
             if count == 0:
                 raise ValueError(
                     f"No results found for community {community_id}"
                     f" for the period {start_date} to {end_date}"
                 )
-            response = snapshot_search.execute()
-            results = [h["_source"] for h in response.hits.hits.to_dict()]
+            response = agg_search.execute()
+            results = [h["_source"].to_dict() for h in response.hits.hits]
         except AssertionError as e:
-            current_app.logger.error(f"Index does not exist: {e}")
+            current_app.logger.error(f"Index does not exist: {self.index} {e}")
         return results
 
 
 class CommunityRecordDeltaResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for the stats dashboard API requests."""
+    """Query for community record delta results."""
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
     ):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
-        self.date_field = "timestamp"
+        self.date_field = "period_start"
 
 
 class CommunityRecordSnapshotResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for the stats dashboard API requests."""
+    """Query for community record snapshot results."""
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
@@ -691,18 +654,18 @@ class CommunityRecordSnapshotResultsQuery(CommunityStatsResultsQueryBase):
 
 
 class CommunityUsageDeltaResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for the stats dashboard API requests."""
+    """Query for community usage delta results."""
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
     ):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
-        self.date_field = "timestamp"
+        self.date_field = "period_start"
 
 
 class CommunityUsageSnapshotResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for the stats dashboard API requests."""
+    """Query for community usage snapshot results."""
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
@@ -750,12 +713,28 @@ class CommunityStatsResultsQuery(Query):
         results["record_deltas_added"] = record_deltas_added.run(
             community_id, start_date, end_date
         )
-        record_snapshots = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot",
-            index="stats-community-record-snapshot",
+        record_snapshots_created = CommunityRecordSnapshotResultsQuery(
+            name="community-record-snapshot-created",
+            index="stats-community-record-snapshot-created",
             client=self.client,
         )
-        results["record_snapshots"] = record_snapshots.run(
+        results["record_snapshots_created"] = record_snapshots_created.run(
+            community_id, start_date, end_date
+        )
+        record_snapshots_published = CommunityRecordSnapshotResultsQuery(
+            name="community-record-snapshot-published",
+            index="stats-community-record-snapshot-published",
+            client=self.client,
+        )
+        results["record_snapshots_published"] = record_snapshots_published.run(
+            community_id, start_date, end_date
+        )
+        record_snapshots_added = CommunityRecordSnapshotResultsQuery(
+            name="community-record-snapshot-added",
+            index="stats-community-record-snapshot-added",
+            client=self.client,
+        )
+        results["record_snapshots_added"] = record_snapshots_added.run(
             community_id, start_date, end_date
         )
         usage_deltas = CommunityUsageDeltaResultsQuery(

@@ -1,19 +1,14 @@
-from pprint import pformat
-
 from flask import current_app
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search.utils import prefix_index
-from invenio_records_resources.services.uow import (
-    unit_of_work,
-    RecordCommitOp,
-    UnitOfWork,
-)
 from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
+from .queries import CommunityStatsResultsQuery
+from .components import update_community_events_index
 
 
 class CommunityStatsService:
@@ -55,114 +50,128 @@ class CommunityStatsService:
 
         return results
 
-    @unit_of_work()
     def generate_record_community_events(
         self,
         recids: list[str] | None = None,
         community_ids: list[str] | None = None,
-        uow: UnitOfWork | None = None,
-    ):
-        """Update the `stats:community_events` custom field for one or more records.
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> int:
+        """Create `stats-community-events` index events for one or more records.
 
-        The `stats:community_events` custom field is used to store the date when
-        the record was added to or removed from each of its communities.
-        This helps in generating community record statistics.
-
-        This method will look at the `parent.communities` field to find any
-        communities that the record is a part of. If the `stats:community_events`
-        custom field is not present, it will be created. If it is present, and
-        the `parent.communities.ids` field lists ids that are not present in any
-        of the `stats:community_events` custom field dictionaries (`custom_fields.stats:community_events.community_id`), then a new dictionary for this community will be added to the custom field. The record's created date will be used for the `added` subfield, and the `removed` subfield will be left unset.
+        This method will create proper stats-community-events records for every record
+        in an InvenioRDM instance (or the provided recids). If no community_ids are
+        provided, it will create events for every community in the instance, and ensure
+        that a "global" addition event is registered for every record in the instance
+        as well. Uses the record creation date as the event date for the additions.
 
         Args:
-            recid: The record IDs to update. If not provided, all records will be
+            recids: The record IDs to update. If not provided, all records will be
                 updated.
-            community_id: The community IDs to update. If not provided, all
+            community_ids: The community IDs to update. If not provided, all
                 communities will be updated.
+            start_date: The start date for the events. If not provided, the start date
+                will be the first record creation date in the instance.
+            end_date: The end date for the events. If not provided, the end date will be
+                the current date.
 
         Returns:
-            The number of records updated.
+            The number of records processed.
         """
+        # Build search query for records
         record_search = Search(
             using=self.client, index=prefix_index("rdmrecords-records")
         )
+        terms = []
         if recids:
-            record_search.query(Q("terms", id=recids))
+            terms.append(Q("terms", id=recids))
+        if start_date:
+            terms.append(Q("range", created={"gte": start_date}))
+        if end_date:
+            terms.append(Q("range", created={"lte": end_date}))
+        if terms:
+            record_search.query(Q("bool", must=terms))
         else:
             record_search.query(Q("match_all"))
 
+        # Get all communities if not specified
         if not community_ids:
-            community_ids = [
-                c["id"]
-                for c in current_communities.service.read_all(system_identity, [])
-            ]
-        for community_id in community_ids:
-            record_search.filter(Q("term", parent__communities__ids=community_id))
+            communities = current_communities.service.read_all(system_identity, [])
+            community_ids = [c["id"] for c in communities]
+            community_ids.append("global")
 
-            for result in record_search.scan():
-                record_item = records_service.read(result["_source"]["id"])
-                data = record_item.to_dict()
-                event_list = [
-                    f
-                    for f in data.get("custom_fields", {}).get(
-                        "stats:community_events", []
-                    )
-                    if f.get("community_id") == community_id
-                ]
-                event_obj = event_list[0] if event_list else None
-                if not event_obj:
-                    model = record_item._record.model
-                    custom_fields = model.custom_fields
-                    custom_fields["stats:community_events"] = [
-                        {
-                            "community_id": community_id,
-                            "added": result["_source"]["created"],
-                        }
-                    ]
-                    model.custom_fields = custom_fields
-                    assert uow
-                    uow.register(RecordCommitOp(model))
+        records_processed = 0
 
-    def get_community_stats(self, community_id: str) -> dict:
-        """Get statistics for a community."""
-        daily_record_deltas = (
-            Search(
-                using=self.client, index=prefix_index("stats-community-record-delta")
+        # Process each record
+        for result in record_search.scan():
+            record_id = result["id"]
+            record_data = result
+
+            # get existing community events for this record
+            # and community
+            events_search = Search(
+                using=self.client, index=prefix_index("stats-community-events")
             )
-            .query(Q("term", community_id=community_id))
-            .sort("period_start")
-            .extra(size=10_000)
-            .execute()
-        )
-        daily_record_snapshots = (
-            Search(
-                using=self.client,
-                index=prefix_index("stats-community-record-snapshot"),
+            events_search.query(
+                Q(
+                    "bool",
+                    must=[
+                        Q("term", record_id=record_id),
+                        Q("term", community_id=community_ids),
+                    ],
+                )
             )
-            .query(Q("term", community_id=community_id))
-            .sort("snapshot_date")
-            .extra(size=10_000)
-            .execute()
+            existing_events = list(events_search.execute())
+
+            try:
+                # Get the full record to access metadata
+                record_item = records_service.read(record_id)
+                record_dict = record_item.to_dict()
+
+                # Extract record dates
+                record_created_date = record_data.get("created")
+                record_published_date = record_dict.get("metadata", {}).get(
+                    "publication_date"
+                )
+
+                # Get communities this record belongs to
+                record_communities = (
+                    record_data.get("parent", {}).get("communities", {}).get("ids", [])
+                )
+
+                # Create events for each community the record belongs to
+                for community_id in community_ids:
+                    if community_id in record_communities:
+                        # Check if this community already has an event for this record
+                        if any(
+                            event["record_id"] == record_id
+                            and event["community_id"] == community_id
+                            for event in existing_events
+                        ):
+                            continue
+
+                        # Create addition event for this community
+                        update_community_events_index(
+                            record_id=record_id,
+                            community_ids_to_add=[community_id],
+                            timestamp=record_created_date,
+                            record_created_date=record_created_date,
+                            record_published_date=record_published_date,
+                            client=self.client,
+                        )
+
+                records_processed += 1
+
+            except Exception as e:
+                current_app.logger.error(f"Error processing record {record_id}: {e}")
+
+        return records_processed
+
+    def read_stats(self, community_id: str, start_date: str, end_date: str) -> dict:
+        """Read statistics for a community."""
+        query = CommunityStatsResultsQuery(
+            name="community-stats",
+            index="stats-community-stats",
+            client=self.client,
         )
-        daily_usage_deltas = (
-            Search(using=self.client, index=prefix_index("stats-community-usage-delta"))
-            .query(Q("term", community_id=community_id))
-            .sort("period_start")
-            .extra(size=10_000)
-            .execute()
-        )
-        daily_usage_snapshots = (
-            Search(
-                using=self.client, index=prefix_index("stats-community-usage-snapshot")
-            )
-            .query(Q("term", community_id=community_id))
-            .sort("snapshot_date")
-            .extra(size=10_000)
-            .execute()
-        )
-        return {
-            "daily_record_deltas": daily_record_deltas.hits.hits.to_dict(),
-            "daily_record_snapshots": daily_record_snapshots.hits.hits.to_dict(),
-            "daily_usage_deltas": daily_usage_deltas.hits.hits.to_dict(),
-            "daily_usage_snapshots": daily_usage_snapshots.hits.hits.to_dict(),
-        }
+        return query.run(community_id, start_date, end_date)

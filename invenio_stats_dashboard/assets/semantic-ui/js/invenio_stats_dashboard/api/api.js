@@ -33,10 +33,10 @@ const statsApiClient = {
       },
     };
     if (startDate) {
-      requestBody[`${dashboardType}-stats`].start_date = startDate;
+      requestBody[`${dashboardType}-stats`].params.start_date = startDate;
     }
     if (endDate) {
-      requestBody[`${dashboardType}-stats`].end_date = endDate;
+      requestBody[`${dashboardType}-stats`].params.end_date = endDate;
     }
     const response = await axios.post(`/api/stats`, requestBody);
     return response.data;

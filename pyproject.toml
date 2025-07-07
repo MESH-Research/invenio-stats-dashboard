@@ -62,6 +62,12 @@ zip-safe = false
 [tool.setuptools.package-data]
 "*" = ["*"]
 
+[project.entry-points."flask.commands"]
+community-stats = "invenio_stats_dashboard.cli:cli"
+
+[project.scripts]
+community-stats = "invenio_stats_dashboard.cli:cli"
+
 [project.entry-points."invenio_base.apps"]
 invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
 

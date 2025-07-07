@@ -4,8 +4,6 @@ from typing import Any
 import arrow
 from flask import current_app
 from flask_principal import Identity
-from invenio_access.permissions import system_identity
-from invenio_drafts_resources.services.records.uow import RecordCommitOp
 from invenio_rdm_records.proxies import current_rdm_records_service
 from invenio_rdm_records.records.api import RDMDraft, RDMRecord
 from invenio_rdm_records.requests.community_inclusion import (
@@ -27,24 +25,110 @@ from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
 
 
+def parse_publication_date_for_events(pub_date: str | None) -> str | None:
+    """Parse publication date and return a standardized date for events index.
+
+    This function handles various publication date formats and converts them
+    to a standardized date that can be used for date range queries in the
+    events index.
+
+    Args:
+        pub_date: The publication date string from record metadata
+
+    Returns:
+        A standardized date string in YYYY-MM-DD format, or None if invalid
+
+    Examples:
+        "2010" -> "2010-01-01"
+        "2020-10" -> "2020-10-01"
+        "2020-10-13" -> "2020-10-13"
+        "2020-2021" -> "2020-01-01" (uses start of range)
+    """
+    if not pub_date:
+        return None
+
+    try:
+        # Handle year-only format: "2010"
+        if pub_date.isdigit() and len(pub_date) == 4:
+            return f"{pub_date}-01-01"
+
+        # Handle year-month format: "2020-10"
+        if len(pub_date) == 7 and pub_date[4] == "-":
+            year, month = pub_date.split("-")
+            if year.isdigit() and month.isdigit() and 1 <= int(month) <= 12:
+                return f"{year}-{month.zfill(2)}-01"
+
+        # Handle full date format: "2020-10-13"
+        if len(pub_date) == 10 and pub_date[4] == "-" and pub_date[7] == "-":
+            year, month, day = pub_date.split("-")
+            if year.isdigit() and month.isdigit() and day.isdigit():
+                if 1 <= int(month) <= 12 and 1 <= int(day) <= 31:
+                    return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+
+        # Handle date range format: "2020-2021"
+        if len(pub_date) == 9 and pub_date[4] == "-":
+            start_year, end_year = pub_date.split("-")
+            if start_year.isdigit() and end_year.isdigit():
+                # Use the start year for the event date
+                return f"{start_year}-01-01"
+
+        # If none of the above patterns match, try to parse with arrow
+        parsed_date = arrow.get(pub_date)
+        return parsed_date.floor("day").format("YYYY-MM-DDTHH:mm:ss")
+
+    except Exception as e:
+        current_app.logger.warning(
+            f"Could not parse publication date '{pub_date}': {e}"
+        )
+        return None
+
+
 def update_event_deletion_fields(
-    event_id: str, is_deleted: bool, deleted_date: str | None
-):
+    event_id: str, is_deleted: bool, deleted_date: str | None = None
+) -> None:
     """Update deletion-related fields and updated_timestamp for an existing event."""
     client = current_search_client
     search_index = prefix_index("stats-community-events")
 
-    update_doc = {
-        "doc": {
-            "is_deleted": is_deleted,
-            "updated_timestamp": arrow.utcnow().isoformat(),
-        }
-    }
-    if deleted_date:
-        update_doc["doc"]["deleted_date"] = deleted_date
-
+    # First, refresh the index to ensure we get the most up-to-date state
     try:
-        client.update(index=search_index, id=event_id, body=update_doc)
+        client.indices.refresh(index=search_index)
+    except Exception as e:
+        current_app.logger.error(f"Error refreshing index {search_index}: {e}")
+
+    # Then, find the document to get its actual index
+    try:
+        # Search for the document using the alias to get its actual index
+        search_result = client.search(
+            index=search_index, body={"query": {"term": {"_id": event_id}}}, size=1
+        )
+
+        if search_result["hits"]["total"]["value"] == 0:
+            current_app.logger.error(
+                f"Event {event_id} not found in community events index"
+            )
+            return
+
+        # Get the actual index where the document is stored
+        actual_index = search_result["hits"]["hits"][0]["_index"]
+
+        update_doc = {
+            "doc": {
+                "is_deleted": is_deleted,
+                "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+            }
+        }
+
+        # Handle deleted_date field
+        if deleted_date is not None:
+            # Set the deleted_date field
+            update_doc["doc"]["deleted_date"] = deleted_date
+        else:
+            # Set deleted_date to null when restoring
+            update_doc["doc"]["deleted_date"] = None
+
+        client.update(index=actual_index, id=event_id, body=update_doc)
+
     except Exception as e:
         current_app.logger.error(
             f"Error updating deletion fields for event {event_id}: {e}"
@@ -69,19 +153,20 @@ def update_community_events_deletion_fields(
     client = current_search_client
     search_index = prefix_index("stats-community-events")
 
-    # Find all events for this record and update their deletion fields
     query = {
         "query": {"term": {"record_id": record_id}},
-        "size": 1000,  # Adjust if needed for large numbers of events
+        "size": 1000,
     }
 
     try:
         result = client.search(index=search_index, body=query)
+
         if result["hits"]["total"]["value"] > 0:
+            updated_count = 0
             for hit in result["hits"]["hits"]:
                 event_id = hit["_id"]
                 event_source = hit["_source"]
-                current_is_deleted = event_source.get("is_deleted", False)
+                current_is_deleted = event_source.get("is_deleted", None)
                 current_deleted_date = event_source.get("deleted_date")
 
                 # Only update if the deletion status has changed
@@ -90,17 +175,82 @@ def update_community_events_deletion_fields(
                     or current_deleted_date != deleted_date
                 ):
                     update_event_deletion_fields(event_id, is_deleted, deleted_date)
+                    updated_count += 1
 
-            current_app.logger.info(
-                f"Updated deletion fields for {result['hits']['total']['value']} community events for record {record_id}"
-            )
-        else:
-            current_app.logger.info(
-                f"No community events found for record {record_id} to update deletion fields"
-            )
     except Exception as e:
         current_app.logger.error(
             f"Error updating deletion fields for all events of record {record_id}: {e}"
+        )
+
+
+def update_community_events_created_date(
+    record_id: str,
+    new_created_date: str,
+) -> None:
+    """Update event_date and record_created_date fields for all community events of a record.
+
+    This function is used when a record's created date is updated to ensure that
+    all community events in the stats-community-events index reflect the new date.
+
+    Args:
+        record_id: The record ID
+        new_created_date: The new created date in ISO format
+    """
+    client = current_search_client
+    search_index = prefix_index("stats-community-events")
+    client.indices.refresh(index=f"*{search_index}*")
+
+    query = {
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"record_id": record_id}},
+                    {"term": {"event_type": "added"}},
+                ]
+            }
+        },
+        "size": 1000,
+    }
+
+    try:
+        result = client.search(index=search_index, body=query)
+
+        if result["hits"]["total"]["value"] > 0:
+            updated_count = 0
+            for hit in result["hits"]["hits"]:
+                event_id = hit["_id"]
+                event_source = hit["_source"]
+                current_event_date = event_source.get("event_date")
+                current_record_created_date = event_source.get("record_created_date")
+                # community_id = event_source.get("community_id")  # Unused variable
+
+                if (
+                    current_event_date != new_created_date
+                    or current_record_created_date != new_created_date
+                ):
+                    actual_index = hit["_index"]
+
+                    update_doc = {
+                        "doc": {
+                            "event_date": new_created_date,
+                            "record_created_date": new_created_date,
+                            "updated_timestamp": (
+                                arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS")
+                            ),
+                        }
+                    }
+
+                    try:
+                        client.update(index=actual_index, id=event_id, body=update_doc)
+                        updated_count += 1
+                    except Exception as e:
+                        current_app.logger.error(
+                            f"Error updating event {event_id}: {e}"
+                        )
+
+    except Exception as e:
+        current_app.logger.error(
+            f"Error updating created date for all events of record {record_id}: {e}"
         )
 
 
@@ -113,10 +263,12 @@ def update_community_events_index(
     record_published_date: str | None = None,
     is_deleted: bool = False,
     deleted_date: str | None = None,
+    client=None,
 ) -> None:
     """Update the community events index with new events.
 
     This function manages record community events in a separate search index.
+    It also creates a "global" event for every record to enable global statistics.
 
     Args:
         record_id: The record ID
@@ -127,17 +279,19 @@ def update_community_events_index(
         record_published_date: When the record was published
         is_deleted: Whether the record is deleted
         deleted_date: When the record was deleted
+        client: The search client to use for updating the index
     """
     if timestamp is None:
-        timestamp = arrow.utcnow().isoformat()
+        timestamp = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS")
 
-    client = current_search_client
-    # Use alias for searching across all annual indices
+    if client is None:
+        client = current_search_client
     search_index = prefix_index("stats-community-events")
 
-    # Determine the specific annual index for writing based on event timestamp
     event_year = arrow.get(timestamp).year
     write_index = prefix_index(f"stats-community-events-{event_year}")
+
+    parsed_published_date = parse_publication_date_for_events(record_published_date)
 
     def get_newest_event(record_id: str, community_id: str, is_removal: bool = False):
         """Get the newest event for a record/community combination using the alias."""
@@ -170,19 +324,24 @@ def update_community_events_index(
         return None
 
     def create_new_event(
-        record_id: str, community_id: str, event_type: str, event_date: str
+        record_id: str,
+        community_id: str,
+        event_type: str,
+        event_date: str,
+        is_deleted: bool,
     ):
         """Create a new community event in the appropriate annual index."""
+
         event_doc = {
             "record_id": record_id,
             "community_id": community_id,
             "event_type": event_type,
             "event_date": event_date,
             "record_created_date": record_created_date,
-            "record_published_date": record_published_date,
+            "record_published_date": parsed_published_date,
             "is_deleted": is_deleted,
-            "timestamp": arrow.utcnow().isoformat(),
-            "updated_timestamp": arrow.utcnow().isoformat(),
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+            "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
         }
         if deleted_date:
             event_doc["deleted_date"] = deleted_date
@@ -219,27 +378,23 @@ def update_community_events_index(
                         index=search_index, body=addition_query
                     )
                     if addition_result["hits"]["total"]["value"] == 0:
-                        # No addition event found - create dummy addition event one second before removal
-                        addition_timestamp = (
-                            arrow.get(timestamp).shift(seconds=-1).isoformat()
-                        )
-                        current_app.logger.error(
-                            f"No addition event found for record {record_id}, community {community_id}. "
-                            f"Creating addition event at {addition_timestamp} before removal at {timestamp}"
-                        )
+                        # No addition event found, create one with timestamp 1 second before removal
+                        removal_timestamp = arrow.get(timestamp)
+                        addition_timestamp = removal_timestamp.shift(seconds=-1)
                         create_new_event(
-                            record_id, community_id, "added", addition_timestamp
+                            record_id,
+                            community_id,
+                            "added",
+                            addition_timestamp.format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                            is_deleted,
                         )
-                        create_new_event(record_id, community_id, "removed", timestamp)
-                        continue  # Skip the rest of the logic since we've handled this case
                 except Exception as e:
                     current_app.logger.error(
-                        f"Error checking for addition events for record {record_id}, community {community_id}: {e}"
+                        f"Error checking for addition event for record {record_id}, community {community_id}: {e}"
                     )
 
-            # Normal event processing logic
             newest_event = get_newest_event(
-                record_id, community_id, is_removal=(event_type == "removed")
+                record_id, community_id, event_type == "removed"
             )
 
             if newest_event:
@@ -258,16 +413,37 @@ def update_community_events_index(
                             newest_event["_id"], is_deleted, deleted_date
                         )
                 else:
-                    create_new_event(record_id, community_id, event_type, timestamp)
+                    create_new_event(
+                        record_id, community_id, event_type, timestamp, is_deleted
+                    )
             else:
-                create_new_event(record_id, community_id, event_type, timestamp)
+                create_new_event(
+                    record_id, community_id, event_type, timestamp, is_deleted
+                )
 
+    # Process community-specific events
     if community_ids_to_add:
         process_community_events(record_id, community_ids_to_add, "added", timestamp)
     if community_ids_to_remove:
         process_community_events(
             record_id, community_ids_to_remove, "removed", timestamp
         )
+
+    # Always create/update a global event for this record
+    # This enables global statistics queries without needing to
+    # parse publication dates at query time
+    global_community_id = "global"
+
+    global_event = get_newest_event(record_id, global_community_id)
+    if global_event:
+        global_event_source = global_event["_source"]
+        current_is_deleted = global_event_source.get("is_deleted", False)
+        current_deleted_date = global_event_source.get("deleted_date")
+
+        if current_is_deleted != is_deleted or current_deleted_date != deleted_date:
+            update_event_deletion_fields(global_event["_id"], is_deleted, deleted_date)
+    else:
+        create_new_event(record_id, global_community_id, "added", timestamp, is_deleted)
 
     try:
         client.indices.refresh(index=write_index)
@@ -296,23 +472,8 @@ class CommunityAcceptedEventComponent(ServiceComponent):
     ) -> None:
         """Update the community record events."""
         current_app.logger.error("ACCEPTED EVENT COMPONENT ******************")
-        current_app.logger.error(f"data: {pformat(data)}")
-        current_app.logger.error(f"event: {pformat(event)}")
-        current_app.logger.error(f"type: {event.type}")
-        current_app.logger.error(f"payload: {dir(event)}")
-        current_app.logger.error(f"payload: {pformat(event.metadata)}")
-        current_app.logger.error(f"payload: {pformat(event.get('payload'))}")
         request_data = event.request.data
-        current_app.logger.error(f"request: {pformat(request_data)}")
-        current_app.logger.error(CommunityInclusion.type_id)
-        current_app.logger.error(CommunityInclusionAcceptAction.status_to)
-        current_app.logger.error(CommunitySubmission.type_id)
-        current_app.logger.error(CommunitySubmissionAcceptAction.status_to)
-        current_app.logger.error(CommunityTransferRequest.type_id)
-        current_app.logger.error(CommunityTransferAcceptAction.status_to)
 
-        # TODO: Direct community inclusion seems not to produce an "L" log event
-        # but only a "C" comment event?
         if (
             (
                 request_data["type"] == CommunityInclusion.type_id
@@ -330,24 +491,19 @@ class CommunityAcceptedEventComponent(ServiceComponent):
                 == CommunityTransferAcceptAction.status_to
             )
         ):
-            current_app.logger.error(
-                f"in accepted component, record: "
-                f"{pformat(request_data['topic']['record'])}"
-            )
             record = RDMRecord.pid.resolve(request_data["topic"]["record"])
-            current_app.logger.error(f"record: {pformat(record)}")
-            metadata = record.metadata
-            current_app.logger.error(f"metadata: {pformat(metadata)}")
 
-            # Use centralized function to update community events index
             community_id = request_data["receiver"]["community"]
+            record_published_date = record.metadata.get("publication_date")
             update_community_events_index(
-                record_id=str(record.id),
+                record_id=str(record.pid.pid_value),
                 community_ids_to_add=[community_id],
+                record_created_date=record.created,
+                record_published_date=record_published_date,
             )
 
             current_app.logger.error(
-                f"Updated community events index for record {record.id} and community {community_id}"
+                f"Updated community events index for record {record.pid.pid_value} and community {community_id}"
             )
 
 
@@ -372,11 +528,6 @@ class RecordCommunityEventComponent(ServiceComponent):
         accordingly on the record.
         """
         current_app.logger.error("PUBLISH COMPONENT ******************")
-        current_app.logger.error(f"in publish component, draft: {pformat(draft.id)}")
-        current_app.logger.error(
-            f"in publish component, draft parent: {pformat(draft.parent)}"
-        )
-        current_app.logger.error(f"published?: {pformat(record.is_published)}")
 
         new_community_ids = {
             c
@@ -388,55 +539,36 @@ class RecordCommunityEventComponent(ServiceComponent):
         }
         current_community_ids = set()
 
-        current_app.logger.error(
-            f"in publish component, record parent: {pformat(record.parent)}"
-        )
-
         previous_published_version_rec = RDMRecord.get_latest_published_by_parent(
             record.parent
         )
-        current_app.logger.error(
-            f"previous_published_version_rec: {pformat(previous_published_version_rec.parent)}"
-        )
-        current_app.logger.error(
-            f"previous_published_version_rec: {pformat(previous_published_version_rec.metadata)}"
-        )
-        if previous_published_version_rec and previous_published_version_rec.pid:
-            previous_published_version = current_rdm_records_service.read(
-                system_identity,
-                id_=previous_published_version_rec.pid.pid_value,  # type: ignore
-            )
-            current_app.logger.error(
-                f"previous_published_version: {pformat(previous_published_version.to_dict())}"
-            )
 
+        if previous_published_version_rec and previous_published_version_rec.pid:
             current_community_ids = {
-                c["id"]
+                c.pid.pid_value
                 for c in (
-                    draft.parent.communities.get("entries", []) if draft.parent else []
+                    draft.parent.communities.entries if draft.parent.communities else []
                 )
             }
-            current_app.logger.error(
-                f"current_community_ids: {pformat(current_community_ids)}"
-            )
 
         current_app.logger.error(
             f"in publish component, new_community_ids: " f"{pformat(new_community_ids)}"
         )
 
-        # Determine communities to add and remove
         communities_to_add = list(new_community_ids - current_community_ids)
         communities_to_remove = list(current_community_ids - new_community_ids)
 
-        # Use centralized function to update community events index
+        record_published_date = record.metadata.get("publication_date")
         update_community_events_index(
-            record_id=str(record.id),
+            record_id=str(record.pid.pid_value),
             community_ids_to_add=communities_to_add,
             community_ids_to_remove=communities_to_remove,
+            record_created_date=record.created,
+            record_published_date=record_published_date,
         )
 
         current_app.logger.error(
-            f"Updated community events index for record {record.id}: added {communities_to_add}, removed {communities_to_remove}"
+            f"Updated community events index for record {record.pid.pid_value}: added {communities_to_add}, removed {communities_to_remove}"
         )
 
     def delete_record(
@@ -453,15 +585,14 @@ class RecordCommunityEventComponent(ServiceComponent):
         """
         current_app.logger.error("DELETE COMPONENT ******************")
 
-        # Update deletion fields for all community events for this record
         update_community_events_deletion_fields(
-            record_id=str(record.id),
+            record_id=str(record.pid.pid_value),
             is_deleted=True,
-            deleted_date=arrow.utcnow().isoformat(),
+            deleted_date=arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
         )
 
         current_app.logger.error(
-            f"Updated deletion fields for all community events for record {record.id}"
+            f"Updated deletion fields for all community events for record {record.pid.pid_value}"
         )
 
     def restore_record(
@@ -477,9 +608,8 @@ class RecordCommunityEventComponent(ServiceComponent):
         """
         current_app.logger.error("RESTORE COMPONENT ******************")
 
-        # Update deletion fields for all community events for this record
         update_community_events_deletion_fields(
-            record_id=str(record.id),
+            record_id=str(record.pid.pid_value),
             is_deleted=False,
             deleted_date=None,
         )
@@ -504,22 +634,15 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
     ):
         """Record addition of a record in the record metadata."""
         current_app.logger.error("ADD COMPONENT ******************")
-        current_app.logger.error(f"in add component, record: {pformat(record)}")
-        current_app.logger.error(
-            f"in add component, communities: {pformat(communities)}"
-        )
 
-        # Extract community IDs from the communities list
         community_ids = [community["id"] for community in communities]
 
-        # Use centralized function to update community events index
+        record_published_date = record.metadata.get("publication_date")
         update_community_events_index(
-            record_id=str(record.id),
+            record_id=str(record.pid.pid_value),
             community_ids_to_add=community_ids,
-        )
-
-        current_app.logger.error(
-            f"Updated community events index for record {record.id}: added communities {community_ids}"
+            record_created_date=record.created,
+            record_published_date=record_published_date,
         )
 
     def bulk_add(
@@ -535,14 +658,13 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         for record_id in record_ids:
             record = current_rdm_records_service.record_cls.pid.resolve(record_id)
 
-            # Use centralized function to update community events index
+            record_published_date = record.metadata.get("publication_date")
             update_community_events_index(
-                record_id=str(record.id),
+                record_id=str(record.pid.pid_value),
                 community_ids_to_add=[community_id],
+                record_created_date=record.created,
+                record_published_date=record_published_date,
             )
-
-            # Note: No need to register RecordCommitOp since we're not modifying the record
-            # The community events are now stored in a separate index
 
     def remove(
         self,
@@ -568,14 +690,13 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         current_app.logger.error("REMOVE COMPONENT ******************")
         communities_to_remove = [c["id"] for c in communities]
 
-        # Use centralized function to update community events index
-        update_community_events_index(
-            record_id=str(record.id),
-            community_ids_to_remove=communities_to_remove,
-        )
+        record_published_date = record.metadata.get("publication_date")
 
-        current_app.logger.error(
-            f"Updated community events index for record {record.id}: removed communities {communities_to_remove}"
+        update_community_events_index(
+            record_id=str(record.pid.pid_value),
+            community_ids_to_remove=communities_to_remove,
+            record_created_date=record.created,
+            record_published_date=record_published_date,
         )
         # Note: No need to register RecordCommitOp since we're not modifying the record
         # The community events are now stored in a separate index

@@ -21,6 +21,8 @@ COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
 
 COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
 
+COMMUNITY_STATS_CATCHUP_INTERVAL = 365
+
 STATS_DASHBOARD_TEMPLATES = {
     "macro": "invenio_stats_dashboard/macros/stats_dashboard_macro.html",
     "global": "invenio_stats_dashboard/stats_dashboard.html",
@@ -368,12 +370,13 @@ STATS_DASHBOARD_LAYOUT = {
     },
 }
 
+
 COMMUNITY_STATS_QUERIES = {
     "community-record-delta-created": {
         "cls": CommunityRecordDeltaResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
-            "index": "stats-community-record-delta-created",
+            "index": "stats-community-records-delta-created",
             "doc_type": "community-record-delta-created-agg",
         },
     },
@@ -381,7 +384,7 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityRecordDeltaResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
-            "index": "stats-community-record-delta-published",
+            "index": "stats-community-records-delta-published",
             "doc_type": "community-record-delta-published-agg",
         },
     },
@@ -389,7 +392,7 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityRecordDeltaResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
-            "index": "stats-community-record-delta-added",
+            "index": "stats-community-records-delta-added",
             "doc_type": "community-record-delta-added-agg",
         },
     },
@@ -397,8 +400,24 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityRecordSnapshotResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
-            "index": "stats-community-record-snapshot",
-            "doc_type": "community-record-snapshot-agg",
+            "index": "stats-community-records-snapshot-created",
+            "doc_type": "community-record-snapshot-created-agg",
+        },
+    },
+    "community-record-snapshot-added": {
+        "cls": CommunityRecordSnapshotResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-records-snapshot-added",
+            "doc_type": "community-record-snapshot-added-agg",
+        },
+    },
+    "community-record-snapshot-published": {
+        "cls": CommunityRecordSnapshotResultsQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-records-snapshot-published",
+            "doc_type": "community-record-snapshot-published-agg",
         },
     },
     "community-usage-delta": {

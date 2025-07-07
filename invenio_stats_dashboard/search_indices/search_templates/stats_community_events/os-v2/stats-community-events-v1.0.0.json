@@ -24,30 +24,30 @@
         },
         "event_date": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "strict_date_optional_time"
         },
         "record_created_date": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "strict_date_optional_time"
         },
         "record_published_date": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "strict_date_optional_time"
         },
         "is_deleted": {
           "type": "boolean"
         },
         "deleted_date": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "strict_date_optional_time"
         },
         "timestamp": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "strict_date_optional_time"
         },
         "updated_timestamp": {
           "type": "date",
-          "format": "strict_date_hour_minute_second"
+          "format": "strict_date_optional_time"
         }
       }
     },
