@@ -229,54 +229,89 @@ class CommunityAggregatorBase(StatAggregator):
         )
         # Field name for searching event indices - should be overridden by subclasses
         self.event_date_field = "created"
+        self.event_community_query_term = lambda community_id: Q(
+            "term", parent__communities__ids=community_id
+        )
 
     def agg_iter(
         self,
         community_id: str,
-        start_date: arrow.Arrow | datetime.datetime,
-        end_date: arrow.Arrow | datetime.datetime,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
     ) -> Generator[dict, None, None]:
         """Create a dictionary representing the aggregation result for indexing."""
         raise NotImplementedError
 
-    def _find_first_event_date(self, community_id: str) -> arrow.Arrow:
+    def _first_event_date_query(
+        self, community_id: str, index_name: str
+    ) -> tuple[arrow.Arrow | None, arrow.Arrow | None]:
+        """Get the first event date from a specific index.
+
+        A min aggregation is more efficient than sorting the query.
+        """
+        current_search_client.indices.refresh(index=index_name)
+        if community_id == "global":
+            query = Q("match_all")
+        else:
+            query = self.event_community_query_term(community_id)
+
+        search = Search(using=self.client, index=index_name).query(query).extra(size=0)
+        search.aggs.bucket("min_date", "min", field=self.event_date_field)
+        search.aggs.bucket("max_date", "max", field=self.event_date_field)
+
+        results = search.execute()
+        min_date = results.aggregations.min_date.value
+        max_date = results.aggregations.max_date.value
+        current_app.logger.error(f"Min date: {min_date}")
+        current_app.logger.error(f"Max date: {max_date}")
+
+        return (
+            arrow.get(min_date) if min_date else None,
+            arrow.get(max_date) if max_date else None,
+        )
+
+    def _find_first_event_date(
+        self, community_id: str
+    ) -> tuple[arrow.Arrow | None, arrow.Arrow | None]:
         """Find the first event document in the index.
 
         Raises:
             ValueError: If no events are found in any of the event indices.
+
+        Returns:
+            A tuple of the earliest and latest event dates. If no events are found,
+            both dates are None.
         """
 
-        def get_first_event_date(index_name):
-            """Get the first event date from a specific index."""
-            query = (
-                Search(using=self.client, index=index_name)
-                .query(Q("term", community_id=community_id))
-                .sort({self.event_date_field: {"order": "asc"}})
-                .extra(size=1)
-            )
-            first_event = next(iter(query.execute()), None)
-            return (
-                arrow.get(first_event[self.event_date_field]) if first_event else None
-            )
-
         earliest_date = None
+        latest_date = None
 
         if isinstance(self.event_index, str):
             # Single index case
-            earliest_date = get_first_event_date(self.event_index)
+            current_app.logger.error(f"Finding first event date for {self.event_index}")
+            earliest_date, latest_date = self._first_event_date_query(
+                community_id, self.event_index
+            )
         elif isinstance(self.event_index, list):
             # Multiple indices case (e.g., for usage aggregators)
             for label, index in self.event_index:
-                event_date = get_first_event_date(index)
-                if event_date and (earliest_date is None or event_date < earliest_date):
-                    earliest_date = event_date
+                current_app.logger.error(f"Finding first event date for {index}")
+                early_date, late_date = self._first_event_date_query(
+                    community_id, index
+                )
+                if not earliest_date or early_date < earliest_date:
+                    earliest_date = early_date
+                if not latest_date or late_date > latest_date:
+                    latest_date = late_date
 
         if earliest_date is None:
             raise ValueError(
                 f"No events found for community {community_id} in any event index"
             )
 
-        return earliest_date
+        return earliest_date, latest_date
 
     def _get_end_date(
         self, lower_limit: arrow.Arrow, end_date: arrow.Arrow | None
@@ -297,6 +332,7 @@ class CommunityAggregatorBase(StatAggregator):
         upper_limit: arrow.Arrow,
         lower_limit: arrow.Arrow,
         first_index_event_date: arrow.Arrow,
+        last_index_event_date: arrow.Arrow,
     ) -> arrow.Arrow:
         """Find the last event document in the stats-community-events index.
 
@@ -312,6 +348,11 @@ class CommunityAggregatorBase(StatAggregator):
         community_events_index = prefix_index("stats-community-events")
         index_exists = Index(community_events_index, using=self.client).exists()
 
+        # FIXME: Add a bookmark for the community events index
+        # Index community add/remove events only up to the last index event date
+        indexing_end_date = min(upper_limit, last_index_event_date)
+        current_app.logger.error(f"Indexing end date: {pformat(indexing_end_date)}")
+
         # Determine the start date for indexing
         if not index_exists:
             # Index doesn't exist, start from first_event_date
@@ -325,8 +366,9 @@ class CommunityAggregatorBase(StatAggregator):
             query = Search(using=self.client, index=community_events_index)
             query = query.query(Q("term", community_id=community_id))
             query = query.sort({"event_date": {"order": "desc"}})
-            query = query.extra(size=1)
-            last_event = next(iter(query.execute()), None)
+            query = query.extra(size=10)
+            community_events = query.execute()
+            last_event = next(iter(community_events), None)
 
             if not last_event:
                 # No community events exist, start from first_event_date
@@ -338,9 +380,18 @@ class CommunityAggregatorBase(StatAggregator):
             else:
                 # Community events exist, check if we need to index more
                 last_community_event_date = arrow.get(last_event["event_date"])
+                current_app.logger.error(
+                    f"Last community event date: {pformat(last_community_event_date)}"
+                )
+                current_app.logger.error(f"Upper limit: {pformat(upper_limit)}")
 
-                if last_community_event_date >= upper_limit:
-                    # No indexing needed
+                if last_community_event_date >= indexing_end_date:
+                    # No indexing needed if the last community event date is
+                    # greater than the upper limit or the last index event date
+                    current_app.logger.error(
+                        f"No indexing needed for {community_id} from "
+                        f"{last_community_event_date} to {upper_limit}."
+                    )
                     return upper_limit
 
                 # We need to index more events from last_community_event_date
@@ -351,27 +402,30 @@ class CommunityAggregatorBase(StatAggregator):
                     f"{last_community_event_date} to {upper_limit}. Indexing..."
                 )
 
+        # FIXME: Decide whether to limit the the community record catchup_interval too
         # Check if the period would exceed catchup_interval
-        period_days = (upper_limit - indexing_start_date).days
-        if period_days > self.catchup_interval:
-            # Limit the period to catchup_interval days
-            upper_limit = indexing_start_date.shift(days=self.catchup_interval)
-            current_app.logger.error(
-                f"Period would exceed catchup_interval "
-                f"({period_days} > {self.catchup_interval}). "
-                f"Limiting to {self.catchup_interval} days from "
-                f"{indexing_start_date}."
-            )
+        # period_days = (indexing_end_date - indexing_start_date).days
+        # if period_days > self.catchup_interval:
+        #     # Limit the period to catchup_interval days
+        #     indexing_end_date = upper_limit = indexing_start_date.shift(
+        #         days=self.catchup_interval
+        #     )
+        #     current_app.logger.error(
+        #         f"Period would exceed catchup_interval "
+        #         f"({period_days} > {self.catchup_interval}). "
+        #         f"Limiting to {self.catchup_interval} days from "
+        #         f"{indexing_start_date}."
+        #     )
 
         # Index the community events (single point of execution)
         current_community_stats_service.generate_record_community_events(
             community_ids=[community_id],
-            end_date=upper_limit.format("YYYY-MM-DD"),
+            end_date=indexing_end_date.format("YYYY-MM-DD"),
             start_date=indexing_start_date.format("YYYY-MM-DD"),
         )
         current_app.logger.error(
             f"Indexed {community_id} events for {indexing_start_date} "
-            f"to {upper_limit}"
+            f"to {indexing_end_date}"
         )
 
         return upper_limit
@@ -417,6 +471,7 @@ class CommunityAggregatorBase(StatAggregator):
             records indexed and the second element is a list of dictionaries, where
             each dictionary describes an error.
         """
+        current_app.logger.error(f"Running aggregation for {self.name}")
         start_date = arrow.get(start_date) if start_date else None
         end_date = arrow.get(end_date) if end_date else None
         # If no records have been indexed there is nothing to aggregate
@@ -430,6 +485,9 @@ class CommunityAggregatorBase(StatAggregator):
                 if not Index(index, using=self.client).exists():
                     return [(0, [])]
 
+        # FIXME: We need to find a way to ensure that the last aggregation
+        # run isn't still underway and skip if it is
+
         if self.community_ids:
             all_communities = self.community_ids
         else:
@@ -441,8 +499,11 @@ class CommunityAggregatorBase(StatAggregator):
 
         results = []
         for community_id in all_communities:
+            current_app.logger.error(f"Running aggregation for {community_id}")
             try:
-                first_event_date = self._find_first_event_date(community_id)
+                first_event_date, last_event_date = self._find_first_event_date(
+                    community_id
+                )
             except ValueError:
                 current_app.logger.error(
                     f"No events found for community {community_id}. "
@@ -463,20 +524,32 @@ class CommunityAggregatorBase(StatAggregator):
             else:
                 lower_limit = min(start_date or arrow.utcnow(), arrow.utcnow())
 
-            # Check that community events have been indexed for the desired period
-            # and if not, index them first. Do this even if we're ignoring the bookmark
-            # since otherwise we don't have accurate data in the aggregations.
+            # Ensure we don't aggregate more than self.catchup_interval days
             upper_limit = self._get_end_date(lower_limit, end_date)
-            upper_limit = self._index_missing_community_events(
-                community_id, upper_limit, lower_limit, first_event_date
-            )
+            # Check that community add/remove events have been indexed for the desired
+            # period and if not, index them first. Do this even if we're ignoring the
+            # bookmark since otherwise we don't have accurate data in the aggregations.
+            first_event_date_safe = first_event_date or arrow.utcnow()
+            last_event_date_safe = last_event_date or arrow.utcnow()
 
-            # Check if upper_limit is now <= lower_limit after community event indexing
+            # FIXME: Add a bookmark for the community events index
+            upper_limit = self._index_missing_community_events(
+                community_id,
+                upper_limit,
+                lower_limit,
+                first_event_date_safe,
+                last_event_date_safe,
+            )
+            # FIXME: We need to periodically check for gaps in the community events
+
+            # Check if upper_limit is now < lower_limit after community event indexing
             # If so, skip this community iteration without updating the bookmark or
             # performing aggregations
-            if upper_limit <= lower_limit:
+            # NOTE: upper_limit could legitimately be lower if we spent this iteration
+            # indexing prior community add/remove events.
+            if upper_limit < lower_limit:
                 current_app.logger.error(
-                    f"Upper limit {upper_limit} <= lower limit {lower_limit} "
+                    f"Upper limit {upper_limit} < lower limit {lower_limit} "
                     f"for {community_id}. Skipping this iteration."
                 )
                 continue
@@ -486,11 +559,21 @@ class CommunityAggregatorBase(StatAggregator):
                 f"Lower limit: {lower_limit}, upper limit: {upper_limit}"
                 f"for community {community_id}"
             )
+            current_app.logger.error(
+                f"Running aggregation for {community_id} from {lower_limit} "
+                f"to {upper_limit}"
+            )
 
             results.append(
                 bulk(
                     self.client,
-                    self.agg_iter(community_id, lower_limit, upper_limit),
+                    self.agg_iter(
+                        community_id,
+                        lower_limit,
+                        upper_limit,
+                        first_event_date,
+                        last_event_date,
+                    ),
                     stats_only=False if return_results else True,
                     chunk_size=50,
                 )
@@ -530,7 +613,8 @@ class CommunityAggregatorBase(StatAggregator):
                 current = current.get(segment, {})
             elif isinstance(current, list) or isinstance(current, AttrList):
                 # For arrays, we sometimes need to find the item that matches our key
-                # This is used for fields like subjects where we need to match the specific subject
+                # This is used for fields like subjects where we need to match the
+                # specific subject
                 if key is not None:
                     matching_items = [
                         item
@@ -547,6 +631,39 @@ class CommunityAggregatorBase(StatAggregator):
             else:
                 return {}
         return current
+
+    def _should_skip_aggregation(
+        self, start_date: arrow.Arrow, last_event_date: arrow.Arrow | None
+    ) -> bool:
+        """Check if aggregation should be skipped due to no events after start_date.
+
+        Args:
+            start_date: The start date for aggregation
+            last_event_date: The last event date, or None if no events exist
+
+        Returns:
+            True if aggregation should be skipped, False otherwise
+        """
+        if last_event_date is None:
+            return True
+        return last_event_date < start_date
+
+    def _create_zero_document(
+        self, community_id: str, current_day: arrow.Arrow
+    ) -> dict:
+        """Create a zero-value document for when no events exist.
+
+        This method should be overridden by subclasses to provide the appropriate
+        zero-value document structure for their aggregation type.
+
+        Args:
+            community_id: The community ID
+            current_day: The current day for the document
+
+        Returns:
+            A document with zero values appropriate for the aggregator type
+        """
+        raise NotImplementedError("Subclasses must override _create_zero_document")
 
 
 class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
@@ -565,6 +682,119 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
     def use_published_dates(self):
         """Whether to use published dates for community queries."""
         return False
+
+    def _should_skip_aggregation(
+        self,
+        start_date: arrow.Arrow,
+        last_event_date: arrow.Arrow | None,
+        community_id: str | None = None,
+    ) -> bool:
+        """Check if aggregation should be skipped due to no relevant records in date range.
+
+        This method provides early skip logic for record aggregators by:
+        1. Checking if there are any records that were added to the community before or on the aggregation date
+        2. If no relevant records exist, we can skip the expensive processing pipeline entirely
+
+        Args:
+            start_date: The start date for aggregation
+            last_event_date: The last event date, or None if no events exist
+            community_id: The community ID to check (optional, for testing)
+
+        Returns:
+            True if aggregation should be skipped, False otherwise
+        """
+        if last_event_date is None:
+            return True
+        if last_event_date < start_date:
+            return True
+
+        # For record aggregators, we need to check if there are any records
+        # that were added to the community before or on the aggregation date
+        if community_id == "global":
+            # For global aggregator, just check if there are any records at all
+            search = Search(using=self.client, index=self.event_index)
+            return search.count() == 0
+        else:
+            # For community-specific aggregators, check if any records were added
+            # to the community before or on the aggregation date
+            community_search = (
+                Search(using=self.client, index=prefix_index("stats-community-events"))
+                .filter("term", community_id=community_id)
+                .filter(
+                    "range",
+                    event_date={
+                        "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                    },
+                )
+            )
+
+            # Add terms aggregation to get unique records
+            record_agg = community_search.aggs.bucket(
+                "by_record", "terms", field="record_id"
+            )
+            record_agg.bucket(
+                "top_hits",
+                "top_hits",
+                size=1,
+                sort=[{"event_date": {"order": "desc"}}],
+                _source={"includes": ["event_type"]},
+            )
+
+            community_results = community_search.execute()
+
+            # Check if any records have "added" as their last event type
+            for bucket in community_results.aggregations.by_record.buckets:
+                if bucket.top_hits.hits[0]["event_type"] == "added":
+                    # Found at least one record that was added to the community
+                    return False
+
+            # No records found that were added to the community before the aggregation date
+            return True
+
+    def _create_zero_document(
+        self, community_id: str, current_day: arrow.Arrow
+    ) -> dict:
+        """Create a zero-value snapshot document for when no events exist.
+
+        Args:
+            community_id: The community ID
+            current_day: The current day for the snapshot
+
+        Returns:
+            A snapshot document with zero values
+        """
+        return {
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+            "community_id": community_id,
+            "snapshot_date": current_day.format("YYYY-MM-DD"),
+            "total_records": {
+                "metadata_only": 0,
+                "with_files": 0,
+            },
+            "total_parents": {
+                "metadata_only": 0,
+                "with_files": 0,
+            },
+            "total_files": {
+                "file_count": 0,
+                "data_volume": 0,
+            },
+            "total_uploaders": 0,
+            "subcounts": {
+                "all_resource_types": [],
+                "all_access_rights": [],
+                "all_languages": [],
+                "top_affiliations_creator": [],
+                "top_affiliations_contributor": [],
+                "top_funders": [],
+                "top_subjects": [],
+                "top_publishers": [],
+                "top_periodicals": [],
+                "all_licenses": [],
+                "all_file_types": [],
+            },
+            "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+        }
 
     def create_agg_dict(
         self,
@@ -611,6 +841,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                     label = self._get_nested_value(
                         label_options, label_path_leaf, key=key
                     )
+            # Convert empty dict to empty string for consistency
+            if isinstance(label, dict) and not label:
+                label = ""
             return label
 
         def make_file_type_dict():
@@ -645,7 +878,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                 file_type_list.append(
                     {
                         "id": key,
-                        "label": {},
+                        "label": "",
                         "records": (
                             added.get("unique_records", {}).get("value", 0)
                             - removed.get("unique_records", {}).get("value", 0)
@@ -654,7 +887,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                             added.get("unique_parents", {}).get("value", 0)
                             - removed.get("unique_parents", {}).get("value", 0)
                         ),
-                        "files": (
+                        "file_count": (
                             added.get("doc_count", 0) - removed.get("doc_count", 0)
                         ),
                         "data_volume": (
@@ -674,9 +907,6 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                 "by_affiliation_creator",
                 "by_affiliation_contributor",
             ]:
-                current_app.logger.error(
-                    f"Merging {subcount_type}_id and {subcount_type}_name buckets"
-                )
                 aggs_added[subcount_type] = {
                     "buckets": (
                         aggs_added[f"{subcount_type}_id"]["buckets"]
@@ -839,8 +1069,10 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
     def agg_iter(
         self,
         community_id: str,
-        start_date: arrow.Arrow | datetime.datetime,
-        end_date: arrow.Arrow | datetime.datetime,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
     ) -> Generator[dict, None, None]:
         """Create a dictionary representing the aggregation result for indexing.
 
@@ -854,42 +1086,65 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
             document for a single day to be indexed.
         """
 
+        # Check if we should skip aggregation due to no events after start_date
+        should_skip = self._should_skip_aggregation(
+            start_date, last_event_date, community_id
+        )
+        if should_skip:
+            current_app.logger.error(
+                f"Skipping aggregation for {community_id} - "
+                f"no relevant records after {start_date}"
+            )
+
         # Make sure we don't miss any old records
         earliest_date = arrow.get("1900-01-01").floor("day")
         current_iteration_date = arrow.get(start_date)
 
         while current_iteration_date <= arrow.get(end_date):
+            # Prepare the _source content based on whether we should skip aggregation
+            if should_skip:
+                source_content = self._create_zero_document(
+                    community_id, current_iteration_date
+                )
+            else:
+                snapshot_added_search = Search(
+                    using=self.client, index=self.event_index
+                )
 
-            snapshot_added_search = Search(using=self.client, index=self.event_index)
+                snapshot_query_added = daily_record_snapshot_query_with_events(
+                    earliest_date.format("YYYY-MM-DD"),
+                    current_iteration_date.format("YYYY-MM-DD"),
+                    community_id=community_id,
+                    use_included_dates=self.use_included_dates,
+                    use_published_dates=self.use_published_dates,
+                    client=self.client,
+                )
+                snapshot_added_search.update_from_dict(snapshot_query_added)
 
-            snapshot_query_added = daily_record_snapshot_query_with_events(
-                earliest_date.format("YYYY-MM-DD"),
-                current_iteration_date.format("YYYY-MM-DD"),
-                community_id=community_id,
-                use_included_dates=self.use_included_dates,
-                use_published_dates=self.use_published_dates,
-                client=self.client,
-            )
-            snapshot_added_search.update_from_dict(snapshot_query_added)
+                snapshot_results_added = snapshot_added_search.execute()
+                aggs_added = snapshot_results_added.aggregations.to_dict()
 
-            snapshot_results_added = snapshot_added_search.execute()
-            aggs_added = snapshot_results_added.aggregations.to_dict()
+                snapshot_removed_search = Search(
+                    using=self.client, index=self.event_index
+                )
 
-            snapshot_removed_search = Search(using=self.client, index=self.event_index)
+                snapshot_query_removed = daily_record_snapshot_query_with_events(
+                    earliest_date.format("YYYY-MM-DD"),
+                    current_iteration_date.format("YYYY-MM-DD"),
+                    community_id=community_id,
+                    find_deleted=True,
+                    use_included_dates=self.use_included_dates,
+                    use_published_dates=self.use_published_dates,
+                    client=self.client,
+                )
+                snapshot_removed_search.update_from_dict(snapshot_query_removed)
 
-            snapshot_query_removed = daily_record_snapshot_query_with_events(
-                earliest_date.format("YYYY-MM-DD"),
-                current_iteration_date.format("YYYY-MM-DD"),
-                community_id=community_id,
-                find_deleted=True,
-                use_included_dates=self.use_included_dates,
-                use_published_dates=self.use_published_dates,
-                client=self.client,
-            )
-            snapshot_removed_search.update_from_dict(snapshot_query_removed)
+                snapshot_results_removed = snapshot_removed_search.execute()
+                aggs_removed = snapshot_results_removed.aggregations.to_dict()
 
-            snapshot_results_removed = snapshot_removed_search.execute()
-            aggs_removed = snapshot_results_removed.aggregations.to_dict()
+                source_content = self.create_agg_dict(
+                    community_id, current_iteration_date, aggs_added, aggs_removed
+                )
 
             index_name = prefix_index(
                 "{0}-{1}".format(self.aggregation_index, current_iteration_date.year)
@@ -907,9 +1162,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                     community_id, current_iteration_date.format("YYYY-MM-DD")
                 ),
                 "_index": index_name,
-                "_source": self.create_agg_dict(
-                    community_id, current_iteration_date, aggs_added, aggs_removed
-                ),
+                "_source": source_content,
             }
 
             current_iteration_date = current_iteration_date.shift(days=1)
@@ -972,7 +1225,59 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         super().__init__(name, *args, **kwargs)
         self.event_index = prefix_index("stats-community-usage-delta")
         self.aggregation_index = prefix_index("stats-community-usage-snapshot")
-        self.event_date_field = "timestamp"
+        self.event_date_field = "period_start"
+        self.event_community_query_term = lambda community_id: Q(
+            "term", community_id=community_id
+        )
+
+    def _create_zero_document(
+        self, community_id: str, current_day: arrow.Arrow
+    ) -> dict:
+        """Create a zero-value usage snapshot document for when no events exist.
+
+        Args:
+            community_id: The community ID
+            current_day: The current day for the snapshot
+
+        Returns:
+            A usage snapshot document with zero values
+        """
+        return {
+            "community_id": community_id,
+            "snapshot_date": current_day.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "totals": {
+                "view": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                },
+                "download": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                    "unique_files": 0,
+                    "total_volume": 0,
+                },
+            },
+            "subcounts": {
+                "all_resource_types": [],
+                "all_access_rights": [],
+                "all_languages": [],
+                "all_file_types": [],
+                "top_subjects": {"by_view": [], "by_download": []},
+                "top_publishers": {"by_view": [], "by_download": []},
+                "top_periodicals": {"by_view": [], "by_download": []},
+                "top_funders": {"by_view": [], "by_download": []},
+                "top_countries": {"by_view": [], "by_download": []},
+                "top_user_agents": {"by_view": [], "by_download": []},
+                "top_referrers": {"by_view": [], "by_download": []},
+                "top_affiliations": {"by_view": [], "by_download": []},
+                "top_licenses": {"by_view": [], "by_download": []},
+            },
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+        }
 
     def _create_aggregation_doc(
         self,
@@ -989,6 +1294,41 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             "subcounts": cumulative_subcounts,
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
+
+    def _should_skip_aggregation(
+        self,
+        start_date: arrow.Arrow,
+        last_event_date: arrow.Arrow | None,
+        period_delta_records: list,
+    ) -> bool:
+        """Check if aggregation should be skipped due to no events with counts.
+
+        Where the other aggregators skip if there are no events after the start date,
+        this one skips if there are no events with counts between the start date and
+        the last event date. If all the delta records are empty, the cumulative totals
+        will not change.
+
+        Args:
+            start_date: The start date for aggregation
+            last_event_date: The last event date, or None if no events exist
+
+        Returns:
+            True if aggregation should be skipped, False otherwise
+        """
+        total_events = sum(
+            delta["totals"]["view"]["total_events"] for delta in period_delta_records
+        )
+        total_downloads = sum(
+            delta["totals"]["download"]["total_events"]
+            for delta in period_delta_records
+        )
+        if last_event_date is None:
+            return True
+        elif total_events == 0 and total_downloads == 0:
+            return True
+        elif last_event_date < start_date:
+            return True
+        return False
 
     def _get_daily_deltas(
         self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
@@ -1272,8 +1612,10 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
     def agg_iter(
         self,
         community_id: str,
-        start_date: arrow.Arrow | datetime.datetime,
-        end_date: arrow.Arrow | datetime.datetime,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
     ) -> Generator[dict, None, None]:
         """Create cumulative totals from daily usage deltas."""
         self.client.indices.refresh(index="*stats-community-usage-delta*")
@@ -1296,68 +1638,145 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         current_app.logger.error(f"Start date: {pformat(start_date)}")
         if last_snapshot_date and last_snapshot_date < start_date.shift(days=-1):
             start_date = last_snapshot_date.shift(days=1)
+
         # If there's no last snapshot document, we need to start from the first
         # event date.
         elif not last_snapshot_document:
-            first_event_date = self._find_first_event_date(community_id)
             current_app.logger.error(f"First event date: {pformat(first_event_date)}")
             if first_event_date:
                 start_date = first_event_date
                 current_app.logger.error(f"Start date: {pformat(start_date)}")
+        # FIXME: We need to ensure there's no gap in the usage deltas before
+        # we aggregate the snapshots on their basis
+
+        # Ensure that we're not aggregating for too long a period
+        # if we've adjusted the start date
+        if (end_date - start_date).days > self.catchup_interval:
+            end_date = start_date.shift(days=self.catchup_interval)
+            current_app.logger.error(f"Adjusted end date: {pformat(end_date)}")
 
         prior_delta_records, period_delta_records = self._get_daily_deltas(
             community_id, start_date, end_date
         )
-        if not prior_delta_records and not period_delta_records:
-            return
 
-        # Initialize cumulative totals
-        cumulative_totals, cumulative_subcounts = (
-            (
-                last_snapshot_document["_source"]["totals"],
-                last_snapshot_document["_source"]["subcounts"],
-            )
-            if last_snapshot_document
-            else ({}, {})
+        # Check if we should skip aggregation due to no events since the last snapshot
+        should_skip = self._should_skip_aggregation(
+            start_date, last_event_date, period_delta_records
         )
-        current_iteration_date = start_date
+        if should_skip:
+            current_app.logger.error(
+                f"Skipping usage snapshot aggregation for {community_id} - "
+                f"no delta records with usage events after {start_date}"
+            )
+        else:
+            current_app.logger.error(
+                f"Prior delta records: {pformat(prior_delta_records)}"
+            )
+            current_app.logger.error(
+                f"Period delta records: "
+                f"{pformat([p.to_dict() for p in period_delta_records])}"
+            )
+            if not prior_delta_records and not period_delta_records:
+                return
+
+            # Initialize cumulative totals
+            cumulative_totals, cumulative_subcounts = (
+                (
+                    last_snapshot_document["_source"]["totals"],
+                    last_snapshot_document["_source"]["subcounts"],
+                )
+                if last_snapshot_document
+                else ({}, {})
+            )
+            current_app.logger.error(f"end date: {pformat(end_date)}")
+            current_app.logger.error(f"Current iteration date: {pformat(start_date)}")
+            current_app.logger.error(f"cumulative totals: {pformat(cumulative_totals)}")
+            current_app.logger.error(
+                f"cumulative subcounts: {pformat(cumulative_subcounts)}"
+            )
+            if period_delta_records and len(period_delta_records) > 0:
+                current_app.logger.error(
+                    f"First period delta record: "
+                    f"{pformat(period_delta_records[0].to_dict())}"
+                )
+
         current_delta_index = 0
-        current_app.logger.error(f"end date: {pformat(end_date)}")
+        current_iteration_date = arrow.get(start_date)
         current_app.logger.error(
             f"Current iteration date: {pformat(current_iteration_date)}"
         )
-        current_app.logger.error(f"cumulative totals: {pformat(cumulative_totals)}")
-        current_app.logger.error(
-            f"cumulative subcounts: {pformat(cumulative_subcounts)}"
-        )
-        current_app.logger.error(
-            f"First period delta record: {pformat(period_delta_records[0].to_dict())}"
-        )
+        current_app.logger.error(f"Current delta index: {pformat(current_delta_index)}")
 
         while current_iteration_date <= end_date:
-            # Update cumulative totals with any delta records for the current day
-            current_delta = period_delta_records[current_delta_index]
-            delta_date = arrow.get(current_delta.period_start)
-            if delta_date.floor("day") == current_iteration_date.floor("day"):
-                # Map delta document to snapshot format before updating
-                mapped_delta_doc = self._map_delta_to_snapshot_subcounts(
-                    current_delta.to_dict()
-                )
-                cumulative_totals, cumulative_subcounts = (
-                    self._update_cumulative_totals(
-                        cumulative_totals, cumulative_subcounts, mapped_delta_doc
+            if should_skip:
+                # When skipping, create snapshots with the same values as the last
+                # snapshot (or zero if no last snapshot) for each day in the period
+                if last_snapshot_document:
+                    # Copy the last snapshot document but update the snapshot_date
+                    source_content = last_snapshot_document["_source"].copy()
+                    source_content["snapshot_date"] = current_iteration_date.ceil(
+                        "day"
+                    ).format("YYYY-MM-DDTHH:mm:ss")
+                    source_content["timestamp"] = arrow.utcnow().format(
+                        "YYYY-MM-DDTHH:mm:ss"
                     )
-                )
-                cumulative_subcounts = self._update_top_subcounts(
+                else:
+                    # No previous snapshot, create zero-value document
+                    source_content = self._create_zero_document(
+                        community_id, current_iteration_date
+                    )
+            elif current_delta_index >= len(period_delta_records):
+                # No more delta records, create snapshot with current cumulative totals
+                # NOTE: We're assuming that missing delta records have zero values.
+                source_content = self._create_aggregation_doc(
+                    community_id,
+                    current_iteration_date,
+                    cumulative_totals,
                     cumulative_subcounts,
-                    prior_delta_records
-                    + period_delta_records[: current_delta_index + 1],
                 )
-                current_delta_index += 1
-            elif delta_date.floor("day") < current_iteration_date.floor("day"):
-                # Delta is from a previous day, skip ahead to the next delta
-                current_delta_index += 1
-                continue
+            else:
+                # Check if the current delta record is for today
+                current_delta = period_delta_records[current_delta_index]
+                delta_date = arrow.get(current_delta.period_start)
+                current_app.logger.error(f"Delta date: {pformat(delta_date)}")
+
+                if delta_date.floor("day") == current_iteration_date.floor("day"):
+                    current_app.logger.error(
+                        f"Updating cumulative totals for "
+                        f"{current_iteration_date.format('YYYY-MM-DD')}"
+                    )
+                    # Map delta document to snapshot format before updating
+                    mapped_delta_doc = self._map_delta_to_snapshot_subcounts(
+                        current_delta.to_dict()
+                    )
+                    cumulative_totals, cumulative_subcounts = (
+                        self._update_cumulative_totals(
+                            cumulative_totals, cumulative_subcounts, mapped_delta_doc
+                        )
+                    )
+                    all_delta_records = list(prior_delta_records) + list(
+                        period_delta_records[: current_delta_index + 1]
+                    )
+                    cumulative_subcounts = self._update_top_subcounts(
+                        cumulative_subcounts,
+                        all_delta_records,
+                    )
+                    current_delta_index += 1
+                elif delta_date.floor("day") < current_iteration_date.floor("day"):
+                    # Delta is from a previous day, skip ahead to the next delta
+                    current_delta_index += 1
+                    continue
+                else:
+                    # Delta is from a future day, create snapshot with current
+                    # cumulative totals
+                    pass
+
+                source_content = self._create_aggregation_doc(
+                    community_id,
+                    current_iteration_date,
+                    cumulative_totals,
+                    cumulative_subcounts,
+                )
 
             # Create and yield the snapshot document for the current day
             index_name = prefix_index(
@@ -1375,12 +1794,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             yield {
                 "_id": document_id,
                 "_index": index_name,
-                "_source": self._create_aggregation_doc(
-                    community_id,
-                    current_iteration_date,
-                    cumulative_totals,
-                    cumulative_subcounts,
-                ),
+                "_source": source_content,
             }
 
             current_iteration_date = current_iteration_date.shift(days=1)
@@ -1396,6 +1810,166 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         ]
         self.aggregation_index = prefix_index("stats-community-usage-delta")
         self.event_date_field = "timestamp"
+        self.event_community_query_term = lambda community_id: Q("match_all")
+
+    def _should_skip_aggregation(
+        self,
+        start_date: arrow.Arrow,
+        last_event_date: arrow.Arrow | None,
+        community_id: str | None = None,
+    ) -> bool:
+        """Check if aggregation should be skipped due to no usage events in date range.
+
+        This method provides early skip logic for the usage delta aggregator by:
+        1. Checking if there are any usage events in the date range for this community
+        2. If no events exist, we can skip the expensive processing pipeline entirely
+
+        Args:
+            start_date: The start date for aggregation
+            last_event_date: The last event date, or None if no events exist
+            community_id: The community ID to check (optional, for testing)
+
+        Returns:
+            True if aggregation should be skipped, False otherwise
+        """
+        if last_event_date is None:
+            return True
+        if last_event_date < start_date:
+            return True
+
+        # For usage delta aggregator, we need to check if there are any actual
+        # usage events in the date range for this community
+        # This is much faster than the full processing pipeline
+        events_found = False
+        for event_type, event_index in self.event_index:
+            # Quick check for any events in the date range
+            search = Search(using=self.client, index=event_index)
+            search = search.filter(
+                "range",
+                timestamp={
+                    "gte": start_date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+                    "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                },
+            )
+
+            # If community_id is not "global", we need to check if any of these events
+            # belong to records that are in the community on this date
+            if community_id != "global":
+                # Get all record IDs from events in this date range
+                record_search = Search(using=self.client, index=event_index)
+                record_search = record_search.filter(
+                    "range",
+                    timestamp={
+                        "gte": start_date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+                        "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                    },
+                )
+                record_search.aggs.bucket(
+                    "by_record", "terms", field="recid", size=1000
+                )
+                record_results = record_search.execute()
+
+                if not record_results.aggregations.by_record.buckets:
+                    continue
+
+                # Check if any of these records are in the community on this date
+                record_ids = [
+                    bucket.key
+                    for bucket in record_results.aggregations.by_record.buckets
+                ]
+                community_search = (
+                    Search(
+                        using=self.client, index=prefix_index("stats-community-events")
+                    )
+                    .filter("term", community_id=community_id)
+                    .filter("terms", record_id=record_ids)
+                    .filter(
+                        "range",
+                        event_date={
+                            "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                        },
+                    )
+                )
+
+                # Add terms aggregation to get unique records
+                record_agg = community_search.aggs.bucket(
+                    "by_record", "terms", field="record_id"
+                )
+                record_agg.bucket(
+                    "top_hits",
+                    "top_hits",
+                    size=1,
+                    sort=[{"event_date": {"order": "desc"}}],
+                    _source={"includes": ["event_type"]},
+                )
+
+                community_results = community_search.execute()
+
+                # Check if any records have "added" as their last event type
+                for bucket in community_results.aggregations.by_record.buckets:
+                    if bucket.top_hits.hits[0]["event_type"] == "added":
+                        # Found at least one record with usage events in the community
+                        events_found = True
+                        break
+
+                # No records with usage events found in community
+                continue
+            else:
+                # For global aggregator, just check if there are any events at all
+                if search.count() > 0:
+                    events_found = True
+                    break
+
+        return not events_found
+
+    def _create_zero_document(
+        self, community_id: str, current_day: arrow.Arrow
+    ) -> dict:
+        """Create a zero-value usage delta document for when no events exist.
+
+        Args:
+            community_id: The community ID
+            current_day: The current day for the delta
+
+        Returns:
+            A usage delta document with zero values
+        """
+        return {
+            "community_id": community_id,
+            "period_start": current_day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "period_end": current_day.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+            "totals": {
+                "view": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                },
+                "download": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                    "unique_files": 0,
+                    "total_volume": 0,
+                },
+            },
+            "subcounts": {
+                "by_access_rights": [],
+                "by_resource_types": [],
+                "by_licenses": [],
+                "by_funders": [],
+                "by_periodicals": [],
+                "by_languages": [],
+                "by_subjects": [],
+                "by_publishers": [],
+                "by_affiliations": [],
+                "by_countries": [],
+                "by_referrers": [],
+                "by_file_types": [],
+            },
+        }
 
     def _create_temp_index(self, temp_index: str) -> None:
         """Create temporary index with appropriate mappings."""
@@ -1502,8 +2076,14 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         Returns:
         - None
         """
-        after_key = None
         page = 0
+        search_after = None
+
+        # Sliding window cache for metadata in case of page edge overlaps
+        metadata_cache = {}
+        search_page_size = 1000
+        max_cache_size = search_page_size + 1  # Only need +1 for edge case records
+
         while True:
             current_app.logger.error(
                 f"Processing page {page} for {event_type} on "
@@ -1518,73 +2098,83 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
                 },
             )
+
+            if search_after:
+                search = search.extra(search_after=search_after)
+
+            search = search.extra(size=search_page_size)
+            # Sort by record_id first to minimize cross-page duplicates
+            search = search.sort("recid", "timestamp")
+
             current_app.logger.error(
                 f"Event search found {search.count()} events for {event_type} on "
                 f"{date.format('YYYY-MM-DD')}"
             )
 
-            # Use composite aggregation to group by recid with pagination
-            composite_params = {
-                "sources": [
-                    {
-                        "recid": {
-                            "terms": {
-                                "field": "recid",
-                            }
-                        }
-                    }
-                ],
-                "size": 1000,
-            }
-            if after_key:
-                composite_params["after"] = after_key
-
-            search.aggs.bucket("by_record", "composite", **composite_params)
-
             response = search.execute()
-            buckets = response.aggregations.by_record.buckets
+            hits = response.hits.hits
 
-            if not buckets:
+            if not hits:
                 current_app.logger.info(
-                    f"No more buckets found for {event_type} on "
+                    f"No more hits found for {event_type} on "
                     f"{date.format('YYYY-MM-DD')}"
                 )
                 break
-            current_app.logger.error(f"Bucket 0: {pformat(buckets[0].to_dict())}")
 
-            current_app.logger.error(f"Found {len(buckets)} buckets on page {page}")
+            current_app.logger.error(f"Found {len(hits)} hits on page {page}")
 
-            # Get record IDs from this page of buckets
-            record_ids = {bucket.key.recid for bucket in buckets}
-            current_app.logger.error(f"Record IDs: {pformat(record_ids)}")
-
-            hits_search = Search(using=self.client, index=event_index)
-            hits_search = hits_search.filter(
-                "range",
-                timestamp={
-                    "gte": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                    "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                },
-            )
-            hits_search = hits_search.filter("terms", recid=list(record_ids))
-            current_app.logger.error(f"Hits search count: {hits_search.count()}")
-
+            # Group hits by record ID
             hits_by_recid = defaultdict(list)
-            for hit in hits_search.scan():
-                hits_by_recid[hit["recid"]].append(hit)
+            for hit in hits:
+                hits_by_recid[hit["_source"]["recid"]].append(hit["_source"])
 
-            # Filter for community here if not global
-            current_app.logger.error(f"About to filter for community {community_id}")
-            meta_for_recids = self._get_metadata_for_records(
-                community_id, record_ids, date
-            )
-            record_ids = {i for i in meta_for_recids.keys()}
+            # Get unique record IDs from this page
+            record_ids = set(hits_by_recid.keys())
             current_app.logger.error(f"Record IDs: {pformat(record_ids)}")
 
-            if len(record_ids):
+            # Filter records in the community on the date
+            current_app.logger.error(f"About to filter for community {community_id}")
+            if community_id != "global":
+                record_ids = self._filter_for_community(record_ids, community_id, date)
+
+            # Find record IDs that we haven't cached metadata for yet
+            new_record_ids = record_ids - set(metadata_cache.keys())
+            if new_record_ids:
+                # Fetch metadata only for new record IDs
+                new_metadata = self._get_metadata_for_records(
+                    community_id, new_record_ids, date, page_size=search_page_size
+                )
+                # Add to cache
+                metadata_cache.update(new_metadata)
+
+                # Implement sliding window cache
+                if len(metadata_cache) > max_cache_size:
+                    # Remove oldest entries (simple FIFO approach)
+                    # In practice, with record_id sorting, this should rarely happen
+                    # as records from the same ID should be grouped together
+                    excess = len(metadata_cache) - max_cache_size
+                    oldest_keys = list(metadata_cache.keys())[:excess]
+                    for key in oldest_keys:
+                        del metadata_cache[key]
+                    current_app.logger.error(
+                        f"Cache limit reached. Removed {excess} oldest entries."
+                    )
+
+                current_app.logger.error(
+                    f"Fetched metadata for {len(new_record_ids)} new records. "
+                    f"Cache now contains {len(metadata_cache)} records."
+                )
+
+            # Filter to only records that have metadata
+            record_ids_with_metadata = {i for i in record_ids if i in metadata_cache}
+            current_app.logger.error(
+                f"Record IDs with metadata: {pformat(record_ids_with_metadata)}"
+            )
+
+            if len(record_ids_with_metadata):
                 docs = self._create_enriched_docs_from_aggs(
-                    record_ids,
-                    meta_for_recids,
+                    record_ids_with_metadata,
+                    metadata_cache,  # Use the global cache directly
                     temp_index,
                     community_id,
                     event_type,
@@ -1594,24 +2184,22 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 if docs:
                     bulk(self.client, docs)
                     current_app.logger.error(f"Bulk indexed {len(docs)} documents")
-                    # current_app.logger.error(f"Doc 0: {pformat(docs[0])}")
                     # Force a refresh to make the documents searchable
                     self.client.indices.refresh(index=temp_index)
 
-            # Get the after_key for the next page of per_recid aggregation buckets
-            after_key = response.aggregations.by_record.after_key if buckets else None
-            if not after_key:
-                current_app.logger.error(
-                    f"No more after_key for {event_type} on {date.format('YYYY-MM-DD')}"
-                )
+            # Update search_after for next page
+            if len(hits) > 0:
+                search_after = hits[-1]["sort"]
+            else:
                 break
 
             page += 1
 
-    def _get_metadata_for_records(
-        self, community_id: str, record_ids: set[str], date: arrow.Arrow
-    ) -> dict:
-        """Get metadata for a set of record IDs."""
+    def _filter_for_community(
+        self, record_ids: set[str], community_id: str, date: arrow.Arrow
+    ) -> set[str]:
+        """Filter record IDs to find those in the community on the date."""
+
         community_search = (
             Search(using=self.client, index=prefix_index("stats-community-events"))
             .filter(
@@ -1619,48 +2207,51 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 community_id=community_id,
             )
             .filter("terms", record_id=list(record_ids))
-        )
-        community_added_search = community_search.filter(
-            "term", event_type="added"
-        ).query(
-            Q(
+            .filter(
                 "range",
                 event_date={
                     "lte": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
                 },
             )
         )
-        community_added_hits = community_added_search.execute()
-        community_added_ids = {
-            hit["_source"]["record_id"] for hit in community_added_hits.hits.hits
-        }
-        current_app.logger.error(f"Community added IDs: {pformat(community_added_ids)}")
-        community_removed_search = community_search.filter(
-            "term", event_type="removed"
-        ).query(
-            Q(
-                "range",
-                event_date={
-                    "gte": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                    "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                },
-            )
-        )
-        community_removed_hits = community_removed_search.execute()
-        community_removed_ids = {
-            hit["_source"]["record_id"] for hit in community_removed_hits.hits.hits
-        }
-        filtered_record_ids = [
-            i
-            for i in record_ids
-            if i not in community_removed_ids and i in community_added_ids
-        ]
-        current_app.logger.error(f"Filtered record IDs: {pformat(filtered_record_ids)}")
 
+        # Add terms aggregation by record_id with top_hits sub-aggregation
+        by_record_agg = community_search.aggs.bucket(
+            "by_record", "terms", field="record_id"
+        )
+        by_record_agg.bucket(
+            "top_hits",
+            "top_hits",
+            size=1,
+            sort=[{"event_date": {"order": "desc"}}],
+            _source={"includes": ["event_date", "event_type"]},
+        )
+
+        community_results = community_search.execute()
+
+        # Find the records whose last event before the date was an "added" event
+        community_record_ids = set()
+        for bucket in community_results.aggregations.by_record.buckets:
+            if bucket.top_hits.hits[0]["event_type"] == "added":
+                community_record_ids.add(bucket.key)
+
+        current_app.logger.error(
+            f"Community record IDs: {pformat(community_record_ids)}"
+        )
+        return community_record_ids
+
+    def _get_metadata_for_records(
+        self,
+        community_id: str,
+        record_ids: set[str],
+        date: arrow.Arrow,
+        page_size: int = 1000,
+    ) -> dict:
+        """Get metadata for a set of record IDs."""
         meta_search = Search(
             using=self.client, index=prefix_index("rdmrecords-records")
         )
-        meta_search = meta_search.filter("terms", id=filtered_record_ids)
+        meta_search = meta_search.filter("terms", id=list(record_ids))
         meta_search = meta_search.source(
             [
                 "access.status",
@@ -1685,8 +2276,13 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 "parent.communities.ids",
             ]
         )
+        meta_search = meta_search.extra(size=page_size)
 
-        results = {hit.id: hit for hit in meta_search.scan()}
+        # NOTE: The search here should never exceed the page size from
+        # _process_event_type() so we can use simple execute() instead of scan()
+        # or pagination
+        meta_hits = meta_search.execute().hits.hits
+        results = {hit["_source"]["id"]: hit.to_dict()["_source"] for hit in meta_hits}
         return results
 
     def _create_enriched_docs_from_aggs(
@@ -1719,47 +2315,47 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         "visitor_id": hit["visitor_id"],
                         "event_type": event_type,
                         "resource_type": {
-                            "id": meta.metadata.resource_type.id,
-                            "title": meta.metadata.resource_type.title.en,
+                            "id": meta["metadata"]["resource_type"]["id"],
+                            "title": meta["metadata"]["resource_type"]["title"]["en"],
                         },
-                        "publisher": meta.metadata.publisher,
-                        "access_rights": meta.access.status,
+                        "publisher": meta["metadata"]["publisher"],
+                        "access_rights": meta["access"]["status"],
                         "languages": [
                             {
-                                "id": lang.id,
-                                "title": lang.title.en,
+                                "id": lang["id"],
+                                "title": lang["title"]["en"],
                             }
-                            for lang in getattr(meta.metadata, "languages", [])
+                            for lang in meta["metadata"].get("languages", [])
                         ],
                         "subjects": [
                             {
-                                "id": subject.id,
-                                "title": subject.subject,
+                                "id": subject["id"],
+                                "title": subject["subject"],
                             }
-                            for subject in getattr(meta.metadata, "subjects", [])
+                            for subject in meta["metadata"].get("subjects", [])
                         ],
                         "licenses": [
                             {
-                                "id": right.id,
-                                "title": right.title.en,
+                                "id": right["id"],
+                                "title": right["title"]["en"],
                             }
-                            for right in getattr(meta.metadata, "rights", [])
+                            for right in meta["metadata"].get("rights", [])
                         ],
                         "funders": [
                             {
-                                "id": funder.id,
-                                "title": funder.title.en,
+                                "id": funder["id"],
+                                "title": funder["title"]["en"],
                             }
-                            for funder in getattr(meta.metadata, "funding", {}).get(
-                                "funder", []
-                            )
+                            for funder in meta["metadata"]
+                            .get("funding", {})
+                            .get("funder", [])
                         ],
                     },
                 }
 
-                for contributor in list(getattr(meta.metadata, "creators", [])) + list(
-                    getattr(meta.metadata, "contributors", [])
-                ):
+                for contributor in meta["metadata"].get("creators", []) + meta[
+                    "metadata"
+                ].get("contributors", []):
                     if contributor.get("affiliations"):
                         for affiliation in contributor.get("affiliations", []):
                             doc["_source"].setdefault("affiliations", []).append(
@@ -1770,13 +2366,13 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                                 }
                             )
 
-                if hasattr(meta, "custom_fields"):
-                    doc["_source"]["periodical"] = meta.custom_fields.get(
+                if "custom_fields" in meta:
+                    doc["_source"]["periodical"] = meta["custom_fields"].get(
                         "journal:journal.title.keyword", {}
                     )
 
                 if event_type == "view":
-                    file_types = getattr(meta, "files", {}).get("types", [])
+                    file_types = meta.get("files", {}).get("types", [])
                     # Convert AttrList to regular list if needed
                     file_types = list(file_types)
                     doc["_source"]["file_type"] = file_types
@@ -1828,19 +2424,20 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         agg_field: str | None = None,
         title_field: str | list[str] | None = None,
         field_bucket: Bucket | None = None,
-    ):
+    ) -> Search:
         """Add a search aggregation to the search object."""
         # Create the field aggregation first
-        field_bucket = field_bucket or agg_search.aggs.bucket(
-            agg_name,
-            "terms",
-            field=agg_field,
-            size=1000,
-        )
+        if field_bucket is None:
+            field_bucket = agg_search.aggs.bucket(
+                agg_name,
+                "terms",
+                field=agg_field,
+                size=1000,
+            )
 
         # Add event type aggregation under each field value
         for event_type in ["view", "download"]:
-            event_bucket = field_bucket.bucket(
+            event_bucket = field_bucket.bucket(  # type: ignore
                 event_type,
                 "filter",
                 term={"event_type": event_type},
@@ -1851,7 +2448,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         # Add title field if specified
         if title_field:
-            field_bucket.bucket(
+            field_bucket.bucket(  # type: ignore
                 "title",
                 "top_hits",
                 size=1,
@@ -1951,7 +2548,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         agg_search = self._temp_index_search_query(temp_index, date, community_id)
         results = agg_search.execute()
 
-        # current_app.logger.error(f"Results: {pformat(results.aggregations.to_dict())}")
+        # current_app.logger.error(
+        #     f"Results: {pformat(results.aggregations.to_dict())}"
+        # )
 
         # Get top-level metrics
         views_bucket = results.aggregations.view if results.aggregations.view else None
@@ -2134,44 +2733,67 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
     def agg_iter(
         self,
         community_id: str,
-        start_date: arrow.Arrow | datetime.datetime,
-        end_date: arrow.Arrow | datetime.datetime,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
     ) -> Generator[dict, None, None]:
         """Create a dictionary representing the aggregation result for indexing."""
+        # Check if we should skip aggregation due to no events after start_date
+        should_skip = self._should_skip_aggregation(
+            start_date, last_event_date, community_id
+        )
+        if should_skip:
+            current_app.logger.error(
+                f"Skipping usage delta aggregation for {community_id} - "
+                f"no events after {start_date}"
+            )
+
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
-        temp_index = prefix_index(
-            f"temp-usage-stats-{community_id}-"
-            f"{arrow.utcnow().format('YYYY-MM-DD-HH-mm-ss')}"
-        )
 
-        # Clean up any existing temporary indices for this community
-        existing_indices = self.client.indices.get_alias(
-            prefix_index(f"temp-usage-stats-{community_id}-*")
-        )
-        for index_name in existing_indices:
-            self.client.indices.delete(index=index_name, ignore=[400, 404])
+        if not should_skip:
+            temp_index = prefix_index(
+                f"temp-usage-stats-{community_id}-"
+                f"{arrow.utcnow().format('YYYY-MM-DD-HH-mm-ss')}"
+            )
+
+            # Clean up any existing temporary indices for this community
+            existing_indices = self.client.indices.get_alias(
+                prefix_index(f"temp-usage-stats-{community_id}-*")
+            )
+            for index_name in existing_indices:
+                self.client.indices.delete(index=index_name, ignore=[400, 404])
+
+            self._create_temp_index(temp_index)
+
+        current_iteration_date = start_date
 
         try:
-            self._create_temp_index(temp_index)
-            current_iteration_date = start_date
-
             while current_iteration_date <= end_date:
-                current_app.logger.error(
-                    f"Processing date: {current_iteration_date} for community {community_id}"
-                )
-                for event_type, event_index in self.event_index:
-                    self._process_event_type(
-                        temp_index,
-                        community_id,
-                        current_iteration_date,
-                        event_type,
-                        event_index,
+                # Prepare the _source content based on whether we should skip
+                # aggregation
+                if should_skip:
+                    source_content = self._create_zero_document(
+                        community_id, current_iteration_date
                     )
+                else:
+                    current_app.logger.error(
+                        f"Processing date: {current_iteration_date} for community "
+                        f"{community_id}"
+                    )
+                    for event_type, event_index in self.event_index:
+                        self._process_event_type(
+                            temp_index,
+                            community_id,
+                            current_iteration_date,
+                            event_type,
+                            event_index,
+                        )
 
-                agg_doc = self._create_aggregation_doc(
-                    temp_index, community_id, current_iteration_date
-                )
+                    source_content = self._create_aggregation_doc(
+                        temp_index, community_id, current_iteration_date
+                    )
 
                 index_name = prefix_index(
                     "{0}-{1}".format(
@@ -2185,7 +2807,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 yield {
                     "_id": doc_id,
                     "_index": index_name,
-                    "_source": agg_doc,
+                    "_source": source_content,
                 }
                 current_app.logger.error(
                     f"Yielding doc for index: {index_name} with id: {doc_id}"
@@ -2194,8 +2816,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 current_iteration_date = current_iteration_date.shift(days=1)
 
         finally:
-            # Clean up temporary index
-            self.client.indices.delete(index=temp_index, ignore=[400, 404])
+            # Clean up temporary index if it was created
+            if not should_skip:
+                self.client.indices.delete(temp_index, ignore=[400, 404])
 
 
 class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
@@ -2209,6 +2832,138 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
         self.event_index = prefix_index("rdmrecords-records")
         self.aggregation_index = prefix_index("stats-community-records-delta-created")
 
+    def _should_skip_aggregation(
+        self,
+        start_date: arrow.Arrow,
+        last_event_date: arrow.Arrow | None,
+        community_id: str | None = None,
+    ) -> bool:
+        """Check if aggregation should be skipped due to no relevant records in date range.
+
+        This method provides early skip logic for record delta aggregators by:
+        1. Checking if there are any records that were added to the community before or on the aggregation date
+        2. If no relevant records exist, we can skip the expensive processing pipeline entirely
+
+        Args:
+            start_date: The start date for aggregation
+            last_event_date: The last event date, or None if no events exist
+            community_id: The community ID to check (optional, for testing)
+
+        Returns:
+            True if aggregation should be skipped, False otherwise
+        """
+        if last_event_date is None:
+            return True
+        if last_event_date < start_date:
+            return True
+
+        # For record delta aggregators, we need to check if there are any records
+        # that were added to the community before or on the aggregation date
+        if community_id == "global":
+            # For global aggregator, just check if there are any records at all
+            search = Search(using=self.client, index=self.event_index)
+            return search.count() == 0
+        else:
+            # For community-specific aggregators, check if any records were added
+            # to the community before or on the aggregation date
+            community_search = (
+                Search(using=self.client, index=prefix_index("stats-community-events"))
+                .filter("term", community_id=community_id)
+                .filter(
+                    "range",
+                    event_date={
+                        "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                    },
+                )
+            )
+
+            # Add terms aggregation to get unique records
+            record_agg = community_search.aggs.bucket(
+                "by_record", "terms", field="record_id"
+            )
+            record_agg.bucket(
+                "top_hits",
+                "top_hits",
+                size=1,
+                sort=[{"event_date": {"order": "desc"}}],
+                _source={"includes": ["event_type"]},
+            )
+
+            community_results = community_search.execute()
+
+            # Check if any records have "added" as their last event type
+            for bucket in community_results.aggregations.by_record.buckets:
+                if bucket.top_hits.hits[0]["event_type"] == "added":
+                    # Found at least one record that was added to the community
+                    return False
+
+            # No records found that were added to the community before the aggregation date
+            return True
+
+    def _create_zero_document(
+        self, community_id: str, current_day: arrow.Arrow
+    ) -> dict:
+        """Create a zero-value delta document for when no events exist.
+
+        Args:
+            community_id: The community ID
+            current_day: The current day for the delta
+
+        Returns:
+            A delta document with zero values
+        """
+        return {
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+            "community_id": community_id,
+            "period_start": current_day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "period_end": current_day.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "records": {
+                "added": {
+                    "metadata_only": 0,
+                    "with_files": 0,
+                },
+                "removed": {
+                    "metadata_only": 0,
+                    "with_files": 0,
+                },
+            },
+            "parents": {
+                "added": {
+                    "metadata_only": 0,
+                    "with_files": 0,
+                },
+                "removed": {
+                    "metadata_only": 0,
+                    "with_files": 0,
+                },
+            },
+            "files": {
+                "added": {
+                    "file_count": 0,
+                    "data_volume": 0,
+                },
+                "removed": {
+                    "file_count": 0,
+                    "data_volume": 0,
+                },
+            },
+            "uploaders": 0,
+            "subcounts": {
+                "by_resource_type": [],
+                "by_access_rights": [],
+                "by_language": [],
+                "by_affiliation_creator": [],
+                "by_affiliation_contributor": [],
+                "by_funder": [],
+                "by_subject": [],
+                "by_publisher": [],
+                "by_periodical": [],
+                "by_license": [],
+                "by_file_type": [],
+            },
+            "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+        }
+
     def create_agg_dict(
         self,
         community_id: str,
@@ -2221,14 +2976,14 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
         def make_file_type_dict():
             combined_keys = list(
                 set(
-                    b.key
+                    b["key"]
                     for b in aggs_added.get("by_file_type", {}).get("buckets", [])
-                    if b.key != "doc_count"
+                    if b["key"] != "doc_count"
                 )
                 | set(
-                    b.key
+                    b["key"]
                     for b in aggs_removed.get("by_file_type", {}).get("buckets", [])
-                    if b.key != "doc_count"
+                    if b["key"] != "doc_count"
                 )
             )
             file_type_list = []
@@ -2309,6 +3064,9 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                     label = self._get_nested_value(
                         label_options, label_path_leaf, key=key
                     )
+            # Convert empty dict to empty string for consistency
+            if isinstance(label, dict) and not label:
+                label = ""
             return label
 
         def make_subcount_list(subcount_type):
@@ -2316,20 +3074,12 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 "by_affiliation_creator",
                 "by_affiliation_contributor",
             ]:
-                added_items = {
-                    "buckets": (
-                        aggs_added.get(f"{subcount_type}_id", {}).get("buckets", [])
-                        + aggs_added.get(f"{subcount_type}_name", {}).get("buckets", [])
-                    )
-                }
-                removed_items = {
-                    "buckets": (
-                        aggs_removed.get(f"{subcount_type}_id", {}).get("buckets", [])
-                        + aggs_removed.get(f"{subcount_type}_name", {}).get(
-                            "buckets", []
-                        )
-                    )
-                }
+                added_items = aggs_added.get(f"{subcount_type}_id", {}).get(
+                    "buckets", []
+                ) + aggs_added.get(f"{subcount_type}_name", {}).get("buckets", [])
+                removed_items = aggs_removed.get(f"{subcount_type}_id", {}).get(
+                    "buckets", []
+                ) + aggs_removed.get(f"{subcount_type}_name", {}).get("buckets", [])
             else:
                 added_items = aggs_added.get(subcount_type, {}).get("buckets", [])
                 removed_items = aggs_removed.get(subcount_type, {}).get("buckets", [])
@@ -2500,9 +3250,10 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
     def agg_iter(
         self,
         community_id: str,
-        start_date: arrow.Arrow | datetime.datetime,
-        end_date: arrow.Arrow | datetime.datetime,
-        search_domain: str | None = None,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
     ) -> Generator[dict, None, None]:
         """Query opensearch for record counts for each day period.
 
@@ -2518,6 +3269,16 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
         Returns:
             dict: A dictionary containing lists of buckets for each time period.
         """
+        # Check if we should skip aggregation due to no events after start_date
+        should_skip = self._should_skip_aggregation(
+            start_date, last_event_date, community_id
+        )
+        if should_skip:
+            current_app.logger.error(
+                f"Skipping delta aggregation for {community_id} - "
+                f"no relevant records after {start_date}"
+            )
+
         # Divide the search into years
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
@@ -2529,42 +3290,58 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
 
             for day in arrow.Arrow.range("day", year_start_date, year_end_date):
                 day_start_date = day.floor("day")
-                day_end_date = day.ceil("day")
 
-                year_search_added = Search(using=self.client, index=self.event_index)
-                year_search_added.update_from_dict(
-                    daily_record_delta_query_with_events(
-                        day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
-                        day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
-                        community_id=community_id,
-                        use_included_dates=(
-                            self.aggregation_index
-                            == "stats-community-records-delta-added"
-                        ),
-                        use_published_dates=(
-                            self.aggregation_index
-                            == "stats-community-records-delta-published"
-                        ),
-                        client=self.client,
+                # Prepare the _source content based on whether we should skip
+                # aggregation
+                if should_skip:
+                    source_content = self._create_zero_document(
+                        community_id, day_start_date
                     )
-                )
+                else:
+                    day_end_date = day.ceil("day")
 
-                day_results_added = year_search_added.execute()
-                aggs_added = day_results_added.aggregations.to_dict()
-
-                day_search_removed = Search(using=self.client, index=self.event_index)
-                day_search_removed.update_from_dict(
-                    daily_record_delta_query_with_events(
-                        day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
-                        day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
-                        community_id=community_id,
-                        find_deleted=True,
-                        client=self.client,
+                    year_search_added = Search(
+                        using=self.client, index=self.event_index
                     )
-                )
+                    year_search_added.update_from_dict(
+                        daily_record_delta_query_with_events(
+                            day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            community_id=community_id,
+                            use_included_dates=(
+                                self.aggregation_index
+                                == "stats-community-records-delta-added"
+                            ),
+                            use_published_dates=(
+                                self.aggregation_index
+                                == "stats-community-records-delta-published"
+                            ),
+                            client=self.client,
+                        )
+                    )
 
-                day_results_removed = day_search_removed.execute()
-                aggs_removed = day_results_removed.aggregations.to_dict()
+                    day_results_added = year_search_added.execute()
+                    aggs_added = day_results_added.aggregations.to_dict()
+
+                    day_search_removed = Search(
+                        using=self.client, index=self.event_index
+                    )
+                    day_search_removed.update_from_dict(
+                        daily_record_delta_query_with_events(
+                            day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            community_id=community_id,
+                            find_deleted=True,
+                            client=self.client,
+                        )
+                    )
+
+                    day_results_removed = day_search_removed.execute()
+                    aggs_removed = day_results_removed.aggregations.to_dict()
+
+                    source_content = self.create_agg_dict(
+                        community_id, day_start_date, aggs_added, aggs_removed
+                    )
 
                 # Check if an aggregation already exists for this date
                 # If it does, delete it (we'll re-create it below)
@@ -2577,9 +3354,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 yield {
                     "_id": document_id,
                     "_index": index_name,
-                    "_source": self.create_agg_dict(
-                        community_id, day_start_date, aggs_added, aggs_removed
-                    ),
+                    "_source": source_content,
                 }
 
 
@@ -2613,8 +3388,10 @@ class CommunityEventsIndexAggregator(CommunityAggregatorBase):
     def agg_iter(
         self,
         community_id: str,
-        start_date: arrow.Arrow | datetime.datetime,
-        end_date: arrow.Arrow | datetime.datetime,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
     ) -> Generator[dict, None, None]:
         """This aggregator doesn't perform any aggregation."""
         # Return empty generator - no aggregation needed

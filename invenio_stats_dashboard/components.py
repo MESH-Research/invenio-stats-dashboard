@@ -315,11 +315,13 @@ def update_community_events_index(
             elif is_removal:
                 # Only log error for removals with no prior events
                 current_app.logger.error(
-                    f"No prior events found for record {record_id}, community {community_id} when attempting removal"
+                    f"No prior events found for record {record_id}, "
+                    f"community {community_id} when attempting removal"
                 )
         except Exception as e:
             current_app.logger.error(
-                f"Error querying community events index for record {record_id}, community {community_id}: {e}"
+                f"Error querying community events index for record {record_id}, "
+                f"community {community_id}: {e}"
             )
         return None
 
@@ -350,7 +352,8 @@ def update_community_events_index(
             client.index(index=write_index, body=event_doc)
         except Exception as e:
             current_app.logger.error(
-                f"Error creating new community event for record {record_id}, community {community_id}: {e}"
+                f"Error creating new community event for record {record_id}, "
+                f"community {community_id}: {e}"
             )
 
     def process_community_events(
@@ -358,41 +361,6 @@ def update_community_events_index(
     ):
         """Process community events (additions or removals) with common logic."""
         for community_id in community_ids:
-            # For removals, always check if there's an addition event first
-            if event_type == "removed":
-                addition_query = {
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"term": {"record_id": record_id}},
-                                {"term": {"community_id": community_id}},
-                                {"term": {"event_type": "added"}},
-                            ]
-                        }
-                    },
-                    "size": 1,
-                }
-
-                try:
-                    addition_result = client.search(
-                        index=search_index, body=addition_query
-                    )
-                    if addition_result["hits"]["total"]["value"] == 0:
-                        # No addition event found, create one with timestamp 1 second before removal
-                        removal_timestamp = arrow.get(timestamp)
-                        addition_timestamp = removal_timestamp.shift(seconds=-1)
-                        create_new_event(
-                            record_id,
-                            community_id,
-                            "added",
-                            addition_timestamp.format("YYYY-MM-DDTHH:mm:ss.SSS"),
-                            is_deleted,
-                        )
-                except Exception as e:
-                    current_app.logger.error(
-                        f"Error checking for addition event for record {record_id}, community {community_id}: {e}"
-                    )
-
             newest_event = get_newest_event(
                 record_id, community_id, event_type == "removed"
             )
@@ -401,6 +369,17 @@ def update_community_events_index(
                 newest_event_source = newest_event["_source"]
                 newest_event_type = newest_event_source["event_type"]
 
+                if newest_event_type != "added" and event_type == "removed":
+                    # No addition event found, create one with timestamp 1 second before removal
+                    removal_timestamp = arrow.get(timestamp)
+                    addition_timestamp = removal_timestamp.shift(seconds=-1)
+                    create_new_event(
+                        record_id,
+                        community_id,
+                        "added",
+                        addition_timestamp.format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                        is_deleted,
+                    )
                 if newest_event_type == event_type:
                     current_is_deleted = newest_event_source.get("is_deleted", False)
                     current_deleted_date = newest_event_source.get("deleted_date")
@@ -421,7 +400,6 @@ def update_community_events_index(
                     record_id, community_id, event_type, timestamp, is_deleted
                 )
 
-    # Process community-specific events
     if community_ids_to_add:
         process_community_events(record_id, community_ids_to_add, "added", timestamp)
     if community_ids_to_remove:
@@ -429,25 +407,11 @@ def update_community_events_index(
             record_id, community_ids_to_remove, "removed", timestamp
         )
 
-    # Always create/update a global event for this record
-    # This enables global statistics queries without needing to
-    # parse publication dates at query time
-    global_community_id = "global"
-
-    global_event = get_newest_event(record_id, global_community_id)
-    if global_event:
-        global_event_source = global_event["_source"]
-        current_is_deleted = global_event_source.get("is_deleted", False)
-        current_deleted_date = global_event_source.get("deleted_date")
-
-        if current_is_deleted != is_deleted or current_deleted_date != deleted_date:
-            update_event_deletion_fields(global_event["_id"], is_deleted, deleted_date)
-    else:
-        create_new_event(record_id, global_community_id, "added", timestamp, is_deleted)
-
     try:
-        client.indices.refresh(index=write_index)
+        # Refresh both the alias and the specific write index to ensure
+        # all indices are searchable
         client.indices.refresh(index=search_index)
+        client.indices.refresh(index=write_index)
     except Exception as e:
         current_app.logger.error(f"Error refreshing community events indices: {e}")
 
@@ -497,7 +461,7 @@ class CommunityAcceptedEventComponent(ServiceComponent):
             record_published_date = record.metadata.get("publication_date")
             update_community_events_index(
                 record_id=str(record.pid.pid_value),
-                community_ids_to_add=[community_id],
+                community_ids_to_add=[community_id, "global"],
                 record_created_date=record.created,
                 record_published_date=record_published_date,
             )
@@ -561,7 +525,7 @@ class RecordCommunityEventComponent(ServiceComponent):
         record_published_date = record.metadata.get("publication_date")
         update_community_events_index(
             record_id=str(record.pid.pid_value),
-            community_ids_to_add=communities_to_add,
+            community_ids_to_add=communities_to_add + ["global"],
             community_ids_to_remove=communities_to_remove,
             record_created_date=record.created,
             record_published_date=record_published_date,
@@ -640,7 +604,7 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         record_published_date = record.metadata.get("publication_date")
         update_community_events_index(
             record_id=str(record.pid.pid_value),
-            community_ids_to_add=community_ids,
+            community_ids_to_add=community_ids + ["global"],
             record_created_date=record.created,
             record_published_date=record_published_date,
         )
@@ -661,7 +625,7 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
             record_published_date = record.metadata.get("publication_date")
             update_community_events_index(
                 record_id=str(record.pid.pid_value),
-                community_ids_to_add=[community_id],
+                community_ids_to_add=[community_id, "global"],
                 record_created_date=record.created,
                 record_published_date=record_published_date,
             )

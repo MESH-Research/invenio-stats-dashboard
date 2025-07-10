@@ -10,7 +10,7 @@ from .components import (
     RecordCommunityEventComponent,
     RecordCommunityEventTrackingComponent,
 )
-from .service import CommunityStatsService
+from .service import CommunityStatsService, EventReindexingService
 
 
 class InvenioStatsDashboard:
@@ -25,6 +25,7 @@ class InvenioStatsDashboard:
         """Flask application initialization."""
         self.init_config(app)
         self.service = CommunityStatsService(app)
+        self.event_reindexing_service = EventReindexingService(app)
         app.extensions["invenio-stats-dashboard"] = self
 
     def init_config(self, app):

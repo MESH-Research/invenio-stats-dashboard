@@ -440,7 +440,7 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityStatsResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {  # These are actually not used
-            "index": "stats-community-record-delta",
+            "index": "stats-community-records-delta",
             "doc_type": "community-record-delta-agg",
         },
     },
@@ -448,7 +448,7 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityStatsResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {  # These are actually not used
-            "index": "stats-community-record-delta",
+            "index": "stats-community-records-delta",
             "doc_type": "community-record-delta-agg",
         },
     },

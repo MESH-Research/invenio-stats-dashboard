@@ -1,0 +1,128 @@
+{
+  "index_patterns": ["__SEARCH_INDEX_PREFIX__events-stats-record-view-enriched-*"],
+  "template": {
+    "settings": {
+      "index": {
+        "refresh_interval": "5s",
+        "number_of_shards": 1,
+        "number_of_replicas": 1
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "numeric_detection": false,
+      "properties": {
+        "timestamp": {
+          "type": "date",
+          "format": "strict_date_hour_minute_second"
+        },
+        "labels": {
+          "type": "keyword"
+        },
+        "country": {
+          "type": "keyword"
+        },
+        "visitor_id": {
+          "type": "keyword"
+        },
+        "recid": {
+          "type": "keyword"
+        },
+        "parent_recid": {
+          "type": "keyword"
+        },
+        "via_api": {
+          "type": "boolean"
+        },
+        "is_robot": {
+          "type": "boolean"
+        },
+        "community_id": {
+          "type": "keyword"
+        },
+        "resource_type": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "access_rights": {
+          "type": "keyword"
+        },
+        "publisher": {
+          "type": "keyword"
+        },
+        "languages": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "subjects": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "licenses": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "affiliations": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "identifiers": {
+              "type": "keyword"
+            }
+          }
+        },
+        "funders": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "periodical": {
+          "type": "keyword"
+        },
+        "file_type": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

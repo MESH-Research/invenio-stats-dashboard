@@ -158,13 +158,14 @@ def get_relevant_record_ids_from_events(
         ]
 
         # For non-deleted records, we want to exclude records that were deleted
-        # before the end of our search period
+        # before the start of our search period (but include those deleted on
+        # the same day)
         must_not_clauses = [
             {
                 "bool": {
                     "must": [
                         {"term": {"is_deleted": True}},
-                        {"range": {"deleted_date": {"lte": end_date}}},
+                        {"range": {"deleted_date": {"lt": start_date}}},
                     ]
                 }
             }
@@ -691,7 +692,7 @@ class CommunityStatsResultsQuery(Query):
         results = {}
         record_deltas_created = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-created",
-            index="stats-community-record-delta-created",
+            index=prefix_index("stats-community-records-delta-created"),
             client=self.client,
         )
         results["record_deltas_created"] = record_deltas_created.run(
@@ -699,7 +700,7 @@ class CommunityStatsResultsQuery(Query):
         )
         record_deltas_published = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-published",
-            index="stats-community-record-delta-published",
+            index="stats-community-records-delta-published",
             client=self.client,
         )
         results["record_deltas_published"] = record_deltas_published.run(
@@ -707,7 +708,7 @@ class CommunityStatsResultsQuery(Query):
         )
         record_deltas_added = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-added",
-            index="stats-community-record-delta-added",
+            index="stats-community-records-delta-added",
             client=self.client,
         )
         results["record_deltas_added"] = record_deltas_added.run(
@@ -715,7 +716,7 @@ class CommunityStatsResultsQuery(Query):
         )
         record_snapshots_created = CommunityRecordSnapshotResultsQuery(
             name="community-record-snapshot-created",
-            index="stats-community-record-snapshot-created",
+            index="stats-community-records-snapshot-created",
             client=self.client,
         )
         results["record_snapshots_created"] = record_snapshots_created.run(
@@ -723,7 +724,7 @@ class CommunityStatsResultsQuery(Query):
         )
         record_snapshots_published = CommunityRecordSnapshotResultsQuery(
             name="community-record-snapshot-published",
-            index="stats-community-record-snapshot-published",
+            index="stats-community-records-snapshot-published",
             client=self.client,
         )
         results["record_snapshots_published"] = record_snapshots_published.run(
@@ -731,7 +732,7 @@ class CommunityStatsResultsQuery(Query):
         )
         record_snapshots_added = CommunityRecordSnapshotResultsQuery(
             name="community-record-snapshot-added",
-            index="stats-community-record-snapshot-added",
+            index="stats-community-records-snapshot-added",
             client=self.client,
         )
         results["record_snapshots_added"] = record_snapshots_added.run(

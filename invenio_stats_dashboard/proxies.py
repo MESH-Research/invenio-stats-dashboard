@@ -7,3 +7,6 @@ current_community_stats = LocalProxy(
 current_community_stats_service = LocalProxy(
     lambda: current_app.extensions["invenio-stats-dashboard"].service
 )
+current_event_reindexing_service = LocalProxy(
+    lambda: current_app.extensions["invenio-stats-dashboard"].event_reindexing_service
+)
