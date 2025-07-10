@@ -33,8 +33,8 @@ class InvenioStatsDashboard:
         for k in dir(config):
             if k.startswith("STATS_DASHBOARD_"):
                 app.config.setdefault(k, getattr(config, k))
-        existing_schedule = app.config.get("CELERYBEAT_SCHEDULE", {})
-        app.config["CELERYBEAT_SCHEDULE"] = {
+        existing_schedule = app.config.get("CELERY_BEAT_SCHEDULE", {})
+        app.config["CELERY_BEAT_SCHEDULE"] = {
             **existing_schedule,
             **config.COMMUNITY_STATS_CELERYBEAT_SCHEDULE,
         }
