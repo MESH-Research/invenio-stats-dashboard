@@ -1,4 +1,4 @@
-import { axios } from "axios";
+import { http } from "react-invenio-forms";
 import { DASHBOARD_TYPES } from "../constants";
 
 /**
@@ -38,7 +38,7 @@ const statsApiClient = {
     if (endDate) {
       requestBody[`${dashboardType}-stats`].params.end_date = endDate;
     }
-    const response = await axios.post(`/api/stats`, requestBody);
+    const response = await http.post(`/api/stats`, requestBody);
     return response.data;
   }
 };

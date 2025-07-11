@@ -6,7 +6,7 @@
  * it under the terms of the MIT License; see LICENSE file for more details.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
   Container,
@@ -20,6 +20,8 @@ import { DateRangeSelector } from "./components/controls/DateRangeSelector";
 import { GranularitySelector } from "./components/controls/GranularitySelector";
 import { ReportSelector } from "./components/controls/ReportSelector";
 import { StatsDashboardProvider } from "./context/StatsDashboardContext";
+import { statsApiClient } from "./api/api";
+import { DASHBOARD_TYPES } from "./constants";
 import PropTypes from "prop-types";
 
 /**
