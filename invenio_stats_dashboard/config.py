@@ -23,6 +23,13 @@ COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
 
 COMMUNITY_STATS_CATCHUP_INTERVAL = 365
 
+# Distributed lock configuration for aggregation tasks
+STATS_DASHBOARD_LOCK_CONFIG = {
+    "enabled": True,  # Enable/disable distributed locking
+    "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
+    "lock_name": "community_stats_aggregation",  # Lock name
+}
+
 STATS_DASHBOARD_TEMPLATES = {
     "macro": "invenio_stats_dashboard/macros/stats_dashboard_macro.html",
     "global": "invenio_stats_dashboard/stats_dashboard.html",

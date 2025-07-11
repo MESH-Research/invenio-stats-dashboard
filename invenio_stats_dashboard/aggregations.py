@@ -6,6 +6,7 @@ from pprint import pformat
 from typing import Any, Callable
 
 import datetime
+import time
 
 import arrow
 from flask import current_app
@@ -26,6 +27,7 @@ from .queries import (
     daily_record_delta_query_with_events,
 )
 from .proxies import current_community_stats_service
+from .exceptions import CommunityEventIndexingError
 
 SUBCOUNT_TYPES = {
     "resource_type": [
@@ -208,6 +210,19 @@ class CommunityBookmarkAPI(BookmarkAPI):
             return arrow.get(bookmark.date)
 
 
+class CommunityEventBookmarkAPI(CommunityBookmarkAPI):
+    """Bookmark API specifically for community event indexing progress.
+
+    This tracks the furthest point of continuous community event indexing
+    for each community, allowing us to distinguish between true gaps
+    (missing events that should exist) and false gaps (periods where
+    no events occurred because nothing happened).
+    """
+
+    def __init__(self, client, agg_interval="day"):
+        super().__init__(client, "community-events-indexing", agg_interval)
+
+
 class CommunityAggregatorBase(StatAggregator):
     """Base class for community statistics aggregators."""
 
@@ -296,7 +311,7 @@ class CommunityAggregatorBase(StatAggregator):
             )
         elif isinstance(self.event_index, list):
             # Multiple indices case (e.g., for usage aggregators)
-            for label, index in self.event_index:
+            for _, index in self.event_index:
                 current_app.logger.error(f"Finding first event date for {index}")
                 early_date, late_date = self._first_event_date_query(
                     community_id, index
@@ -326,6 +341,52 @@ class CommunityAggregatorBase(StatAggregator):
             upper_limit = lower_limit.shift(days=self.catchup_interval)
         return upper_limit
 
+    def _index_missing_community_events_with_retry(
+        self,
+        community_id: str,
+        upper_limit: arrow.Arrow,
+        lower_limit: arrow.Arrow,
+        first_index_event_date: arrow.Arrow,
+        last_index_event_date: arrow.Arrow,
+        max_retries: int = 3,
+        base_delay: float = 1.0,
+    ) -> arrow.Arrow:
+        """Index missing community events with retry logic and exponential backoff."""
+        for attempt in range(max_retries):
+            try:
+                return self._index_missing_community_events(
+                    community_id,
+                    upper_limit,
+                    lower_limit,
+                    first_index_event_date,
+                    last_index_event_date,
+                )
+            except Exception as e:
+                current_app.logger.error(
+                    f"Community event indexing failed for {community_id} "
+                    f"(attempt {attempt + 1}/{max_retries}): {e}"
+                )
+
+                if attempt == max_retries - 1:
+                    raise CommunityEventIndexingError(
+                        f"Failed to index community events for {community_id} "
+                        f"after {max_retries} attempts: {e}"
+                    ) from e
+
+                # Exponential backoff
+                delay = base_delay * (2**attempt)
+                current_app.logger.info(
+                    f"Retrying community event indexing for {community_id} "
+                    f"in {delay} seconds..."
+                )
+                time.sleep(delay)
+
+        # Never reached due to exception above, but needed for type checker
+        raise CommunityEventIndexingError(
+            f"Failed to index community events for {community_id} "
+            f"after {max_retries} attempts"
+        )
+
     def _index_missing_community_events(
         self,
         community_id: str,
@@ -334,99 +395,74 @@ class CommunityAggregatorBase(StatAggregator):
         first_index_event_date: arrow.Arrow,
         last_index_event_date: arrow.Arrow,
     ) -> arrow.Arrow:
-        """Find the last event document in the stats-community-events index.
+        """Index missing community events using bookmarks when available.
 
-        Return an end date for the aggregation based on how long ago the last event
-        was indexed. If no community events exist or the index doesn't exist, we
-        should index from the first event date up to upper_limit. If this would
-        exceed self.catchup_interval days, we limit the period and adjust upper_limit.
+        Uses the community event bookmark to track the furthest point of continuous
+        indexing. Falls back to querying the index if no bookmark exists.
 
         Returns:
             The adjusted upper_limit for aggregation.
         """
-        # Check if the stats-community-events index exists
-        community_events_index = prefix_index("stats-community-events")
-        index_exists = Index(community_events_index, using=self.client).exists()
+        # Initialize community event bookmark API
+        event_bookmark_api = CommunityEventBookmarkAPI(self.client)
 
-        # FIXME: Add a bookmark for the community events index
         # Index community add/remove events only up to the last index event date
         indexing_end_date = min(upper_limit, last_index_event_date)
         current_app.logger.error(f"Indexing end date: {pformat(indexing_end_date)}")
 
-        # Determine the start date for indexing
-        if not index_exists:
-            # Index doesn't exist, start from first_event_date
-            indexing_start_date = first_index_event_date
+        # Try to use bookmark first, fall back to query if not available
+        indexing_start_date = None
+
+        # Check if we have a bookmark for this community
+        bookmark_date = event_bookmark_api.get_bookmark(community_id)
+        if bookmark_date:
+            indexing_start_date = bookmark_date
             current_app.logger.error(
-                f"Community events index doesn't exist for {community_id}. "
-                f"Indexing from {first_index_event_date} to {upper_limit}..."
+                f"Using bookmark for {community_id}: " f"{pformat(bookmark_date)}"
             )
         else:
-            # Index exists, check for the last community event
-            query = Search(using=self.client, index=community_events_index)
-            query = query.query(Q("term", community_id=community_id))
-            query = query.sort({"event_date": {"order": "desc"}})
-            query = query.extra(size=10)
-            community_events = query.execute()
-            last_event = next(iter(community_events), None)
+            # No bookmark exists - need to do initial indexing
+            # Use the first_index_event_date which already handles global vs
+            # specific communities
+            indexing_start_date = first_index_event_date
+            current_app.logger.error(
+                f"No bookmark for {community_id}. "
+                f"Initial indexing from {first_index_event_date} to {upper_limit}..."
+            )
 
-            if not last_event:
-                # No community events exist, start from first_event_date
-                indexing_start_date = first_index_event_date
-                current_app.logger.error(
-                    f"No community events found for {community_id}. "
-                    f"Indexing from {first_index_event_date} to {upper_limit}..."
-                )
-            else:
-                # Community events exist, check if we need to index more
-                last_community_event_date = arrow.get(last_event["event_date"])
-                current_app.logger.error(
-                    f"Last community event date: {pformat(last_community_event_date)}"
-                )
-                current_app.logger.error(f"Upper limit: {pformat(upper_limit)}")
+        # Check if indexing is needed
+        if indexing_start_date >= indexing_end_date:
+            current_app.logger.error(
+                f"No indexing needed for {community_id} from "
+                f"{indexing_start_date} to {indexing_end_date}."
+            )
+            return upper_limit
 
-                if last_community_event_date >= indexing_end_date:
-                    # No indexing needed if the last community event date is
-                    # greater than the upper limit or the last index event date
-                    current_app.logger.error(
-                        f"No indexing needed for {community_id} from "
-                        f"{last_community_event_date} to {upper_limit}."
-                    )
-                    return upper_limit
+        # Index the community events
+        try:
+            current_community_stats_service.generate_record_community_events(
+                community_ids=[community_id],
+                end_date=indexing_end_date.format("YYYY-MM-DD"),
+                start_date=indexing_start_date.format("YYYY-MM-DD"),
+            )
+            current_app.logger.error(
+                f"Indexed {community_id} events for {indexing_start_date} "
+                f"to {indexing_end_date}"
+            )
 
-                # We need to index more events from last_community_event_date
-                # to upper_limit
-                indexing_start_date = last_community_event_date
-                current_app.logger.error(
-                    f"Community events missing for {community_id} from "
-                    f"{last_community_event_date} to {upper_limit}. Indexing..."
-                )
+            # Update the bookmark after successful indexing
+            event_bookmark_api.set_bookmark(community_id, indexing_end_date.isoformat())
+            current_app.logger.error(
+                f"Updated bookmark for {community_id} to {indexing_end_date}"
+            )
 
-        # FIXME: Decide whether to limit the the community record catchup_interval too
-        # Check if the period would exceed catchup_interval
-        # period_days = (indexing_end_date - indexing_start_date).days
-        # if period_days > self.catchup_interval:
-        #     # Limit the period to catchup_interval days
-        #     indexing_end_date = upper_limit = indexing_start_date.shift(
-        #         days=self.catchup_interval
-        #     )
-        #     current_app.logger.error(
-        #         f"Period would exceed catchup_interval "
-        #         f"({period_days} > {self.catchup_interval}). "
-        #         f"Limiting to {self.catchup_interval} days from "
-        #         f"{indexing_start_date}."
-        #     )
-
-        # Index the community events (single point of execution)
-        current_community_stats_service.generate_record_community_events(
-            community_ids=[community_id],
-            end_date=indexing_end_date.format("YYYY-MM-DD"),
-            start_date=indexing_start_date.format("YYYY-MM-DD"),
-        )
-        current_app.logger.error(
-            f"Indexed {community_id} events for {indexing_start_date} "
-            f"to {indexing_end_date}"
-        )
+        except Exception as e:
+            current_app.logger.error(
+                f"Failed to index community events for {community_id}: {e}"
+            )
+            raise CommunityEventIndexingError(
+                f"Community event indexing failed for {community_id}: {e}"
+            ) from e
 
         return upper_limit
 
@@ -533,13 +569,20 @@ class CommunityAggregatorBase(StatAggregator):
             last_event_date_safe = last_event_date or arrow.utcnow()
 
             # FIXME: Add a bookmark for the community events index
-            upper_limit = self._index_missing_community_events(
-                community_id,
-                upper_limit,
-                lower_limit,
-                first_event_date_safe,
-                last_event_date_safe,
-            )
+            try:
+                upper_limit = self._index_missing_community_events_with_retry(
+                    community_id,
+                    upper_limit,
+                    lower_limit,
+                    first_event_date_safe,
+                    last_event_date_safe,
+                )
+            except CommunityEventIndexingError as e:
+                current_app.logger.error(
+                    f"Skipping aggregation for {community_id} due to "
+                    f"community event indexing failure: {e}"
+                )
+                continue
             # FIXME: We need to periodically check for gaps in the community events
 
             # Check if upper_limit is now < lower_limit after community event indexing
@@ -1295,11 +1338,71 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
 
+    def _check_usage_delta_dependency(
+        self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
+    ) -> bool:
+        """Check if usage delta aggregator has caught up to the snapshot aggregator.
+
+        This method checks if the usage delta aggregator has processed data up to
+        the end_date that the snapshot aggregator is trying to process. If the
+        delta aggregator hasn't caught up, the snapshot aggregator should skip
+        this run to avoid creating incomplete snapshots.
+
+        Args:
+            community_id: The community ID
+            start_date: The start date for snapshot aggregation
+            end_date: The end date for snapshot aggregation
+
+        Returns:
+            True if delta aggregator has caught up, False if it hasn't
+        """
+        # Get the usage delta aggregator's bookmark
+        delta_bookmark_api = CommunityBookmarkAPI(
+            current_search_client, "community-usage-delta-agg", "day"
+        )
+        delta_bookmark = delta_bookmark_api.get_bookmark(community_id)
+
+        if not delta_bookmark:
+            # If no bookmark exists, check if there are any delta records at all
+            search = Search(using=self.client, index=self.event_index)
+            search = search.query(Q("term", community_id=community_id))
+            search = search.extra(size=0)
+            search.aggs.bucket("max_date", "max", field="period_start")
+
+            result = search.execute()
+            if not result.aggregations.max_date.value:
+                # No delta records exist at all, skip
+                current_app.logger.info(
+                    f"No usage delta records found for {community_id}, "
+                    f"skipping snapshot aggregation"
+                )
+                return False
+
+            # Use the latest delta record date as the bookmark
+            delta_bookmark_date = arrow.get(
+                result.aggregations.max_date.value_as_string
+            )
+        else:
+            delta_bookmark_date = arrow.get(delta_bookmark)
+
+        # Check if delta aggregator has processed up to our end_date
+        if delta_bookmark_date < end_date:
+            current_app.logger.info(
+                f"Usage delta aggregator for {community_id} has not caught up yet. "
+                f"Delta bookmark: {delta_bookmark_date}, "
+                f"Snapshot end_date: {end_date}. Skipping snapshot aggregation."
+            )
+            return False
+
+        return True
+
     def _should_skip_aggregation(
         self,
         start_date: arrow.Arrow,
         last_event_date: arrow.Arrow | None,
         period_delta_records: list,
+        community_id: str | None = None,
+        end_date: arrow.Arrow | None = None,
     ) -> bool:
         """Check if aggregation should be skipped due to no events with counts.
 
@@ -1311,10 +1414,20 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         Args:
             start_date: The start date for aggregation
             last_event_date: The last event date, or None if no events exist
+            period_delta_records: List of delta records for the period
+            community_id: The community ID (optional, for dependency checking)
+            end_date: The end date (optional, for dependency checking)
 
         Returns:
             True if aggregation should be skipped, False otherwise
         """
+        # First check if usage delta aggregator has caught up
+        if community_id and end_date:
+            if not self._check_usage_delta_dependency(
+                community_id, start_date, end_date
+            ):
+                return True
+
         total_events = sum(
             delta["totals"]["view"]["total_events"] for delta in period_delta_records
         )
@@ -1661,7 +1774,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
 
         # Check if we should skip aggregation due to no events since the last snapshot
         should_skip = self._should_skip_aggregation(
-            start_date, last_event_date, period_delta_records
+            start_date, last_event_date, period_delta_records, community_id, end_date
         )
         if should_skip:
             current_app.logger.error(

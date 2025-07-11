@@ -4,7 +4,46 @@ from dateutil.parser import parse as dateutil_parse
 from invenio_stats.proxies import current_stats
 from invenio_search.proxies import current_search_client
 from flask import current_app
+from invenio_cache import current_cache
+import uuid
 from .proxies import current_event_reindexing_service
+from .exceptions import TaskLockAcquisitionError
+
+
+class AggregationTaskLock:
+    """
+    Simple distributed lock for aggregation tasks using invenio_cache.
+    """
+
+    def __init__(self, lock_name, timeout=86400):  # 24 hour timeout
+        self.lock_name = f"lock:{lock_name}"
+        self.timeout = timeout
+        self.lock_id = str(uuid.uuid4())
+
+    def acquire(self):
+        """Acquire the lock."""
+        # Use cache add method which is atomic and only succeeds if key doesn't exist
+        result = current_cache.add(self.lock_name, self.lock_id, timeout=self.timeout)
+        return result
+
+    def release(self):
+        """Release the lock."""
+        current_value = current_cache.get(self.lock_name)
+        if current_value == self.lock_id:
+            return current_cache.delete(self.lock_name)
+        return False
+
+    def __enter__(self):
+        if not self.acquire():
+            raise TaskLockAcquisitionError(
+                f"Could not acquire lock: {self.lock_name}. An existing task "
+                f"is probably still running."
+            )
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release()
+
 
 CommunityStatsAggregationTask = {
     "task": "invenio_stats_dashboard.tasks.aggregate_community_record_stats",
@@ -36,6 +75,35 @@ def aggregate_community_record_stats(
     ignore_bookmark=False,
 ):
     """Aggregate community record stats from created records."""
+    lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
+    lock_enabled = lock_config.get("enabled", True)
+    lock_timeout = lock_config.get("lock_timeout", 3600)
+    lock_name = lock_config.get("lock_name", "community_stats_aggregation")
+
+    if lock_enabled:
+        lock = AggregationTaskLock(lock_name, timeout=lock_timeout)
+        try:
+            with lock:
+                current_app.logger.info(
+                    "Acquired aggregation lock, starting aggregation..."
+                )
+                return _run_aggregation(
+                    aggregations, start_date, end_date, update_bookmark
+                )
+        except TaskLockAcquisitionError:
+            # Lock acquisition failed - another task is running
+            current_app.logger.warning(
+                "Aggregation task skipped - another instance is already running"
+            )
+            return []
+    else:
+        # Run without locking
+        current_app.logger.info("Running aggregation without distributed lock...")
+        return _run_aggregation(aggregations, start_date, end_date, update_bookmark)
+
+
+def _run_aggregation(aggregations, start_date, end_date, update_bookmark):
+    """Run the actual aggregation logic."""
     start_date = dateutil_parse(start_date) if start_date else None
     end_date = dateutil_parse(end_date) if end_date else None
     results = []
@@ -54,6 +122,7 @@ def aggregate_community_record_stats(
                 index=f"*{aggregator.aggregation_index}*"
             )
 
+    current_app.logger.info("Aggregation completed successfully")
     return results
 
 
