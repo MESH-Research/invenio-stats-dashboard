@@ -59,6 +59,9 @@ const StatsDashboardLayout = ({
   const [granularity, setGranularity] = useState(
     dashboardConfig?.default_granularity || "day"
   );
+  const [recordStartBasis, setRecordStartBasis] = useState(
+    dashboardConfig?.default_record_start_basis || "added"
+  );
   const [displaySeparately, setDisplaySeparately] = useState(null);
   const [stats, setStats] = useState(null);
 
@@ -79,6 +82,8 @@ const StatsDashboardLayout = ({
     displaySeparately,
     granularity,
     maxHistoryYears,
+    recordStartBasis,
+    setRecordStartBasis,
     setDateRange,
     setDisplaySeparately,
     setGranularity,

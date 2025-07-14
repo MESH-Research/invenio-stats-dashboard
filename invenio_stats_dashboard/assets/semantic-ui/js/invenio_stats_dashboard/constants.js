@@ -3,6 +3,12 @@ export const DASHBOARD_TYPES = {
   COMMUNITY: "community",
 };
 
+export const RECORD_START_BASES = {
+  ADDED: "added",
+  CREATED: "created",
+  PUBLISHED: "published",
+};
+
 // Color arrays for charts and visualizations
 export const CHART_COLORS = {
   // Main color palette
