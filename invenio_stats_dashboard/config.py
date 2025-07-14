@@ -70,6 +70,23 @@ STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
     "year": "5years",
 }
 
+# Menu configuration
+STATS_DASHBOARD_MENU_ENABLED = True
+"""Enable or disable the stats menu item."""
+
+STATS_DASHBOARD_MENU_TEXT = _("Statistics")
+"""Text for the stats menu item."""
+
+STATS_DASHBOARD_MENU_ORDER = 1
+"""Order of the stats menu item in the menu."""
+
+STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
+"""Endpoint for the stats menu item."""
+
+STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the menu item. If None, uses default registration.
+Should be a callable that takes the Flask app as its only argument."""
+
 STATS_DASHBOARD_LAYOUT = {
     "global": {
         "tabs": [

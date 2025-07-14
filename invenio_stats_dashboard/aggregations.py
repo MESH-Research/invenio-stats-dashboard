@@ -735,8 +735,10 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
         """Check if aggregation should be skipped due to no relevant records in date range.
 
         This method provides early skip logic for record aggregators by:
-        1. Checking if there are any records that were added to the community before or on the aggregation date
-        2. If no relevant records exist, we can skip the expensive processing pipeline entirely
+        1. Checking if there are any records that were added to the community before or
+           on the aggregation date
+        2. If no relevant records exist, we can skip the expensive processing pipeline
+           entirely
 
         Args:
             start_date: The start date for aggregation

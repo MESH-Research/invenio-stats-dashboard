@@ -49,14 +49,16 @@ CommunityStatsAggregationTask = {
     "task": "invenio_stats_dashboard.tasks.aggregate_community_record_stats",
     "schedule": crontab(minute="40", hour="*"),  # Run every hour at minute 40
     "args": (
-        "community-usage-delta-agg",
-        "community-records-delta-created-agg",
-        "community-records-delta-published-agg",
-        "community-records-delta-added-agg",
-        "community-records-snapshot-created-agg",
-        "community-records-snapshot-published-agg",
-        "community-records-snapshot-added-agg",
-        "community-usage-snapshot-agg",
+        (
+            "community-usage-delta-agg",
+            "community-records-delta-created-agg",
+            "community-records-delta-published-agg",
+            "community-records-delta-added-agg",
+            "community-records-snapshot-created-agg",
+            "community-records-snapshot-published-agg",
+            "community-records-snapshot-added-agg",
+            "community-usage-snapshot-agg",
+        ),
     ),
 }
 
