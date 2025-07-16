@@ -13,9 +13,10 @@ import click
 from flask import current_app as app
 from flask.cli import with_appcontext
 from halo import Halo
+from opensearchpy.helpers.search import Search
 from .proxies import current_community_stats_service
 from .service import EventReindexingService
-from .tasks import reindex_events_with_metadata
+from .tasks import reindex_usage_events_with_metadata
 
 
 @click.group()
@@ -156,9 +157,20 @@ def read_stats_command(community_id, start_date, end_date):
     is_flag=True,
     help="Run reindexing asynchronously using Celery.",
 )
+@click.option(
+    "--delete-old-indices",
+    is_flag=True,
+    help="Delete old indices after migration (default is to keep them).",
+)
 @with_appcontext
 def migrate_events_command(
-    event_types, max_batches, batch_size, max_memory_percent, dry_run, async_mode
+    event_types,
+    max_batches,
+    batch_size,
+    max_memory_percent,
+    dry_run,
+    async_mode,
+    delete_old_indices,
 ):
     """Migrate events to enriched indices with monthly index support."""
     from flask import current_app
@@ -192,14 +204,16 @@ def migrate_events_command(
     click.echo(f"Max memory: {max_memory_percent}%")
     if max_batches:
         click.echo(f"Max batches: {max_batches}")
+    click.echo(f"Delete old indices after validated migrations: {delete_old_indices}")
 
     if async_mode:
-        click.echo("Running asynchronously with Celery...")
-        task = reindex_events_with_metadata.delay(
+        click.echo("Running as a background task...")
+        task = reindex_usage_events_with_metadata.delay(
             event_types=list(event_types),
             max_batches=max_batches,
             batch_size=batch_size,
             max_memory_percent=max_memory_percent,
+            delete_old_indices=delete_old_indices,
         )
         click.echo(f"Task ID: {task.id}")
         click.echo(
@@ -208,9 +222,15 @@ def migrate_events_command(
     else:
         click.echo("Running synchronously...")
         try:
+            # Configure service with batch settings
+            service.batch_size = batch_size
+            service.max_memory_percent = max_memory_percent
+
             with Halo(text="Migrating events...", spinner="dots"):
                 results = service.reindex_events(
-                    event_types=list(event_types), max_batches=max_batches
+                    event_types=list(event_types),
+                    max_batches=max_batches,
+                    delete_old_indices=delete_old_indices,
                 )
 
             if results["completed"]:
@@ -226,14 +246,103 @@ def migrate_events_command(
 
                     if "months" in event_results:
                         for month, month_results in event_results["months"].items():
-                            status = "✅" if month_results["completed"] else "❌"
-                            click.echo(
-                                f"    {status} {month}: "
-                                f"{month_results['processed']:,} events"
-                            )
+                            if month_results.get("interrupted", False):
+                                status = "⏸️"
+                                click.echo(
+                                    f"    {status} {month}: "
+                                    f"{month_results['processed']:,} events "
+                                    f"(INTERRUPTED - "
+                                    f"{month_results['batches_processed']} batches)"
+                                )
+                            elif month_results["completed"]:
+                                status = "✅"
+                                click.echo(
+                                    f"    {status} {month}: "
+                                    f"{month_results['processed']:,} events"
+                                )
+                            else:
+                                status = "❌"
+                                click.echo(
+                                    f"    {status} {month}: "
+                                    f"{month_results['processed']:,} events"
+                                )
             else:
                 click.echo("❌ Migration failed!")
                 click.echo(f"Errors: {results['total_errors']}")
+
+            # Show incomplete migrations details
+            if results.get("interrupted_migrations"):
+                click.echo("\n⚠️  INCOMPLETE MIGRATIONS:")
+
+                # Group by reason
+                interrupted = [
+                    m
+                    for m in results["interrupted_migrations"]
+                    if m.get("reason") == "interrupted"
+                ]
+                failed = [
+                    m
+                    for m in results["interrupted_migrations"]
+                    if m.get("reason") == "failed"
+                ]
+
+                if interrupted:
+                    click.echo("\n⏸️  INTERRUPTED (can resume):")
+                    click.echo(
+                        "The following migrations were interrupted due to "
+                        "max_batches limit:"
+                    )
+                    for migration in interrupted:
+                        click.echo(
+                            f"  • {migration['event_type']} {migration['month']}: "
+                            f"{migration['processed']:,} events processed in "
+                            f"{migration['batches']} batches"
+                        )
+                        click.echo(
+                            f"    Last processed ID: {migration['last_processed_id']}"
+                        )
+                        click.echo(f"    Source: {migration['source_index']}")
+                        click.echo(f"    Target: {migration['target_index']}")
+
+                if failed:
+                    click.echo("\n❌ FAILED (needs investigation):")
+                    click.echo("The following migrations failed due to errors:")
+                    for migration in failed:
+                        click.echo(
+                            f"  • {migration['event_type']} {migration['month']}: "
+                            f"{migration['processed']:,} events processed in "
+                            f"{migration['batches']} batches"
+                        )
+                        click.echo(f"    Source: {migration['source_index']}")
+                        click.echo(f"    Target: {migration['target_index']}")
+
+                # Resume instructions
+                if interrupted:
+                    click.echo("\n💡 To resume interrupted migrations:")
+                    click.echo(
+                        "  1. Use the same command with --max-batches to continue"
+                    )
+                    click.echo(
+                        "  2. Or use 'migrate-month' command for specific months:"
+                    )
+                    for migration in interrupted:
+                        click.echo(
+                            f"     invenio stats-dashboard migrate-month "
+                            f"--event-type {migration['event_type']} "
+                            f"--month {migration['month']}"
+                        )
+
+                if failed:
+                    click.echo("\n🔧 To retry failed migrations:")
+                    click.echo("  1. Check logs for error details")
+                    click.echo("  2. Fix the underlying issue")
+                    click.echo("  3. Run the migration again:")
+                    for migration in failed:
+                        click.echo(
+                            f"     invenio stats-dashboard migrate-month "
+                            f"--event-type {migration['event_type']} "
+                            f"--month {migration['month']}"
+                        )
 
         except Exception as e:
             click.echo(f"❌ Migration failed with error: {e}")
@@ -293,6 +402,59 @@ def migration_status_command():
                 click.echo(f"    {month}: not started")
 
 
+@cli.command(name="show-interrupted")
+@with_appcontext
+def show_interrupted_command():
+    """Show details about interrupted migrations."""
+    from flask import current_app
+
+    service = EventReindexingService(current_app)
+    progress = service.get_reindexing_progress()
+
+    click.echo("Interrupted Migrations")
+    click.echo("=====================")
+
+    interrupted_found = False
+    for event_type in ["view", "download"]:
+        bookmarks = progress["bookmarks"][event_type]
+        for month, bookmark in bookmarks.items():
+            if bookmark:
+                # Check if there are more records to process
+                indices = service.get_monthly_indices(event_type)
+                source_index = None
+                for index in indices:
+                    if index.endswith(f"-{month}"):
+                        source_index = index
+                        break
+
+                if source_index:
+                    try:
+                        # Check if there are more records after the bookmark
+                        search = Search(using=service.client, index=source_index)
+                        search = search.sort("_id")
+                        search = search.extra(search_after=[bookmark])
+                        search = search.extra(size=1)
+                        response = search.execute()
+
+                        if response.hits.hits:
+                            interrupted_found = True
+                            click.echo(f"\n⏸️  {event_type.upper()} {month}:")
+                            click.echo(f"  Source index: {source_index}")
+                            click.echo(f"  Last processed ID: {bookmark}")
+                            click.echo("  More records available: Yes")
+                            click.echo("  Resume command:")
+                            click.echo(
+                                f"    invenio stats-dashboard migrate-month "
+                                f"--event-type {event_type} --month {month}"
+                            )
+                    except Exception as e:
+                        click.echo(f"  Error checking {event_type} {month}: {e}")
+
+    if not interrupted_found:
+        click.echo("No interrupted migrations found.")
+        click.echo("All migrations appear to be complete or not started.")
+
+
 @cli.command(name="migrate-month")
 @click.option("--event-type", "-e", required=True, help="Event type (view or download)")
 @click.option("--month", "-m", required=True, help="Month to migrate (YYYY-MM)")
@@ -309,9 +471,14 @@ def migration_status_command():
     default=85,
     help="Maximum memory usage percentage before stopping.",
 )
+@click.option(
+    "--delete-old-indices",
+    is_flag=True,
+    help="Delete old indices after migration (default is to keep them).",
+)
 @with_appcontext
 def migrate_month_command(
-    event_type, month, max_batches, batch_size, max_memory_percent
+    event_type, month, max_batches, batch_size, max_memory_percent, delete_old_indices
 ):
     """Migrate a specific monthly index."""
     from flask import current_app
@@ -341,6 +508,7 @@ def migrate_month_command(
     click.echo(f"Source index: {source_index}")
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Max memory: {max_memory_percent}%")
+    click.echo(f"Delete old indices after validated migrations: {delete_old_indices}")
 
     try:
         with Halo(text="Migrating monthly index...", spinner="dots"):
@@ -349,6 +517,7 @@ def migrate_month_command(
                 source_index=source_index,
                 month=month,
                 max_batches=max_batches,
+                delete_old_indices=delete_old_indices,
             )
 
         if results["completed"]:
@@ -356,6 +525,18 @@ def migrate_month_command(
             click.echo(f"Processed: {results['processed']:,} events")
             click.echo(f"Batches: {results['batches']}")
             click.echo(f"Target index: {results['target_index']}")
+        elif results.get("interrupted", False):
+            click.echo("⏸️  Migration interrupted!")
+            click.echo(f"Processed: {results['processed']:,} events")
+            click.echo(f"Batches processed: {results['batches_processed']}")
+            click.echo(f"Last processed ID: {results['last_processed_id']}")
+            click.echo(f"Target index: {results['target_index']}")
+            click.echo("\n💡 To resume this migration:")
+            click.echo(
+                f"  invenio stats-dashboard migrate-month "
+                f"--event-type {event_type} --month {month} "
+                f"--max-batches <remaining_batches>"
+            )
         else:
             click.echo("❌ Migration failed!")
             click.echo(f"Errors: {results['errors']}")

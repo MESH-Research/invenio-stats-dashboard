@@ -1,11 +1,11 @@
 import arrow
-import gc
+import psutil
 import time
 from typing import Any, Dict, List, Optional, Tuple
 from flask import Flask, current_app
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
-from invenio_search.proxies import current_search_client
+from invenio_search.proxies import current_search, current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy.helpers.search import Search
 from opensearchpy.helpers.actions import bulk
@@ -14,8 +14,6 @@ from .components import update_community_events_index
 from .queries import CommunityStatsResultsQuery
 from .tasks import CommunityStatsAggregationTask
 from .aggregations import CommunityBookmarkAPI
-import os
-import json
 
 
 class EventReindexingService:
@@ -31,15 +29,15 @@ class EventReindexingService:
         self.app = app
 
         # Configuration
-        self.batch_size = 1000
-        self.max_memory_percent = 85
-        self.max_retries = 3
-        self.retry_delay = 5  # seconds
+        self.batch_size = app.config.get("STATS_DASHBOARD_REINDEXING_BATCH_SIZE", 1000)
+        self.max_memory_percent = app.config.get(
+            "STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT", 75
+        )
 
         # Lazy-load components that require application context
         self._bookmark_api = None
-        self._source_index_patterns = None
-        self._target_index_patterns = None
+        self._index_patterns = None
+        self._community_events_index_exists = None
 
     @property
     def bookmark_api(self):
@@ -51,33 +49,33 @@ class EventReindexingService:
         return self._bookmark_api
 
     @property
-    def source_index_patterns(self):
-        """Lazy-load source index patterns that require application context."""
-        if self._source_index_patterns is None:
-            self._source_index_patterns = [
-                ("view", prefix_index("events-stats-record-view")),
-                ("download", prefix_index("events-stats-file-download")),
-            ]
-        return self._source_index_patterns
+    def index_patterns(self):
+        """Lazy-load index patterns that require application context."""
+        return {
+            "view": prefix_index("events-stats-record-view"),
+            "download": prefix_index("events-stats-file-download"),
+        }
 
     @property
-    def target_index_patterns(self):
-        """Lazy-load target index patterns that require application context."""
-        if self._target_index_patterns is None:
-            self._target_index_patterns = [
-                ("view", prefix_index("events-stats-record-view-enriched")),
-                ("download", prefix_index("events-stats-file-download-enriched")),
-            ]
-        return self._target_index_patterns
+    def community_events_index_exists(self):
+        """Check if the stats-community-events index exists."""
+        if self._community_events_index_exists is None:
+            try:
+                self.client.indices.get(index=prefix_index("stats-community-events"))
+                self._community_events_index_exists = True
+                current_app.logger.debug("stats-community-events index exists")
+            except Exception:
+                self._community_events_index_exists = False
+                current_app.logger.info(
+                    "stats-community-events index does not exist, "
+                    "will use fallback mechanism"
+                )
+        return self._community_events_index_exists
 
     def get_monthly_indices(self, event_type: str) -> List[str]:
         """Get all monthly indices for a given event type."""
         try:
-            pattern = next(
-                pattern
-                for name, pattern in self.source_index_patterns
-                if name == event_type
-            )
+            pattern = self.index_patterns[event_type]
             indices = self.client.indices.get(index=f"{pattern}-*")
             return sorted(indices.keys())
         except Exception as e:
@@ -95,52 +93,16 @@ class EventReindexingService:
         current_month = self.get_current_month()
         return index_name.endswith(f"-{current_month}")
 
-    def get_reindexing_bookmark(self, event_type: str, month: str) -> Optional[str]:
-        """Get the last processed event ID for a specific event type and month."""
-        try:
-            bookmark = self.bookmark_api.get_bookmark(
-                f"{event_type}-{month}-reindexing"
-            )
-            return str(bookmark) if bookmark else None
-        except Exception as e:
-            current_app.logger.warning(
-                f"Could not get bookmark for {event_type}-{month}: {e}"
-            )
-            return None
-
-    def set_reindexing_bookmark(
-        self, event_type: str, month: str, last_event_id: str
-    ) -> None:
-        """Set the bookmark for the last processed event ID."""
-        try:
-            self.bookmark_api.set_bookmark(
-                f"{event_type}-{month}-reindexing", last_event_id
-            )
-            current_app.logger.info(
-                f"Updated bookmark for {event_type}-{month}: {last_event_id}"
-            )
-        except Exception as e:
-            current_app.logger.error(
-                f"Failed to set bookmark for {event_type}-{month}: {e}"
-            )
-
-    def get_memory_usage(self) -> float:
-        """Get current memory usage as a percentage."""
-        try:
-            import psutil
-
-            return psutil.virtual_memory().percent
-        except ImportError:
-            # Fallback if psutil is not available
-            return 0.0
-
     def check_health_conditions(self) -> Tuple[bool, str]:
-        """Check if we should continue processing or stop gracefully."""
-        memory_usage = self.get_memory_usage()
+        """Check if we should continue processing or stop gracefully.
+
+        We check if the memory usage is too high, and if the OpenSearch cluster is
+        responsive.
+        """
+        memory_usage = psutil.virtual_memory().percent
         if memory_usage > self.max_memory_percent:
             return False, f"Memory usage too high: {memory_usage}%"
 
-        # Check if OpenSearch is responsive
         try:
             self.client.cluster.health(timeout="5s")
         except (ConnectionTimeout, ConnectionError) as e:
@@ -151,17 +113,10 @@ class EventReindexingService:
     def create_enriched_index(self, event_type: str, month: str) -> str:
         """Create a new enriched index for the given month."""
         try:
-            # Get the target pattern
-            target_pattern = next(
-                pattern
-                for name, pattern in self.target_index_patterns
-                if name == event_type
-            )
+            target_pattern = self.index_patterns[event_type]
             # Add a differentiator to avoid naming conflicts
-            new_index_name = f"{target_pattern}-{month}-v2"
+            new_index_name = f"{target_pattern}-{month}-v2.0.0"
 
-            # Create the index with the same settings as the template
-            # The template will automatically apply the correct mappings
             self.client.indices.create(index=new_index_name)
             current_app.logger.info(f"Created enriched index: {new_index_name}")
             return new_index_name
@@ -174,7 +129,6 @@ class EventReindexingService:
     def validate_enriched_data(self, source_index: str, target_index: str) -> bool:
         """Validate that the enriched data matches the source data."""
         try:
-            # Check document counts
             source_count = self.client.count(index=source_index)["count"]
             target_count = self.client.count(index=target_index)["count"]
 
@@ -188,14 +142,30 @@ class EventReindexingService:
             # Check that all documents have the required enriched fields
             search = Search(using=self.client, index=target_index)
             search = search.filter(
-                "bool", must_not=[{"exists": {"field": "community_id"}}]
+                "bool",
+                must_not=[
+                    {"exists": {"field": "community_ids"}},
+                    {"exists": {"field": "resource_type"}},
+                    {"exists": {"field": "publisher"}},
+                    {"exists": {"field": "access_status"}},
+                    {"exists": {"field": "languages"}},
+                    {"exists": {"field": "subjects"}},
+                    {"exists": {"field": "licenses"}},
+                    {"exists": {"field": "funders"}},
+                ],
             )
             missing_community = search.count()
 
             if missing_community > 0:
                 current_app.logger.error(
-                    f"Found {missing_community} documents without community_id "
+                    f"Found {missing_community} documents without community_ids "
                     f"in {target_index}"
+                )
+                return False
+
+            if not self._spot_check_original_fields(source_index, target_index):
+                current_app.logger.error(
+                    f"Spot-check validation failed for {target_index}"
                 )
                 return False
 
@@ -205,19 +175,106 @@ class EventReindexingService:
             current_app.logger.error(f"Validation failed for {target_index}: {e}")
             return False
 
+    def _spot_check_original_fields(self, source_index: str, target_index: str) -> bool:
+        """Spot-check a sample of records to ensure original fields are unchanged.
+
+        Args:
+            source_index: The source index name
+            target_index: The target index name
+
+        Returns:
+            True if spot-check passes, False otherwise
+        """
+        try:
+            # Get a random sample of documents from the source index
+            sample_size = min(100, self.client.count(index=source_index)["count"])
+            if sample_size == 0:
+                current_app.logger.warning("No documents to spot-check")
+                return True
+
+            # Get random sample from source
+            source_search = Search(using=self.client, index=source_index)
+            source_search = source_search.extra(size=sample_size)
+            source_search = source_search.sort("_score")  # Random sort for sampling
+            source_hits = source_search.execute().hits.hits
+
+            if not source_hits:
+                current_app.logger.warning("No source documents found for spot-check")
+                return True
+
+            # Get corresponding documents from target by ID
+            doc_ids = [hit["_id"] for hit in source_hits]
+            target_search = Search(using=self.client, index=target_index)
+            target_search = target_search.filter("terms", _id=doc_ids)
+            target_search = target_search.extra(size=len(doc_ids))
+            target_hits = target_search.execute().hits.hits
+
+            if len(target_hits) != len(source_hits):
+                current_app.logger.error(
+                    f"Spot-check failed: found {len(target_hits)} target docs "
+                    f"but {len(source_hits)} source docs"
+                )
+                return False
+
+            # Create lookup dictionaries
+            source_docs = {hit["_id"]: hit["_source"] for hit in source_hits}
+            target_docs = {hit["_id"]: hit["_source"] for hit in target_hits}
+
+            # Fields to check (original event fields that should be unchanged)
+            original_fields = [
+                "recid",
+                "timestamp",
+                "session_id",
+                "user_id",
+                "visitor_id",
+                "country",
+                "unique_session_id",
+                "unique_country",
+            ]
+
+            mismatches = []
+            for doc_id in source_docs.keys():
+                source_doc = source_docs[doc_id]
+                target_doc = target_docs.get(doc_id)
+
+                if not target_doc:
+                    mismatches.append(f"Document {doc_id} missing from target")
+                    continue
+
+                # Check each original field
+                for field in original_fields:
+                    source_value = source_doc.get(field)
+                    target_value = target_doc.get(field)
+
+                    if source_value != target_value:
+                        mismatches.append(
+                            f"Document {doc_id} field '{field}' mismatch: "
+                            f"source={source_value}, target={target_value}"
+                        )
+
+            if mismatches:
+                current_app.logger.error(
+                    f"Spot-check found {len(mismatches)} mismatches: {mismatches[:5]}"
+                )
+                return False
+
+            current_app.logger.info(
+                f"Spot-check passed: verified {len(source_docs)} documents "
+                f"have unchanged original fields"
+            )
+            return True
+
+        except Exception as e:
+            current_app.logger.error(f"Spot-check validation failed: {e}")
+            return False
+
     def update_aliases(
         self, event_type: str, month: str, old_index: str, new_index: str
     ) -> bool:
         """Update aliases to point to the new enriched index."""
         try:
-            # Get the alias pattern
-            alias_pattern = next(
-                pattern
-                for name, pattern in self.source_index_patterns
-                if name == event_type
-            )
+            alias_pattern = self.index_patterns[event_type]
 
-            # Remove old index from alias and add new index
             actions = [
                 {"remove": {"index": old_index, "alias": alias_pattern}},
                 {"add": {"index": new_index, "alias": alias_pattern}},
@@ -241,19 +298,13 @@ class EventReindexingService:
         Set up write alias for current month to ensure new writes go to the new index.
         """
         try:
-            # Create a write alias that points to the new index
-            # The write alias should have the same name as the old index
-            # so that new writes go to the new enriched index
             write_alias = old_index
 
             actions = [{"add": {"index": new_index, "alias": write_alias}}]
 
             self.client.indices.update_aliases(body={"actions": actions})
-            msg = "Created write alias %s " "pointing to %s"
             current_app.logger.info(
-                msg,
-                write_alias,
-                new_index,
+                f"Created write alias {write_alias} pointing to {new_index}"
             )
             return True
         except Exception as e:
@@ -303,44 +354,22 @@ class EventReindexingService:
                 f"Migrating {len(hits)} new records from {source_index}"
             )
 
-            # Extract record IDs and enrich events
-            record_ids = list(set(hit["_source"]["recid"] for hit in hits))
-            metadata = self.get_metadata_for_records(record_ids)
-            community_membership = self.get_community_membership(record_ids)
-
-            # Enrich and bulk index
-            enriched_docs = []
-            for hit in hits:
-                event = hit["_source"]
-                record_id = event["recid"]
-                record_metadata = metadata.get(record_id, {})
-                record_communities = community_membership.get(record_id, [])
-
-                enriched_event = self.enrich_event(
-                    event, record_metadata, record_communities
-                )
-                enriched_docs.append(
-                    {
-                        "_index": target_index,
-                        "_source": enriched_event,
-                    }
-                )
-
-            if enriched_docs:
-                success, errors = bulk(self.client, enriched_docs, stats_only=False)
-                if errors:
-                    current_app.logger.error(
-                        f"Bulk indexing errors for new records: {errors}"
-                    )
-                    return False
-
-                current_app.logger.info(
-                    f"Successfully migrated {len(enriched_docs)} new records"
-                )
+            success, error_msg = self._process_and_index_events_batch(
+                hits, target_index, "new records"
+            )
+            if not success:
+                return False
 
             return True
+        except (ConnectionTimeout, ConnectionError, RequestError) as e:
+            current_app.logger.error(
+                f"OpenSearch error during new records migration: {e}"
+            )
+            return False
         except Exception as e:
-            current_app.logger.error(f"Failed to migrate new records: {e}")
+            current_app.logger.error(
+                f"Unexpected error during new records migration: {e}"
+            )
             return False
 
     def delete_old_index(self, index: str) -> bool:
@@ -369,21 +398,14 @@ class EventReindexingService:
                     "custom_fields.journal:journal.title.keyword",
                     "files.types",
                     "id",
-                    "metadata.resource_type.id",
-                    "metadata.resource_type.title.en",
-                    "metadata.languages.id",
-                    "metadata.languages.title.en",
-                    "metadata.subjects.id",
-                    "metadata.subjects.subject",
+                    "metadata.resource_type",
+                    "metadata.languages",
+                    "metadata.subjects",
                     "metadata.publisher",
-                    "metadata.rights.id",
-                    "metadata.rights.title.en",
-                    "metadata.creators.affiliations.id",
-                    "metadata.creators.affiliations.name.keyword",
-                    "metadata.contributors.affiliations.id",
-                    "metadata.contributors.affiliations.name.keyword",
-                    "metadata.funding.funder.id",
-                    "metadata.funding.funder.title.en",
+                    "metadata.rights",
+                    "metadata.creators.affiliations",
+                    "metadata.contributors.affiliations",
+                    "metadata.funding.funder",
                     "parent.communities.ids",
                 ]
             )
@@ -398,129 +420,328 @@ class EventReindexingService:
             current_app.logger.error(f"Failed to fetch metadata: {e}")
             return {}
 
-    def get_community_membership(self, record_ids: List[str]) -> Dict[str, List[str]]:
-        """Get community membership for a batch of record IDs."""
+    def get_community_membership(
+        self, record_ids: List[str], metadata_by_recid: Dict[str, Dict]
+    ) -> Dict[str, List[Tuple[str, str]]]:
+        """Get community membership for a batch of record IDs.
+
+        Generally we assume that the stats-community-events index will not yet exist,
+        since this reindexing should happen before the aggregator classes trigger
+        community events creation. However, if the index does exist, we use it to get
+        the community membership. Otherwise, we use a fallback mechanism to infer a
+        plausible membership based on the record creation date and community creation
+        date.
+
+        Note that the effective date is the date on which the record was added to the
+        community (or best guess based on record creation date and community creation
+        date).
+
+        Args:
+            record_ids: List of record IDs to get community membership for
+            metadata_by_recid: Pre-fetched metadata to avoid duplicate searches
+
+        Returns:
+            Dictionary of record IDs to lists of (community_id, effective_date) tuples
+        """
         if not record_ids:
             return {}
+
+        # If community events index doesn't exist, use fallback immediately
+        if not self.community_events_index_exists:
+            return self._get_community_membership_fallback(metadata_by_recid)
 
         try:
             community_search = Search(
                 using=self.client, index=prefix_index("stats-community-events")
             )
-            community_search = community_search.filter("terms", record_id=record_ids)
-            community_search = community_search.filter("term", event_type="added")
+            community_search = community_search.query(
+                {"terms": {"record_id": record_ids}}
+            )
 
-            # Add terms aggregation to get unique records with their communities
+            # Aggregate by record_id, then by community_id, getting the most
+            # recent event by timestamp
             record_agg = community_search.aggs.bucket(
                 "by_record", "terms", field="record_id", size=1000
             )
-            record_agg.bucket("communities", "terms", field="community_id")
+            community_agg = record_agg.bucket(
+                "by_community", "terms", field="community_id", size=100
+            )
+            community_agg.bucket(
+                "top_hit", "top_hits", size=1, sort=[{"timestamp": {"order": "desc"}}]
+            )
 
             community_results = community_search.execute()
 
             membership = {}
-            for bucket in community_results.aggregations.by_record.buckets:
-                record_id = bucket.key
-                communities = [c.key for c in bucket.communities.buckets]
-                membership[record_id] = communities
+            for record_bucket in community_results.aggregations.by_record.buckets:
+                record_id = record_bucket.key
+                membership[record_id] = []
+
+                for community_bucket in record_bucket.by_community.buckets:
+                    community_id = community_bucket.key
+                    # Get the most recent event for this record-community pair
+                    if community_bucket.top_hit.hits.hits:
+                        top_hit = community_bucket.top_hit.hits.hits[0]
+                        event_type = top_hit["_source"]["event_type"]
+                        timestamp = top_hit["_source"]["timestamp"]
+
+                        # Only include if the most recent event was an "added" event
+                        if event_type == "added":
+                            membership[record_id].append((community_id, timestamp))
+
+            # Fallback for records without community event index records
+            missing_records = [rid for rid in record_ids if rid not in membership]
+            if missing_records:
+                current_app.logger.info(
+                    f"Found {len(missing_records)} records without community event "
+                    f"index records, using fallback mechanism"
+                )
+                fallback_membership = self._get_community_membership_fallback(
+                    metadata_by_recid
+                )
+                membership.update(fallback_membership)
 
             return membership
         except Exception as e:
             current_app.logger.error(f"Failed to fetch community membership: {e}")
+            # If the main method fails, try the fallback for all records
+            return self._get_community_membership_fallback(metadata_by_recid)
+
+    def _get_community_membership_fallback(
+        self, metadata_by_recid: Dict[str, Dict]
+    ) -> Dict[str, List[Tuple[str, str]]]:
+        """Fallback method to get community membership from record metadata.
+
+        This method is used when stats-community-events index records are not available.
+        It gets community membership from record.parent.communities.ids and considers
+        the event timestamp and community creation dates to determine which communities
+        should be included.
+
+        Args:
+            metadata_by_recid: Pre-fetched metadata to avoid duplicate searches
+
+        Returns:
+            Dictionary of record IDs to lists of (community_id, effective_date) tuples
+        """
+        try:
+            # Get community creation dates
+            community_ids = set()
+            for record_data in metadata_by_recid.values():
+                if record_data.get("parent", {}).get("communities", {}).get("ids"):
+                    community_ids.update(record_data["parent"]["communities"]["ids"])
+
+            community_creation_dates = {}
+            if community_ids:
+                community_search = Search(
+                    using=self.client, index=prefix_index("communities-communities")
+                )
+                community_search = community_search.filter(
+                    "terms", id=list(community_ids)
+                )
+                community_search = community_search.source(["id", "created"])
+                community_search = community_search.extra(size=len(community_ids))
+
+                community_hits = community_search.execute().hits.hits
+                for hit in community_hits:
+                    community_data = hit["_source"]
+                    community_creation_dates[community_data["id"]] = community_data[
+                        "created"
+                    ]
+
+            membership = {}
+            for record_id, record_data in metadata_by_recid.items():
+                record_created = record_data.get("created")
+                record_communities = (
+                    record_data.get("parent", {}).get("communities", {}).get("ids", [])
+                )
+
+                valid_communities = []
+                for community_id in record_communities:
+                    community_created = community_creation_dates.get(community_id)
+                    if community_created and record_created:
+                        effective_date = max(record_created, community_created)
+                        valid_communities.append((community_id, effective_date))
+                    elif record_created:
+                        # If we can't find community creation date, assume it existed
+                        # before the record
+                        valid_communities.append((community_id, record_created))
+                    else:
+                        continue
+
+                # Return tuples of (community_id, effective_date) for later filtering
+                membership[record_id] = valid_communities
+
+            current_app.logger.info(
+                f"Fallback community membership found for {len(membership)} records"
+            )
+            return membership
+
+        except Exception as e:
+            current_app.logger.error(
+                f"Failed to get fallback community membership: {e}"
+            )
             return {}
 
-    def enrich_event(self, event: Dict, metadata: Dict, communities: List[str]) -> Dict:
-        """Enrich a single event with metadata and community information."""
+    def _process_and_index_events_batch(
+        self, hits: List[Dict], target_index: str, context: str = "events"
+    ) -> Tuple[bool, Optional[str]]:
+        """Process a batch of events and bulk index them with error handling.
+
+        Args:
+            hits: List of search hits from OpenSearch
+            target_index: Target index name for the enriched documents
+            context: Context for logging (e.g., "new records", "events")
+
+        Returns:
+            Tuple of (success, error_message)
+        """
+        if not hits:
+            return True, None
+
+        # Process events into enriched documents
+        record_ids = list(set(hit["_source"]["recid"] for hit in hits))
+        metadata_by_recid = self.get_metadata_for_records(record_ids)
+        communities_by_recid = self.get_community_membership(
+            record_ids, metadata_by_recid
+        )
+
+        enriched_docs = []
+        for hit in hits:
+            event = hit["_source"]
+            record_id = event["recid"]
+
+            record_metadata = metadata_by_recid.get(record_id, {})
+            record_communities_with_dates = communities_by_recid.get(record_id, [])
+
+            enriched_event = self.enrich_event(
+                event, record_metadata, record_communities_with_dates
+            )
+
+            enriched_docs.append(
+                {
+                    "_index": target_index,
+                    "_id": hit["_id"],  # Preserve the original document ID
+                    "_source": enriched_event,
+                }
+            )
+
+        # Bulk index the enriched documents
+        if not enriched_docs:
+            return True, None
+
+        try:
+            _, errors = bulk(self.client, enriched_docs, stats_only=False)
+            if errors:
+                error_msg = f"Bulk indexing errors for {context}: {errors}"
+                current_app.logger.error(error_msg)
+                return False, error_msg
+
+            current_app.logger.info(
+                f"Successfully indexed {len(enriched_docs)} enriched {context}"
+            )
+            return True, None
+
+        except Exception as e:
+            error_msg = f"Failed to bulk index {context}: {e}"
+            current_app.logger.error(error_msg)
+            return False, error_msg
+
+    def enrich_event(
+        self, event: Dict, metadata: Dict, communities: List[Tuple[str, str]]
+    ) -> Dict:
+        """Enrich a single event with metadata and community information.
+
+        Args:
+            event: The event to enrich
+            metadata: The metadata for the record
+            communities: The communities that the record belongs to. This is a list of
+                tuples of (community_id, effective_date). The effective date is the
+                date on which the record was added to the community (or best guess).
+
+        Returns:
+            The enriched event
+        """
         enriched_event = event.copy()
 
-        # Add community_id (use first community or "global" if none)
-        enriched_event["community_id"] = communities[0] if communities else "global"
+        event_timestamp = event.get("timestamp")
+        if event_timestamp and communities:
+            active_communities = self._get_active_communities_for_event(
+                communities, event_timestamp, metadata
+            )
+            enriched_event["community_ids"] = active_communities
+        else:
+            enriched_event["community_ids"] = (
+                [c for c, _ in communities] if communities else None
+            )
 
-        # Add metadata fields
         if metadata:
-            enriched_event["resource_type"] = {
-                "id": (
-                    metadata.get("metadata", {}).get("resource_type", {}).get("id", "")
-                ),
-                "title": (
-                    metadata.get("metadata", {})
-                    .get("resource_type", {})
-                    .get("title", {})
-                    .get("en", "")
-                ),
-            }
-            enriched_event["publisher"] = metadata.get("metadata", {}).get(
-                "publisher", ""
+            metadata_dict = metadata.get("metadata", {})
+            enriched_event.update(
+                {
+                    "resource_type": metadata_dict.get("resource_type", {}),
+                    "publisher": metadata_dict.get("publisher", ""),
+                    "access_status": metadata.get("access", {}).get("status", ""),
+                    "languages": metadata_dict.get("languages", []),
+                    "subjects": metadata_dict.get("subjects", []),
+                    "licenses": metadata_dict.get("rights", []),
+                    "funders": metadata_dict.get("funding", {}).get("funder", []),
+                    "journal_title": (
+                        metadata.get("custom_fields", {}).get(
+                            "journal:journal.title.keyword", ""
+                        )
+                    ),
+                }
             )
-            enriched_event["access_rights"] = metadata.get("access", {}).get(
-                "status", ""
-            )
 
-            # Add languages
-            languages = metadata.get("metadata", {}).get("languages", [])
-            enriched_event["languages"] = [
-                {
-                    "id": lang.get("id", ""),
-                    "title": lang.get("title", {}).get("en", ""),
-                }
-                for lang in languages
-            ]
-
-            # Add subjects
-            subjects = metadata.get("metadata", {}).get("subjects", [])
-            enriched_event["subjects"] = [
-                {
-                    "id": subject.get("id", ""),
-                    "title": subject.get("subject", ""),
-                }
-                for subject in subjects
-            ]
-
-            # Add licenses
-            rights = metadata.get("metadata", {}).get("rights", [])
-            enriched_event["licenses"] = [
-                {
-                    "id": right.get("id", ""),
-                    "title": right.get("title", {}).get("en", ""),
-                }
-                for right in rights
-            ]
-
-            # Add funders
-            funders = metadata.get("metadata", {}).get("funding", {}).get("funder", [])
-            enriched_event["funders"] = [
-                {
-                    "id": funder.get("id", ""),
-                    "title": funder.get("title", {}).get("en", ""),
-                }
-                for funder in funders
-            ]
-
-            # Add affiliations
             affiliations = []
             for contributor_type in ["creators", "contributors"]:
-                contributors = metadata.get("metadata", {}).get(contributor_type, [])
-                for contributor in contributors:
+                for contributor in metadata_dict.get(contributor_type, []):
                     if contributor.get("affiliations"):
-                        for affiliation in contributor.get("affiliations", []):
-                            affiliations.append(
-                                {
-                                    "id": affiliation.get("id", ""),
-                                    "name": affiliation.get("name", ""),
-                                    "identifiers": affiliation.get("identifiers", []),
-                                }
-                            )
+                        affiliations.extend(contributor["affiliations"])
             enriched_event["affiliations"] = affiliations
-
-            # Add periodical
-            if "custom_fields" in metadata:
-                enriched_event["periodical"] = metadata["custom_fields"].get(
-                    "journal:journal.title.keyword", ""
-                )
 
         return enriched_event
 
-    def process_monthly_index(
+    def _get_active_communities_for_event(
+        self, communities: List[Tuple[str, str]], event_timestamp: str, metadata: Dict
+    ) -> List[str]:
+        """Get all communities that were active at the time of the event.
+
+        This method determines which communities should be included for an event
+        based on the event timestamp and pre-calculated effective dates.
+
+        Args:
+            communities: List of (community_id, effective_date) tuples
+            event_timestamp: The timestamp of the usage event
+            metadata: Record metadata including creation date
+
+        Returns:
+            List of community IDs that were active at the event time
+        """
+        if not communities:
+            return []
+
+        try:
+            event_time = arrow.get(event_timestamp)
+
+            # Find all communities that were active at the time of the event
+            active_communities = []
+            for community_id, effective_date in communities:
+                # Use the pre-calculated effective date
+                effective_time = arrow.get(effective_date)
+                if event_time >= effective_time:
+                    active_communities.append(community_id)
+
+            return active_communities
+
+        except Exception as e:
+            current_app.logger.warning(
+                f"Error getting active communities for event: {e}, "
+                f"returning all communities"
+            )
+            return [c for c, _ in communities]
+
+    def process_monthly_index_batch(
         self,
         event_type: str,
         source_index: str,
@@ -529,10 +750,26 @@ class EventReindexingService:
         last_processed_id: Optional[str] = None,
     ) -> Tuple[int, Optional[str], bool]:
         """
-        Process a monthly index for reindexing.
+        Process a single batch of events from a monthly event index.
+
+        Processes one batch of events from the monthly index, returning after
+        each batch and keeping track of the progress with a bookmark and the
+        last processed event ID.
+
+        Args:
+            event_type: The type of event (view or download)
+            source_index: The source monthly index name
+            target_index: The target enriched index name
+            month: The month being migrated (YYYY-MM format)
+            last_processed_id: The last processed event ID
 
         Returns:
             Tuple of (processed_count, last_event_id, should_continue)
+
+        Raises:
+            ConnectionTimeout: If the connection to OpenSearch times out
+            ConnectionError: If there is a connection error to OpenSearch
+            RequestError: If there is a request error to OpenSearch
         """
         try:
             # Check health conditions
@@ -541,7 +778,6 @@ class EventReindexingService:
                 current_app.logger.warning(f"Health check failed: {reason}")
                 return 0, last_processed_id, False
 
-            # Build search query
             search = Search(using=self.client, index=source_index)
             search = search.extra(size=self.batch_size)
             search = search.sort("_id")
@@ -549,7 +785,6 @@ class EventReindexingService:
             if last_processed_id:
                 search = search.extra(search_after=[last_processed_id])
 
-            # Execute search
             response = search.execute()
             hits = response.hits.hits
 
@@ -563,53 +798,16 @@ class EventReindexingService:
                 f"Processing {len(hits)} events for {event_type}-{month}"
             )
 
-            # Extract record IDs
-            record_ids = list(set(hit["_source"]["recid"] for hit in hits))
+            success, error_msg = self._process_and_index_events_batch(
+                hits, target_index, "events"
+            )
+            if not success:
+                return 0, last_processed_id, False
 
-            # Fetch metadata and community membership
-            metadata = self.get_metadata_for_records(record_ids)
-            community_membership = self.get_community_membership(record_ids)
-
-            # Enrich events
-            enriched_docs = []
-            for hit in hits:
-                event = hit["_source"]
-                record_id = event["recid"]
-
-                # Get metadata and communities for this record
-                record_metadata = metadata.get(record_id, {})
-                record_communities = community_membership.get(record_id, [])
-
-                # Enrich the event
-                enriched_event = self.enrich_event(
-                    event, record_metadata, record_communities
-                )
-
-                # Create document for bulk indexing
-                enriched_docs.append(
-                    {
-                        "_index": target_index,
-                        "_source": enriched_event,
-                    }
-                )
-
-            # Bulk index enriched events
-            if enriched_docs:
-                success, errors = bulk(self.client, enriched_docs, stats_only=False)
-                if errors:
-                    current_app.logger.error(f"Bulk indexing errors: {errors}")
-                    return 0, last_processed_id, False
-
-                current_app.logger.info(
-                    f"Successfully indexed {len(enriched_docs)} enriched events"
-                )
-
-            # Update bookmark
             last_event_id = hits[-1]["_id"]
-            self.set_reindexing_bookmark(event_type, month, last_event_id)
-
-            # Force garbage collection
-            gc.collect()
+            self.bookmark_api.set_bookmark(
+                f"{event_type}-{month}-reindexing", last_event_id
+            )
 
             return len(hits), last_event_id, True
 
@@ -626,6 +824,7 @@ class EventReindexingService:
         source_index: str,
         month: str,
         max_batches: Optional[int] = None,
+        delete_old_indices: bool = False,
     ) -> Dict[str, Any]:
         """
         Migrate a single monthly index to enriched format.
@@ -635,6 +834,7 @@ class EventReindexingService:
             source_index: The source monthly index name
             month: The month being migrated (YYYY-MM format)
             max_batches: Maximum number of batches to process
+            delete_old_indices: Whether to delete old indices after migration
 
         Returns:
             Dictionary with migration results and statistics.
@@ -644,6 +844,7 @@ class EventReindexingService:
             "event_type": event_type,
             "source_index": source_index,
             "processed": 0,
+            "interrupted": False,
             "errors": 0,
             "batches": 0,
             "completed": False,
@@ -658,7 +859,10 @@ class EventReindexingService:
             results["target_index"] = target_index
 
             # Step 2: Migrate data
-            last_processed_id = self.get_reindexing_bookmark(event_type, month)
+            bookmark = self.bookmark_api.get_bookmark(
+                f"{event_type}-{month}-reindexing"
+            )
+            last_processed_id = str(bookmark) if bookmark else None
             if last_processed_id:
                 current_app.logger.info(f"Resuming from bookmark: {last_processed_id}")
 
@@ -675,7 +879,7 @@ class EventReindexingService:
 
                 # Process batch
                 processed_count, last_id, continue_processing = (
-                    self.process_monthly_index(
+                    self.process_monthly_index_batch(
                         event_type, source_index, target_index, month, last_processed_id
                     )
                 )
@@ -693,7 +897,25 @@ class EventReindexingService:
                 # Small delay to prevent overwhelming the system
                 time.sleep(0.1)
 
-            # Step 3: Validate the migrated data
+            if should_continue:
+                reason = (
+                    "max_batches limit"
+                    if max_batches and batch_count >= max_batches
+                    else "incomplete"
+                )
+                current_app.logger.info(
+                    f"Migration interrupted ({reason}) for {event_type}-{month}. "
+                    f"Processed {results['processed']} records in "
+                    f"{batch_count} batches. "
+                    f"Last processed ID: {last_processed_id}"
+                )
+                results["completed"] = False
+                results["interrupted"] = True
+                results["last_processed_id"] = last_processed_id
+                results["batches_processed"] = batch_count
+                return results
+
+            # Step 3: Validate the migrated data (only if migration completed)
             if not self.validate_enriched_data(source_index, target_index):
                 current_app.logger.error(f"Validation failed for {event_type}-{month}")
                 results["completed"] = False
@@ -707,7 +929,7 @@ class EventReindexingService:
                 results["completed"] = False
                 return results
 
-            # Step 5: Handle current month write alias
+            # Step 5: Set up write alias for current month
             is_current_month = self.is_current_month_index(source_index)
             if is_current_month:
                 if not self.setup_write_alias_for_current_month(
@@ -736,15 +958,19 @@ class EventReindexingService:
                         results["completed"] = False
                         return results
 
-            # Step 6: Delete old index (only if not current month or after
-            # write alias is set)
-            if not is_current_month:
+            # Step 6: Delete old index (if enabled)
+            # Safe to delete now that aliases are updated and any new records
+            # have been migrated
+            if delete_old_indices:
                 if not self.delete_old_index(source_index):
-                    msg = "Failed to delete old index %s"
                     current_app.logger.warning(
-                        msg,
-                        source_index,
+                        f"Failed to delete old index {source_index}"
                     )
+            else:
+                current_app.logger.info(
+                    f"Skipping deletion of old index {source_index} "
+                    f"(delete_old_indices=False)"
+                )
 
             results["completed"] = True
             current_app.logger.info(
@@ -757,86 +983,141 @@ class EventReindexingService:
 
         return results
 
-    def update_and_verify_templates(self):
-        """Update and verify the enriched event index templates before reindexing."""
-        # Template file paths
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        view_template_path = os.path.join(
-            base_dir,
-            "search_indices/search_templates/stats_events_record_view_enriched/os-v2/"
-            "stats-events-record-view-enriched-v1.0.0.json",
-        )
-        download_template_path = os.path.join(
-            base_dir,
-            "search_indices/search_templates/stats_events_file_download_enriched/os-v2/"
-            "stats-events-file-download-enriched-v1.0.0.json",
-        )
-        # Template names (must match invenio-stats exactly)
-        view_template_name = "stats_events_record_view"
-        download_template_name = "stats_events_file_download"
-        # Patterns (must match existing invenio-stats patterns exactly)
-        view_pattern = "__SEARCH_INDEX_PREFIX__events-stats-record-view-*"
-        download_pattern = "__SEARCH_INDEX_PREFIX__events-stats-file-download-*"
-        # Aliases (must match existing invenio-stats aliases exactly)
-        view_alias = "__SEARCH_INDEX_PREFIX__events-stats-record-view"
-        download_alias = "__SEARCH_INDEX_PREFIX__events-stats-file-download"
-        # Fields to check
-        required_fields = [
-            "community_id",
-            "resource_type",
-            "access_rights",
-            "publisher",
-            "languages",
-            "subjects",
-            "licenses",
-            "affiliations",
-            "funders",
-            "periodical",
-        ]
-
-        # Helper to load, patch, and update a template
-        def update_template(template_path, template_name, pattern, alias):
-            with open(template_path, "r") as f:
-                template = json.load(f)
-            # Patch index_patterns to match existing invenio-stats patterns
-            template["index_patterns"] = [pattern]
-            # Patch aliases to match existing invenio-stats aliases
-            template["template"]["aliases"] = {alias: {}}
-            # Patch any __SEARCH_INDEX_PREFIX__ (if present)
-            template = json.loads(
-                json.dumps(template).replace("__SEARCH_INDEX_PREFIX__", "")
-            )
-            # Update template
-            self.client.indices.put_index_template(name=template_name, body=template)
-            # Fetch and verify
-            result = self.client.indices.get_index_template(name=template_name)
-            mappings = result["index_templates"][0]["index_template"]["template"][
-                "mappings"
-            ]
-            for field in required_fields:
-                if field not in mappings.get("properties", {}):
-                    raise RuntimeError(
-                        f"Field '{field}' missing in template '{template_name}' "
-                        f"after update."
+    def _get_templates_to_update(self, stats_events) -> list:
+        """
+        Check which templates need to be updated (do not exist or are missing
+        'community_ids'). Returns a list of template names to update.
+        """
+        templates_to_update = []
+        for event_type, event_config in stats_events.items():
+            template_path = event_config.get("templates")
+            if not template_path:
+                continue
+            template_name = template_path.split(".")[-1]
+            try:
+                template_exists = self.client.indices.get_index_template(
+                    name=template_name, ignore=[404]
+                )
+                if template_exists:
+                    mappings = template_exists["index_templates"][0]["index_template"][
+                        "template"
+                    ]["mappings"]
+                    properties = mappings.get("properties", {})
+                    if "community_ids" in properties:
+                        current_app.logger.info(
+                            f"Template {template_name} already has enriched fields - "
+                            f"skipping update"
+                        )
+                        continue
+                    else:
+                        current_app.logger.info(
+                            f"Template {template_name} exists but needs enrichment - "
+                            f"will update"
+                        )
+                        templates_to_update.append(template_name)
+                else:
+                    current_app.logger.info(
+                        f"Template {template_name} does not exist - will create"
                     )
+                    templates_to_update.append(template_name)
+            except Exception as e:
+                current_app.logger.warning(
+                    f"Could not check template {template_name}: {e} - "
+                    f"will attempt update"
+                )
+                templates_to_update.append(template_name)
+        return templates_to_update
 
-        # Update both templates
-        update_template(
-            view_template_path, view_template_name, view_pattern, view_alias
-        )
-        update_template(
-            download_template_path,
-            download_template_name,
-            download_pattern,
-            download_alias,
-        )
-        current_app.logger.info("Updated and verified enriched event index templates.")
+    def update_and_verify_templates(self) -> bool:
+        """Update and verify the enriched event index templates before reindexing.
+
+        Returns:
+            True if templates were successfully updated or already up-to-date,
+            False otherwise.
+        """
+        stats_events = current_app.config["STATS_EVENTS"]
+        templates = {}
+
+        templates_to_update = self._get_templates_to_update(stats_events)
+
+        if not templates_to_update:
+            current_app.logger.info(
+                "All templates are already up-to-date with enriched fields"
+            )
+            return True
+
+        # Register and process templates that need updating
+        templates = {}
+        for event_type, event_config in stats_events.items():
+            template_path = event_config.get("templates", "")
+            template_name = template_path.split(".")[-1]
+            if template_name in templates_to_update:
+                try:
+                    result = current_search.register_templates(template_path)
+                    if isinstance(result, dict):
+                        for index_name, index_template in result.items():
+                            current_app.logger.info(
+                                f"Registered template for index: {index_name}"
+                            )
+                            templates[index_name] = index_template
+                    else:
+                        current_app.logger.error(
+                            f"Unexpected result from register_templates: {result}"
+                            f"Cannot proceed with reindexing."
+                        )
+                        return False
+                except Exception as e:
+                    current_app.logger.error(
+                        f"Failed to register index template {template_path}: {e}"
+                        f"Cannot proceed with reindexing."
+                    )
+                    return False
+
+        index_template_count = 0
+        failed_templates = []
+        for index_name, index_template in templates.items():
+            try:
+                current_search._put_template(
+                    index_name,
+                    index_template,
+                    current_search_client.indices.put_index_template,
+                    ignore=None,  # Don't ignore errors - update existing templates
+                )
+                index_template_count += 1
+            except Exception as e:
+                current_app.logger.error(f"Failed to put template {index_name}: {e}")
+                failed_templates.append(index_name)
+
+        if failed_templates:
+            current_app.logger.error(
+                f"Failed to update templates: {failed_templates}. "
+                f"Cannot proceed with reindexing."
+            )
+            return False
+        elif index_template_count == 0:
+            current_app.logger.error(
+                "No enriched view/download event index templates were put to OpenSearch"
+            )
+            return False
+        else:
+            current_app.logger.info(
+                f"Successfully put {index_template_count} enriched view/download "
+                f"event index templates to OpenSearch"
+            )
+
+        return True
 
     def reindex_events(
-        self, event_types: Optional[List[str]] = None, max_batches: Optional[int] = None
+        self,
+        event_types: Optional[List[str]] = None,
+        max_batches: Optional[int] = None,
+        delete_old_indices: bool = False,
     ) -> Dict[str, Any]:
         """
         Reindex events with enriched metadata for all monthly indices.
+
+        Begins by verifying and (if necessary) updating the enriched view/download
+        event index templates before reindexing.
 
         Args:
             event_types: List of event types to process. If None, process all.
@@ -846,11 +1127,6 @@ class EventReindexingService:
         Returns:
             Dictionary with reindexing results and statistics.
         """
-        # Update and verify templates before starting
-        self.update_and_verify_templates()
-        if event_types is None:
-            event_types = ["view", "download"]
-
         results = {
             "total_processed": 0,
             "total_errors": 0,
@@ -858,6 +1134,19 @@ class EventReindexingService:
             "health_issues": [],
             "completed": False,
         }
+
+        if not self.update_and_verify_templates():
+            current_app.logger.error(
+                "Template update failed - stopping reindexing process"
+            )
+            results["total_errors"] = 1
+            results["health_issues"] = ["Template update failed"]
+            results["completed"] = False
+            results["error"] = "Template update failed - cannot proceed with reindexing"
+            return results
+
+        if event_types is None:
+            event_types = ["view", "download"]
 
         current_app.logger.info(f"Starting reindexing for event types: {event_types}")
 
@@ -868,7 +1157,6 @@ class EventReindexingService:
 
             current_app.logger.info(f"Processing {event_type} events")
 
-            # Get all monthly indices for this event type
             monthly_indices = self.get_monthly_indices(event_type)
             if not monthly_indices:
                 current_app.logger.warning(f"No monthly indices found for {event_type}")
@@ -877,31 +1165,61 @@ class EventReindexingService:
             event_results = {"processed": 0, "errors": 0, "months": {}}
 
             for source_index in monthly_indices:
-                # Extract month from index name
-                month = source_index.split("-")[-1]  # Get YYYY-MM part
-
+                year, month = source_index.split("-")[-2:]
                 current_app.logger.info(
-                    f"Processing {event_type} events for month {month}"
+                    f"Processing {event_type} events for {year}-{month}"
                 )
 
                 month_results = self.migrate_monthly_index(
-                    event_type, source_index, month, max_batches
+                    event_type,
+                    source_index,
+                    f"{year}-{month}",
+                    max_batches,
+                    delete_old_indices,
                 )
 
-                event_results["months"][month] = month_results
+                event_results["months"][f"{year}-{month}"] = month_results
                 event_results["processed"] += month_results.get("processed", 0)
                 event_results["errors"] += month_results.get("errors", 0)
 
-                if month_results.get("completed", False):
-                    results["total_processed"] += month_results.get("processed", 0)
-                else:
-                    results["total_errors"] += 1
+                # Always add processed count
+                results["total_processed"] += month_results.get("processed", 0)
+
+                # Track incomplete migrations (both interrupted and failed)
+                if not month_results.get("completed", False):
+                    if "interrupted_migrations" not in results:
+                        results["interrupted_migrations"] = []
+                    results["interrupted_migrations"].append(
+                        {
+                            "event_type": event_type,
+                            "month": f"{year}-{month}",
+                            "processed": month_results.get("processed", 0),
+                            "batches": month_results.get("batches_processed", 0),
+                            "last_processed_id": month_results.get("last_processed_id"),
+                            "source_index": month_results.get("source_index"),
+                            "target_index": month_results.get("target_index"),
+                            "reason": (
+                                "interrupted"
+                                if month_results.get("interrupted", False)
+                                else "failed"
+                            ),
+                        }
+                    )
 
             results["event_types"][event_type] = event_results
             current_app.logger.info(f"Completed {event_type}: {event_results}")
 
-        results["completed"] = True
-        current_app.logger.info(f"Reindexing completed: {results}")
+        # Check if any migrations were incomplete
+        if results.get("interrupted_migrations"):
+            results["completed"] = False
+            current_app.logger.warning(
+                f"Reindexing completed with {len(results['interrupted_migrations'])} "
+                f"incomplete migrations. Use --max-batches to limit processing "
+                f"and resume later."
+            )
+        else:
+            results["completed"] = True
+            current_app.logger.info(f"Reindexing completed successfully: {results}")
         return results
 
     def estimate_total_events(self) -> Dict[str, int]:
@@ -948,14 +1266,16 @@ class EventReindexingService:
 
             for index in monthly_indices:
                 month = index.split("-")[-1]
-                bookmark = self.get_reindexing_bookmark(event_type, month)
+                bookmark = self.bookmark_api.get_bookmark(
+                    f"{event_type}-{month}-reindexing"
+                )
                 progress["bookmarks"][event_type][month] = bookmark
 
         is_healthy, reason = self.check_health_conditions()
         progress["health"] = {
             "is_healthy": is_healthy,
             "reason": reason,
-            "memory_usage": self.get_memory_usage(),
+            "memory_usage": psutil.virtual_memory().percent,
         }
 
         return progress

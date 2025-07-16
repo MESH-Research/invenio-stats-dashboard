@@ -1,0 +1,271 @@
+{
+  "index_patterns": ["__SEARCH_INDEX_PREFIX__events-stats-file-download-*"],
+  "template": {
+    "settings": {
+      "index": {
+        "refresh_interval": "5s",
+        "number_of_shards": 1,
+        "number_of_replicas": 1
+      },
+      "analysis": {
+        "char_filter": {
+          "strip_special_chars": {
+            "type": "pattern_replace",
+            "pattern": "[\\p{Punct}\\p{S}]",
+            "replacement": ""
+          }
+        },
+        "analyzer": {
+          "accent_analyzer": {
+            "tokenizer": "standard",
+            "type": "custom",
+            "char_filter": ["strip_special_chars"],
+            "filter": ["lowercase", "asciifolding"]
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic_templates": [
+        {
+          "date_fields": {
+            "match_mapping_type": "date",
+            "mapping": {
+              "type": "date",
+              "format": "strict_date_hour_minute_second"
+            }
+          }
+        }
+      ],
+      "date_detection": false,
+      "dynamic": "strict",
+      "numeric_detection": false,
+      "properties": {
+        "timestamp": {
+          "type": "date",
+          "format": "strict_date_hour_minute_second"
+        },
+        "bucket_id": {
+          "type": "keyword"
+        },
+        "file_id": {
+          "type": "keyword"
+        },
+        "file_key": {
+          "type": "keyword"
+        },
+        "unique_id": {
+          "type": "keyword"
+        },
+        "country": {
+          "type": "keyword"
+        },
+        "visitor_id": {
+          "type": "keyword"
+        },
+        "is_machine": {
+          "type": "boolean"
+        },
+        "is_robot": {
+          "type": "boolean"
+        },
+        "unique_session_id": {
+          "type": "keyword"
+        },
+        "size": {
+          "type": "long"
+        },
+        "referrer": {
+          "type": "keyword"
+        },
+        "ip_address": {
+          "type": "keyword"
+        },
+        "user_agent": {
+          "type": "keyword"
+        },
+        "user_id": {
+          "type": "keyword"
+        },
+        "session_id": {
+          "type": "keyword"
+        },
+        "record_id": {
+          "type": "keyword"
+        },
+        "recid": {
+          "type": "keyword"
+        },
+        "parent_id": {
+          "type": "keyword"
+        },
+        "parent_recid": {
+          "type": "keyword"
+        },
+        "labels": {
+          "type": "keyword"
+        },
+        "via_api": {
+          "type": "boolean"
+        },
+        "community_ids": {
+          "type": "keyword"
+        },
+        "resource_type": {
+          "type": "object",
+          "properties": {
+            "@v": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "object",
+              "dynamic": "true"
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "keyword"
+                },
+                "subtype": {
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        },
+        "access_status": {
+          "type": "keyword"
+        },
+        "publisher": {
+          "type": "keyword"
+        },
+        "languages": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "subjects": {
+          "type": "nested",
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "keyword"
+            }
+          }
+        },
+        "rights": {
+          "type": "nested",
+          "properties": {
+            "@v": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "object",
+              "dynamic": "true"
+            },
+            "description": {
+              "type": "object",
+              "dynamic": "true"
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "keyword"
+                },
+                "scheme": {
+                  "type": "keyword"
+                }
+              }
+            },
+            "link": {
+              "type": "keyword",
+              "index": false
+            },
+            "icon": {
+              "type": "keyword",
+              "index": false
+            }
+          }
+        },
+        "affiliations": {
+          "type": "object",
+          "properties": {
+            "@v": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "text",
+              "analyzer": "accent_analyzer",
+              "search_analyzer": "accent_analyzer"
+            },
+            "identifiers": {
+              "properties": {
+                "identifier": {
+                  "type": "keyword"
+                },
+                "scheme": {
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        },
+        "funders": {
+          "type": "object",
+          "properties": {
+            "@v": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "text"
+            },
+            "identifiers": {
+              "properties": {
+                "identifier": {
+                  "type": "keyword"
+                },
+                "scheme": {
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        },
+        "journal_title": {
+          "type": "keyword"
+        },
+        "file_type": {
+          "type": "keyword"
+        },
+        "update_timestamp": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "aliases": {
+    "__SEARCH_INDEX_PREFIX__events-stats-file-download": {}
+  }
+}

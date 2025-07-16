@@ -6,7 +6,7 @@ from invenio_search.proxies import current_search_client
 from flask import current_app
 from invenio_cache import current_cache
 import uuid
-from .proxies import current_event_reindexing_service
+from .proxies import current_event_reindexing_service as reindexing_service
 from .exceptions import TaskLockAcquisitionError
 
 
@@ -60,11 +60,6 @@ CommunityStatsAggregationTask = {
             "community-usage-snapshot-agg",
         ),
     ),
-}
-
-EventReindexingTask = {
-    "task": "invenio_stats_dashboard.tasks.reindex_events_with_metadata",
-    "args": (),
 }
 
 
@@ -129,43 +124,41 @@ def _run_aggregation(aggregations, start_date, end_date, update_bookmark):
 
 
 @shared_task
-def reindex_events_with_metadata(
+def reindex_usage_events_with_metadata(
     event_types=None,
     max_batches=None,
     batch_size=None,
     max_memory_percent=None,
+    delete_old_indices=False,
 ):
     """
-    Reindex events with enriched metadata as a Celery task.
+    Reindex view and download events with enriched metadata as a Celery task.
 
     Args:
         event_types: List of event types to process. If None, process all.
         max_batches: Maximum number of batches to process. If None, process all.
         batch_size: Override default batch size. If None, use default.
         max_memory_percent: Override default memory limit. If None, use default.
+        delete_old_indices: Whether to delete old indices after migration.
 
     Returns:
         Dictionary with reindexing results and statistics.
     """
     current_app.logger.info("Starting event reindexing task")
 
-    # Use the proxy to get the reindexing service
-    reindexing_service = current_event_reindexing_service
-
-    # Override configuration if provided
     if batch_size is not None:
         reindexing_service.batch_size = batch_size
     if max_memory_percent is not None:
         reindexing_service.max_memory_percent = max_memory_percent
 
     try:
-        # Get initial progress estimate
         progress = reindexing_service.get_reindexing_progress()
         current_app.logger.info(f"Initial progress: {progress}")
 
-        # Start reindexing
         results = reindexing_service.reindex_events(
-            event_types=event_types, max_batches=max_batches
+            event_types=event_types,
+            max_batches=max_batches,
+            delete_old_indices=delete_old_indices,
         )
 
         current_app.logger.info(f"Reindexing task completed: {results}")
@@ -185,8 +178,9 @@ def reindex_events_with_metadata(
 def get_reindexing_progress():
     """Get current reindexing progress as a Celery task."""
     try:
-        reindexing_service = current_event_reindexing_service
-        progress = reindexing_service.get_reindexing_progress()
+        from .proxies import current_event_reindexing_service
+
+        progress = current_event_reindexing_service.get_reindexing_progress()
         return progress
     except Exception as e:
         current_app.logger.error(f"Failed to get reindexing progress: {e}")

@@ -2,6 +2,17 @@
 
 from invenio_i18n import gettext as _
 
+from invenio_rdm_records.resources.stats.event_builders import (
+    build_record_unique_id,
+)
+from invenio_stats.contrib.event_builders import build_file_unique_id
+from invenio_stats.processors import (
+    EventsIndexer,
+    anonymize_user,
+    flag_robots,
+    flag_machines,
+)
+
 from .aggregations import register_aggregations
 from .queries import (
     CommunityRecordDeltaResultsQuery,
@@ -474,6 +485,46 @@ COMMUNITY_STATS_QUERIES = {
         "params": {  # These are actually not used
             "index": "stats-community-records-delta",
             "doc_type": "community-record-delta-agg",
+        },
+    },
+}
+
+STATS_EVENTS = {
+    "file-download": {
+        "templates": (
+            "invenio_stats_dashboard.search_indices.search_templates.file_download"
+        ),
+        "event_builders": [
+            "invenio_stats_dashboard.event_builders.file_download_event_builder",
+            "invenio_rdm_records.resources.stats.check_if_via_api",
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                flag_robots,
+                flag_machines,
+                anonymize_user,
+                build_file_unique_id,
+            ],
+        },
+    },
+    "record-view": {
+        "templates": (
+            "invenio_stats_dashboard.search_indices.search_templates.record_view"
+        ),
+        "event_builders": [
+            "invenio_stats_dashboard.event_builders.record_view_event_builder",
+            "invenio_rdm_records.resources.stats.check_if_via_api",
+            "invenio_rdm_records.resources.stats.drop_if_via_api",
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                flag_robots,
+                flag_machines,
+                anonymize_user,
+                build_record_unique_id,
+            ],
         },
     },
 }

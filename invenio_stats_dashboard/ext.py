@@ -3,7 +3,7 @@
 from flask import Flask
 from flask_menu import current_menu
 from invenio_i18n import lazy_gettext as _
-from invenio_search.proxies import current_search
+from invenio_search.proxies import current_search, current_search_client
 
 from . import config
 from .components import (
@@ -17,70 +17,84 @@ from .service import CommunityStatsService, EventReindexingService
 def _ensure_templates_registered(app: Flask) -> None:
     """Ensure that all invenio_stats_dashboard templates are registered.
 
-    This function checks if the templates for our custom aggregations are
-    registered with OpenSearch. If they're not, it registers them. This is
-    necessary when the invenio_stats_dashboard package is added to an existing
-    instance that already has a search domain set up.
+    This function checks whether the templates for our custom aggregations are
+    registered with OpenSearch. If they're not, it registers them with
+    invenio_search and puts them to OpenSearch.
+
+    This is necessary when the invenio_stats_dashboard package is added to an
+    existing instance that already has a search domain set up, so the usual
+    method for registering the invenio_stats templates doesn't work.
     """
     try:
         aggregations = config.COMMUNITY_STATS_AGGREGATIONS
 
         missing_templates = []
+        templates = {}
 
-        for agg_name, agg_config in aggregations.items():
+        results = []
+        for _, agg_config in aggregations.items():
             template_path = agg_config.get("templates")
             if template_path:
                 try:
-                    app.logger.info(f"Registering template from path: {template_path}")
-                    current_search.register_templates(template_path)
+                    result = current_search.register_templates(template_path)
+                    results.append(result)
                 except Exception as e:
                     app.logger.warning(
-                        f"Failed to register template {template_path}: {e}"
+                        f"Failed to register index template {template_path}: {e}"
                     )
                     missing_templates.append(template_path)
 
-        # Then, put all registered index templates to OpenSearch
-        try:
-            app.logger.info("Putting all registered index templates to OpenSearch")
-
-            # Debug: Check what index templates are registered
-            app.logger.info(
-                f"Registered index templates: "
-                f"{list(current_search.index_templates.keys())}"
-            )
-
-            # Put index templates (this is where our KCWorks templates are)
-            put_index_results = current_search.put_index_templates()
-            app.logger.info(f"put_index_templates() returned: {put_index_results}")
-
-            index_template_count = 0
-            for template_name, response in put_index_results:
-                app.logger.info(
-                    f"Successfully registered index template: {template_name}"
+        for result in results:
+            if isinstance(result, dict):
+                for index_name, index_template in result.items():
+                    app.logger.info(f"Registered template for index: {index_name}")
+                    templates[index_name] = index_template
+            else:
+                app.logger.warning(
+                    f"Unexpected result type from register_templates: {type(result)}"
                 )
-                index_template_count += 1
+                app.logger.warning(f"Result content: {result}")
+
+        try:
+            index_template_count = 0
+            for index_name, index_template in templates.items():
+                try:
+                    current_search._put_template(
+                        index_name,
+                        index_template,
+                        current_search_client.indices.put_index_template,
+                        ignore=[400, 409],
+                    )
+                    index_template_count += 1
+                except Exception as e:
+                    app.logger.warning(f"Failed to put template {index_name}: {e}")
 
             if index_template_count == 0:
-                app.logger.warning("No index templates were put to OpenSearch")
+                app.logger.warning(
+                    "No invenio_stats_dashboard index templates were put to OpenSearch"
+                )
             else:
                 app.logger.info(
                     f"Successfully put {index_template_count} index templates "
                     f"to OpenSearch"
                 )
 
-            app.logger.info("All invenio_stats_dashboard templates are registered")
+            app.logger.info(
+                "All invenio_stats_dashboard index templates are registered"
+            )
         except Exception as e:
             app.logger.error(f"Failed to put index templates to OpenSearch: {e}")
 
-        # Log warnings for any templates that failed to register
         if missing_templates:
             app.logger.warning(
-                f"Failed to register {len(missing_templates)} templates: "
-                f"{missing_templates}"
+                f"Failed to register {len(missing_templates)} index templates for "
+                f"invenio_stats_dashboard: {missing_templates}"
             )
 
     except Exception as e:
-        app.logger.error(f"Error during template registration check: {e}")
+        app.logger.error(
+            f"Error during invenio_stats_dashboard index template check: {e}"
+        )
 
 
 class InvenioStatsDashboard:
@@ -107,6 +121,11 @@ class InvenioStatsDashboard:
         app.config["CELERY_BEAT_SCHEDULE"] = {
             **existing_schedule,
             **config.COMMUNITY_STATS_CELERYBEAT_SCHEDULE,
+        }
+        existing_events = app.config.get("STATS_EVENTS", {})
+        app.config["STATS_EVENTS"] = {
+            **existing_events,
+            **config.STATS_EVENTS,
         }
         existing_aggregations = app.config.get("STATS_AGGREGATIONS", {})
         app.config["STATS_AGGREGATIONS"] = {
