@@ -24,8 +24,24 @@ const StatsMap = ({ title, height = 500, minHeight = 400, zoom = 1.2, center = [
     // Initialize the chart
     // const chart = echarts.init(chartRef.current);
 
+  // Helper function to extract top countries from the new data structure
+  const extractTopCountries = () => {
+    // Try to get top countries from usage snapshot data
+    if (stats.usageSnapshotData && stats.usageSnapshotData.byCountries) {
+      const countriesData = stats.usageSnapshotData.byCountries;
+      return Object.entries(countriesData).map(([id, data]) => ({
+        name: data.views[2] || id, // Use label if available, otherwise use id
+        count: data.views[1] || 0, // Use the count value
+        id: id,
+      }));
+    }
+
+    // Fallback to empty array if no data available
+    return [];
+  };
+
   // Prepare the data with proper country name mapping
-  const mapData = stats.topCountries.map(item => {
+  const mapData = extractTopCountries().map(item => {
     const countryName = item.name?.trim();
     if (!countryName) return null;
 
@@ -37,7 +53,7 @@ const StatsMap = ({ title, height = 500, minHeight = 400, zoom = 1.2, center = [
       value: value,
       originalName: countryName
     };
-  });
+  }).filter(Boolean); // Remove null values
   console.log(mapData);
 
   // Calculate max value for the visual map

@@ -15,7 +15,22 @@ const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", 
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.traffic, dateRange);
+  // Helper function to extract traffic data from the new structure
+  const extractTrafficData = () => {
+    if (!stats.usageDeltaData || !stats.usageDeltaData.global || !stats.usageDeltaData.global.dataVolume) {
+      return [];
+    }
+
+    const [date, value] = stats.usageDeltaData.global.dataVolume;
+    return [{
+      date: date,
+      value: value,
+      resourceTypes: [],
+      subjectHeadings: [],
+    }];
+  };
+
+  const filteredData = filterByDateRange(extractTrafficData(), dateRange);
   const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
 
   return (

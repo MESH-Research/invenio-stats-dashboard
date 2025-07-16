@@ -15,7 +15,22 @@ const SingleStatUploaders = ({ title = i18next.t("Uploaders"), icon = "users", c
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.uploaders, dateRange);
+  // Helper function to extract uploaders data from the new structure
+  const extractUploadersData = () => {
+    if (!stats.recordDeltaDataAdded || !stats.recordDeltaDataAdded.global || !stats.recordDeltaDataAdded.global.uploaders) {
+      return [];
+    }
+
+    const [date, value] = stats.recordDeltaDataAdded.global.uploaders;
+    return [{
+      date: date,
+      value: value,
+      resourceTypes: [],
+      subjectHeadings: [],
+    }];
+  };
+
+  const filteredData = filterByDateRange(extractUploadersData(), dateRange);
   const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
 
   return (

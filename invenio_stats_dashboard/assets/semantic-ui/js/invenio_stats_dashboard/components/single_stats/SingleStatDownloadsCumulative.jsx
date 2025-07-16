@@ -15,11 +15,39 @@ const SingleStatDownloadsCumulative = ({ title = i18next.t("Cumulative Downloads
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.downloads, dateRange);
+  // Helper function to extract cumulative downloads data from the new structure
+  const extractCumulativeDownloadsData = () => {
+    if (!stats.usageSnapshotData || !stats.usageSnapshotData.global || !stats.usageSnapshotData.global.downloads) {
+      return [];
+    }
 
-  // Get the last value in the date range
-  const value = filteredData?.length > 0
-    ? filteredData[filteredData.length - 1].value
+    // Handle array of data points format: [[date, value], [date, value], ...]
+    if (Array.isArray(stats.usageSnapshotData.global.downloads) && stats.usageSnapshotData.global.downloads.length > 0) {
+      return stats.usageSnapshotData.global.downloads.map(([date, value]) => ({
+        date: date,
+        value: value,
+        resourceTypes: [],
+        subjectHeadings: [],
+      }));
+    }
+
+    return [];
+  };
+
+  const filteredData = filterByDateRange(extractCumulativeDownloadsData(), dateRange);
+
+  // Only sort if the last item's date is not the end of the filter dateRange
+  let dataToUse = filteredData;
+  if (filteredData.length > 0 && dateRange) {
+    const lastItemDate = new Date(filteredData[filteredData.length - 1].date);
+    const endDate = new Date(dateRange.end);
+    if (lastItemDate.getTime() !== endDate.getTime()) {
+      dataToUse = filteredData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+  }
+
+  const value = dataToUse?.length > 0
+    ? dataToUse[dataToUse.length - 1].value
     : 0;
 
   return (

@@ -17,19 +17,45 @@ const AccessRightsMultiDisplay = ({
 }) => {
   const { stats, dateRange } = useStatsDashboard();
 
+  // Helper function to extract access rights from the new data structure
+  const extractAccessRights = () => {
+    // Try to get access rights from record snapshot data
+    if (stats.recordSnapshotDataAdded && stats.recordSnapshotDataAdded.accessRights) {
+      const accessRightsData = stats.recordSnapshotDataAdded.accessRights;
+      return Object.entries(accessRightsData).map(([id, data]) => ({
+        name: data.records[2] || id, // Use label if available, otherwise use id
+        count: data.records[1] || 0, // Use the count value
+        percentage: 0, // Calculate percentage later
+        id: id,
+      }));
+    }
+
+    // Fallback to empty array if no data available
+    return [];
+  };
+
+  const rawAccessRights = extractAccessRights();
+
+  // Calculate percentages
+  const totalCount = rawAccessRights.reduce((sum, right) => sum + right.count, 0);
+  const accessRightsWithPercentages = rawAccessRights.map(right => ({
+    ...right,
+    percentage: totalCount > 0 ? Math.round((right.count / totalCount) * 100) : 0,
+  }));
+
   // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.accessRights?.slice(0, pageSize).map((right, index) => ({
+  const transformedData = accessRightsWithPercentages.slice(0, pageSize).map((right, index) => ({
     name: right.name,
     value: right.count,
     percentage: right.percentage,
-    id: right.name.toLowerCase().replace(/\s+/g, '-'),
-    link: `/search?q=metadata.access_right.id:${right.name.toLowerCase().replace(/\s+/g, '-')}`,
+    id: right.id,
+    link: `/search?q=metadata.access_right.id:${right.id}`,
     itemStyle: {
       color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
     }
-  })) || [];
+  }));
 
-  const remainingItems = stats.accessRights?.slice(pageSize) || [];
+  const remainingItems = accessRightsWithPercentages.slice(pageSize) || [];
   const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, right) => {
     acc.value += right.count;
     acc.percentage += right.percentage;

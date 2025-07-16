@@ -15,7 +15,22 @@ const SingleStatViews = ({ title = i18next.t("Views"), icon = "eye", compactThre
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.views, dateRange);
+  // Helper function to extract views data from the new structure
+  const extractViewsData = () => {
+    if (!stats.usageDeltaData || !stats.usageDeltaData.global || !stats.usageDeltaData.global.views) {
+      return [];
+    }
+
+    const [date, value] = stats.usageDeltaData.global.views;
+    return [{
+      date: date,
+      value: value,
+      resourceTypes: [],
+      subjectHeadings: [],
+    }];
+  };
+
+  const filteredData = filterByDateRange(extractViewsData(), dateRange);
   const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
 
   return (

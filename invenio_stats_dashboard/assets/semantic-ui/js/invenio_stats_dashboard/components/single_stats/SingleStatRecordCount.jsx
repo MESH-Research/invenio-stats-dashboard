@@ -15,7 +15,22 @@ const SingleStatRecordCount = ({ title = i18next.t("Records"), icon = "file", co
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.recordCount, dateRange);
+  // Helper function to extract record count data from the new structure
+  const extractRecordCountData = () => {
+    if (!stats.recordDeltaDataAdded || !stats.recordDeltaDataAdded.global || !stats.recordDeltaDataAdded.global.records) {
+      return [];
+    }
+
+    const [date, value] = stats.recordDeltaDataAdded.global.records;
+    return [{
+      date: date,
+      value: value,
+      resourceTypes: [],
+      subjectHeadings: [],
+    }];
+  };
+
+  const filteredData = filterByDateRange(extractRecordCountData(), dateRange);
   const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
 
   return (

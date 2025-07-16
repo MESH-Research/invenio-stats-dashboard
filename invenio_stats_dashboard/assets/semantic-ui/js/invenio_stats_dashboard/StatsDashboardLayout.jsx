@@ -21,6 +21,7 @@ import { GranularitySelector } from "./components/controls/GranularitySelector";
 import { ReportSelector } from "./components/controls/ReportSelector";
 import { StatsDashboardProvider } from "./context/StatsDashboardContext";
 import { statsApiClient } from "./api/api";
+import { transformApiData } from "./api/dataTransformer";
 import { DASHBOARD_TYPES } from "./constants";
 import PropTypes from "prop-types";
 
@@ -64,15 +65,49 @@ const StatsDashboardLayout = ({
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
   const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
   };
 
   useEffect(() => {
-    // Use custom getStatsParams if provided, otherwise use default behavior
-    const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType];
-    statsApiClient.getStats(...params).then(setStats);
+    let isMounted = true;
+
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Use custom getStatsParams if provided, otherwise use default behavior
+        const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType];
+        const rawStats = await statsApiClient.getStats(...params);
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          // Transform the raw API data using the dataTransformer
+          const transformedStats = transformApiData(rawStats);
+          setStats(transformedStats);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Error fetching stats:', err);
+          setError(err);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchStats();
+
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+    };
   }, [selectedTab, dateRange, community, dashboardType, getStatsParams]);
 
   const contextValue = {
@@ -88,6 +123,8 @@ const StatsDashboardLayout = ({
     setDisplaySeparately,
     setGranularity,
     stats,
+    isLoading,
+    error,
   };
 
   return (

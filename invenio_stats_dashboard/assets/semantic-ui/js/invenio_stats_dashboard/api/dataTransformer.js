@@ -1,920 +1,919 @@
 /**
- * Transform daily record delta and snapshot aggregation documents into the format expected by test data components.
+ * Transform daily record delta aggregation documents for display in the dashboard.
  *
  * @param {Array} deltaDocs - Array of daily record delta aggregation documents
- * @param {Array} snapshotDocs - Array of daily cumulative snapshot aggregation documents
+ *
+ * The returned data is an object containing the arrays of data points for each
+ * time series metric used by the dashboard components. The data points are
+ * in the shape of {
+ *  date,
+ *  readableDate,
+ *  global: {
+ *    records: [date, value, label],
+ *    parents: [date, value, label],
+ *    uploaders: [date, value, label],
+ *    fileCount: [date, value, label],
+ *    dataVolume: [date, value, label],
+ *  },
+ *  byFilePresence: {
+ *    withFiles: {
+ *      records: [date, value, label],
+ *      parents: [date, value, label],
+ *      files: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *    withoutFiles: {
+ *      records: [date, value, label],
+ *      parents: [date, value, label],
+ *    },
+ *  },
+ *  resourceTypes: {
+ *    id: [date, value, label],
+ *  },
+ *  accessRights: {
+ *    id: [date, value, label],
+ *  },
+ *  languages: {
+ *    id: [date, value, label],
+ *  },
+ *  affiliations: {
+ *    id: [date, value, label],
+ *  },
+ *  funders: {
+ *    id: [date, value, label],
+ *  },
+ *  subjects: {
+ *    id: [date, value, label],
+ *  },
+ *  publishers: {
+ *    id: [date, value, label],
+ *  },
+ *  periodicals: {
+ *    id: [date, value, label],
+ *  },
+ *  licenses: {
+ *    id: [date, value, label],
+ *  },
+ *  fileTypes: {
+ *    id: [date, value, label],
+ *  },
+ * }.
+ *
  * @returns {Object} Transformed data in the format expected by testStatsData
  */
-export const transformRecordDataToTestData = (deltaDocs, snapshotDocs) => {
-  // Initialize default return structure
-  const defaultReturn = {
-    recordCount: [],
-    recordCountAdded: [],
-    recordCountRemoved: [],
-    parentCount: [],
-    parentCountAdded: [],
-    parentCountRemoved: [],
-    uploaders: [],
-    dataVolume: [],
-    dataVolumeAdded: [],
-    dataVolumeRemoved: [],
-    dataVolumeByParents: [],
-    dataVolumeByParentsAdded: [],
-    dataVolumeByParentsRemoved: [],
-    fileCount: [],
-    fileCountAdded: [],
-    fileCountRemoved: [],
-    fileCountByParents: [],
-    fileCountByParentsAdded: [],
-    fileCountByParentsRemoved: [],
-    views: [],
-    downloads: [],
-    traffic: [],
-    cumulativeRecordCount: [],
-    cumulativeUploaders: [],
-    cumulativeDataVolume: [],
-    cumulativeViews: [],
-    cumulativeDownloads: [],
-    cumulativeTraffic: [],
-    licenses: [],
-    affiliations: [],
-    funders: [],
-    use_binary_filesize: true,
-    topCountries: [],
-    accessRights: [],
-    resourceTypes: [],
-    referrerDomains: [],
-    mostDownloadedRecords: [],
-    mostViewedRecords: []
-  };
+const transformRecordDeltaData = (deltaDocs) => {
 
-  if ((!deltaDocs || !Array.isArray(deltaDocs)) && (!snapshotDocs || !Array.isArray(snapshotDocs))) {
-    return defaultReturn;
-  }
-
-  // Transform daily deltas into time series data
-  const recordCount = [];
-  const recordCountAdded = [];
-  const recordCountRemoved = [];
-  const parentCount = [];
-  const parentCountAdded = [];
-  const parentCountRemoved = [];
-  const uploaders = [];
-  const dataVolume = [];
-  const dataVolumeAdded = [];
-  const dataVolumeRemoved = [];
-  const dataVolumeByParents = [];
-  const dataVolumeByParentsAdded = [];
-  const dataVolumeByParentsRemoved = [];
-  const fileCount = [];
-  const fileCountAdded = [];
-  const fileCountRemoved = [];
-  const fileCountByParents = [];
-  const fileCountByParentsAdded = [];
-  const fileCountByParentsRemoved = [];
-  const views = [];
-  const downloads = [];
-  const traffic = [];
-
-  // Transform daily snapshots into cumulative time series data
-  const cumulativeRecordCount = [];
-  const cumulativeUploaders = [];
-  const cumulativeDataVolume = [];
-  const cumulativeViews = [];
-  const cumulativeDownloads = [];
-  const cumulativeTraffic = [];
-
-  // Aggregate subcounts across all days
-  const subcountAggregates = {
-    licenses: {},
+  const deltaData = {
+    global: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    byFilePresence: {
+      withFiles: {
+        records: [],
+        parents: [],
+        files: [],
+        dataVolume: [],
+      },
+      withoutFiles: {
+        records: [],
+        parents: [],
+      },
+    },
+    accessRights: {},
+    languages: {},
     affiliations: {},
     funders: {},
-    accessRights: {},
-    resourceTypes: {},
-    referrerDomains: {},
-    topCountries: {},
-    languages: {},
     subjects: {},
     publishers: {},
     periodicals: {},
-    userAgents: {},
-    fileTypes: {}
+    licenses: {},
+    fileTypes: {},
+    resourceTypes: {},
   };
 
-  // Process delta documents
+
+  const subcountTypes = {
+    'by_resource_type': 'resourceTypes',
+    'by_access_rights': 'accessRights',
+    'by_language': 'languages',
+    'by_affiliation_creator': 'affiliations',
+    'by_affiliation_contributor': 'affiliations',
+    'by_funder': 'funders',
+    'by_subject': 'subjects',
+    'by_publisher': 'publishers',
+    'by_periodical': 'periodicals',
+    'by_license': 'licenses',
+    'by_file_type': 'fileTypes'
+  };
+
+
+  const getNetCount = (item) => {
+    const added = item.added.metadata_only + item.added.with_files;
+    const removed = item.removed.metadata_only + item.removed.with_files;
+    return added - removed;
+  };
+
+  const getNetFileCount = (item) => {
+    const added = item.added.file_count;
+    const removed = item.removed.file_count;
+    return added - removed;
+  };
+
+  const getNetDataVolume = (item) => {
+    const added = item.added.data_volume;
+    const removed = item.removed.data_volume;
+    return added - removed;
+  };
+
   if (deltaDocs && Array.isArray(deltaDocs)) {
     deltaDocs.forEach(doc => {
       const source = doc._source;
-      const date = source.period_start.split('T')[0]; // Extract date part
+      const date = source.period_start.split('T')[0];
+      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      // Calculate added and removed values separately for records
-      const recordsAdded = source.records.added.metadata_only + source.records.added.with_files;
-      const recordsRemoved = source.records.removed.metadata_only + source.records.removed.with_files;
-      const netRecords = recordsAdded - recordsRemoved;
+      // Accumulate global data points
+      deltaData.global.records.push([date, getNetCount(source.records)]);
+      deltaData.global.parents.push([date, getNetCount(source.parents)]);
+      deltaData.global.uploaders.push([date, source.uploaders]);
+      deltaData.global.fileCount.push([date, getNetFileCount(source.files)]);
+      deltaData.global.dataVolume.push([date, getNetDataVolume(source.files)]);
 
-      // Calculate added and removed values separately for parents
-      const parentsAdded = source.parents.added.metadata_only + source.parents.added.with_files;
-      const parentsRemoved = source.parents.removed.metadata_only + source.parents.removed.with_files;
-      const netParents = parentsAdded - parentsRemoved;
+      // Accumulate byFilePresence data points
+      deltaData.byFilePresence.withFiles.records.push([date, getNetCount(source.records.added)]);
+      deltaData.byFilePresence.withFiles.parents.push([date, getNetCount(source.parents.added)]);
+      deltaData.byFilePresence.withFiles.files.push([date, getNetFileCount(source.files.added)]);
+      deltaData.byFilePresence.withFiles.dataVolume.push([date, getNetDataVolume(source.files.added)]);
+      deltaData.byFilePresence.withoutFiles.records.push([date, getNetCount(source.records.removed)]);
+      deltaData.byFilePresence.withoutFiles.parents.push([date, getNetCount(source.parents.removed)]);
 
-      // Calculate added and removed values separately for files
-      const filesAdded = source.files.added.file_count;
-      const filesRemoved = source.files.removed.file_count;
-      const netFiles = filesAdded - filesRemoved;
-
-      // Calculate added and removed values separately for data volume
-      const dataVolumeAdded = source.files.added.data_volume;
-      const dataVolumeRemoved = source.files.removed.data_volume;
-      const netDataVolume = dataVolumeAdded - dataVolumeRemoved;
-
-      // Calculate parent-based metrics from subcounts
-      let dataVolumeByParentsAdded = 0;
-      let dataVolumeByParentsRemoved = 0;
-      let fileCountByParentsAdded = 0;
-      let fileCountByParentsRemoved = 0;
-
-      if (source.subcounts) {
-        // Aggregate parent-based metrics from all subcount types
-        const subcountTypes = [
-          'by_resource_type', 'by_access_rights', 'by_language',
-          'by_affiliation_creator', 'by_affiliation_contributor',
-          'by_funder', 'by_subject', 'by_publisher', 'by_periodical',
-          'by_license', 'by_file_type'
-        ];
-
-        subcountTypes.forEach(type => {
-          if (source.subcounts[type]) {
-            source.subcounts[type].forEach(item => {
-              // Data volume by parents
-              if (item.files && item.files.added && item.files.removed) {
-                dataVolumeByParentsAdded += item.files.added.data_volume || 0;
-                dataVolumeByParentsRemoved += item.files.removed.data_volume || 0;
-              }
-
-              // File count by parents
-              if (item.files && item.files.added && item.files.removed) {
-                fileCountByParentsAdded += item.files.added.file_count || 0;
-                fileCountByParentsRemoved += item.files.removed.file_count || 0;
-              }
-            });
+      Object.keys(subcountTypes).forEach(subcountType => {
+        const subcountSeries = source.subcounts[subcountType]
+        if (subcountSeries.length > 0) {
+          const targetKey = subcountTypes[subcountType];
+          if (!deltaData[targetKey]) {
+            deltaData[targetKey] = {};
           }
-        });
-      }
 
-      const netDataVolumeByParents = dataVolumeByParentsAdded - dataVolumeByParentsRemoved;
-      const netFileCountByParents = fileCountByParentsAdded - fileCountByParentsRemoved;
-
-      const netUploaders = source.uploaders;
-
-      // Add daily data points for net values (record-based)
-      recordCount.push({
-        date,
-        value: netRecords,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      uploaders.push({
-        date,
-        value: netUploaders,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      dataVolume.push({
-        date,
-        value: netDataVolume,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      parentCount.push({
-        date,
-        value: netParents,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      fileCount.push({
-        date,
-        value: netFiles,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Add daily data points for net values (parent-based)
-      dataVolumeByParents.push({
-        date,
-        value: netDataVolumeByParents,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      fileCountByParents.push({
-        date,
-        value: netFileCountByParents,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Add daily data points for added values (record-based)
-      recordCountAdded.push({
-        date,
-        value: recordsAdded,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      dataVolumeAdded.push({
-        date,
-        value: dataVolumeAdded,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      parentCountAdded.push({
-        date,
-        value: parentsAdded,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      fileCountAdded.push({
-        date,
-        value: filesAdded,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Add daily data points for added values (parent-based)
-      dataVolumeByParentsAdded.push({
-        date,
-        value: dataVolumeByParentsAdded,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      fileCountByParentsAdded.push({
-        date,
-        value: fileCountByParentsAdded,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Add daily data points for removed values (record-based)
-      recordCountRemoved.push({
-        date,
-        value: recordsRemoved,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      dataVolumeRemoved.push({
-        date,
-        value: dataVolumeRemoved,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      parentCountRemoved.push({
-        date,
-        value: parentsRemoved,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      fileCountRemoved.push({
-        date,
-        value: filesRemoved,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Add daily data points for removed values (parent-based)
-      dataVolumeByParentsRemoved.push({
-        date,
-        value: dataVolumeByParentsRemoved,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      fileCountByParentsRemoved.push({
-        date,
-        value: fileCountByParentsRemoved,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Views and downloads are not available in record deltas, so use 0
-      views.push({
-        date,
-        value: 0,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      downloads.push({
-        date,
-        value: 0,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Traffic is not available in record deltas, so use 0
-      traffic.push({
-        date,
-        value: 0,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Aggregate subcounts from deltas
-      if (source.subcounts) {
-        // Process licenses
-        if (source.subcounts.by_license) {
-          source.subcounts.by_license.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.licenses[item.id]) {
-                subcountAggregates.licenses[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.licenses[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process affiliations (creator and contributor)
-        const allAffiliations = [
-          ...(source.subcounts.by_affiliation_creator || []),
-          ...(source.subcounts.by_affiliation_contributor || [])
-        ];
-        allAffiliations.forEach(item => {
-          const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                          (item.records.removed.metadata_only + item.records.removed.with_files);
-          if (netCount > 0) {
-            if (!subcountAggregates.affiliations[item.id]) {
-              subcountAggregates.affiliations[item.id] = {
-                name: item.label || item.id,
-                count: 0
+          subcountSeries.forEach(item => {
+            if (!deltaData[targetKey][item.id]) {
+              deltaData[targetKey][item.id] = {
+                records: [],
+                parents: [],
+                files: [],
+                dataVolume: [],
               };
             }
-            subcountAggregates.affiliations[item.id].count += netCount;
-          }
-        });
 
-        // Process funders
-        if (source.subcounts.by_funder) {
-          source.subcounts.by_funder.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.funders[item.id]) {
-                subcountAggregates.funders[item.id] = {
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.funders[item.id].count += netCount;
-            }
+            deltaData[targetKey][item.id].records.push([date, getNetCount(item.records), item.label || item.id]);
+            deltaData[targetKey][item.id].parents.push([date, getNetCount(item.parents), item.label || item.id]);
+            deltaData[targetKey][item.id].files.push([date, getNetFileCount(item.files), item.label || item.id]);
+            deltaData[targetKey][item.id].dataVolume.push([date, getNetDataVolume(item.files), item.label || item.id]);
           });
         }
-
-        // Process access rights
-        if (source.subcounts.by_access_rights) {
-          source.subcounts.by_access_rights.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.accessRights[item.id]) {
-                subcountAggregates.accessRights[item.id] = {
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.accessRights[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process resource types
-        if (source.subcounts.by_resource_type) {
-          source.subcounts.by_resource_type.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.resourceTypes[item.id]) {
-                subcountAggregates.resourceTypes[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.resourceTypes[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process languages
-        if (source.subcounts.by_language) {
-          source.subcounts.by_language.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.languages[item.id]) {
-                subcountAggregates.languages[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.languages[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process subjects
-        if (source.subcounts.by_subject) {
-          source.subcounts.by_subject.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.subjects[item.id]) {
-                subcountAggregates.subjects[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.subjects[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process publishers
-        if (source.subcounts.by_publisher) {
-          source.subcounts.by_publisher.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.publishers[item.id]) {
-                subcountAggregates.publishers[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.publishers[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process periodicals
-        if (source.subcounts.by_periodical) {
-          source.subcounts.by_periodical.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.periodicals[item.id]) {
-                subcountAggregates.periodicals[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.periodicals[item.id].count += netCount;
-            }
-          });
-        }
-
-        // Process file types
-        if (source.subcounts.by_file_type) {
-          source.subcounts.by_file_type.forEach(item => {
-            const netCount = (item.records.added.metadata_only + item.records.added.with_files) -
-                            (item.records.removed.metadata_only + item.records.removed.with_files);
-            if (netCount > 0) {
-              if (!subcountAggregates.fileTypes[item.id]) {
-                subcountAggregates.fileTypes[item.id] = {
-                  id: item.id,
-                  name: item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.fileTypes[item.id].count += netCount;
-            }
-          });
-        }
-      }
+      });
     });
   }
 
-  // Process snapshot documents
+  return deltaData;
+};
+
+/**
+ * Transform daily record snapshot aggregation documents for display in the dashboard.
+ *
+ * @param {Array} snapshotDocs - Array of daily record snapshot aggregation documents
+ *
+ * The returned data is an object containing the arrays of data points for each
+ * time series metric used by the dashboard components. The data points are
+ * in the shape of {
+ *  date,
+ *  readableDate,
+ *  global: {
+ *    records: [date, value, label],
+ *    parents: [date, value, label],
+ *    uploaders: [date, value, label],
+ *    fileCount: [date, value, label],
+ *    dataVolume: [date, value, label],
+ *  },
+ *  byFilePresence: {
+ *    withFiles: {
+ *      records: [date, value, label],
+ *      parents: [date, value, label],
+ *      files: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *    withoutFiles: {
+ *      records: [date, value, label],
+ *      parents: [date, value, label],
+ *    },
+ *  },
+ *  resourceTypes: {
+ *    id: [date, value, label],
+ *  },
+ *  accessRights: {
+ *    id: [date, value, label],
+ *  },
+ *  languages: {
+ *    id: [date, value, label],
+ *  },
+ *  affiliations: {
+ *    id: [date, value, label],
+ *  },
+ *  funders: {
+ *    id: [date, value, label],
+ *  },
+ *  subjects: {
+ *    id: [date, value, label],
+ *  },
+ *  publishers: {
+ *    id: [date, value, label],
+ *  },
+ *  periodicals: {
+ *    id: [date, value, label],
+ *  },
+ *  licenses: {
+ *    id: [date, value, label],
+ *  },
+ *  fileTypes: {
+ *    id: [date, value, label],
+ *  },
+ * }.
+ *
+ * @returns {Object} Transformed data in the format expected by testStatsData
+ */
+const transformRecordSnapshotData = (snapshotDocs) => {
+
+  const snapshotData = {
+    global: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    byFilePresence: {
+      withFiles: {
+        records: [],
+        parents: [],
+        files: [],
+        dataVolume: [],
+      },
+      withoutFiles: {
+        records: [],
+        parents: [],
+      },
+    },
+    accessRights: {},
+    languages: {},
+    affiliations: {},
+    funders: {},
+    subjects: {},
+    publishers: {},
+    periodicals: {},
+    licenses: {},
+    fileTypes: {},
+    resourceTypes: {},
+  };
+
+  const subcountTypes = {
+    'all_resource_types': 'resourceTypes',
+    'all_access_rights': 'accessRights',
+    'all_languages': 'languages',
+    'top_affiliations_creator': 'affiliations',
+    'top_affiliations_contributor': 'affiliations',
+    'top_funders': 'funders',
+    'top_subjects': 'subjects',
+    'top_publishers': 'publishers',
+    'top_periodicals': 'periodicals',
+    'all_licenses': 'licenses',
+    'all_file_types': 'fileTypes'
+  };
+
+  const getTotalCount = (item) => {
+    return item.metadata_only + item.with_files;
+  };
+
+  const getTotalFileCount = (item) => {
+    return item.file_count;
+  };
+
+  const getTotalDataVolume = (item) => {
+    return item.data_volume;
+  };
+
   if (snapshotDocs && Array.isArray(snapshotDocs)) {
     snapshotDocs.forEach(doc => {
       const source = doc._source;
-      const date = source.snapshot_date.split('T')[0]; // Extract date part
+      const date = source.snapshot_date.split('T')[0];
+      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      // Calculate total values from snapshot
-      const totalRecords = source.total_records.metadata_only + source.total_records.with_files;
-      const totalParents = source.total_parents.metadata_only + source.total_parents.with_files;
-      const totalFiles = source.total_files.file_count;
-      const totalDataVolume = source.total_files.data_volume;
-      const totalUploaders = source.total_uploaders;
+      // Accumulate global data points
+      snapshotData.global.records.push([date, getTotalCount(source.total_records)]);
+      snapshotData.global.parents.push([date, getTotalCount(source.total_parents)]);
+      snapshotData.global.uploaders.push([date, source.total_uploaders]);
+      snapshotData.global.fileCount.push([date, getTotalFileCount(source.total_files)]);
+      snapshotData.global.dataVolume.push([date, getTotalDataVolume(source.total_files)]);
 
-      // Add cumulative data points
-      cumulativeRecordCount.push({
-        date,
-        value: totalRecords,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+      // Accumulate byFilePresence data points
+      snapshotData.byFilePresence.withFiles.records.push([date, source.total_records.with_files]);
+      snapshotData.byFilePresence.withFiles.parents.push([date, source.total_parents.with_files]);
+      snapshotData.byFilePresence.withFiles.files.push([date, getTotalFileCount(source.total_files)]);
+      snapshotData.byFilePresence.withFiles.dataVolume.push([date, getTotalDataVolume(source.total_files)]);
+      snapshotData.byFilePresence.withoutFiles.records.push([date, source.total_records.metadata_only]);
+      snapshotData.byFilePresence.withoutFiles.parents.push([date, source.total_parents.metadata_only]);
 
-      cumulativeUploaders.push({
-        date,
-        value: totalUploaders,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+      Object.keys(subcountTypes).forEach(subcountType => {
+        const subcountSeries = source.subcounts[subcountType]
+        if (subcountSeries && subcountSeries.length > 0) {
+          const targetKey = subcountTypes[subcountType];
+          if (!snapshotData[targetKey]) {
+            snapshotData[targetKey] = {};
+          }
 
-      cumulativeDataVolume.push({
-        date,
-        value: totalDataVolume,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Views and downloads are not available in record snapshots, so use 0
-      cumulativeViews.push({
-        date,
-        value: 0,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      cumulativeDownloads.push({
-        date,
-        value: 0,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Traffic is not available in record snapshots, so use 0
-      cumulativeTraffic.push({
-        date,
-        value: 0,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
-
-      // Aggregate subcounts from snapshots
-      if (source.subcounts) {
-        // Process resource types
-        if (source.subcounts.all_resource_types) {
-          source.subcounts.all_resource_types.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.resourceTypes[item.id]) {
-                subcountAggregates.resourceTypes[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.resourceTypes[item.id].count = Math.max(
-                subcountAggregates.resourceTypes[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process access rights
-        if (source.subcounts.all_access_rights) {
-          source.subcounts.all_access_rights.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.accessRights[item.id]) {
-                subcountAggregates.accessRights[item.id] = {
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.accessRights[item.id].count = Math.max(
-                subcountAggregates.accessRights[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process licenses
-        if (source.subcounts.all_licenses) {
-          source.subcounts.all_licenses.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.licenses[item.id]) {
-                subcountAggregates.licenses[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.licenses[item.id].count = Math.max(
-                subcountAggregates.licenses[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process affiliations (creator and contributor)
-        const allAffiliations = [
-          ...(source.subcounts.top_affiliations_creator || []),
-          ...(source.subcounts.top_affiliations_contributor || [])
-        ];
-        allAffiliations.forEach(item => {
-          const totalCount = item.records.metadata_only + item.records.with_files;
-          if (totalCount > 0) {
-            if (!subcountAggregates.affiliations[item.id]) {
-              subcountAggregates.affiliations[item.id] = {
-                name: item.label?.value || item.label || item.id,
-                count: 0
+          subcountSeries.forEach(item => {
+            if (!snapshotData[targetKey][item.id]) {
+              snapshotData[targetKey][item.id] = {
+                records: [],
+                parents: [],
+                files: [],
+                dataVolume: [],
               };
             }
-            subcountAggregates.affiliations[item.id].count = Math.max(
-              subcountAggregates.affiliations[item.id].count,
-              totalCount
-            );
-          }
-        });
 
-        // Process funders
-        if (source.subcounts.top_funders) {
-          source.subcounts.top_funders.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.funders[item.id]) {
-                subcountAggregates.funders[item.id] = {
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.funders[item.id].count = Math.max(
-                subcountAggregates.funders[item.id].count,
-                totalCount
-              );
-            }
+            snapshotData[targetKey][item.id].records.push([date, getTotalCount(item.records), item.label || item.id]);
+            snapshotData[targetKey][item.id].parents.push([date, getTotalCount(item.parents), item.label || item.id]);
+            snapshotData[targetKey][item.id].files.push([date, getTotalFileCount(item.files), item.label || item.id]);
+            snapshotData[targetKey][item.id].dataVolume.push([date, getTotalDataVolume(item.files), item.label || item.id]);
           });
         }
-
-        // Process languages
-        if (source.subcounts.all_languages) {
-          source.subcounts.all_languages.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.languages[item.id]) {
-                subcountAggregates.languages[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.languages[item.id].count = Math.max(
-                subcountAggregates.languages[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process subjects
-        if (source.subcounts.top_subjects) {
-          source.subcounts.top_subjects.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.subjects[item.id]) {
-                subcountAggregates.subjects[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.subjects[item.id].count = Math.max(
-                subcountAggregates.subjects[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process publishers
-        if (source.subcounts.top_publishers) {
-          source.subcounts.top_publishers.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.publishers[item.id]) {
-                subcountAggregates.publishers[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.publishers[item.id].count = Math.max(
-                subcountAggregates.publishers[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process periodicals
-        if (source.subcounts.top_periodicals) {
-          source.subcounts.top_periodicals.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.periodicals[item.id]) {
-                subcountAggregates.periodicals[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.periodicals[item.id].count = Math.max(
-                subcountAggregates.periodicals[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-
-        // Process file types
-        if (source.subcounts.all_file_types) {
-          source.subcounts.all_file_types.forEach(item => {
-            const totalCount = item.records.metadata_only + item.records.with_files;
-            if (totalCount > 0) {
-              if (!subcountAggregates.fileTypes[item.id]) {
-                subcountAggregates.fileTypes[item.id] = {
-                  id: item.id,
-                  name: item.label?.value || item.label || item.id,
-                  count: 0
-                };
-              }
-              subcountAggregates.fileTypes[item.id].count = Math.max(
-                subcountAggregates.fileTypes[item.id].count,
-                totalCount
-              );
-            }
-          });
-        }
-      }
+      });
     });
   }
 
-  // Convert aggregated subcounts to arrays and calculate percentages
-  const totalRecords = recordCount.reduce((sum, item) => sum + item.value, 0);
-  const maxTotalRecords = cumulativeRecordCount.length > 0
-    ? Math.max(...cumulativeRecordCount.map(item => item.value))
-    : 0;
+  return snapshotData;
+};
 
-  // Use the higher of the two totals for percentage calculations
-  const percentageBase = Math.max(totalRecords, maxTotalRecords);
+/**
+ * Transform daily usage delta aggregation documents for display in the dashboard.
+ *
+ * @param {Array} deltaDocs - Array of daily usage delta aggregation documents
+ *
+ * The returned data is an object containing the arrays of data points for each
+ * time series metric used by the dashboard components. The data points are
+ * in the shape of {
+ *  date,
+ *  readableDate,
+ *  global: {
+ *    views: [date, value, label],
+ *    downloads: [date, value, label],
+ *    visitors: [date, value, label],
+ *    dataVolume: [date, value, label],
+ *  },
+ *  byAccessRights: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byFileTypes: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byLanguages: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byResourceTypes: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  bySubjects: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byPublishers: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byLicenses: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byCountries: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byReferrers: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byAffiliations: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ * }.
+ *
+ * @returns {Object} Transformed data in the format expected by testStatsData
+ */
+const transformUsageDeltaData = (deltaDocs) => {
 
-  const licenses = Object.values(subcountAggregates.licenses)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const affiliations = Object.values(subcountAggregates.affiliations)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const funders = Object.values(subcountAggregates.funders)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const accessRights = Object.values(subcountAggregates.accessRights)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const resourceTypes = Object.values(subcountAggregates.resourceTypes)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const languages = Object.values(subcountAggregates.languages)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const subjects = Object.values(subcountAggregates.subjects)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const publishers = Object.values(subcountAggregates.publishers)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const periodicals = Object.values(subcountAggregates.periodicals)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  const fileTypes = Object.values(subcountAggregates.fileTypes)
-    .sort((a, b) => b.count - a.count)
-    .map(item => ({
-      ...item,
-      percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-    }));
-
-  return {
-    // Daily values (from deltas) - net values (record-based)
-    recordCount,
-    uploaders,
-    dataVolume,
-    parentCount,
-    fileCount,
-    views,
-    downloads,
-    traffic,
-
-    // Daily values (from deltas) - net values (parent-based)
-    dataVolumeByParents,
-    fileCountByParents,
-
-    // Daily values (from deltas) - added values (record-based)
-    recordCountAdded,
-    dataVolumeAdded,
-    parentCountAdded,
-    fileCountAdded,
-
-    // Daily values (from deltas) - added values (parent-based)
-    dataVolumeByParentsAdded,
-    fileCountByParentsAdded,
-
-    // Daily values (from deltas) - removed values (record-based)
-    recordCountRemoved,
-    dataVolumeRemoved,
-    parentCountRemoved,
-    fileCountRemoved,
-
-    // Daily values (from deltas) - removed values (parent-based)
-    dataVolumeByParentsRemoved,
-    fileCountByParentsRemoved,
-
-    // Cumulative values (from snapshots)
-    cumulativeRecordCount,
-    cumulativeUploaders,
-    cumulativeDataVolume,
-    cumulativeViews,
-    cumulativeDownloads,
-    cumulativeTraffic,
-
-    // Subcount data (combined from both deltas and snapshots)
-    licenses,
-    affiliations,
-    funders,
-    accessRights,
-    resourceTypes,
-    languages,
-    subjects,
-    publishers,
-    periodicals,
-    fileTypes,
-
-    // Settings
-    use_binary_filesize: true,
-
-    // Empty arrays for data not available in record data
-    topCountries: [],
-    referrerDomains: [],
-    mostDownloadedRecords: [],
-    mostViewedRecords: []
+  const deltaData = {
+    global: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byAccessRights: {},
+    byFileTypes: {},
+    byLanguages: {},
+    byResourceTypes: {},
+    bySubjects: {},
+    byPublishers: {},
+    byLicenses: {},
+    byCountries: {},
+    byReferrers: {},
+    byAffiliations: {},
   };
+
+  const subcountTypes = {
+    'by_access_rights': 'byAccessRights',
+    'by_file_types': 'byFileTypes',
+    'by_languages': 'byLanguages',
+    'by_resource_types': 'byResourceTypes',
+    'by_subjects': 'bySubjects',
+    'by_publishers': 'byPublishers',
+    'by_licenses': 'byLicenses',
+    'by_countries': 'byCountries',
+    'by_referrers': 'byReferrers',
+    'by_affiliations': 'byAffiliations',
+  };
+
+  const getNetViewEvents = (item) => {
+    return item.view ? item.view.total_events : 0;
+  };
+
+  const getNetDownloadEvents = (item) => {
+    return item.download ? item.download.total_events : 0;
+  };
+
+  const getNetVisitors = (item) => {
+    const viewVisitors = item.view ? item.view.unique_visitors : 0;
+    const downloadVisitors = item.download ? item.download.unique_visitors : 0;
+    return Math.max(viewVisitors, downloadVisitors);
+  };
+
+  const getNetDataVolume = (item) => {
+    return item.download ? item.download.total_volume : 0;
+  };
+
+  if (deltaDocs && Array.isArray(deltaDocs)) {
+    deltaDocs.forEach(doc => {
+      const source = doc._source;
+      const date = source.period_start.split('T')[0];
+      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      // Accumulate global data points
+      deltaData.global.views.push([date, getNetViewEvents(source.totals)]);
+      deltaData.global.downloads.push([date, getNetDownloadEvents(source.totals)]);
+      deltaData.global.visitors.push([date, getNetVisitors(source.totals)]);
+      deltaData.global.dataVolume.push([date, getNetDataVolume(source.totals)]);
+
+      Object.keys(subcountTypes).forEach(subcountType => {
+        const subcountSeries = source.subcounts[subcountType]
+        if (subcountSeries && subcountSeries.length > 0) {
+          const targetKey = subcountTypes[subcountType];
+          if (!deltaData[targetKey]) {
+            deltaData[targetKey] = {};
+          }
+
+          subcountSeries.forEach(item => {
+            if (!deltaData[targetKey][item.id]) {
+              deltaData[targetKey][item.id] = {
+                views: [],
+                downloads: [],
+                visitors: [],
+                dataVolume: [],
+              };
+            }
+
+            deltaData[targetKey][item.id].views.push([date, getNetViewEvents(item), item.label || item.id]);
+            deltaData[targetKey][item.id].downloads.push([date, getNetDownloadEvents(item), item.label || item.id]);
+            deltaData[targetKey][item.id].visitors.push([date, getNetVisitors(item), item.label || item.id]);
+            deltaData[targetKey][item.id].dataVolume.push([date, getNetDataVolume(item), item.label || item.id]);
+          });
+        }
+      });
+    });
+  }
+
+  return deltaData;
+};
+
+/**
+ * Transform daily usage snapshot aggregation documents for display in the dashboard.
+ *
+ * @param {Array} snapshotDocs - Array of daily usage snapshot aggregation documents
+ *
+ * The returned data is an object containing the arrays of data points for each
+ * time series metric used by the dashboard components. The data points are
+ * in the shape of {
+ *  date,
+ *  readableDate,
+ *  global: {
+ *    views: [date, value, label],
+ *    downloads: [date, value, label],
+ *    visitors: [date, value, label],
+ *    dataVolume: [date, value, label],
+ *  },
+ *  byAccessRights: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byFileTypes: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byLanguages: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byResourceTypes: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  bySubjects: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byPublishers: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byLicenses: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byCountries: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byReferrers: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ *  byAffiliations: {
+ *    id: {
+ *      views: [date, value, label],
+ *      downloads: [date, value, label],
+ *      visitors: [date, value, label],
+ *      dataVolume: [date, value, label],
+ *    },
+ *  },
+ * }.
+ *
+ * @returns {Object} Transformed data in the format expected by testStatsData
+ */
+const transformUsageSnapshotData = (snapshotDocs) => {
+
+  const snapshotData = {
+    global: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byAccessRights: {},
+    byFileTypes: {},
+    byLanguages: {},
+    byResourceTypes: {},
+    bySubjects: {},
+    byPublishers: {},
+    byLicenses: {},
+    byCountries: {},
+    byReferrers: {},
+    byAffiliations: {},
+    // Separate properties for view-based and download-based data
+    byCountriesByView: {},
+    byCountriesByDownload: {},
+    bySubjectsByView: {},
+    bySubjectsByDownload: {},
+    byPublishersByView: {},
+    byPublishersByDownload: {},
+    byLicensesByView: {},
+    byLicensesByDownload: {},
+    byReferrersByView: {},
+    byReferrersByDownload: {},
+    byAffiliationsByView: {},
+    byAffiliationsByDownload: {},
+  };
+
+  const subcountTypes = {
+    'all_access_rights': 'byAccessRights',
+    'all_file_types': 'byFileTypes',
+    'all_languages': 'byLanguages',
+    'all_resource_types': 'byResourceTypes',
+    'top_subjects': 'bySubjects',
+    'top_publishers': 'byPublishers',
+    'top_licenses': 'byLicenses',
+    'top_countries': 'byCountries',
+    'top_referrers': 'byReferrers',
+    'top_affiliations': 'byAffiliations',
+  };
+
+  // Mapping for separate view/download properties
+  const separateSubcountTypes = {
+    'top_countries': { view: 'byCountriesByView', download: 'byCountriesByDownload' },
+    'top_subjects': { view: 'bySubjectsByView', download: 'bySubjectsByDownload' },
+    'top_publishers': { view: 'byPublishersByView', download: 'byPublishersByDownload' },
+    'top_licenses': { view: 'byLicensesByView', download: 'byLicensesByDownload' },
+    'top_referrers': { view: 'byReferrersByView', download: 'byReferrersByDownload' },
+    'top_affiliations': { view: 'byAffiliationsByView', download: 'byAffiliationsByDownload' },
+  };
+
+  const getTotalViewEvents = (item) => {
+    return item.view ? item.view.total_events : 0;
+  };
+
+  const getTotalDownloadEvents = (item) => {
+    return item.download ? item.download.total_events : 0;
+  };
+
+  const getTotalVisitors = (item) => {
+    const viewVisitors = item.view ? item.view.unique_visitors : 0;
+    const downloadVisitors = item.download ? item.download.unique_visitors : 0;
+    return Math.max(viewVisitors, downloadVisitors);
+  };
+
+  const getTotalDataVolume = (item) => {
+    return item.download ? item.download.total_volume : 0;
+  };
+
+  if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    snapshotDocs.forEach(doc => {
+      const source = doc._source;
+      const date = source.snapshot_date.split('T')[0];
+      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      // Accumulate global data points
+      snapshotData.global.views.push([date, getTotalViewEvents(source.totals)]);
+      snapshotData.global.downloads.push([date, getTotalDownloadEvents(source.totals)]);
+      snapshotData.global.visitors.push([date, getTotalVisitors(source.totals)]);
+      snapshotData.global.dataVolume.push([date, getTotalDataVolume(source.totals)]);
+
+      Object.keys(subcountTypes).forEach(subcountType => {
+        const subcountSeries = source.subcounts[subcountType]
+        if (subcountSeries) {
+          const targetKey = subcountTypes[subcountType];
+          if (!snapshotData[targetKey]) {
+            snapshotData[targetKey] = {};
+          }
+
+          // Handle different subcount structures
+          if (Array.isArray(subcountSeries)) {
+            // Simple array structure (all_* fields)
+            if (subcountSeries.length > 0) {
+              subcountSeries.forEach(item => {
+                if (!snapshotData[targetKey][item.id]) {
+                  snapshotData[targetKey][item.id] = {
+                    views: [],
+                    downloads: [],
+                    visitors: [],
+                    dataVolume: [],
+                  };
+                }
+
+                snapshotData[targetKey][item.id].views.push([date, getTotalViewEvents(item), item.label || item.id]);
+                snapshotData[targetKey][item.id].downloads.push([date, getTotalDownloadEvents(item), item.label || item.id]);
+                snapshotData[targetKey][item.id].visitors.push([date, getTotalVisitors(item), item.label || item.id]);
+                snapshotData[targetKey][item.id].dataVolume.push([date, getTotalDataVolume(item), item.label || item.id]);
+              });
+            }
+          } else if (typeof subcountSeries === 'object' && subcountSeries !== null) {
+            // Complex object structure with by_view and by_download (top_* fields)
+            const separateMapping = separateSubcountTypes[subcountType];
+
+            if (separateMapping) {
+              // Handle separate view and download data for "top" subcounts
+
+              // Process by_view data
+              if (subcountSeries.by_view && Array.isArray(subcountSeries.by_view)) {
+                const viewKey = separateMapping.view;
+                if (!snapshotData[viewKey]) {
+                  snapshotData[viewKey] = {};
+                }
+
+                subcountSeries.by_view.forEach(item => {
+                  if (!snapshotData[viewKey][item.id]) {
+                    snapshotData[viewKey][item.id] = {
+                      views: [],
+                      visitors: [],
+                    };
+                  }
+
+                  snapshotData[viewKey][item.id].views.push([date, getTotalViewEvents(item), item.label || item.id]);
+                  snapshotData[viewKey][item.id].visitors.push([date, getTotalVisitors(item), item.label || item.id]);
+                });
+              }
+
+              // Process by_download data
+              if (subcountSeries.by_download && Array.isArray(subcountSeries.by_download)) {
+                const downloadKey = separateMapping.download;
+                if (!snapshotData[downloadKey]) {
+                  snapshotData[downloadKey] = {};
+                }
+
+                subcountSeries.by_download.forEach(item => {
+                  if (!snapshotData[downloadKey][item.id]) {
+                    snapshotData[downloadKey][item.id] = {
+                      downloads: [],
+                      dataVolume: [],
+                    };
+                  }
+
+                  snapshotData[downloadKey][item.id].downloads.push([date, getTotalDownloadEvents(item), item.label || item.id]);
+                  snapshotData[downloadKey][item.id].dataVolume.push([date, getTotalDataVolume(item), item.label || item.id]);
+                });
+              }
+            } else {
+              // Fallback for non-"top" subcounts that might have this structure
+              // Process by_view data
+              if (subcountSeries.by_view && Array.isArray(subcountSeries.by_view)) {
+                subcountSeries.by_view.forEach(item => {
+                  if (!snapshotData[targetKey][item.id]) {
+                    snapshotData[targetKey][item.id] = {
+                      views: [],
+                      downloads: [],
+                      visitors: [],
+                      dataVolume: [],
+                    };
+                  }
+
+                  snapshotData[targetKey][item.id].views.push([date, getTotalViewEvents(item), item.label || item.id]);
+                  snapshotData[targetKey][item.id].visitors.push([date, getTotalVisitors(item), item.label || item.id]);
+                });
+              }
+
+              // Process by_download data
+              if (subcountSeries.by_download && Array.isArray(subcountSeries.by_download)) {
+                subcountSeries.by_download.forEach(item => {
+                  if (!snapshotData[targetKey][item.id]) {
+                    snapshotData[targetKey][item.id] = {
+                      views: [],
+                      downloads: [],
+                      visitors: [],
+                      dataVolume: [],
+                    };
+                  }
+
+                  snapshotData[targetKey][item.id].downloads.push([date, getTotalDownloadEvents(item), item.label || item.id]);
+                  snapshotData[targetKey][item.id].dataVolume.push([date, getTotalDataVolume(item), item.label || item.id]);
+                });
+              }
+            }
+          }
+        }
+      });
+    });
+  }
+
+  return snapshotData;
+};
+
+/**
+ * Transform daily record delta and snapshot aggregation documents into the format expected by test data components.
+ *
+ * @param {Object} rawStats - The raw stats object from the API containing record_deltas, record_snapshots, usage_deltas, usage_snapshots
+ *
+ * The returned data is an object containing the arrays of data points for each
+ * time series metric used by the dashboard components. The data points are
+ * in the shape of {date, value, resourceTypes, subjectHeadings}.
+ *
+ * @returns {Object} Transformed data in the format expected by ContentStatsChart and other components
+ */
+export const transformApiData = (rawStats) => {
+
+  const returnData = {
+    recordDeltaDataCreated: {},
+    recordDeltaDataAdded: {},
+    recordDeltaDataPublished: {},
+    recordSnapshotDataCreated: {},
+    recordSnapshotDataAdded: {},
+    recordSnapshotDataPublished: {},
+    usageDeltaData: {},
+    usageSnapshotData: {},
+  };
+
+  if (!rawStats) {
+    return returnData;
+  }
+
+  returnData.recordDeltaDataCreated = transformRecordDeltaData(rawStats.record_deltas_created);
+  returnData.recordDeltaDataAdded = transformRecordDeltaData(rawStats.record_deltas_added);
+  returnData.recordDeltaDataPublished = transformRecordDeltaData(rawStats.record_deltas_published);
+  returnData.recordSnapshotDataCreated = transformRecordSnapshotData(rawStats.record_snapshots_created);
+  returnData.recordSnapshotDataAdded = transformRecordSnapshotData(rawStats.record_snapshots_added);
+  returnData.recordSnapshotDataPublished = transformRecordSnapshotData(rawStats.record_snapshots_published);
+  returnData.usageDeltaData = transformUsageDeltaData(rawStats.usage_deltas);
+  returnData.usageSnapshotData = transformUsageSnapshotData(rawStats.usage_snapshots);
+
+  // Convert aggregated subcounts to arrays and calculate percentages
+  // const totalRecords = recordCount.reduce((sum, item) => sum + item.value, 0);
+  // const maxTotalRecords = cumulativeRecordCount.length > 0
+  //   ? Math.max(...cumulativeRecordCount.map(item => item.value))
+  //   : 0;
+
+  // // Use the higher of the two totals for percentage calculations
+  // const percentageBase = Math.max(totalRecords, maxTotalRecords);
+
+  // const licenses = Object.values(subcountAggregates.licenses)
+  //   .sort((a, b) => b.count - a.count)
+  //   .map(item => ({
+  //     ...item,
+  //     percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
+  //   }));
+
+  return returnData;
+    // Empty arrays for data not available in record data
+    // topCountries: [],
+    // referrerDomains: [],
+    // mostDownloadedRecords: [],
+    // mostViewedRecords: []
 };

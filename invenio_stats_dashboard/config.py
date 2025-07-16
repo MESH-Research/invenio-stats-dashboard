@@ -253,12 +253,12 @@ STATS_DASHBOARD_LAYOUT = {
                         "name": "single-stats",
                         "components": [
                             {
-                                "component": "SingleStatViews",
+                                "component": "SingleStatViewsCumulative",
                                 "width": 5,
                                 "props": {"title": "Total Views", "icon": "eye"},
                             },
                             {
-                                "component": "SingleStatDownloads",
+                                "component": "SingleStatDownloadsCumulative",
                                 "width": 6,
                                 "props": {
                                     "title": "Total Downloads",
@@ -266,7 +266,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
-                                "component": "SingleStatTraffic",
+                                "component": "SingleStatTrafficCumulative",
                                 "width": 5,
                                 "props": {
                                     "title": "Total Traffic",

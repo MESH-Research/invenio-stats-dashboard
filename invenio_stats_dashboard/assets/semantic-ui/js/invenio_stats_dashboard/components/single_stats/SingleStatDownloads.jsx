@@ -15,7 +15,22 @@ const SingleStatDownloads = ({ title = i18next.t("Downloads"), icon = "download"
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.downloads, dateRange);
+  // Helper function to extract downloads data from the new structure
+  const extractDownloadsData = () => {
+    if (!stats.usageDeltaData || !stats.usageDeltaData.global || !stats.usageDeltaData.global.downloads) {
+      return [];
+    }
+
+    const [date, value] = stats.usageDeltaData.global.downloads;
+    return [{
+      date: date,
+      value: value,
+      resourceTypes: [],
+      subjectHeadings: [],
+    }];
+  };
+
+  const filteredData = filterByDateRange(extractDownloadsData(), dateRange);
   const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
 
   return (

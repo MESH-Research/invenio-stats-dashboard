@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { Label, Grid } from "semantic-ui-react";
+import { Label, Grid, Loader, Message } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { componentsMap } from './components/components_map';
 import { useStatsDashboard } from './context/StatsDashboardContext';
@@ -21,7 +21,7 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
   const layout = dashboardConfig.layout;
   const pageDateRangePhrase = layout?.tabs?.find(tab => tab.name === variant)?.date_range_phrase;
   const [displayDateRange, setDisplayDateRange] = useState(null);
-  const { dateRange } = useStatsDashboard();
+  const { dateRange, isLoading, error } = useStatsDashboard();
 
   useEffect(() => {
     if (dateRange) {
@@ -51,6 +51,41 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
     console.warn(`No tab found for variant: ${variant}`);
     return null;
   }
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <Loader active size="large">
+          {i18next.t("Loading statistics...")}
+        </Loader>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <Message negative>
+        <Message.Header>{i18next.t("Error Loading Statistics")}</Message.Header>
+        <p>{i18next.t("There was an error loading the statistics. Please try again later.")}</p>
+        {process.env.NODE_ENV === 'development' && (
+          <p><strong>Debug:</strong> {error.message}</p>
+        )}
+      </Message>
+    );
+  }
+
+  // Handle no data state
+  if (!stats) {
+    return (
+      <Message info>
+        <Message.Header>{i18next.t("No Data Available")}</Message.Header>
+        <p>{i18next.t("No statistics data is available for the selected time period.")}</p>
+      </Message>
+    );
+  }
+
   const defaultTitle = dashboardConfig?.dashboard_type === "global" ? i18next.t("Global Statistics Dashboard") : `${community.metadata.title} ${i18next.t("Statistics Dashboard")}`;
 
   return (

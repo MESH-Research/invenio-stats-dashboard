@@ -18,18 +18,44 @@ const ResourceTypesMultiDisplay = ({
 }) => {
   const { stats, dateRange } = useStatsDashboard();
 
+  // Helper function to extract resource types from the new data structure
+  const extractResourceTypes = () => {
+    // Try to get resource types from record snapshot data
+    if (stats.recordSnapshotDataAdded && stats.recordSnapshotDataAdded.resourceTypes) {
+      const resourceTypesData = stats.recordSnapshotDataAdded.resourceTypes;
+      return Object.entries(resourceTypesData).map(([id, data]) => ({
+        name: data.records[2] || id, // Use label if available, otherwise use id
+        count: data.records[1] || 0, // Use the count value
+        percentage: 0, // Calculate percentage later
+        id: id,
+      }));
+    }
+
+    // Fallback to empty array if no data available
+    return [];
+  };
+
+  const rawResourceTypes = extractResourceTypes();
+
+  // Calculate percentages
+  const totalCount = rawResourceTypes.reduce((sum, type) => sum + type.count, 0);
+  const resourceTypesWithPercentages = rawResourceTypes.map(type => ({
+    ...type,
+    percentage: totalCount > 0 ? Math.round((type.count / totalCount) * 100) : 0,
+  }));
+
   // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.resourceTypes?.slice(0, pageSize).map((type, index) => ({
+  const transformedData = resourceTypesWithPercentages.slice(0, pageSize).map((type, index) => ({
     name: type.name,
     value: type.count,
     percentage: type.percentage,
-    id: type.name.toLowerCase().replace(/\s+/g, '-'),
+    id: type.id,
     itemStyle: {
       color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
     }
-  })) || [];
+  }));
 
-  const remainingItems = stats.resourceTypes?.slice(pageSize) || [];
+  const remainingItems = resourceTypesWithPercentages.slice(pageSize) || [];
   const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, type) => {
     acc.value += type.count;
     acc.percentage += type.percentage;

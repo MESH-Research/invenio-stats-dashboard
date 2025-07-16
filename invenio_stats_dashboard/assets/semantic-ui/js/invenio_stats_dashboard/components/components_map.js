@@ -25,7 +25,10 @@ import {
   SingleStatDataVolume,
   SingleStatDataVolumeCumulative,
   SingleStatDownloads,
+  SingleStatDownloadsCumulative,
   SingleStatViews,
+  SingleStatViewsCumulative,
+  SingleStatTrafficCumulative,
 
   // Tables
   MostDownloadedRecordsTable,
@@ -82,7 +85,10 @@ export const componentsMap = {
   'SingleStatDataVolume': SingleStatDataVolume,
   'SingleStatDataVolumeCumulative': SingleStatDataVolumeCumulative,
   'SingleStatDownloads': SingleStatDownloads,
+  'SingleStatDownloadsCumulative': SingleStatDownloadsCumulative,
   'SingleStatViews': SingleStatViews,
+  'SingleStatViewsCumulative': SingleStatViewsCumulative,
+  'SingleStatTrafficCumulative': SingleStatTrafficCumulative,
 
   // Tables
   'MostDownloadedRecordsTable': MostDownloadedRecordsTable,

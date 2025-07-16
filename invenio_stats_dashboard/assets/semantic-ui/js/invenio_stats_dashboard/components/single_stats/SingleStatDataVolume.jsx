@@ -15,7 +15,22 @@ const SingleStatDataVolume = ({ title = i18next.t("Data Volume"), icon = "databa
     }
   }, [dateRange]);
 
-  const filteredData = filterByDateRange(stats.dataVolume, dateRange);
+  // Helper function to extract data volume from the new structure
+  const extractDataVolumeData = () => {
+    if (!stats.recordDeltaDataAdded || !stats.recordDeltaDataAdded.global || !stats.recordDeltaDataAdded.global.dataVolume) {
+      return [];
+    }
+
+    const [date, value] = stats.recordDeltaDataAdded.global.dataVolume;
+    return [{
+      date: date,
+      value: value,
+      resourceTypes: [],
+      subjectHeadings: [],
+    }];
+  };
+
+  const filteredData = filterByDateRange(extractDataVolumeData(), dateRange);
   const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
 
   return (

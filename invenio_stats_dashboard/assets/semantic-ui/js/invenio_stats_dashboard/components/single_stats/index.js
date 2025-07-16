@@ -7,3 +7,6 @@ export { SingleStatDataVolumeCumulative } from './SingleStatDataVolumeCumulative
 export { SingleStatTraffic } from './SingleStatTraffic';
 export { SingleStatDownloads } from './SingleStatDownloads';
 export { SingleStatViews } from './SingleStatViews';
+export { SingleStatViewsCumulative } from './SingleStatViewsCumulative';
+export { SingleStatDownloadsCumulative } from './SingleStatDownloadsCumulative';
+export { SingleStatTrafficCumulative } from './SingleStatTrafficCumulative';

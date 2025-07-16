@@ -1,3 +1,326 @@
+/**
+ * Mock data for the record delta API response.
+ *
+ * @type {Object}
+ */
+const sampleRecordDelta = {
+            "community_id": "5733deff-2f76-4f8c-bb99-8df48bdd725f",
+            "files": {
+                "added": {"data_volume": 59117831.0, "file_count": 2},
+                "removed": {"data_volume": 0.0, "file_count": 0},
+            },
+            "parents": {
+                "added": {"metadata_only": 0, "with_files": 2},
+                "removed": {"metadata_only": 0, "with_files": 0},
+            },
+            "period_end": "2025-05-30T23:59:59",
+            "period_start": "2025-05-30T00:00:00",
+            "records": {
+                "added": {"metadata_only": 0, "with_files": 2},
+                "removed": {"metadata_only": 0, "with_files": 0},
+            },
+            "subcounts": {
+                "by_access_rights": [
+                    {
+                        "files": {
+                            "added": {"data_volume": 59117831.0, "file_count": 2},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "open",
+                        "label": "",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 2},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 2},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    }
+                ],
+                "by_affiliation_contributor": [],
+                "by_affiliation_creator": [
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "013v4ng57",
+                        "label": "",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    }
+                ],
+                "by_file_type": [
+                    {
+                        "added": {
+                            "data_volume": 59117831.0,
+                            "files": 2,
+                            "parents": 2,
+                            "records": 2,
+                        },
+                        "id": "pdf",
+                        "label": "",
+                        "removed": {
+                            "data_volume": 0.0,
+                            "files": 0,
+                            "parents": 0,
+                            "records": 0,
+                        },
+                    }
+                ],
+                "by_funder": [],
+                "by_language": [
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "eng",
+                        "label": "English",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    }
+                ],
+                "by_license": [],
+                "by_periodical": [],
+                "by_publisher": [
+                    {
+                        "files": {
+                            "added": {"data_volume": 58659795.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "Apocryphile Press",
+                        "label": "",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "Knowledge Commons",
+                        "label": "",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                ],
+                "by_resource_type": [
+                    {
+                        "files": {
+                            "added": {"data_volume": 58659795.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "textDocument-bookSection",
+                        "label": "Book Section",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "textDocument-journalArticle",
+                        "label": "Journal Article",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                ],
+                "by_subject": [
+                    {
+                        "files": {
+                            "added": {"data_volume": 58659795.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/973589",
+                        "label": "Inklings (Group of writers)",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/855500",
+                        "label": "Children of prisoners--Services for",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/997916",
+                        "label": "Library science",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/2060143",
+                        "label": "Mass incarceration",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/997974",
+                        "label": "Library science--Standards",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/997987",
+                        "label": "Library science literature",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                    {
+                        "files": {
+                            "added": {"data_volume": 458036.0, "file_count": 1},
+                            "removed": {"data_volume": 0.0, "file_count": 0},
+                        },
+                        "id": "http://id.worldcat.org/fast/995415",
+                        "label": "Legal assistance to prisoners--U.S. states",
+                        "parents": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                        "records": {
+                            "added": {"metadata_only": 0, "with_files": 1},
+                            "removed": {"metadata_only": 0, "with_files": 0},
+                        },
+                    },
+                ],
+            },
+            "timestamp": "2025-06-05T18:45:58",
+            "updated_timestamp": "2025-06-05T18:45:58",
+            "uploaders": 1,
+        };
+
+/**
+ * Mock data for the record snapshot API response.
+ *
+ * @type {Array}
+ */
+const sampleRecordSnapshot = {
+        "community_id": "e64dee43-6bd2-4380-b4e8-2813315cb74e",
+        "snapshot_date": "2025-01-15",
+        "subcounts": {
+            "all_access_rights": [
+                {
+                    "files": {"data_volume": 0.0, "file_count": 0},
+                    "id": "metadata-only",
+                    "label": "",
+                    "parents": {"metadata_only": 1, "with_files": 0},
+                    "records": {"metadata_only": 1, "with_files": 0},
+                }
+            ],
+            "all_file_types": [],
+            "all_languages": [],
+            "all_licenses": [],
+            "all_resource_types": [],
+            "top_affiliations_contributor": [],
+            "top_affiliations_creator": [],
+            "top_funders": [],
+            "top_periodicals": [],
+            "top_publishers": [],
+            "top_subjects": [],
+        },
+        "timestamp": "2025-07-02T14:37:33",
+        "total_files": {"data_volume": 0.0, "file_count": 0},
+        "total_parents": {"metadata_only": 1, "with_files": 0},
+        "total_records": {"metadata_only": 1, "with_files": 0},
+        "total_uploaders": 0,
+        "updated_timestamp": "2025-07-02T14:37:33",
+    };
+
 const sampleUsageSnapshot = {'community_id': 'b6f92bbc-a4af-4240-8135-292d47563339',
  'snapshot_date': '2025-06-11T23:59:59',
  'subcounts': {'all_access_rights': [{'download': {'total_events': 60,
@@ -563,7 +886,151 @@ const sampleUsageSnapshot = {'community_id': 'b6f92bbc-a4af-4240-8135-292d475633
                                              'view': {'total_events': 20,
                                                       'unique_parents': 13,
                                                       'unique_records': 13,
-                                                      'unique_visitors': 20}}]}},
+                                                      'unique_visitors': 20}}]},
+               'top_funders': {'by_download': [{'download': {'total_events': 10,
+                                                              'total_volume': 10240.0,
+                                                              'unique_files': 7,
+                                                              'unique_parents': 7,
+                                                              'unique_records': 7,
+                                                              'unique_visitors': 10},
+                                                 'id': 'National Science Foundation',
+                                                 'label': '',
+                                                 'view': {'total_events': 10,
+                                                          'unique_parents': 7,
+                                                          'unique_records': 7,
+                                                          'unique_visitors': 10}},
+                                                {'download': {'total_events': 5,
+                                                              'total_volume': 5120.0,
+                                                              'unique_files': 3,
+                                                              'unique_parents': 3,
+                                                              'unique_records': 3,
+                                                              'unique_visitors': 5},
+                                                 'id': 'National Endowment for the Humanities',
+                                                 'label': '',
+                                                 'view': {'total_events': 5,
+                                                          'unique_parents': 3,
+                                                          'unique_records': 3,
+                                                          'unique_visitors': 5}}],
+                                'by_view': [{'download': {'total_events': 10,
+                                                          'total_volume': 10240.0,
+                                                          'unique_files': 7,
+                                                          'unique_parents': 7,
+                                                          'unique_records': 7,
+                                                          'unique_visitors': 10},
+                                             'id': 'National Science Foundation',
+                                             'label': '',
+                                             'view': {'total_events': 10,
+                                                      'unique_parents': 7,
+                                                      'unique_records': 7,
+                                                      'unique_visitors': 10}},
+                                            {'download': {'total_events': 5,
+                                                          'total_volume': 5120.0,
+                                                          'unique_files': 3,
+                                                          'unique_parents': 3,
+                                                          'unique_records': 3,
+                                                          'unique_visitors': 5},
+                                             'id': 'National Endowment for the Humanities',
+                                             'label': '',
+                                             'view': {'total_events': 5,
+                                                      'unique_parents': 3,
+                                                      'unique_records': 3,
+                                                      'unique_visitors': 5}}]},
+               'top_periodicals': {'by_download': [{'download': {'total_events': 15,
+                                                                 'total_volume': 15360.0,
+                                                                 'unique_files': 10,
+                                                                 'unique_parents': 10,
+                                                                 'unique_records': 10,
+                                                                 'unique_visitors': 15},
+                                                    'id': 'Journal of Library Science',
+                                                    'label': '',
+                                                    'view': {'total_events': 15,
+                                                             'unique_parents': 10,
+                                                             'unique_records': 10,
+                                                             'unique_visitors': 15}},
+                                                   {'download': {'total_events': 8,
+                                                                 'total_volume': 8192.0,
+                                                                 'unique_files': 5,
+                                                                 'unique_parents': 5,
+                                                                 'unique_records': 5,
+                                                                 'unique_visitors': 8},
+                                                    'id': 'Digital Humanities Quarterly',
+                                                    'label': '',
+                                                    'view': {'total_events': 8,
+                                                             'unique_parents': 5,
+                                                             'unique_records': 5,
+                                                             'unique_visitors': 8}}],
+                                   'by_view': [{'download': {'total_events': 15,
+                                                             'total_volume': 15360.0,
+                                                             'unique_files': 10,
+                                                             'unique_parents': 10,
+                                                             'unique_records': 10,
+                                                             'unique_visitors': 15},
+                                                'id': 'Journal of Library Science',
+                                                'label': '',
+                                                'view': {'total_events': 15,
+                                                         'unique_parents': 10,
+                                                         'unique_records': 10,
+                                                         'unique_visitors': 15}},
+                                               {'download': {'total_events': 8,
+                                                             'total_volume': 8192.0,
+                                                             'unique_files': 5,
+                                                             'unique_parents': 5,
+                                                             'unique_records': 5,
+                                                             'unique_visitors': 8},
+                                                'id': 'Digital Humanities Quarterly',
+                                                'label': '',
+                                                'view': {'total_events': 8,
+                                                         'unique_parents': 5,
+                                                         'unique_records': 5,
+                                                         'unique_visitors': 8}}]},
+               'top_user_agents': {'by_download': [{'download': {'total_events': 25,
+                                                                 'total_volume': 25600.0,
+                                                                 'unique_files': 17,
+                                                                 'unique_parents': 17,
+                                                                 'unique_records': 17,
+                                                                 'unique_visitors': 25},
+                                                    'id': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                                    'label': '',
+                                                    'view': {'total_events': 25,
+                                                             'unique_parents': 17,
+                                                             'unique_records': 17,
+                                                             'unique_visitors': 25}},
+                                                   {'download': {'total_events': 12,
+                                                                 'total_volume': 12288.0,
+                                                                 'unique_files': 8,
+                                                                 'unique_parents': 8,
+                                                                 'unique_records': 8,
+                                                                 'unique_visitors': 12},
+                                                    'id': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                                                    'label': '',
+                                                    'view': {'total_events': 12,
+                                                             'unique_parents': 8,
+                                                             'unique_records': 8,
+                                                             'unique_visitors': 12}}],
+                                   'by_view': [{'download': {'total_events': 25,
+                                                             'total_volume': 25600.0,
+                                                             'unique_files': 17,
+                                                             'unique_parents': 17,
+                                                             'unique_records': 17,
+                                                             'unique_visitors': 25},
+                                                'id': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                                'label': '',
+                                                'view': {'total_events': 25,
+                                                         'unique_parents': 17,
+                                                         'unique_records': 17,
+                                                         'unique_visitors': 25}},
+                                               {'download': {'total_events': 12,
+                                                             'total_volume': 12288.0,
+                                                             'unique_files': 8,
+                                                             'unique_parents': 8,
+                                                             'unique_records': 8,
+                                                             'unique_visitors': 12},
+                                                'id': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                                                'label': '',
+                                                'view': {'total_events': 12,
+                                                         'unique_parents': 8,
+                                                         'unique_records': 8,
+                                                         'unique_visitors': 12}}]}},
  'timestamp': '2025-06-20T19:30:18',
  'totals': {'download': {'total_events': 60,
                          'total_volume': 61440.0,
@@ -1014,3 +1481,5 @@ const sampleUsageDelta = {
                      'unique_records': 4,
                      'unique_visitors': 8}}
 }
+
+export { sampleRecordDelta, sampleUsageDelta, sampleRecordSnapshot, sampleUsageSnapshot };
