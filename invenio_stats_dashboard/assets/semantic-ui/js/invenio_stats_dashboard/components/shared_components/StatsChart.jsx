@@ -5,8 +5,8 @@ import { Button, Container, Header, Segment, Popup, Icon, Form, Checkbox } from 
 import ReactECharts from "echarts-for-react";
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { CHART_COLORS } from '../../constants';
-import { formatNumber } from '../../utils';
-import { formatDate } from '../../utils/dates';
+import { formatNumber, filterByDateRange } from '../../utils';
+import { formatDate, createReadableDate } from '../../utils/dates';
 
 // Define y-axis labels for different series
 const SERIES_Y_AXIS_LABELS = {
@@ -19,7 +19,9 @@ const SERIES_Y_AXIS_LABELS = {
   'default': i18next.t('Value')
 };
 
-const FilterSelector = ({ displaySeparately, setDisplaySeparately }) => {
+const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
+  const breakdownOptions = data ? Object.keys(data).filter(k => k !== 'global') : [];
+
   return (
     <Popup
       trigger={
@@ -38,24 +40,17 @@ const FilterSelector = ({ displaySeparately, setDisplaySeparately }) => {
             <Form.Field>
               <label htmlFor="filter">Show separately</label>
             </Form.Field>
-            <Form.Field>
-              <Checkbox
-                radio
-                name="resource_types_checkbox"
-                label="Work types"
-                checked={displaySeparately === 'resourceTypes'}
-                onChange={() => setDisplaySeparately('resourceTypes')}
-              />
-            </Form.Field>
-            <Form.Field>
-              <Checkbox
-                radio
-                label="Subject headings"
-                name="subject_headings_checkbox"
-                checked={displaySeparately === 'subjectHeadings'}
-                onChange={() => setDisplaySeparately('subjectHeadings')}
-              />
-            </Form.Field>
+            {breakdownOptions.map(key => (
+              <Form.Field key={key}>
+                <Checkbox
+                  radio
+                  name={`${key}_checkbox`}
+                  label={data[key].name}
+                  checked={displaySeparately === key}
+                  onChange={() => setDisplaySeparately(key)}
+                />
+              </Form.Field>
+            ))}
             <Form.Field>
               <Button type="submit" icon labelPosition="right" onClick={() => setDisplaySeparately(null)}>Clear<Icon name="close" /></Button>
             </Form.Field>
@@ -69,142 +64,76 @@ const FilterSelector = ({ displaySeparately, setDisplaySeparately }) => {
   );
 };
 
+const createAggregationKey = (date, granularity) => {
+  switch (granularity) {
+    case 'day':
+      return date.toISOString().split('T')[0];
+    case 'week':
+      const day = date.getUTCDay();
+      const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
+      return monday.toISOString().split('T')[0];
+    case 'month':
+      return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+    case 'quarter':
+      const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
+      const firstDayOfQuarter = new Date(Date.UTC(date.getUTCFullYear(), (quarter - 1) * 3, 1));
+      return firstDayOfQuarter.toISOString().split('T')[0];
+    case 'year':
+      return date.getUTCFullYear().toString();
+    default:
+      return date.toISOString().split('T')[0];
+  }
+};
+
+
+
 const aggregateData = (data, granularity) => {
-  const aggregated = data.map(series => {
+  if (!data) return [];
+  if (granularity === 'day') {
+    return data;
+  }
+
+  const aggregatedSeries = data.map(series => {
+    if (!series.data || series.data.length === 0) {
+      return { ...series, data: [] };
+    }
+
     const aggregatedPoints = new Map();
 
-    series.data.forEach(([date, value, resourceTypes, subjectHeadings]) => {
-      const d = new Date(date);
-      let key;
+    series.data.forEach(point => {
+      const [date, value] = point.value;
 
-      switch (granularity) {
-        case 'day':
-          key = d.toISOString().split('T')[0];
-          break;
-        case 'week':
-          // Get the Monday of the week
-          const day = d.getUTCDay();
-          const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
-          const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
-          key = monday.toISOString().split('T')[0];
-          // Calculate Sunday (end of week)
-          const sunday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff + 6));
-          break;
-        case 'month':
-          key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-          break;
-        case 'quarter':
-          // Get the first day of the quarter (1-4)
-          const quarter = Math.floor(d.getUTCMonth() / 3) + 1;
-          const firstDayOfQuarter = new Date(Date.UTC(d.getUTCFullYear(), (quarter - 1) * 3, 1));
-          key = firstDayOfQuarter.toISOString().split('T')[0];
-          break;
-        case 'year':
-          key = d.getUTCFullYear().toString();
-          break;
-        default:
-          key = d.toISOString().split('T')[0];
+      if (!date || value === undefined) {
+        return; // Skip invalid points
       }
+
+      const key = createAggregationKey(date, granularity);
 
       if (!aggregatedPoints.has(key)) {
-        // Create a UTC date for the readable date
-        const readableDate = new Date(key + 'T00:00:00Z').toLocaleString('default', {
-          year: 'numeric',
-          month: granularity === 'quarter' ? undefined : 'short',
-          day: granularity === 'quarter' ? undefined : 'numeric',
-          timeZone: 'UTC'
-        });
+        const readableDate = createReadableDate(key, granularity);
 
-        // For quarters, append the quarter number
-        if (granularity === 'quarter') {
-          const quarter = Math.floor(new Date(key + 'T00:00:00Z').getUTCMonth() / 3) + 1;
-          aggregatedPoints.set(key, {
-            value: 0,
-            readableDate: `${readableDate} Q${quarter}`,
-            resourceTypes: Object.fromEntries(Object.keys(resourceTypes).map(key => [key, {count: 0, label: resourceTypes[key].label}])),
-            subjectHeadings: Object.fromEntries(Object.keys(subjectHeadings).map(key => [key, {count: 0, label: subjectHeadings[key].label}]))
-          });
-        } else if (granularity === 'week') {
-          // For weeks, show the date range
-          const monday = new Date(key + 'T00:00:00Z');
-          const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6));
-          const startYear = monday.getUTCFullYear();
-          const endYear = sunday.getUTCFullYear();
-          aggregatedPoints.set(key, {
-            value: 0,
-            readableDate: `${monday.toLocaleString('default', {
-              month: 'short',
-              day: 'numeric',
-              timeZone: 'UTC'
-            })}${startYear !== endYear ? ', ' + startYear : ''} - ${sunday.toLocaleString('default', {
-              month: 'short',
-              day: 'numeric',
-              timeZone: 'UTC'
-            })}, ${endYear}`,
-            resourceTypes: Object.fromEntries(Object.keys(resourceTypes).map(key => [key, {count: 0, label: resourceTypes[key].label}])),
-            subjectHeadings: Object.fromEntries(Object.keys(subjectHeadings).map(key => [key, {count: 0, label: subjectHeadings[key].label}]))
-          });
-        } else if (granularity === 'month') {
-          const date = new Date(key + 'T00:00:00Z');
-          const month = date.toLocaleString('default', { month: 'long', timeZone: 'UTC' });
-          const year = date.getUTCFullYear();
-          aggregatedPoints.set(key, {
-            value: 0,
-            readableDate: `${month} ${year}`,
-            resourceTypes: Object.fromEntries(Object.keys(resourceTypes).map(key => [key, {count: 0, label: resourceTypes[key].label}])),
-            subjectHeadings: Object.fromEntries(Object.keys(subjectHeadings).map(key => [key, {count: 0, label: subjectHeadings[key].label}]))
-          });
-        } else if (granularity === 'year') {
-          const year = new Date(key + 'T00:00:00Z').getUTCFullYear();
-          aggregatedPoints.set(key, {
-            value: 0,
-            readableDate: `${year}`,
-            resourceTypes: Object.fromEntries(Object.keys(resourceTypes).map(key => [key, {count: 0, label: resourceTypes[key].label}])),
-            subjectHeadings: Object.fromEntries(Object.keys(subjectHeadings).map(key => [key, {count: 0, label: subjectHeadings[key].label}]))
-          });
-        } else {
-          aggregatedPoints.set(key, {
-            value: 0,
-            readableDate: readableDate,
-            resourceTypes: Object.fromEntries(Object.keys(resourceTypes).map(key => [key, {count: 0, label: resourceTypes[key].label}])),
-            subjectHeadings: Object.fromEntries(Object.keys(subjectHeadings).map(key => [key, {count: 0, label: subjectHeadings[key].label}]))
-          });
-        }
+        aggregatedPoints.set(key, {
+          value: 0,
+          readableDate: readableDate
+        });
       }
+
       aggregatedPoints.get(key).value += value;
-      Object.keys(resourceTypes).forEach(resourceTypeKey => {
-        if (aggregatedPoints.get(key)?.resourceTypes?.hasOwnProperty(resourceTypeKey)) {
-          aggregatedPoints.get(key).resourceTypes[resourceTypeKey].count += resourceTypes[resourceTypeKey].count;
-        } else {
-          aggregatedPoints.get(key).resourceTypes[resourceTypeKey] = {count: resourceTypes[resourceTypeKey], label: resourceTypes[resourceTypeKey].label};
-        }
-      });
-      Object.keys(subjectHeadings).forEach(subjectHeadingKey => {
-        if (aggregatedPoints.get(key)?.subjectHeadings?.hasOwnProperty(subjectHeadingKey)) {
-          aggregatedPoints.get(key).subjectHeadings[subjectHeadingKey].count += subjectHeadings[subjectHeadingKey].count;
-        } else {
-          aggregatedPoints.get(key).subjectHeadings[subjectHeadingKey] = {count: subjectHeadings[subjectHeadingKey], label: subjectHeadings[subjectHeadingKey].label};
-        }
-      });
     });
 
     return {
-      name: series.name,
-      type: series.type || "line",
-      valueType: series.valueType || 'number',
+      ...series,
       data: Array.from(aggregatedPoints.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, { value, readableDate, resourceTypes, subjectHeadings }]) => ({
-          date: date,
-          value: value,
-          readableDate: readableDate,
-          resourceTypes: resourceTypes,
-          subjectHeadings: subjectHeadings,
+        .map(([date, { value, readableDate }]) => ({
+          value: [new Date(date), value],
+          readableDate: readableDate
         })),
     };
   });
 
-  return aggregated;
+  return aggregatedSeries;
 };
 
 const separateAggregatedData = (aggregatedData, displaySeparately) => {
@@ -321,9 +250,50 @@ const getAxisIntervals = (granularity, aggregatedData) => {
   }
 };
 
+/**
+ * Filter chart series data by date range
+ * @param {Array} chartSeries - Array of series data (either ChartDataPoint[] or SubcountSeries[])
+ * @param {Object} dateRange - Date range object with start and end properties
+ * @returns {Array} Filtered series data in the expected format for aggregation
+ */
+const filterChartSeriesByDate = (chartSeries, dateRange) => {
+  if (!chartSeries || chartSeries.length === 0) {
+    return [];
+  }
+
+  // Check if chartSeries is an array of ChartDataPoint objects (global case)
+  // or an array of SubcountSeries objects (breakdown case)
+  const isGlobalCase = chartSeries.length > 0 && !chartSeries[0].data;
+
+  if (isGlobalCase) {
+    // Global case: chartSeries is an array of ChartDataPoint objects
+    // Convert to the expected series format
+    return [{
+      name: 'Global',
+      type: 'line',
+      data: chartSeries.filter(point => {
+        const date = point.value[0];
+        return (!dateRange.start || date >= dateRange.start) &&
+               (!dateRange.end || date <= dateRange.end);
+      })
+    }];
+  } else {
+    // Breakdown case: chartSeries is an array of SubcountSeries objects
+    return chartSeries.map(series => ({
+      ...series,
+      data: series.data.filter(point => {
+        const date = point.value[0];
+        return (!dateRange.start || date >= dateRange.start) &&
+               (!dateRange.end || date <= dateRange.end);
+      }),
+    }));
+  }
+};
+
 const StatsChart = ({
   classnames,
   data,
+  seriesSelectorOptions,
   title=undefined,
   xAxisLabel,
   yAxisLabel,
@@ -364,24 +334,33 @@ const StatsChart = ({
     },
   },
 }) => {
-  const { granularity, dateRange, displaySeparately, setDisplaySeparately } = useStatsDashboard();
-  const [selectedSeries, setSelectedSeries] = useState(data[0]?.name || '');
+  const { dateRange, granularity } = useStatsDashboard();
+  const [selectedMetric, setSelectedMetric] = useState(seriesSelectorOptions?.[0]?.value);
+  const [displaySeparately, setDisplaySeparately] = useState(null);
   const [chartInstance, setChartInstance] = useState(null);
-  console.log('data in StatsChart', data);
+  const [aggregatedData, setAggregatedData] = useState([]);
 
-  const handleSeriesSelect = (seriesName) => {
-    setSelectedSeries(seriesName);
-  };
+  const chartSeries = useMemo(() => {
+    if (!data || !data.global) return [];
+    let seriesToProcess;
 
-  const filteredData = useMemo(() =>
-    data.filter(series => series.name === selectedSeries),
-    [data, selectedSeries]
-  );
+    if (displaySeparately && data[displaySeparately]) {
+      // Breakdown view: get the array of series for the selected metric
+      seriesToProcess = data[displaySeparately][selectedMetric] || [];
+    } else {
+      // Global view: get the single series and wrap it in an array
+      const singleSeries = data.global?.[selectedMetric];
+      seriesToProcess = singleSeries ? [singleSeries] : [];
+    }
+    return seriesToProcess;
+  }, [data, selectedMetric, displaySeparately]);
 
-  const aggregatedData = useMemo(() =>
-    aggregateData(filteredData, granularity),
-    [filteredData, granularity]
-  );
+  // This effect handles data filtering and aggregation
+  useEffect(() => {
+    const filteredData = filterChartSeriesByDate(chartSeries, dateRange);
+    const aggregatedData = aggregateData(filteredData, granularity);
+    setAggregatedData(aggregatedData);
+  }, [chartSeries, granularity, dateRange]);
 
   const [minInterval, maxInterval] = useMemo(() => getAxisIntervals(granularity, aggregatedData), [granularity, aggregatedData]);
 
@@ -597,7 +576,7 @@ const StatsChart = ({
 
   return (
     <Container fluid>
-      <FilterSelector displaySeparately={displaySeparately} setDisplaySeparately={setDisplaySeparately} />
+      <FilterSelector data={data} displaySeparately={displaySeparately} setDisplaySeparately={setDisplaySeparately} />
       {title && (
         <Header as="h3" attached="top" fluid textAlign="center" className="rel-mt-1">
           <Header.Content>
@@ -610,25 +589,25 @@ const StatsChart = ({
           )}
         </Header>
       )}
-      <Segment className={`stats-chart ${classnames} rel-mb-1 rel-mt-0`} attached="bottom" fluid role="region" aria-label={title || "Statistics Chart"} aria-description={`Chart showing ${selectedSeries} over time`}>
+      <Segment className={`stats-chart ${classnames} rel-mb-1 rel-mt-0`} attached="bottom" fluid role="region" aria-label={title || "Statistics Chart"} aria-description={`Chart showing ${selectedMetric} over time`}>
           {showControls && (
             <div className="stats-chart-controls" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
               {showSeriesControls && (
                 <Button.Group className="stats-chart-series-controls separated">
-                  {data.map((series, index) => (
-                    <Button
-                      key={series.name}
-                      toggle
-                      active={selectedSeries === series.name}
-                      onClick={() => handleSeriesSelect(series.name)}
-                      aria-pressed={selectedSeries === series.name}
-                      {...(selectedSeries === series.name && {
-                        color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][0],
-                      })}
-                    >
-                      {series.name}
-                    </Button>
-                  ))}
+                  {seriesSelectorOptions && seriesSelectorOptions.map((option, index) => (
+                     <Button
+                       key={option.value}
+                       toggle
+                       active={selectedMetric === option.value}
+                       onClick={() => setSelectedMetric(option.value)}
+                       aria-pressed={selectedMetric === option.value}
+                       {...(selectedMetric === option.value && {
+                         color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][0],
+                       })}
+                     >
+                       {option.text}
+                     </Button>
+                   ))}
                 </Button.Group>
               )}
             </div>
@@ -639,7 +618,7 @@ const StatsChart = ({
               style={{ height }}
               onChartReady={onChartReady}
               aria-label={title || "Statistics Chart"}
-              aria-description={`Chart showing ${selectedSeries} over time`}
+              aria-description={`Chart showing ${selectedMetric} over time`}
             />
           </div>
       </Segment>
@@ -668,6 +647,13 @@ StatsChart.propTypes = {
   showSeriesControls: PropTypes.bool,
   gridConfig: PropTypes.object,
   tooltipConfig: PropTypes.object,
+  seriesSelectorOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.string.isRequired,
+      text: PropTypes.string.isRequired,
+      valueType: PropTypes.string,
+    })
+  ),
 };
 
 export { StatsChart };

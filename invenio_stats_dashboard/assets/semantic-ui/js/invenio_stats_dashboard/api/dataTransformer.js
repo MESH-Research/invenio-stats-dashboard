@@ -1,65 +1,219 @@
+import { i18next } from "@translations/invenio_stats_dashboard/i18next";
+import { formatDate } from "../../utils/dates";
+
+/**
+ * Create a chart data point with proper date formatting
+ *
+ * @param {string} date - Date string in format YYYY-MM-DD
+ * @param {number} value - Numeric value
+ * @param {string} [valueType='number'] - Type of value ('number', 'filesize', etc.)
+ * @returns {ChartDataPoint} Chart data point object
+ */
+const createChartDataPoint = (date, value, valueType = 'number') => {
+  const dateObj = new Date(date);
+  const readableDate = formatDate(date, false);
+
+  return {
+    value: [dateObj, value],
+    readableDate: readableDate,
+    valueType: valueType
+  };
+};
+
+/**
+ * Create an array of SubcountSeries objects for byFilePresence data, optionally populating with data points.
+ *
+ * @param {string[]} seriesNames - Array of series names (e.g., ['withFiles', 'withoutFiles'])
+ * @param {Object[]} [dataPointsArray] - Array of objects mapping series name to value for each date, e.g.:
+ *    [{date: '2024-01-01', withFiles: 5, withoutFiles: 2}, ...]
+ * @param {string} [type='line'] - Chart type for all series
+ * @param {string} [valueType='number'] - Value type for all series
+ * @returns {SubcountSeries[]} Array of SubcountSeries objects
+ */
+const createSubcountSeriesArray = (seriesNames, dataPointsArray = [], type = 'line', valueType = 'number') => {
+  const seriesArray = seriesNames.map(name => ({
+    id: name,
+    name,
+    data: [],
+    type,
+    valueType
+  }));
+
+  if (dataPointsArray.length > 0) {
+    dataPointsArray.forEach(pointObj => {
+      const { date, ...values } = pointObj;
+      for (const name of seriesNames) {
+        if (name in values) {
+          const series = seriesArray.find(s => s.name === name);
+          if (series) {
+            series.data.push(createChartDataPoint(date, values[name], valueType));
+          }
+        }
+      }
+    });
+  }
+
+  return seriesArray;
+};
+
+/**
+ * Create an array of SubcountSeries objects from raw subcount data.
+ *
+ * @param {Array} subcountItems - Array of subcount items with id and optional label
+ * @param {Object[]} [dataPointsArray] - Array of objects mapping subcount id to value for each date
+ * @param {string} [type='line'] - Chart type for all series
+ * @param {string} [valueType='number'] - Value type for all series
+ * @returns {SubcountSeries[]} Array of SubcountSeries objects
+ */
+const createSubcountSeriesFromItems = (subcountItems, dataPointsArray = [], type = 'line', valueType = 'number') => {
+  const seriesArray = subcountItems.map(item => ({
+    id: item.id,
+    name: item.label || item.id,
+    data: [],
+    type,
+    valueType
+  }));
+
+  if (dataPointsArray.length > 0) {
+    dataPointsArray.forEach(pointObj => {
+      const { date, ...values } = pointObj;
+      for (const series of seriesArray) {
+        if (series.id in values) {
+          series.data.push(createChartDataPoint(date, values[series.id], valueType));
+        }
+      }
+    });
+  }
+
+  return seriesArray;
+};
+
+/**
+ * Type definitions for data transformer return objects
+ *
+ * @typedef {Object} ChartDataPoint
+ * @property {[Date, number]} value - [date, value] array for chart
+ * @property {string} readableDate - Formatted date string
+ * @property {string} valueType - Type of value ('number', 'filesize', etc.)
+ *
+ * @typedef {Object} SubcountSeries
+ * @property {string} id - Unique identifier for the series
+ * @property {string} name - Series name (display name, can be label or id)
+ * @property {ChartDataPoint[]} data - Array of chart data points
+ * @property {string} [type='line'] - Chart type ('line', 'bar', etc.)
+ * @property {string} [valueType='number'] - Type of value ('number', 'filesize', etc.)
+ *
+ * @typedef {Object} RecordSeries
+ * @property {ChartDataPoint[]} records - Record count data points
+ * @property {ChartDataPoint[]} parents - Parent count data points
+ * @property {ChartDataPoint[]} files - File count data points
+ * @property {ChartDataPoint[]} dataVolume - Data volume points
+ * @property {ChartDataPoint[]} uploaders - Uploader count data points
+ *
+ * @typedef {Object} UsageSeries
+ * @property {ChartDataPoint[]} views - View count data points
+ * @property {ChartDataPoint[]} downloads - Download count data points
+ * @property {ChartDataPoint[]} visitors - Visitor count data points
+ * @property {ChartDataPoint[]} dataVolume - Data volume points
+ *
+ * @typedef {Object} SubcountMetrics
+ * @property {SubcountSeries[]} records - Record count series for this category
+ * @property {SubcountSeries[]} parents - Parent count series for this category
+ * @property {SubcountSeries[]} uploaders - Uploader count series for this category
+ * @property {SubcountSeries[]} fileCount - File count series for this category
+ * @property {SubcountSeries[]} dataVolume - Data volume series for this category
+ *
+ * @typedef {Object} SubcountUsageMetrics
+ * @property {SubcountSeries[]} views - View count series for this category
+ * @property {SubcountSeries[]} downloads - Download count series for this category
+ * @property {SubcountSeries[]} visitors - Visitor count series for this category
+ * @property {SubcountSeries[]} dataVolume - Data volume series for this category
+ *
+ * @typedef {Object} RecordDeltaData
+ * @property {RecordSeries} global - Global record metrics
+ * @property {SubcountMetrics} byFilePresence - Record metrics by file presence
+ * @property {SubcountMetrics} resourceTypes
+ * @property {SubcountMetrics} accessRights
+ * @property {SubcountMetrics} languages
+ * @property {SubcountMetrics} affiliations
+ * @property {SubcountMetrics} funders
+ * @property {SubcountMetrics} subjects
+ * @property {SubcountMetrics} publishers
+ * @property {SubcountMetrics} periodicals
+ * @property {SubcountMetrics} licenses
+ * @property {SubcountMetrics} fileTypes
+ *
+ * @typedef {Object} RecordSnapshotData
+ * @property {RecordSeries} global - Global record metrics
+ * @property {SubcountMetrics} byFilePresence - Record metrics by file presence
+ * @property {SubcountMetrics} resourceTypes
+ * @property {SubcountMetrics} accessRights
+ * @property {SubcountMetrics} languages
+ * @property {SubcountMetrics} affiliations
+ * @property {SubcountMetrics} funders
+ * @property {SubcountMetrics} subjects
+ * @property {SubcountMetrics} publishers
+ * @property {SubcountMetrics} periodicals
+ * @property {SubcountMetrics} licenses
+ * @property {SubcountMetrics} fileTypes
+ *
+ * @typedef {Object} UsageDeltaData
+ * @property {UsageSeries} global - Global usage metrics
+ * @property {SubcountUsageMetrics} byFilePresence - Usage metrics by file presence
+ * @property {SubcountUsageMetrics} byAccessRights
+ * @property {SubcountUsageMetrics} byFileTypes
+ * @property {SubcountUsageMetrics} byLanguages
+ * @property {SubcountUsageMetrics} byResourceTypes
+ * @property {SubcountUsageMetrics} bySubjects
+ * @property {SubcountUsageMetrics} byPublishers
+ * @property {SubcountUsageMetrics} byLicenses
+ * @property {SubcountUsageMetrics} byCountries
+ * @property {SubcountUsageMetrics} byReferrers
+ * @property {SubcountUsageMetrics} byAffiliations
+ *
+ * @typedef {Object} UsageSnapshotData
+ * @property {UsageSeries} global - Global usage metrics
+ * @property {SubcountUsageMetrics} byFilePresence - Usage metrics by file presence
+ * @property {SubcountUsageMetrics} byAccessRights
+ * @property {SubcountUsageMetrics} byFileTypes
+ * @property {SubcountUsageMetrics} byLanguages
+ * @property {SubcountUsageMetrics} byResourceTypes
+ * @property {SubcountUsageMetrics} bySubjects
+ * @property {SubcountUsageMetrics} byPublishers
+ * @property {SubcountUsageMetrics} byLicenses
+ * @property {SubcountUsageMetrics} byCountries
+ * @property {SubcountUsageMetrics} byReferrers
+ * @property {SubcountUsageMetrics} byAffiliations
+ * @property {SubcountUsageMetrics} topCountriesByView
+ * @property {SubcountUsageMetrics} topCountriesByDownload
+ * @property {SubcountUsageMetrics} topSubjectsByView
+ * @property {SubcountUsageMetrics} topSubjectsByDownload
+ * @property {SubcountUsageMetrics} topPublishersByView
+ * @property {SubcountUsageMetrics} topPublishersByDownload
+ * @property {SubcountUsageMetrics} topLicensesByView
+ * @property {SubcountUsageMetrics} topLicensesByDownload
+ * @property {SubcountUsageMetrics} topReferrersByView
+ * @property {SubcountUsageMetrics} topReferrersByDownload
+ * @property {SubcountUsageMetrics} topAffiliationsByView
+ * @property {SubcountUsageMetrics} topAffiliationsByDownload
+ *
+ * @typedef {Object} TransformedApiData
+ * @property {RecordDeltaData} recordDeltaDataCreated - Record creation counts
+ * @property {RecordDeltaData} recordDeltaDataAdded - Record addition counts
+ * @property {RecordDeltaData} recordDeltaDataPublished - Record publication counts
+ * @property {RecordSnapshotData} recordSnapshotDataCreated - Cumulative record counts
+ * @property {RecordSnapshotData} recordSnapshotDataAdded - Cumulative record counts
+ * @property {RecordSnapshotData} recordSnapshotDataPublished - Cumulative record counts
+ * @property {UsageDeltaData} usageDeltaData - Usage counts
+ * @property {UsageSnapshotData} usageSnapshotData - Cumulative usage counts
+ */
+
 /**
  * Transform daily record delta aggregation documents for display in the dashboard.
  *
  * @param {Array} deltaDocs - Array of daily record delta aggregation documents
  *
- * The returned data is an object containing the arrays of data points for each
- * time series metric used by the dashboard components. The data points are
- * in the shape of {
- *  date,
- *  readableDate,
- *  global: {
- *    records: [date, value, label],
- *    parents: [date, value, label],
- *    uploaders: [date, value, label],
- *    fileCount: [date, value, label],
- *    dataVolume: [date, value, label],
- *  },
- *  byFilePresence: {
- *    withFiles: {
- *      records: [date, value, label],
- *      parents: [date, value, label],
- *      files: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *    withoutFiles: {
- *      records: [date, value, label],
- *      parents: [date, value, label],
- *    },
- *  },
- *  resourceTypes: {
- *    id: [date, value, label],
- *  },
- *  accessRights: {
- *    id: [date, value, label],
- *  },
- *  languages: {
- *    id: [date, value, label],
- *  },
- *  affiliations: {
- *    id: [date, value, label],
- *  },
- *  funders: {
- *    id: [date, value, label],
- *  },
- *  subjects: {
- *    id: [date, value, label],
- *  },
- *  publishers: {
- *    id: [date, value, label],
- *  },
- *  periodicals: {
- *    id: [date, value, label],
- *  },
- *  licenses: {
- *    id: [date, value, label],
- *  },
- *  fileTypes: {
- *    id: [date, value, label],
- *  },
- * }.
- *
- * @returns {Object} Transformed data in the format expected by testStatsData
+ * @returns {RecordDeltaData} Transformed data with time series metrics organized by category
  */
 const transformRecordDeltaData = (deltaDocs) => {
 
@@ -72,27 +226,82 @@ const transformRecordDeltaData = (deltaDocs) => {
       dataVolume: [],
     },
     byFilePresence: {
-      withFiles: {
-        records: [],
-        parents: [],
-        files: [],
-        dataVolume: [],
-      },
-      withoutFiles: {
-        records: [],
-        parents: [],
-      },
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
     },
-    accessRights: {},
-    languages: {},
-    affiliations: {},
-    funders: {},
-    subjects: {},
-    publishers: {},
-    periodicals: {},
-    licenses: {},
-    fileTypes: {},
-    resourceTypes: {},
+    accessRights: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    languages: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    affiliations: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    funders: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    subjects: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    publishers: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    periodicals: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    licenses: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    fileTypes: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    resourceTypes: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
   };
 
 
@@ -130,51 +339,117 @@ const transformRecordDeltaData = (deltaDocs) => {
   };
 
   if (deltaDocs && Array.isArray(deltaDocs)) {
+    const byFilePresenceDataPoints = [];
+
     deltaDocs.forEach(doc => {
       const source = doc._source;
       const date = source.period_start.split('T')[0];
-      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
       // Accumulate global data points
-      deltaData.global.records.push([date, getNetCount(source.records)]);
-      deltaData.global.parents.push([date, getNetCount(source.parents)]);
-      deltaData.global.uploaders.push([date, source.uploaders]);
-      deltaData.global.fileCount.push([date, getNetFileCount(source.files)]);
-      deltaData.global.dataVolume.push([date, getNetDataVolume(source.files)]);
+      deltaData.global.records.push(createChartDataPoint(date, getNetCount(source.records)));
+      deltaData.global.parents.push(createChartDataPoint(date, getNetCount(source.parents)));
+      deltaData.global.uploaders.push(createChartDataPoint(date, source.uploaders));
+      deltaData.global.fileCount.push(createChartDataPoint(date, getNetFileCount(source.files)));
+      deltaData.global.dataVolume.push(createChartDataPoint(date, getNetDataVolume(source.files), 'filesize'));
 
-      // Accumulate byFilePresence data points
-      deltaData.byFilePresence.withFiles.records.push([date, getNetCount(source.records.added)]);
-      deltaData.byFilePresence.withFiles.parents.push([date, getNetCount(source.parents.added)]);
-      deltaData.byFilePresence.withFiles.files.push([date, getNetFileCount(source.files.added)]);
-      deltaData.byFilePresence.withFiles.dataVolume.push([date, getNetDataVolume(source.files.added)]);
-      deltaData.byFilePresence.withoutFiles.records.push([date, getNetCount(source.records.removed)]);
-      deltaData.byFilePresence.withoutFiles.parents.push([date, getNetCount(source.parents.removed)]);
+      // Collect byFilePresence data points
+      byFilePresenceDataPoints.push({
+        date,
+        withFiles: getNetCount(source.records.added),
+        withoutFiles: getNetCount(source.records.removed)
+      });
 
+      // Collect subcount data points for each metric type
       Object.keys(subcountTypes).forEach(subcountType => {
-        const subcountSeries = source.subcounts[subcountType]
-        if (subcountSeries.length > 0) {
+        const subcountSeries = source.subcounts[subcountType];
+        if (subcountSeries && subcountSeries.length > 0) {
           const targetKey = subcountTypes[subcountType];
-          if (!deltaData[targetKey]) {
-            deltaData[targetKey] = {};
+
+          // Initialize data structures for each metric type
+          if (!deltaData[`${targetKey}DataPoints`]) {
+            deltaData[`${targetKey}DataPoints`] = {
+              records: [],
+              parents: [],
+              uploaders: [],
+              fileCount: [],
+              dataVolume: []
+            };
+            deltaData[`${targetKey}Items`] = [];
           }
 
           subcountSeries.forEach(item => {
-            if (!deltaData[targetKey][item.id]) {
-              deltaData[targetKey][item.id] = {
-                records: [],
-                parents: [],
-                files: [],
-                dataVolume: [],
-              };
+            // Store the item for later series creation
+            if (!deltaData[`${targetKey}Items`].find(existing => existing.id === item.id)) {
+              deltaData[`${targetKey}Items`].push(item);
             }
 
-            deltaData[targetKey][item.id].records.push([date, getNetCount(item.records), item.label || item.id]);
-            deltaData[targetKey][item.id].parents.push([date, getNetCount(item.parents), item.label || item.id]);
-            deltaData[targetKey][item.id].files.push([date, getNetFileCount(item.files), item.label || item.id]);
-            deltaData[targetKey][item.id].dataVolume.push([date, getNetDataVolume(item.files), item.label || item.id]);
+            // Collect data points for each metric type
+            const metricTypes = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+            metricTypes.forEach(metricType => {
+              let value = 0;
+              let valueType = 'number';
+
+              switch (metricType) {
+                case 'records':
+                  value = getNetCount(item.records);
+                  break;
+                case 'parents':
+                  value = getNetCount(item.parents);
+                  break;
+                case 'uploaders':
+                  value = item.uploaders || 0;
+                  break;
+                case 'fileCount':
+                  value = getNetFileCount(item.files);
+                  break;
+                case 'dataVolume':
+                  value = getNetDataVolume(item.files);
+                  valueType = 'filesize';
+                  break;
+              }
+
+              // Find or create data point for this date
+              let existingDataPoint = deltaData[`${targetKey}DataPoints`][metricType].find(dp => dp.date === date);
+              if (!existingDataPoint) {
+                existingDataPoint = { date };
+                deltaData[`${targetKey}DataPoints`][metricType].push(existingDataPoint);
+              }
+              existingDataPoint[item.id] = value;
+            });
           });
         }
       });
+    });
+
+    // Create byFilePresence series for each metric type
+    const byFilePresenceMetrics = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+    byFilePresenceMetrics.forEach(metricType => {
+      const dataPoints = byFilePresenceDataPoints.map(dp => ({
+        date: dp.date,
+        withFiles: dp.withFiles,
+        withoutFiles: dp.withoutFiles
+      }));
+      deltaData.byFilePresence[metricType] = createSubcountSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+    });
+
+    // Create subcount series for each metric type
+    Object.keys(subcountTypes).forEach(subcountType => {
+      const targetKey = subcountTypes[subcountType];
+      if (deltaData[`${targetKey}Items`] && deltaData[`${targetKey}DataPoints`]) {
+        const metricTypes = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+        metricTypes.forEach(metricType => {
+          const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+          deltaData[targetKey][metricType] = createSubcountSeriesFromItems(
+            deltaData[`${targetKey}Items`],
+            deltaData[`${targetKey}DataPoints`][metricType],
+            'line',
+            valueType
+          );
+        });
+        // Clean up temporary data
+        delete deltaData[`${targetKey}Items`];
+        delete deltaData[`${targetKey}DataPoints`];
+      }
     });
   }
 
@@ -186,63 +461,7 @@ const transformRecordDeltaData = (deltaDocs) => {
  *
  * @param {Array} snapshotDocs - Array of daily record snapshot aggregation documents
  *
- * The returned data is an object containing the arrays of data points for each
- * time series metric used by the dashboard components. The data points are
- * in the shape of {
- *  date,
- *  readableDate,
- *  global: {
- *    records: [date, value, label],
- *    parents: [date, value, label],
- *    uploaders: [date, value, label],
- *    fileCount: [date, value, label],
- *    dataVolume: [date, value, label],
- *  },
- *  byFilePresence: {
- *    withFiles: {
- *      records: [date, value, label],
- *      parents: [date, value, label],
- *      files: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *    withoutFiles: {
- *      records: [date, value, label],
- *      parents: [date, value, label],
- *    },
- *  },
- *  resourceTypes: {
- *    id: [date, value, label],
- *  },
- *  accessRights: {
- *    id: [date, value, label],
- *  },
- *  languages: {
- *    id: [date, value, label],
- *  },
- *  affiliations: {
- *    id: [date, value, label],
- *  },
- *  funders: {
- *    id: [date, value, label],
- *  },
- *  subjects: {
- *    id: [date, value, label],
- *  },
- *  publishers: {
- *    id: [date, value, label],
- *  },
- *  periodicals: {
- *    id: [date, value, label],
- *  },
- *  licenses: {
- *    id: [date, value, label],
- *  },
- *  fileTypes: {
- *    id: [date, value, label],
- *  },
- * }.
- *
- * @returns {Object} Transformed data in the format expected by testStatsData
+ * @returns {RecordSnapshotData} Transformed data with cumulative time series metrics organized by category
  */
 const transformRecordSnapshotData = (snapshotDocs) => {
 
@@ -255,27 +474,82 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       dataVolume: [],
     },
     byFilePresence: {
-      withFiles: {
-        records: [],
-        parents: [],
-        files: [],
-        dataVolume: [],
-      },
-      withoutFiles: {
-        records: [],
-        parents: [],
-      },
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
     },
-    accessRights: {},
-    languages: {},
-    affiliations: {},
-    funders: {},
-    subjects: {},
-    publishers: {},
-    periodicals: {},
-    licenses: {},
-    fileTypes: {},
-    resourceTypes: {},
+    accessRights: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    languages: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    affiliations: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    funders: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    subjects: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    publishers: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    periodicals: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    licenses: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    fileTypes: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
+    resourceTypes: {
+      records: [],
+      parents: [],
+      uploaders: [],
+      fileCount: [],
+      dataVolume: [],
+    },
   };
 
   const subcountTypes = {
@@ -305,51 +579,117 @@ const transformRecordSnapshotData = (snapshotDocs) => {
   };
 
   if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    const byFilePresenceDataPoints = [];
+
     snapshotDocs.forEach(doc => {
       const source = doc._source;
       const date = source.snapshot_date.split('T')[0];
-      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
       // Accumulate global data points
-      snapshotData.global.records.push([date, getTotalCount(source.total_records)]);
-      snapshotData.global.parents.push([date, getTotalCount(source.total_parents)]);
-      snapshotData.global.uploaders.push([date, source.total_uploaders]);
-      snapshotData.global.fileCount.push([date, getTotalFileCount(source.total_files)]);
-      snapshotData.global.dataVolume.push([date, getTotalDataVolume(source.total_files)]);
+      snapshotData.global.records.push(createChartDataPoint(date, getTotalCount(source.total_records)));
+      snapshotData.global.parents.push(createChartDataPoint(date, getTotalCount(source.total_parents)));
+      snapshotData.global.uploaders.push(createChartDataPoint(date, source.total_uploaders));
+      snapshotData.global.fileCount.push(createChartDataPoint(date, getTotalFileCount(source.total_files)));
+      snapshotData.global.dataVolume.push(createChartDataPoint(date, getTotalDataVolume(source.total_files), 'filesize'));
 
-      // Accumulate byFilePresence data points
-      snapshotData.byFilePresence.withFiles.records.push([date, source.total_records.with_files]);
-      snapshotData.byFilePresence.withFiles.parents.push([date, source.total_parents.with_files]);
-      snapshotData.byFilePresence.withFiles.files.push([date, getTotalFileCount(source.total_files)]);
-      snapshotData.byFilePresence.withFiles.dataVolume.push([date, getTotalDataVolume(source.total_files)]);
-      snapshotData.byFilePresence.withoutFiles.records.push([date, source.total_records.metadata_only]);
-      snapshotData.byFilePresence.withoutFiles.parents.push([date, source.total_parents.metadata_only]);
+      // Collect byFilePresence data points
+      byFilePresenceDataPoints.push({
+        date,
+        withFiles: source.total_records.with_files,
+        withoutFiles: source.total_records.metadata_only
+      });
 
+      // Collect subcount data points for each metric type
       Object.keys(subcountTypes).forEach(subcountType => {
-        const subcountSeries = source.subcounts[subcountType]
+        const subcountSeries = source.subcounts[subcountType];
         if (subcountSeries && subcountSeries.length > 0) {
           const targetKey = subcountTypes[subcountType];
-          if (!snapshotData[targetKey]) {
-            snapshotData[targetKey] = {};
+
+          // Initialize data structures for each metric type
+          if (!snapshotData[`${targetKey}DataPoints`]) {
+            snapshotData[`${targetKey}DataPoints`] = {
+              records: [],
+              parents: [],
+              uploaders: [],
+              fileCount: [],
+              dataVolume: []
+            };
+            snapshotData[`${targetKey}Items`] = [];
           }
 
           subcountSeries.forEach(item => {
-            if (!snapshotData[targetKey][item.id]) {
-              snapshotData[targetKey][item.id] = {
-                records: [],
-                parents: [],
-                files: [],
-                dataVolume: [],
-              };
+            // Store the item for later series creation
+            if (!snapshotData[`${targetKey}Items`].find(existing => existing.id === item.id)) {
+              snapshotData[`${targetKey}Items`].push(item);
             }
 
-            snapshotData[targetKey][item.id].records.push([date, getTotalCount(item.records), item.label || item.id]);
-            snapshotData[targetKey][item.id].parents.push([date, getTotalCount(item.parents), item.label || item.id]);
-            snapshotData[targetKey][item.id].files.push([date, getTotalFileCount(item.files), item.label || item.id]);
-            snapshotData[targetKey][item.id].dataVolume.push([date, getTotalDataVolume(item.files), item.label || item.id]);
+            // Collect data points for each metric type
+            const metricTypes = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+            metricTypes.forEach(metricType => {
+              let value = 0;
+              let valueType = 'number';
+
+              switch (metricType) {
+                case 'records':
+                  value = getTotalCount(item.total_records);
+                  break;
+                case 'parents':
+                  value = getTotalCount(item.total_parents);
+                  break;
+                case 'uploaders':
+                  value = item.total_uploaders || 0;
+                  break;
+                case 'fileCount':
+                  value = getTotalFileCount(item.total_files);
+                  break;
+                case 'dataVolume':
+                  value = getTotalDataVolume(item.total_files);
+                  valueType = 'filesize';
+                  break;
+              }
+
+              // Find or create data point for this date
+              let existingDataPoint = snapshotData[`${targetKey}DataPoints`][metricType].find(dp => dp.date === date);
+              if (!existingDataPoint) {
+                existingDataPoint = { date };
+                snapshotData[`${targetKey}DataPoints`][metricType].push(existingDataPoint);
+              }
+              existingDataPoint[item.id] = value;
+            });
           });
         }
       });
+    });
+
+    // Create byFilePresence series for each metric type
+    const byFilePresenceMetrics = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+    byFilePresenceMetrics.forEach(metricType => {
+      const dataPoints = byFilePresenceDataPoints.map(dp => ({
+        date: dp.date,
+        withFiles: dp.withFiles,
+        withoutFiles: dp.withoutFiles
+      }));
+      snapshotData.byFilePresence[metricType] = createSubcountSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+    });
+
+    // Create subcount series for each metric type
+    Object.keys(subcountTypes).forEach(subcountType => {
+      const targetKey = subcountTypes[subcountType];
+      if (snapshotData[`${targetKey}Items`] && snapshotData[`${targetKey}DataPoints`]) {
+        const metricTypes = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+        metricTypes.forEach(metricType => {
+          const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+          snapshotData[targetKey][metricType] = createSubcountSeriesFromItems(
+            snapshotData[`${targetKey}Items`],
+            snapshotData[`${targetKey}DataPoints`][metricType],
+            'line',
+            valueType
+          );
+        });
+        // Clean up temporary data
+        delete snapshotData[`${targetKey}Items`];
+        delete snapshotData[`${targetKey}DataPoints`];
+      }
     });
   }
 
@@ -361,100 +701,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
  *
  * @param {Array} deltaDocs - Array of daily usage delta aggregation documents
  *
- * The returned data is an object containing the arrays of data points for each
- * time series metric used by the dashboard components. The data points are
- * in the shape of {
- *  date,
- *  readableDate,
- *  global: {
- *    views: [date, value, label],
- *    downloads: [date, value, label],
- *    visitors: [date, value, label],
- *    dataVolume: [date, value, label],
- *  },
- *  byAccessRights: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byFileTypes: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byLanguages: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byResourceTypes: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  bySubjects: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byPublishers: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byLicenses: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byCountries: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byReferrers: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byAffiliations: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- * }.
- *
- * @returns {Object} Transformed data in the format expected by testStatsData
+ * @returns {UsageDeltaData} Transformed data with usage time series metrics organized by category
  */
 const transformUsageDeltaData = (deltaDocs) => {
 
@@ -465,16 +712,72 @@ const transformUsageDeltaData = (deltaDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byAccessRights: {},
-    byFileTypes: {},
-    byLanguages: {},
-    byResourceTypes: {},
-    bySubjects: {},
-    byPublishers: {},
-    byLicenses: {},
-    byCountries: {},
-    byReferrers: {},
-    byAffiliations: {},
+    byFilePresence: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byAccessRights: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byFileTypes: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byLanguages: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byResourceTypes: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    bySubjects: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byPublishers: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byLicenses: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byCountries: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byReferrers: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byAffiliations: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
   };
 
   const subcountTypes = {
@@ -509,42 +812,112 @@ const transformUsageDeltaData = (deltaDocs) => {
   };
 
   if (deltaDocs && Array.isArray(deltaDocs)) {
+    const byFilePresenceDataPoints = [];
+
     deltaDocs.forEach(doc => {
       const source = doc._source;
       const date = source.period_start.split('T')[0];
-      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
       // Accumulate global data points
-      deltaData.global.views.push([date, getNetViewEvents(source.totals)]);
-      deltaData.global.downloads.push([date, getNetDownloadEvents(source.totals)]);
-      deltaData.global.visitors.push([date, getNetVisitors(source.totals)]);
-      deltaData.global.dataVolume.push([date, getNetDataVolume(source.totals)]);
+      deltaData.global.views.push(createChartDataPoint(date, getNetViewEvents(source.totals)));
+      deltaData.global.downloads.push(createChartDataPoint(date, getNetDownloadEvents(source.totals)));
+      deltaData.global.visitors.push(createChartDataPoint(date, getNetVisitors(source.totals)));
+      deltaData.global.dataVolume.push(createChartDataPoint(date, getNetDataVolume(source.totals), 'filesize'));
 
+      // Collect byFilePresence data points
+      byFilePresenceDataPoints.push({
+        date,
+        withFiles: getNetViewEvents(source.totals.with_files),
+        withoutFiles: getNetViewEvents(source.totals.metadata_only)
+      });
+
+      // Collect subcount data points for each metric type
       Object.keys(subcountTypes).forEach(subcountType => {
-        const subcountSeries = source.subcounts[subcountType]
+        const subcountSeries = source.subcounts[subcountType];
         if (subcountSeries && subcountSeries.length > 0) {
           const targetKey = subcountTypes[subcountType];
-          if (!deltaData[targetKey]) {
-            deltaData[targetKey] = {};
+
+          // Initialize data structures for each metric type
+          if (!deltaData[`${targetKey}DataPoints`]) {
+            deltaData[`${targetKey}DataPoints`] = {
+              views: [],
+              downloads: [],
+              visitors: [],
+              dataVolume: []
+            };
+            deltaData[`${targetKey}Items`] = [];
           }
 
           subcountSeries.forEach(item => {
-            if (!deltaData[targetKey][item.id]) {
-              deltaData[targetKey][item.id] = {
-                views: [],
-                downloads: [],
-                visitors: [],
-                dataVolume: [],
-              };
+            // Store the item for later series creation
+            if (!deltaData[`${targetKey}Items`].find(existing => existing.id === item.id)) {
+              deltaData[`${targetKey}Items`].push(item);
             }
 
-            deltaData[targetKey][item.id].views.push([date, getNetViewEvents(item), item.label || item.id]);
-            deltaData[targetKey][item.id].downloads.push([date, getNetDownloadEvents(item), item.label || item.id]);
-            deltaData[targetKey][item.id].visitors.push([date, getNetVisitors(item), item.label || item.id]);
-            deltaData[targetKey][item.id].dataVolume.push([date, getNetDataVolume(item), item.label || item.id]);
+            // Collect data points for each metric type
+            const metricTypes = ['views', 'downloads', 'visitors', 'dataVolume'];
+            metricTypes.forEach(metricType => {
+              let value = 0;
+              let valueType = 'number';
+
+              switch (metricType) {
+                case 'views':
+                  value = getNetViewEvents(item);
+                  break;
+                case 'downloads':
+                  value = getNetDownloadEvents(item);
+                  break;
+                case 'visitors':
+                  value = getNetVisitors(item);
+                  break;
+                case 'dataVolume':
+                  value = getNetDataVolume(item);
+                  valueType = 'filesize';
+                  break;
+              }
+
+              // Find or create data point for this date
+              let existingDataPoint = deltaData[`${targetKey}DataPoints`][metricType].find(dp => dp.date === date);
+              if (!existingDataPoint) {
+                existingDataPoint = { date };
+                deltaData[`${targetKey}DataPoints`][metricType].push(existingDataPoint);
+              }
+              existingDataPoint[item.id] = value;
+            });
           });
         }
       });
+    });
+
+    // Create byFilePresence series for each metric type
+    const byFilePresenceMetrics = ['views', 'downloads', 'visitors', 'dataVolume'];
+    byFilePresenceMetrics.forEach(metricType => {
+      const dataPoints = byFilePresenceDataPoints.map(dp => ({
+        date: dp.date,
+        withFiles: dp.withFiles,
+        withoutFiles: dp.withoutFiles
+      }));
+      deltaData.byFilePresence[metricType] = createSubcountSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+    });
+
+    // Create subcount series for each metric type
+    Object.keys(subcountTypes).forEach(subcountType => {
+      const targetKey = subcountTypes[subcountType];
+      if (deltaData[`${targetKey}Items`] && deltaData[`${targetKey}DataPoints`]) {
+        const metricTypes = ['views', 'downloads', 'visitors', 'dataVolume'];
+        metricTypes.forEach(metricType => {
+          const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+          deltaData[targetKey][metricType] = createSubcountSeriesFromItems(
+            deltaData[`${targetKey}Items`],
+            deltaData[`${targetKey}DataPoints`][metricType],
+            'line',
+            valueType
+          );
+        });
+        // Clean up temporary data
+        delete deltaData[`${targetKey}Items`];
+        delete deltaData[`${targetKey}DataPoints`];
+      }
     });
   }
 
@@ -556,100 +929,7 @@ const transformUsageDeltaData = (deltaDocs) => {
  *
  * @param {Array} snapshotDocs - Array of daily usage snapshot aggregation documents
  *
- * The returned data is an object containing the arrays of data points for each
- * time series metric used by the dashboard components. The data points are
- * in the shape of {
- *  date,
- *  readableDate,
- *  global: {
- *    views: [date, value, label],
- *    downloads: [date, value, label],
- *    visitors: [date, value, label],
- *    dataVolume: [date, value, label],
- *  },
- *  byAccessRights: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byFileTypes: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byLanguages: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byResourceTypes: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  bySubjects: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byPublishers: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byLicenses: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byCountries: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byReferrers: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- *  byAffiliations: {
- *    id: {
- *      views: [date, value, label],
- *      downloads: [date, value, label],
- *      visitors: [date, value, label],
- *      dataVolume: [date, value, label],
- *    },
- *  },
- * }.
- *
- * @returns {Object} Transformed data in the format expected by testStatsData
+ * @returns {UsageSnapshotData} Transformed data with cumulative usage time series metrics organized by category
  */
 const transformUsageSnapshotData = (snapshotDocs) => {
 
@@ -660,29 +940,145 @@ const transformUsageSnapshotData = (snapshotDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byAccessRights: {},
-    byFileTypes: {},
-    byLanguages: {},
-    byResourceTypes: {},
-    bySubjects: {},
-    byPublishers: {},
-    byLicenses: {},
-    byCountries: {},
-    byReferrers: {},
-    byAffiliations: {},
+    byFilePresence: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byAccessRights: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byFileTypes: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byLanguages: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byResourceTypes: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    bySubjects: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byPublishers: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byLicenses: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byCountries: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byReferrers: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    byAffiliations: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
     // Separate properties for view-based and download-based data
-    byCountriesByView: {},
-    byCountriesByDownload: {},
-    bySubjectsByView: {},
-    bySubjectsByDownload: {},
-    byPublishersByView: {},
-    byPublishersByDownload: {},
-    byLicensesByView: {},
-    byLicensesByDownload: {},
-    byReferrersByView: {},
-    byReferrersByDownload: {},
-    byAffiliationsByView: {},
-    byAffiliationsByDownload: {},
+    topCountriesByView: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topCountriesByDownload: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topSubjectsByView: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topSubjectsByDownload: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topPublishersByView: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topPublishersByDownload: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topLicensesByView: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topLicensesByDownload: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topReferrersByView: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topReferrersByDownload: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topAffiliationsByView: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
+    topAffiliationsByDownload: {
+      views: [],
+      downloads: [],
+      visitors: [],
+      dataVolume: [],
+    },
   };
 
   const subcountTypes = {
@@ -700,12 +1096,12 @@ const transformUsageSnapshotData = (snapshotDocs) => {
 
   // Mapping for separate view/download properties
   const separateSubcountTypes = {
-    'top_countries': { view: 'byCountriesByView', download: 'byCountriesByDownload' },
-    'top_subjects': { view: 'bySubjectsByView', download: 'bySubjectsByDownload' },
-    'top_publishers': { view: 'byPublishersByView', download: 'byPublishersByDownload' },
-    'top_licenses': { view: 'byLicensesByView', download: 'byLicensesByDownload' },
-    'top_referrers': { view: 'byReferrersByView', download: 'byReferrersByDownload' },
-    'top_affiliations': { view: 'byAffiliationsByView', download: 'byAffiliationsByDownload' },
+    'top_countries': { view: 'topCountriesByView', download: 'topCountriesByDownload' },
+    'top_subjects': { view: 'topSubjectsByView', download: 'topSubjectsByDownload' },
+    'top_publishers': { view: 'topPublishersByView', download: 'topPublishersByDownload' },
+    'top_licenses': { view: 'topLicensesByView', download: 'topLicensesByDownload' },
+    'top_referrers': { view: 'topReferrersByView', download: 'topReferrersByDownload' },
+    'top_affiliations': { view: 'topAffiliationsByView', download: 'topAffiliationsByDownload' },
   };
 
   const getTotalViewEvents = (item) => {
@@ -727,128 +1123,199 @@ const transformUsageSnapshotData = (snapshotDocs) => {
   };
 
   if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    const byFilePresenceDataPoints = [];
+
     snapshotDocs.forEach(doc => {
       const source = doc._source;
       const date = source.snapshot_date.split('T')[0];
-      const readableDate = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
       // Accumulate global data points
-      snapshotData.global.views.push([date, getTotalViewEvents(source.totals)]);
-      snapshotData.global.downloads.push([date, getTotalDownloadEvents(source.totals)]);
-      snapshotData.global.visitors.push([date, getTotalVisitors(source.totals)]);
-      snapshotData.global.dataVolume.push([date, getTotalDataVolume(source.totals)]);
+      snapshotData.global.views.push(createChartDataPoint(date, getTotalViewEvents(source.totals)));
+      snapshotData.global.downloads.push(createChartDataPoint(date, getTotalDownloadEvents(source.totals)));
+      snapshotData.global.visitors.push(createChartDataPoint(date, getTotalVisitors(source.totals)));
+      snapshotData.global.dataVolume.push(createChartDataPoint(date, getTotalDataVolume(source.totals), 'filesize'));
 
+      // Collect byFilePresence data points
+      byFilePresenceDataPoints.push({
+        date,
+        withFiles: getTotalViewEvents(source.totals.with_files),
+        withoutFiles: getTotalViewEvents(source.totals.metadata_only)
+      });
+
+      // Collect subcount data points for each metric type
       Object.keys(subcountTypes).forEach(subcountType => {
-        const subcountSeries = source.subcounts[subcountType]
+        const subcountSeries = source.subcounts[subcountType];
         if (subcountSeries) {
           const targetKey = subcountTypes[subcountType];
-          if (!snapshotData[targetKey]) {
-            snapshotData[targetKey] = {};
-          }
 
           // Handle different subcount structures
           if (Array.isArray(subcountSeries)) {
             // Simple array structure (all_* fields)
             if (subcountSeries.length > 0) {
+              // Initialize data structures for each metric type
+              if (!snapshotData[`${targetKey}DataPoints`]) {
+                snapshotData[`${targetKey}DataPoints`] = {
+                  views: [],
+                  downloads: [],
+                  visitors: [],
+                  dataVolume: []
+                };
+                snapshotData[`${targetKey}Items`] = [];
+              }
+
               subcountSeries.forEach(item => {
-                if (!snapshotData[targetKey][item.id]) {
-                  snapshotData[targetKey][item.id] = {
-                    views: [],
-                    downloads: [],
-                    visitors: [],
-                    dataVolume: [],
-                  };
+                // Store the item for later series creation
+                if (!snapshotData[`${targetKey}Items`].find(existing => existing.id === item.id)) {
+                  snapshotData[`${targetKey}Items`].push(item);
                 }
 
-                snapshotData[targetKey][item.id].views.push([date, getTotalViewEvents(item), item.label || item.id]);
-                snapshotData[targetKey][item.id].downloads.push([date, getTotalDownloadEvents(item), item.label || item.id]);
-                snapshotData[targetKey][item.id].visitors.push([date, getTotalVisitors(item), item.label || item.id]);
-                snapshotData[targetKey][item.id].dataVolume.push([date, getTotalDataVolume(item), item.label || item.id]);
+                // Collect data points for each metric type
+                const metricTypes = ['views', 'downloads', 'visitors', 'dataVolume'];
+                metricTypes.forEach(metricType => {
+                  let value = 0;
+                  let valueType = 'number';
+
+                  switch (metricType) {
+                    case 'views':
+                      value = getTotalViewEvents(item);
+                      break;
+                    case 'downloads':
+                      value = getTotalDownloadEvents(item);
+                      break;
+                    case 'visitors':
+                      value = getTotalVisitors(item);
+                      break;
+                    case 'dataVolume':
+                      value = getTotalDataVolume(item);
+                      valueType = 'filesize';
+                      break;
+                  }
+
+                  // Find or create data point for this date
+                  let existingDataPoint = snapshotData[`${targetKey}DataPoints`][metricType].find(dp => dp.date === date);
+                  if (!existingDataPoint) {
+                    existingDataPoint = { date };
+                    snapshotData[`${targetKey}DataPoints`][metricType].push(existingDataPoint);
+                  }
+                  existingDataPoint[item.id] = value;
+                });
               });
             }
-          } else if (typeof subcountSeries === 'object' && subcountSeries !== null) {
-            // Complex object structure with by_view and by_download (top_* fields)
-            const separateMapping = separateSubcountTypes[subcountType];
+          } else {
+            // Object structure with separate view/download data (top_* fields)
+            const separateKeys = separateSubcountTypes[subcountType];
+            if (separateKeys) {
+              Object.keys(separateKeys).forEach(key => {
+                const separateKey = separateKeys[key];
+                const separateSeries = subcountSeries[key];
 
-            if (separateMapping) {
-              // Handle separate view and download data for "top" subcounts
+                if (separateSeries && separateSeries.length > 0) {
+                  // Initialize data structures for each metric type
+                  if (!snapshotData[`${separateKey}DataPoints`]) {
+                    snapshotData[`${separateKey}DataPoints`] = {
+                      views: [],
+                      downloads: [],
+                      visitors: [],
+                      dataVolume: []
+                    };
+                    snapshotData[`${separateKey}Items`] = [];
+                  }
 
-              // Process by_view data
-              if (subcountSeries.by_view && Array.isArray(subcountSeries.by_view)) {
-                const viewKey = separateMapping.view;
-                if (!snapshotData[viewKey]) {
-                  snapshotData[viewKey] = {};
+                  separateSeries.forEach(item => {
+                    // Store the item for later series creation
+                    if (!snapshotData[`${separateKey}Items`].find(existing => existing.id === item.id)) {
+                      snapshotData[`${separateKey}Items`].push(item);
+                    }
+
+                    // Collect data points for each metric type
+                    const metricTypes = ['views', 'downloads', 'visitors', 'dataVolume'];
+                    metricTypes.forEach(metricType => {
+                      let value = 0;
+                      let valueType = 'number';
+
+                      switch (metricType) {
+                        case 'views':
+                          value = getTotalViewEvents(item);
+                          break;
+                        case 'downloads':
+                          value = getTotalDownloadEvents(item);
+                          break;
+                        case 'visitors':
+                          value = getTotalVisitors(item);
+                          break;
+                        case 'dataVolume':
+                          value = getTotalDataVolume(item);
+                          valueType = 'filesize';
+                          break;
+                      }
+
+                      // Find or create data point for this date
+                      let existingDataPoint = snapshotData[`${separateKey}DataPoints`][metricType].find(dp => dp.date === date);
+                      if (!existingDataPoint) {
+                        existingDataPoint = { date };
+                        snapshotData[`${separateKey}DataPoints`][metricType].push(existingDataPoint);
+                      }
+                      existingDataPoint[item.id] = value;
+                    });
+                  });
                 }
-
-                subcountSeries.by_view.forEach(item => {
-                  if (!snapshotData[viewKey][item.id]) {
-                    snapshotData[viewKey][item.id] = {
-                      views: [],
-                      visitors: [],
-                    };
-                  }
-
-                  snapshotData[viewKey][item.id].views.push([date, getTotalViewEvents(item), item.label || item.id]);
-                  snapshotData[viewKey][item.id].visitors.push([date, getTotalVisitors(item), item.label || item.id]);
-                });
-              }
-
-              // Process by_download data
-              if (subcountSeries.by_download && Array.isArray(subcountSeries.by_download)) {
-                const downloadKey = separateMapping.download;
-                if (!snapshotData[downloadKey]) {
-                  snapshotData[downloadKey] = {};
-                }
-
-                subcountSeries.by_download.forEach(item => {
-                  if (!snapshotData[downloadKey][item.id]) {
-                    snapshotData[downloadKey][item.id] = {
-                      downloads: [],
-                      dataVolume: [],
-                    };
-                  }
-
-                  snapshotData[downloadKey][item.id].downloads.push([date, getTotalDownloadEvents(item), item.label || item.id]);
-                  snapshotData[downloadKey][item.id].dataVolume.push([date, getTotalDataVolume(item), item.label || item.id]);
-                });
-              }
-            } else {
-              // Fallback for non-"top" subcounts that might have this structure
-              // Process by_view data
-              if (subcountSeries.by_view && Array.isArray(subcountSeries.by_view)) {
-                subcountSeries.by_view.forEach(item => {
-                  if (!snapshotData[targetKey][item.id]) {
-                    snapshotData[targetKey][item.id] = {
-                      views: [],
-                      downloads: [],
-                      visitors: [],
-                      dataVolume: [],
-                    };
-                  }
-
-                  snapshotData[targetKey][item.id].views.push([date, getTotalViewEvents(item), item.label || item.id]);
-                  snapshotData[targetKey][item.id].visitors.push([date, getTotalVisitors(item), item.label || item.id]);
-                });
-              }
-
-              // Process by_download data
-              if (subcountSeries.by_download && Array.isArray(subcountSeries.by_download)) {
-                subcountSeries.by_download.forEach(item => {
-                  if (!snapshotData[targetKey][item.id]) {
-                    snapshotData[targetKey][item.id] = {
-                      views: [],
-                      downloads: [],
-                      visitors: [],
-                      dataVolume: [],
-                    };
-                  }
-
-                  snapshotData[targetKey][item.id].downloads.push([date, getTotalDownloadEvents(item), item.label || item.id]);
-                  snapshotData[targetKey][item.id].dataVolume.push([date, getTotalDataVolume(item), item.label || item.id]);
-                });
-              }
+              });
             }
           }
+        }
+      });
+    });
+
+    // Create byFilePresence series for each metric type
+    const byFilePresenceMetrics = ['views', 'downloads', 'visitors', 'dataVolume'];
+    byFilePresenceMetrics.forEach(metricType => {
+      const dataPoints = byFilePresenceDataPoints.map(dp => ({
+        date: dp.date,
+        withFiles: dp.withFiles,
+        withoutFiles: dp.withoutFiles
+      }));
+      snapshotData.byFilePresence[metricType] = createSubcountSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+    });
+
+    // Create subcount series for each metric type
+    Object.keys(subcountTypes).forEach(subcountType => {
+      const targetKey = subcountTypes[subcountType];
+      if (snapshotData[`${targetKey}Items`] && snapshotData[`${targetKey}DataPoints`]) {
+        const metricTypes = ['views', 'downloads', 'visitors', 'dataVolume'];
+        metricTypes.forEach(metricType => {
+          const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+          snapshotData[targetKey][metricType] = createSubcountSeriesFromItems(
+            snapshotData[`${targetKey}Items`],
+            snapshotData[`${targetKey}DataPoints`][metricType],
+            'line',
+            valueType
+          );
+        });
+        // Clean up temporary data
+        delete snapshotData[`${targetKey}Items`];
+        delete snapshotData[`${targetKey}DataPoints`];
+      }
+    });
+
+    // Create separate subcount series for each metric type
+    Object.keys(separateSubcountTypes).forEach(subcountType => {
+      const separateKeys = separateSubcountTypes[subcountType];
+      Object.keys(separateKeys).forEach(key => {
+        const separateKey = separateKeys[key];
+        if (snapshotData[`${separateKey}Items`] && snapshotData[`${separateKey}DataPoints`]) {
+          const metricTypes = ['views', 'downloads', 'visitors', 'dataVolume'];
+          metricTypes.forEach(metricType => {
+            const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+            snapshotData[separateKey][metricType] = createSubcountSeriesFromItems(
+              snapshotData[`${separateKey}Items`],
+              snapshotData[`${separateKey}DataPoints`][metricType],
+              'line',
+              valueType
+            );
+          });
+          // Clean up temporary data
+          delete snapshotData[`${separateKey}Items`];
+          delete snapshotData[`${separateKey}DataPoints`];
         }
       });
     });
@@ -858,15 +1325,17 @@ const transformUsageSnapshotData = (snapshotDocs) => {
 };
 
 /**
- * Transform daily record delta and snapshot aggregation documents into the format expected by test data components.
+ * Transform daily record delta and snapshot aggregation documents into the format expected by dashboard components.
  *
  * @param {Object} rawStats - The raw stats object from the API containing record_deltas, record_snapshots, usage_deltas, usage_snapshots
  *
- * The returned data is an object containing the arrays of data points for each
- * time series metric used by the dashboard components. The data points are
- * in the shape of {date, value, resourceTypes, subjectHeadings}.
+ * @returns {TransformedApiData} Transformed data with all record and usage metrics organized by category and time period
  *
- * @returns {Object} Transformed data in the format expected by ContentStatsChart and other components
+ * Each transformed data object contains time series data points organized by:
+ * - Global metrics (total counts across all records)
+ * - By file presence (with/without files)
+ * - By various categories (resource types, access rights, languages, etc.)
+ * - Separate view/download data for usage statistics
  */
 export const transformApiData = (rawStats) => {
 
@@ -917,3 +1386,5 @@ export const transformApiData = (rawStats) => {
     // mostDownloadedRecords: [],
     // mostViewedRecords: []
 };
+
+

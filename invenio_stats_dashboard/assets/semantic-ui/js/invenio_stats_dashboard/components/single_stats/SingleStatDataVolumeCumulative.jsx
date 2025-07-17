@@ -4,6 +4,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
 import { formatNumber, filterByDateRange, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { getSnapshotLatest } from '../../api/dataTransformer';
 
 const SingleStatDataVolumeCumulative = ({ title = i18next.t("Cumulative Data Volume"), icon = "database", compactThreshold = 1_000_000 }) => {
   const { stats, dateRange, binary_sizes } = useStatsDashboard();
@@ -16,41 +17,12 @@ const SingleStatDataVolumeCumulative = ({ title = i18next.t("Cumulative Data Vol
     }
   }, [dateRange]);
 
-  // Helper function to extract cumulative data volume from the new structure
-  const extractCumulativeDataVolumeData = () => {
-    if (!stats.recordSnapshotDataAdded || !stats.recordSnapshotDataAdded.global || !stats.recordSnapshotDataAdded.global.dataVolume) {
-      return [];
-    }
-
-    // Handle array of data points format: [[date, value], [date, value], ...]
-    if (Array.isArray(stats.recordSnapshotDataAdded.global.dataVolume) && stats.recordSnapshotDataAdded.global.dataVolume.length > 0) {
-      return stats.recordSnapshotDataAdded.global.dataVolume.map(([date, value]) => ({
-        date: date,
-        value: value,
-        resourceTypes: [],
-        subjectHeadings: [],
-      }));
-    }
-
-    return [];
-  };
-
-  // Get the last value in the date range
-  const filteredData = filterByDateRange(extractCumulativeDataVolumeData(), dateRange);
-
-  // Only sort if the last item's date is not the end of the filter dateRange
-  let dataToUse = filteredData;
-  if (filteredData.length > 0 && dateRange) {
-    const lastItemDate = new Date(filteredData[filteredData.length - 1].date);
-    const endDate = new Date(dateRange.end);
-    if (lastItemDate.getTime() !== endDate.getTime()) {
-      dataToUse = filteredData.sort((a, b) => new Date(a.date) - new Date(b.date));
-    }
-  }
-
-  const value = dataToUse?.length > 0
-    ? dataToUse[dataToUse.length - 1].value
-    : 0;
+  // Get cumulative data volume using the centralized helper function
+  const value = getSnapshotLatest(
+    stats.recordSnapshotDataAdded?.global?.dataVolume,
+    dateRange,
+    filterByDateRange
+  );
 
   return (
     <SingleStatBox

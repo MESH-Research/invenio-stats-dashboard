@@ -4,6 +4,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
 import { formatNumber, filterByDateRange, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { getDeltaTotal } from '../../api/dataTransformer';
 
 const SingleStatUploaders = ({ title = i18next.t("Uploaders"), icon = "users", compactThreshold = 1_000_000 }) => {
   const { stats, dateRange } = useStatsDashboard();
@@ -15,23 +16,12 @@ const SingleStatUploaders = ({ title = i18next.t("Uploaders"), icon = "users", c
     }
   }, [dateRange]);
 
-  // Helper function to extract uploaders data from the new structure
-  const extractUploadersData = () => {
-    if (!stats.recordDeltaDataAdded || !stats.recordDeltaDataAdded.global || !stats.recordDeltaDataAdded.global.uploaders) {
-      return [];
-    }
-
-    const [date, value] = stats.recordDeltaDataAdded.global.uploaders;
-    return [{
-      date: date,
-      value: value,
-      resourceTypes: [],
-      subjectHeadings: [],
-    }];
-  };
-
-  const filteredData = filterByDateRange(extractUploadersData(), dateRange);
-  const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
+  // Get uploaders data using the centralized helper function
+  const value = getDeltaTotal(
+    stats.recordDeltaDataAdded?.global?.uploaders,
+    dateRange,
+    filterByDateRange
+  );
 
   return (
     <SingleStatBox

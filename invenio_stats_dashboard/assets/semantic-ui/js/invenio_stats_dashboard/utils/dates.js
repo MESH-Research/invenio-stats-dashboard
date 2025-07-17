@@ -21,6 +21,50 @@ export const filterByDateRange = (data, dateRange) => {
 };
 
 /**
+ * Create a human-readable date string for aggregated data points based on granularity
+ * @param {string} key - The aggregation key (date string)
+ * @param {string} granularity - The time granularity (day, week, month, quarter, year)
+ * @returns {string} Human-readable date string
+ */
+export const createReadableDate = (key, granularity) => {
+  const date = new Date(key + 'T00:00:00Z');
+
+  switch (granularity) {
+    case 'quarter':
+      const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
+      const quarterYear = date.getUTCFullYear();
+      return `${quarterYear} Q${quarter}`;
+
+    case 'week':
+      // For weeks, show the date range using localized formatting
+      const monday = date;
+      const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6));
+
+      return new Intl.DateTimeFormat(i18next.language, {
+        dateStyle: 'medium',
+        timeZone: 'UTC'
+      }).formatRange(monday, sunday);
+
+    case 'month':
+      return new Intl.DateTimeFormat(i18next.language, {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC'
+      }).format(date);
+
+    case 'year':
+      return new Intl.DateTimeFormat(i18next.language, {
+        year: 'numeric',
+        timeZone: 'UTC'
+      }).format(date);
+
+    default:
+      // Default case for day granularity - use formatDate for consistency
+      return formatDate(date, true); // Use short month for chart display
+  }
+};
+
+/**
  * Format a date string or Date object into a localized, human-readable format
  * @param {string|Date} date - The date to format (string or Date object)
  * @param {boolean} useShortMonth - Whether to use short month names (default: false)

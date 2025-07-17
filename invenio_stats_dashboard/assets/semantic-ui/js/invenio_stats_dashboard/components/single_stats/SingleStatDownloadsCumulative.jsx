@@ -4,6 +4,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
 import { formatNumber, filterByDateRange, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { getSnapshotLatest } from '../../api/dataTransformer';
 
 const SingleStatDownloadsCumulative = ({ title = i18next.t("Cumulative Downloads"), icon = "download", compactThreshold = 1_000_000 }) => {
   const { stats, dateRange } = useStatsDashboard();
@@ -15,40 +16,12 @@ const SingleStatDownloadsCumulative = ({ title = i18next.t("Cumulative Downloads
     }
   }, [dateRange]);
 
-  // Helper function to extract cumulative downloads data from the new structure
-  const extractCumulativeDownloadsData = () => {
-    if (!stats.usageSnapshotData || !stats.usageSnapshotData.global || !stats.usageSnapshotData.global.downloads) {
-      return [];
-    }
-
-    // Handle array of data points format: [[date, value], [date, value], ...]
-    if (Array.isArray(stats.usageSnapshotData.global.downloads) && stats.usageSnapshotData.global.downloads.length > 0) {
-      return stats.usageSnapshotData.global.downloads.map(([date, value]) => ({
-        date: date,
-        value: value,
-        resourceTypes: [],
-        subjectHeadings: [],
-      }));
-    }
-
-    return [];
-  };
-
-  const filteredData = filterByDateRange(extractCumulativeDownloadsData(), dateRange);
-
-  // Only sort if the last item's date is not the end of the filter dateRange
-  let dataToUse = filteredData;
-  if (filteredData.length > 0 && dateRange) {
-    const lastItemDate = new Date(filteredData[filteredData.length - 1].date);
-    const endDate = new Date(dateRange.end);
-    if (lastItemDate.getTime() !== endDate.getTime()) {
-      dataToUse = filteredData.sort((a, b) => new Date(a.date) - new Date(b.date));
-    }
-  }
-
-  const value = dataToUse?.length > 0
-    ? dataToUse[dataToUse.length - 1].value
-    : 0;
+  // Get cumulative downloads data using the centralized helper function
+  const value = getSnapshotLatest(
+    stats.usageSnapshotData?.global?.downloads,
+    dateRange,
+    filterByDateRange
+  );
 
   return (
     <SingleStatBox
@@ -66,4 +39,4 @@ SingleStatDownloadsCumulative.propTypes = {
   compactThreshold: PropTypes.number,
 };
 
-export default SingleStatDownloadsCumulative;
+export { SingleStatDownloadsCumulative };

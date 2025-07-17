@@ -4,6 +4,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
 import { formatNumber, filterByDateRange, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { getDeltaTotal } from '../../api/dataTransformer';
 
 const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", compactThreshold = 1_000_000 }) => {
   const { stats, binary_sizes, dateRange } = useStatsDashboard();
@@ -15,23 +16,12 @@ const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", 
     }
   }, [dateRange]);
 
-  // Helper function to extract traffic data from the new structure
-  const extractTrafficData = () => {
-    if (!stats.usageDeltaData || !stats.usageDeltaData.global || !stats.usageDeltaData.global.dataVolume) {
-      return [];
-    }
-
-    const [date, value] = stats.usageDeltaData.global.dataVolume;
-    return [{
-      date: date,
-      value: value,
-      resourceTypes: [],
-      subjectHeadings: [],
-    }];
-  };
-
-  const filteredData = filterByDateRange(extractTrafficData(), dateRange);
-  const value = filteredData?.reduce((sum, point) => sum + point.value, 0) || 0;
+  // Get traffic data using the centralized helper function
+  const value = getDeltaTotal(
+    stats.usageDeltaData?.global?.dataVolume,
+    dateRange,
+    filterByDateRange
+  );
 
   return (
     <SingleStatBox
