@@ -1,5 +1,5 @@
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { formatDate } from "../../utils/dates";
+import { formatDate } from "../utils/dates";
 
 /**
  * Create a data point object for charting.
