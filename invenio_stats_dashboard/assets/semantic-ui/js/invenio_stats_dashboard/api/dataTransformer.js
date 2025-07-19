@@ -1,5 +1,5 @@
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { formatDate } from "../utils/dates";
+import { formatDate, createReadableDate } from "../utils/dates";
 
 /**
  * Create a data point object for charting.
@@ -13,7 +13,7 @@ const createDataPoint = (date, value, valueType = 'number') => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return {
     value: [dateObj, value],
-    readableDate: createReadableDate(dateObj),
+    readableDate: createReadableDate(dateObj.toISOString().split('T')[0], 'day'),
     valueType
   };
 };
@@ -322,28 +322,53 @@ const transformRecordDeltaData = (deltaDocs) => {
 
 
   const getNetCount = (item) => {
-    const added = item.added.metadata_only + item.added.with_files;
-    const removed = item.removed.metadata_only + item.removed.with_files;
-    return added - removed;
+    // Handle different subcount item structures
+    if (item.added && item.removed) {
+      // Direct added/removed structure (like by_file_type)
+      const added = (item.added.metadata_only || 0) + (item.added.with_files || 0);
+      const removed = (item.removed.metadata_only || 0) + (item.removed.with_files || 0);
+      return added - removed;
+    } else if (item.records) {
+      // Nested structure with records property
+      const added = (item.records.added?.metadata_only || 0) + (item.records.added?.with_files || 0);
+      const removed = (item.records.removed?.metadata_only || 0) + (item.records.removed?.with_files || 0);
+      return added - removed;
+    }
+    return 0;
   };
 
   const getNetFileCount = (item) => {
-    const added = item.added.file_count;
-    const removed = item.removed.file_count;
-    return added - removed;
+    // Handle different subcount item structures
+    if (item.added && item.removed) {
+      // Direct added/removed structure (like by_file_type)
+      // Check for both files and file_count properties
+      const addedFiles = item.added.files || item.added.file_count || 0;
+      const removedFiles = item.removed.files || item.removed.file_count || 0;
+      return addedFiles - removedFiles;
+    } else if (item.files) {
+      // Nested structure with files property
+      return (item.files.added?.file_count || 0) - (item.files.removed?.file_count || 0);
+    }
+    return 0;
   };
 
   const getNetDataVolume = (item) => {
-    const added = item.added.data_volume;
-    const removed = item.removed.data_volume;
-    return added - removed;
+    // Handle different subcount item structures
+    if (item.added && item.removed) {
+      // Direct added/removed structure (like by_file_type)
+      return (item.added.data_volume || 0) - (item.removed.data_volume || 0);
+    } else if (item.files) {
+      // Nested structure with files property
+      return (item.files.added?.data_volume || 0) - (item.files.removed?.data_volume || 0);
+    }
+    return 0;
   };
 
   if (deltaDocs && Array.isArray(deltaDocs)) {
     const byFilePresenceDataPoints = [];
 
     deltaDocs.forEach(doc => {
-      const source = doc._source;
+      const source = doc;
       const date = source.period_start.split('T')[0];
 
       // Accumulate global data points
@@ -392,19 +417,19 @@ const transformRecordDeltaData = (deltaDocs) => {
 
               switch (metricType) {
                 case 'records':
-                  value = getNetCount(item.records);
+                  value = getNetCount(item.records || item);
                   break;
                 case 'parents':
-                  value = getNetCount(item.parents);
+                  value = getNetCount(item.parents || item);
                   break;
                 case 'uploaders':
                   value = item.uploaders || 0;
                   break;
                 case 'fileCount':
-                  value = getNetFileCount(item.files);
+                  value = getNetFileCount(item.files || item);
                   break;
                 case 'dataVolume':
-                  value = getNetDataVolume(item.files);
+                  value = getNetDataVolume(item.files || item);
                   valueType = 'filesize';
                   break;
               }
@@ -575,22 +600,25 @@ const transformRecordSnapshotData = (snapshotDocs) => {
   };
 
   const getTotalCount = (item) => {
-    return item.metadata_only + item.with_files;
+    if (!item) return 0;
+    return (item.metadata_only || 0) + (item.with_files || 0);
   };
 
   const getTotalFileCount = (item) => {
-    return item.file_count;
+    if (!item) return 0;
+    return item.file_count || 0;
   };
 
   const getTotalDataVolume = (item) => {
-    return item.data_volume;
+    if (!item) return 0;
+    return item.data_volume || 0;
   };
 
   if (snapshotDocs && Array.isArray(snapshotDocs)) {
     const byFilePresenceDataPoints = [];
 
     snapshotDocs.forEach(doc => {
-      const source = doc._source;
+      const source = doc;
       const date = source.snapshot_date.split('T')[0];
 
       // Accumulate global data points
@@ -639,19 +667,19 @@ const transformRecordSnapshotData = (snapshotDocs) => {
 
               switch (metricType) {
                 case 'records':
-                  value = getTotalCount(item.total_records);
+                  value = getTotalCount(item.records || item);
                   break;
                 case 'parents':
-                  value = getTotalCount(item.total_parents);
+                  value = getTotalCount(item.parents || item);
                   break;
                 case 'uploaders':
                   value = item.total_uploaders || 0;
                   break;
                 case 'fileCount':
-                  value = getTotalFileCount(item.total_files);
+                  value = getTotalFileCount(item.files || item);
                   break;
                 case 'dataVolume':
-                  value = getTotalDataVolume(item.total_files);
+                  value = getTotalDataVolume(item.files || item);
                   valueType = 'filesize';
                   break;
               }
@@ -809,28 +837,29 @@ const transformUsageDeltaData = (deltaDocs) => {
   };
 
   const getNetViewEvents = (item) => {
-    return item.view ? item.view.total_events : 0;
+    return item && item.view ? item.view.total_events : 0;
   };
 
   const getNetDownloadEvents = (item) => {
-    return item.download ? item.download.total_events : 0;
+    return item && item.download ? item.download.total_events : 0;
   };
 
   const getNetVisitors = (item) => {
+    if (!item) return 0;
     const viewVisitors = item.view ? item.view.unique_visitors : 0;
     const downloadVisitors = item.download ? item.download.unique_visitors : 0;
     return Math.max(viewVisitors, downloadVisitors);
   };
 
   const getNetDataVolume = (item) => {
-    return item.download ? item.download.total_volume : 0;
+    return item && item.download ? item.download.total_volume : 0;
   };
 
   if (deltaDocs && Array.isArray(deltaDocs)) {
     const byFilePresenceDataPoints = [];
 
     deltaDocs.forEach(doc => {
-      const source = doc._source;
+      const source = doc;
       const date = source.period_start.split('T')[0];
 
       // Accumulate global data points
@@ -842,8 +871,8 @@ const transformUsageDeltaData = (deltaDocs) => {
       // Collect byFilePresence data points
       byFilePresenceDataPoints.push({
         date,
-        withFiles: getNetViewEvents(source.totals.with_files),
-        withoutFiles: getNetViewEvents(source.totals.metadata_only)
+        withFiles: getNetViewEvents(source.totals.view),
+        withoutFiles: getNetDownloadEvents(source.totals.download)
       });
 
       // Collect subcount data points for each metric type
@@ -1117,51 +1146,44 @@ const transformUsageSnapshotData = (snapshotDocs) => {
 
   // Mapping for separate view/download properties
   const separateSubcountTypes = {
-    'top_countries': { view: 'topCountriesByView', download: 'topCountriesByDownload' },
-    'top_subjects': { view: 'topSubjectsByView', download: 'topSubjectsByDownload' },
-    'top_publishers': { view: 'topPublishersByView', download: 'topPublishersByDownload' },
-    'top_licenses': { view: 'topLicensesByView', download: 'topLicensesByDownload' },
-    'top_referrers': { view: 'topReferrersByView', download: 'topReferrersByDownload' },
-    'top_affiliations': { view: 'topAffiliationsByView', download: 'topAffiliationsByDownload' },
+    'top_countries': { by_view: 'topCountriesByView', by_download: 'topCountriesByDownload' },
+    'top_subjects': { by_view: 'topSubjectsByView', by_download: 'topSubjectsByDownload' },
+    'top_publishers': { by_view: 'topPublishersByView', by_download: 'topPublishersByDownload' },
+    'top_licenses': { by_view: 'topLicensesByView', by_download: 'topLicensesByDownload' },
+    'top_referrers': { by_view: 'topReferrersByView', by_download: 'topReferrersByDownload' },
+    'top_affiliations': { by_view: 'topAffiliationsByView', by_download: 'topAffiliationsByDownload' },
   };
 
   const getTotalViewEvents = (item) => {
-    return item.view ? item.view.total_events : 0;
+    return item && item.total_events ? item.total_events : 0;
   };
 
   const getTotalDownloadEvents = (item) => {
-    return item.download ? item.download.total_events : 0;
+    return item && item.total_events ? item.total_events : 0;
   };
 
   const getTotalVisitors = (item) => {
-    const viewVisitors = item.view ? item.view.unique_visitors : 0;
-    const downloadVisitors = item.download ? item.download.unique_visitors : 0;
+    const viewVisitors = item && item.unique_visitors ? item.unique_visitors : 0;
+    const downloadVisitors = item && item.unique_visitors ? item.unique_visitors : 0;
     return Math.max(viewVisitors, downloadVisitors);
   };
 
   const getTotalDataVolume = (item) => {
-    return item.download ? item.download.total_volume : 0;
+    return item && item.total_volume ? item.total_volume : 0;
   };
 
   if (snapshotDocs && Array.isArray(snapshotDocs)) {
     const byFilePresenceDataPoints = [];
 
     snapshotDocs.forEach(doc => {
-      const source = doc._source;
+      const source = doc;
       const date = source.snapshot_date.split('T')[0];
 
       // Accumulate global data points
-      snapshotData.global.views.push(createDataPoint(date, getTotalViewEvents(source.totals)));
-      snapshotData.global.downloads.push(createDataPoint(date, getTotalDownloadEvents(source.totals)));
-      snapshotData.global.visitors.push(createDataPoint(date, getTotalVisitors(source.totals)));
-      snapshotData.global.dataVolume.push(createDataPoint(date, getTotalDataVolume(source.totals), 'filesize'));
-
-      // Collect byFilePresence data points
-      byFilePresenceDataPoints.push({
-        date,
-        withFiles: getTotalViewEvents(source.totals.with_files),
-        withoutFiles: getTotalViewEvents(source.totals.metadata_only)
-      });
+      snapshotData.global.views.push(createDataPoint(date, getTotalViewEvents(source.totals.view)));
+      snapshotData.global.downloads.push(createDataPoint(date, getTotalDownloadEvents(source.totals.download)));
+      snapshotData.global.visitors.push(createDataPoint(date, getTotalVisitors(source.totals.view)));
+      snapshotData.global.dataVolume.push(createDataPoint(date, getTotalDataVolume(source.totals.download), 'filesize'));
 
       // Collect subcount data points for each metric type
       Object.keys(subcountTypes).forEach(subcountType => {
@@ -1222,7 +1244,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
                 });
               });
             }
-          } else {
+          } else if (typeof subcountSeries === 'object' && subcountSeries !== null) {
             // Object structure with separate view/download data (top_* fields)
             const separateKeys = separateSubcountTypes[subcountType];
             if (separateKeys) {
@@ -1256,16 +1278,16 @@ const transformUsageSnapshotData = (snapshotDocs) => {
 
                       switch (metricType) {
                         case 'views':
-                          value = getTotalViewEvents(item);
+                          value = getTotalViewEvents(item.view);
                           break;
                         case 'downloads':
-                          value = getTotalDownloadEvents(item);
+                          value = getTotalDownloadEvents(item.download);
                           break;
                         case 'visitors':
-                          value = getTotalVisitors(item);
+                          value = getTotalVisitors(item.view);
                           break;
                         case 'dataVolume':
-                          value = getTotalDataVolume(item);
+                          value = getTotalDataVolume(item.download);
                           valueType = 'filesize';
                           break;
                       }
@@ -1285,17 +1307,6 @@ const transformUsageSnapshotData = (snapshotDocs) => {
           }
         }
       });
-    });
-
-    // Create byFilePresence series for each metric type
-    const byFilePresenceMetrics = ['views', 'downloads', 'visitors', 'dataVolume'];
-    byFilePresenceMetrics.forEach(metricType => {
-      const dataPoints = byFilePresenceDataPoints.map(dp => ({
-        date: dp.date,
-        withFiles: dp.withFiles,
-        withoutFiles: dp.withoutFiles
-      }));
-      snapshotData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
     });
 
     // Create subcount series for each metric type

@@ -322,8 +322,8 @@ const sampleRecordSnapshot = {
     };
 
 const sampleUsageSnapshot = {'community_id': 'b6f92bbc-a4af-4240-8135-292d47563339',
- 'snapshot_date': '2025-06-11T23:59:59',
- 'subcounts': {'all_access_rights': [{'download': {'total_events': 60,
+  'snapshot_date': '2025-06-11T23:59:59',
+  'subcounts': {'all_access_rights': [{'download': {'total_events': 60,
                                                    'total_volume': 61440.0,
                                                    'unique_files': 39,
                                                    'unique_parents': 39,
@@ -886,7 +886,8 @@ const sampleUsageSnapshot = {'community_id': 'b6f92bbc-a4af-4240-8135-292d475633
                                              'view': {'total_events': 20,
                                                       'unique_parents': 13,
                                                       'unique_records': 13,
-                                                      'unique_visitors': 20}}]},
+                                                      'unique_visitors': 20}}]
+                                             },
                'top_funders': {'by_download': [{'download': {'total_events': 10,
                                                               'total_volume': 10240.0,
                                                               'unique_files': 7,
@@ -911,7 +912,7 @@ const sampleUsageSnapshot = {'community_id': 'b6f92bbc-a4af-4240-8135-292d475633
                                                           'unique_parents': 3,
                                                           'unique_records': 3,
                                                           'unique_visitors': 5}}],
-                                'by_view': [{'download': {'total_events': 10,
+                                   'by_view': [{'download': {'total_events': 10,
                                                           'total_volume': 10240.0,
                                                           'unique_files': 7,
                                                           'unique_parents': 7,

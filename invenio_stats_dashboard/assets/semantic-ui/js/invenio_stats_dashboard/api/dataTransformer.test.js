@@ -1,885 +1,605 @@
-import { transformRecordDataToTestData } from './dataTransformer';
+import { transformApiData } from './dataTransformer';
+import { sampleRecordDelta, sampleUsageDelta, sampleRecordSnapshot, sampleUsageSnapshot } from './sampleDataObjects';
 
-describe('transformRecordDataToTestData', () => {
-  // Sample delta documents
-  const sampleDeltaDocs = [
-    {
-      _source: {
-        community_id: 'test-community',
-        period_start: '2024-01-01T00:00:00',
-        period_end: '2024-01-01T23:59:59',
-        timestamp: '2024-01-01T12:00:00',
-        records: {
-          added: { metadata_only: 5, with_files: 10 },
-          removed: { metadata_only: 1, with_files: 2 }
-        },
-        parents: {
-          added: { metadata_only: 3, with_files: 8 },
-          removed: { metadata_only: 1, with_files: 1 }
-        },
-        files: {
-          added: { file_count: 25, data_volume: 50000000 },
-          removed: { file_count: 5, data_volume: 10000000 }
-        },
-        uploaders: 15,
-        subcounts: {
-          by_resource_type: [
-            {
-              id: 'dataset',
-              label: 'Dataset',
-              records: {
-                added: { metadata_only: 2, with_files: 5 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 1, with_files: 4 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              files: {
-                added: { file_count: 12, data_volume: 25000000 },
-                removed: { file_count: 2, data_volume: 5000000 }
-              }
-            },
-            {
-              id: 'software',
-              label: 'Software',
-              records: {
-                added: { metadata_only: 3, with_files: 5 },
-                removed: { metadata_only: 1, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 2, with_files: 4 },
-                removed: { metadata_only: 1, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 13, data_volume: 25000000 },
-                removed: { file_count: 3, data_volume: 5000000 }
-              }
-            }
-          ],
-          by_language: [
-            {
-              id: 'eng',
-              label: 'English',
-              records: {
-                added: { metadata_only: 4, with_files: 8 },
-                removed: { metadata_only: 1, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 2, with_files: 6 },
-                removed: { metadata_only: 1, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 20, data_volume: 40000000 },
-                removed: { file_count: 4, data_volume: 8000000 }
-              }
-            }
-          ],
-          by_subject: [
-            {
-              id: 'computer-science',
-              label: 'Computer Science',
-              records: {
-                added: { metadata_only: 3, with_files: 6 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 2, with_files: 5 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              files: {
-                added: { file_count: 15, data_volume: 30000000 },
-                removed: { file_count: 2, data_volume: 4000000 }
-              }
-            }
-          ],
-          by_publisher: [
-            {
-              id: 'university-press',
-              label: 'University Press',
-              records: {
-                added: { metadata_only: 2, with_files: 4 },
-                removed: { metadata_only: 1, with_files: 0 }
-              },
-              parents: {
-                added: { metadata_only: 1, with_files: 3 },
-                removed: { metadata_only: 1, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 10, data_volume: 20000000 },
-                removed: { file_count: 1, data_volume: 2000000 }
-              }
-            }
-          ],
-          by_periodical: [
-            {
-              id: 'journal-of-science',
-              label: 'Journal of Science',
-              records: {
-                added: { metadata_only: 1, with_files: 2 },
-                removed: { metadata_only: 0, with_files: 0 }
-              },
-              parents: {
-                added: { metadata_only: 1, with_files: 2 },
-                removed: { metadata_only: 0, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 5, data_volume: 10000000 },
-                removed: { file_count: 0, data_volume: 0 }
-              }
-            }
-          ],
-          by_file_type: [
-            {
-              id: 'pdf',
-              label: 'PDF',
-              records: {
-                added: { metadata_only: 0, with_files: 8 },
-                removed: { metadata_only: 0, with_files: 2 }
-              },
-              parents: {
-                added: { metadata_only: 0, with_files: 6 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              files: {
-                added: { file_count: 18, data_volume: 36000000 },
-                removed: { file_count: 4, data_volume: 8000000 }
-              }
-            }
-          ],
-          by_license: [
-            {
-              id: 'cc-by-4.0',
-              label: 'Creative Commons Attribution 4.0',
-              records: {
-                added: { metadata_only: 3, with_files: 7 },
-                removed: { metadata_only: 1, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 2, with_files: 5 },
-                removed: { metadata_only: 1, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 16, data_volume: 32000000 },
-                removed: { file_count: 3, data_volume: 6000000 }
-              }
-            }
-          ],
-          by_access_rights: [
-            {
-              id: 'open',
-              label: 'Open Access',
-              records: {
-                added: { metadata_only: 4, with_files: 8 },
-                removed: { metadata_only: 1, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 2, with_files: 6 },
-                removed: { metadata_only: 1, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 20, data_volume: 40000000 },
-                removed: { file_count: 4, data_volume: 8000000 }
-              }
-            }
-          ],
-          by_funder: [
-            {
-              id: 'nsf',
-              label: 'National Science Foundation',
-              records: {
-                added: { metadata_only: 2, with_files: 5 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 1, with_files: 4 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              files: {
-                added: { file_count: 12, data_volume: 24000000 },
-                removed: { file_count: 2, data_volume: 4000000 }
-              }
-            }
-          ],
-          by_affiliation_creator: [
-            {
-              id: 'berkeley',
-              label: 'University of California, Berkeley',
-              records: {
-                added: { metadata_only: 2, with_files: 4 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              parents: {
-                added: { metadata_only: 1, with_files: 3 },
-                removed: { metadata_only: 0, with_files: 1 }
-              },
-              files: {
-                added: { file_count: 10, data_volume: 20000000 },
-                removed: { file_count: 2, data_volume: 4000000 }
-              }
-            }
-          ],
-          by_affiliation_contributor: [
-            {
-              id: 'mit',
-              label: 'Massachusetts Institute of Technology',
-              records: {
-                added: { metadata_only: 1, with_files: 3 },
-                removed: { metadata_only: 0, with_files: 0 }
-              },
-              parents: {
-                added: { metadata_only: 1, with_files: 2 },
-                removed: { metadata_only: 0, with_files: 0 }
-              },
-              files: {
-                added: { file_count: 6, data_volume: 12000000 },
-                removed: { file_count: 0, data_volume: 0 }
-              }
-            }
-          ]
-        }
-      }
-    }
-  ];
-
-  // Sample snapshot documents
-  const sampleSnapshotDocs = [
-    {
-      _source: {
-        community_id: 'test-community',
-        snapshot_date: '2024-01-01T00:00:00',
-        timestamp: '2024-01-01T12:00:00',
-        total_records: {
-          metadata_only: 50,
-          with_files: 100
-        },
-        total_parents: {
-          metadata_only: 45,
-          with_files: 90
-        },
-        total_files: {
-          file_count: 250,
-          data_volume: 500000000
-        },
-        total_uploaders: 75,
-        subcounts: {
-          all_resource_types: [
-            {
-              id: 'dataset',
-              label: { value: 'Dataset' },
-              records: {
-                metadata_only: 20,
-                with_files: 40
-              },
-              parents: {
-                metadata_only: 18,
-                with_files: 36
-              },
-              files: {
-                file_count: 100,
-                data_volume: 200000000
-              }
-            },
-            {
-              id: 'software',
-              label: { value: 'Software' },
-              records: {
-                metadata_only: 15,
-                with_files: 30
-              },
-              parents: {
-                metadata_only: 13,
-                with_files: 27
-              },
-              files: {
-                file_count: 75,
-                data_volume: 150000000
-              }
-            }
-          ],
-          all_languages: [
-            {
-              id: 'eng',
-              label: { value: 'English' },
-              records: {
-                metadata_only: 35,
-                with_files: 70
-              },
-              parents: {
-                metadata_only: 31,
-                with_files: 63
-              },
-              files: {
-                file_count: 175,
-                data_volume: 350000000
-              }
-            }
-          ],
-          top_subjects: [
-            {
-              id: 'computer-science',
-              label: { value: 'Computer Science' },
-              records: {
-                metadata_only: 25,
-                with_files: 50
-              },
-              parents: {
-                metadata_only: 22,
-                with_files: 45
-              },
-              files: {
-                file_count: 125,
-                data_volume: 250000000
-              }
-            }
-          ],
-          top_publishers: [
-            {
-              id: 'university-press',
-              label: { value: 'University Press' },
-              records: {
-                metadata_only: 20,
-                with_files: 40
-              },
-              parents: {
-                metadata_only: 18,
-                with_files: 36
-              },
-              files: {
-                file_count: 100,
-                data_volume: 200000000
-              }
-            }
-          ],
-          top_periodicals: [
-            {
-              id: 'journal-of-science',
-              label: { value: 'Journal of Science' },
-              records: {
-                metadata_only: 10,
-                with_files: 20
-              },
-              parents: {
-                metadata_only: 9,
-                with_files: 18
-              },
-              files: {
-                file_count: 50,
-                data_volume: 100000000
-              }
-            }
-          ],
-          all_file_types: [
-            {
-              id: 'pdf',
-              label: { value: 'PDF' },
-              records: {
-                metadata_only: 0,
-                with_files: 60
-              },
-              parents: {
-                metadata_only: 0,
-                with_files: 54
-              },
-              files: {
-                file_count: 150,
-                data_volume: 300000000
-              }
-            }
-          ],
-          all_licenses: [
-            {
-              id: 'cc-by-4.0',
-              label: { value: 'Creative Commons Attribution 4.0' },
-              records: {
-                metadata_only: 30,
-                with_files: 60
-              },
-              parents: {
-                metadata_only: 27,
-                with_files: 54
-              },
-              files: {
-                file_count: 150,
-                data_volume: 300000000
-              }
-            }
-          ],
-          all_access_rights: [
-            {
-              id: 'open',
-              label: { value: 'Open Access' },
-              records: {
-                metadata_only: 40,
-                with_files: 80
-              },
-              parents: {
-                metadata_only: 36,
-                with_files: 72
-              },
-              files: {
-                file_count: 200,
-                data_volume: 400000000
-              }
-            }
-          ],
-          top_funders: [
-            {
-              id: 'nsf',
-              label: { value: 'National Science Foundation' },
-              records: {
-                metadata_only: 25,
-                with_files: 50
-              },
-              parents: {
-                metadata_only: 22,
-                with_files: 45
-              },
-              files: {
-                file_count: 125,
-                data_volume: 250000000
-              }
-            }
-          ],
-          top_affiliations_creator: [
-            {
-              id: 'berkeley',
-              label: { value: 'University of California, Berkeley' },
-              records: {
-                metadata_only: 20,
-                with_files: 40
-              },
-              parents: {
-                metadata_only: 18,
-                with_files: 36
-              },
-              files: {
-                file_count: 100,
-                data_volume: 200000000
-              }
-            }
-          ],
-          top_affiliations_contributor: [
-            {
-              id: 'mit',
-              label: { value: 'Massachusetts Institute of Technology' },
-              records: {
-                metadata_only: 15,
-                with_files: 30
-              },
-              parents: {
-                metadata_only: 13,
-                with_files: 27
-              },
-              files: {
-                file_count: 75,
-                data_volume: 150000000
-              }
-            }
-          ]
-        }
-      }
-    }
-  ];
+describe('transformApiData', () => {
+  // Sample input data that matches the actual API structure from sampleDataObjects.js
+  const sampleRawStats = {
+    record_deltas_created: [sampleRecordDelta],
+    record_snapshots_created: [sampleRecordSnapshot],
+    usage_deltas: [sampleUsageDelta],
+    usage_snapshots: [sampleUsageSnapshot]
+  };
 
   describe('with valid input data', () => {
     let result;
 
     beforeEach(() => {
-      result = transformRecordDataToTestData(sampleDeltaDocs, sampleSnapshotDocs);
+      result = transformApiData(sampleRawStats);
     });
 
     test('should return the expected structure', () => {
-      expect(result).toHaveProperty('recordCount');
-      expect(result).toHaveProperty('uploaders');
-      expect(result).toHaveProperty('dataVolume');
-      expect(result).toHaveProperty('parentCount');
-      expect(result).toHaveProperty('fileCount');
-      expect(result).toHaveProperty('views');
-      expect(result).toHaveProperty('downloads');
-      expect(result).toHaveProperty('traffic');
-      expect(result).toHaveProperty('cumulativeRecordCount');
-      expect(result).toHaveProperty('cumulativeUploaders');
-      expect(result).toHaveProperty('cumulativeDataVolume');
-      expect(result).toHaveProperty('licenses');
-      expect(result).toHaveProperty('affiliations');
-      expect(result).toHaveProperty('funders');
-      expect(result).toHaveProperty('accessRights');
-      expect(result).toHaveProperty('resourceTypes');
-      expect(result).toHaveProperty('languages');
-      expect(result).toHaveProperty('subjects');
-      expect(result).toHaveProperty('publishers');
-      expect(result).toHaveProperty('periodicals');
-      expect(result).toHaveProperty('fileTypes');
-      expect(result).toHaveProperty('use_binary_filesize');
+      expect(result).toHaveProperty('recordDeltaDataCreated');
+      expect(result).toHaveProperty('recordDeltaDataAdded');
+      expect(result).toHaveProperty('recordDeltaDataPublished');
+      expect(result).toHaveProperty('recordSnapshotDataCreated');
+      expect(result).toHaveProperty('recordSnapshotDataAdded');
+      expect(result).toHaveProperty('recordSnapshotDataPublished');
+      expect(result).toHaveProperty('usageDeltaData');
+      expect(result).toHaveProperty('usageSnapshotData');
     });
 
-    test('should calculate daily record counts correctly', () => {
-      expect(result.recordCount).toHaveLength(1);
-      expect(result.recordCount[0]).toEqual({
-        date: '2024-01-01',
-        value: 12, // (5+10) - (1+2) = 15 - 3 = 12
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+    test('should transform record delta data correctly', () => {
+      const deltaData = result.recordDeltaDataCreated;
+
+      // Check global structure
+      expect(deltaData).toHaveProperty('global');
+      expect(deltaData.global).toHaveProperty('records');
+      expect(deltaData.global).toHaveProperty('parents');
+      expect(deltaData.global).toHaveProperty('uploaders');
+      expect(deltaData.global).toHaveProperty('fileCount');
+      expect(deltaData.global).toHaveProperty('dataVolume');
+
+      // Check that global data is an array of DataSeries
+      expect(Array.isArray(deltaData.global.records)).toBe(true);
+      expect(deltaData.global.records[0]).toHaveProperty('id');
+      expect(deltaData.global.records[0]).toHaveProperty('name');
+      expect(deltaData.global.records[0]).toHaveProperty('data');
+      expect(deltaData.global.records[0]).toHaveProperty('type');
+      expect(deltaData.global.records[0]).toHaveProperty('valueType');
+
+      // Check byFilePresence structure
+      expect(deltaData).toHaveProperty('byFilePresence');
+      expect(deltaData.byFilePresence).toHaveProperty('records');
+      expect(deltaData.byFilePresence).toHaveProperty('parents');
+      expect(deltaData.byFilePresence).toHaveProperty('uploaders');
+      expect(deltaData.byFilePresence).toHaveProperty('fileCount');
+      expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
+
+      // Check subcount categories
+      expect(deltaData).toHaveProperty('resourceTypes');
+      expect(deltaData).toHaveProperty('languages');
+      expect(deltaData).toHaveProperty('accessRights');
+      expect(deltaData).toHaveProperty('affiliations');
+      expect(deltaData).toHaveProperty('funders');
+      expect(deltaData).toHaveProperty('subjects');
+      expect(deltaData).toHaveProperty('publishers');
+      expect(deltaData).toHaveProperty('periodicals');
+      expect(deltaData).toHaveProperty('licenses');
+      expect(deltaData).toHaveProperty('fileTypes');
     });
 
-    test('should calculate daily added and removed record counts', () => {
-      expect(result.recordCountAdded).toHaveLength(1);
-      expect(result.recordCountAdded[0].value).toBe(15); // 5+10
+    test('should transform record snapshot data correctly', () => {
+      const snapshotData = result.recordSnapshotDataCreated;
 
-      expect(result.recordCountRemoved).toHaveLength(1);
-      expect(result.recordCountRemoved[0].value).toBe(3); // 1+2
+      // Check global structure
+      expect(snapshotData).toHaveProperty('global');
+      expect(snapshotData.global).toHaveProperty('records');
+      expect(snapshotData.global).toHaveProperty('parents');
+      expect(snapshotData.global).toHaveProperty('uploaders');
+      expect(snapshotData.global).toHaveProperty('fileCount');
+      expect(snapshotData.global).toHaveProperty('dataVolume');
+
+      // Check that global data is an array of DataSeries
+      expect(Array.isArray(snapshotData.global.records)).toBe(true);
+      expect(snapshotData.global.records[0]).toHaveProperty('id');
+      expect(snapshotData.global.records[0]).toHaveProperty('name');
+      expect(snapshotData.global.records[0]).toHaveProperty('data');
+      expect(snapshotData.global.records[0]).toHaveProperty('type');
+      expect(snapshotData.global.records[0]).toHaveProperty('valueType');
+
+      // Check byFilePresence structure
+      expect(snapshotData).toHaveProperty('byFilePresence');
+      expect(snapshotData.byFilePresence).toHaveProperty('records');
+      expect(snapshotData.byFilePresence).toHaveProperty('parents');
+      expect(snapshotData.byFilePresence).toHaveProperty('uploaders');
+      expect(snapshotData.byFilePresence).toHaveProperty('fileCount');
+      expect(snapshotData.byFilePresence).toHaveProperty('dataVolume');
     });
 
-    test('should calculate daily parent counts correctly', () => {
-      expect(result.parentCount).toHaveLength(1);
-      expect(result.parentCount[0]).toEqual({
-        date: '2024-01-01',
-        value: 9, // (3+8) - (1+1) = 11 - 2 = 9
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+    test('should transform usage delta data correctly', () => {
+      const deltaData = result.usageDeltaData;
+
+      // Check global structure
+      expect(deltaData).toHaveProperty('global');
+      expect(deltaData.global).toHaveProperty('views');
+      expect(deltaData.global).toHaveProperty('downloads');
+      expect(deltaData.global).toHaveProperty('visitors');
+      expect(deltaData.global).toHaveProperty('dataVolume');
+
+      // Check that global data is an array of DataSeries
+      expect(Array.isArray(deltaData.global.views)).toBe(true);
+      expect(deltaData.global.views[0]).toHaveProperty('id');
+      expect(deltaData.global.views[0]).toHaveProperty('name');
+      expect(deltaData.global.views[0]).toHaveProperty('data');
+      expect(deltaData.global.views[0]).toHaveProperty('type');
+      expect(deltaData.global.views[0]).toHaveProperty('valueType');
+
+      // Check byFilePresence structure
+      expect(deltaData).toHaveProperty('byFilePresence');
+      expect(deltaData.byFilePresence).toHaveProperty('views');
+      expect(deltaData.byFilePresence).toHaveProperty('downloads');
+      expect(deltaData.byFilePresence).toHaveProperty('visitors');
+      expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
+
+      // Check subcount categories
+      expect(deltaData).toHaveProperty('byAccessRights');
+      expect(deltaData).toHaveProperty('byFileTypes');
+      expect(deltaData).toHaveProperty('byLanguages');
+      expect(deltaData).toHaveProperty('byResourceTypes');
+      expect(deltaData).toHaveProperty('bySubjects');
+      expect(deltaData).toHaveProperty('byPublishers');
+      expect(deltaData).toHaveProperty('byLicenses');
+      expect(deltaData).toHaveProperty('byCountries');
+      expect(deltaData).toHaveProperty('byReferrers');
+      expect(deltaData).toHaveProperty('byAffiliations');
     });
 
-    test('should calculate daily file counts correctly', () => {
-      expect(result.fileCount).toHaveLength(1);
-      expect(result.fileCount[0]).toEqual({
-        date: '2024-01-01',
-        value: 20, // 25 - 5
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+    test('should transform usage snapshot data correctly', () => {
+      const snapshotData = result.usageSnapshotData;
+
+      // Check global structure
+      expect(snapshotData).toHaveProperty('global');
+      expect(snapshotData.global).toHaveProperty('views');
+      expect(snapshotData.global).toHaveProperty('downloads');
+      expect(snapshotData.global).toHaveProperty('visitors');
+      expect(snapshotData.global).toHaveProperty('dataVolume');
+
+      // Check that global data is an array of DataSeries
+      expect(Array.isArray(snapshotData.global.views)).toBe(true);
+      expect(snapshotData.global.views[0]).toHaveProperty('id');
+      expect(snapshotData.global.views[0]).toHaveProperty('name');
+      expect(snapshotData.global.views[0]).toHaveProperty('data');
+      expect(snapshotData.global.views[0]).toHaveProperty('type');
+      expect(snapshotData.global.views[0]).toHaveProperty('valueType');
+
+      // Check byFilePresence structure
+      expect(snapshotData).toHaveProperty('byFilePresence');
+      expect(snapshotData.byFilePresence).toHaveProperty('views');
+      expect(snapshotData.byFilePresence).toHaveProperty('downloads');
+      expect(snapshotData.byFilePresence).toHaveProperty('visitors');
+      expect(snapshotData.byFilePresence).toHaveProperty('dataVolume');
+
+      // Check separate view/download properties
+      expect(snapshotData).toHaveProperty('topCountriesByView');
+      expect(snapshotData).toHaveProperty('topCountriesByDownload');
+      expect(snapshotData).toHaveProperty('topSubjectsByView');
+      expect(snapshotData).toHaveProperty('topSubjectsByDownload');
+      expect(snapshotData).toHaveProperty('topPublishersByView');
+      expect(snapshotData).toHaveProperty('topPublishersByDownload');
+      expect(snapshotData).toHaveProperty('topLicensesByView');
+      expect(snapshotData).toHaveProperty('topLicensesByDownload');
+      expect(snapshotData).toHaveProperty('topReferrersByView');
+      expect(snapshotData).toHaveProperty('topReferrersByDownload');
+      expect(snapshotData).toHaveProperty('topAffiliationsByView');
+      expect(snapshotData).toHaveProperty('topAffiliationsByDownload');
     });
 
-    test('should calculate daily data volume correctly', () => {
-      expect(result.dataVolume).toHaveLength(1);
-      expect(result.dataVolume[0]).toEqual({
-        date: '2024-01-01',
-        value: 40000000, // 50000000 - 10000000
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+    test('should create correct DataPoint objects', () => {
+      const deltaData = result.recordDeltaDataCreated;
+      const dataPoint = deltaData.global.records[0].data[0];
+
+      expect(dataPoint).toHaveProperty('value');
+      expect(Array.isArray(dataPoint.value)).toBe(true);
+      expect(dataPoint.value).toHaveLength(2);
+      expect(dataPoint.value[0]).toBeInstanceOf(Date);
+      expect(typeof dataPoint.value[1]).toBe('number');
+      expect(dataPoint).toHaveProperty('readableDate');
+      expect(typeof dataPoint.readableDate).toBe('string');
+      expect(dataPoint).toHaveProperty('valueType');
+      expect(typeof dataPoint.valueType).toBe('string');
     });
 
-    test('should calculate daily uploaders correctly', () => {
-      expect(result.uploaders).toHaveLength(1);
-      expect(result.uploaders[0]).toEqual({
-        date: '2024-01-01',
-        value: 15,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+    test('should create correct DataSeries objects', () => {
+      const deltaData = result.recordDeltaDataCreated;
+      const dataSeries = deltaData.global.records[0];
+
+      expect(dataSeries).toHaveProperty('id');
+      expect(typeof dataSeries.id).toBe('string');
+      expect(dataSeries).toHaveProperty('name');
+      expect(typeof dataSeries.name).toBe('string');
+      expect(dataSeries).toHaveProperty('data');
+      expect(Array.isArray(dataSeries.data)).toBe(true);
+      expect(dataSeries).toHaveProperty('type');
+      expect(typeof dataSeries.type).toBe('string');
+      expect(dataSeries).toHaveProperty('valueType');
+      expect(typeof dataSeries.valueType).toBe('string');
     });
 
-    test('should calculate cumulative values from snapshots', () => {
-      expect(result.cumulativeRecordCount).toHaveLength(1);
-      expect(result.cumulativeRecordCount[0]).toEqual({
-        date: '2024-01-01',
-        value: 150, // 50 + 100
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+    test('should handle byFilePresence data correctly', () => {
+      const deltaData = result.recordDeltaDataCreated;
+      const byFilePresence = deltaData.byFilePresence.records;
 
-      expect(result.cumulativeUploaders).toHaveLength(1);
-      expect(result.cumulativeUploaders[0]).toEqual({
-        date: '2024-01-01',
-        value: 75,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+      expect(Array.isArray(byFilePresence)).toBe(true);
+      expect(byFilePresence.length).toBeGreaterThan(0);
 
-      expect(result.cumulativeDataVolume).toHaveLength(1);
-      expect(result.cumulativeDataVolume[0]).toEqual({
-        date: '2024-01-01',
-        value: 500000000,
-        resourceTypes: {},
-        subjectHeadings: {}
-      });
+      // Should have 'withFiles' and 'withoutFiles' series
+      const seriesNames = byFilePresence.map(series => series.name);
+      expect(seriesNames).toContain('withFiles');
+      expect(seriesNames).toContain('withoutFiles');
     });
 
-    test('should set views, downloads, and traffic to 0 for record data', () => {
-      expect(result.views).toHaveLength(1);
-      expect(result.views[0].value).toBe(0);
+    test('should handle subcount data correctly', () => {
+      const deltaData = result.recordDeltaDataCreated;
+      const resourceTypes = deltaData.resourceTypes.records;
 
-      expect(result.downloads).toHaveLength(1);
-      expect(result.downloads[0].value).toBe(0);
+      expect(Array.isArray(resourceTypes)).toBe(true);
+      expect(resourceTypes.length).toBeGreaterThan(0);
 
-      expect(result.traffic).toHaveLength(1);
-      expect(result.traffic[0].value).toBe(0);
-    });
-
-    test('should aggregate resource types correctly', () => {
-      expect(result.resourceTypes).toHaveLength(2);
-      expect(result.resourceTypes[0]).toEqual({
-        id: 'dataset',
-        name: 'Dataset',
-        count: 60, // From snapshot: 20 + 40
-        percentage: 40 // 60/150 * 100
+      // Each series should have the correct structure
+      resourceTypes.forEach(series => {
+        expect(series).toHaveProperty('id');
+        expect(series).toHaveProperty('name');
+        expect(series).toHaveProperty('data');
+        expect(series).toHaveProperty('type');
+        expect(series).toHaveProperty('valueType');
       });
-      expect(result.resourceTypes[1]).toEqual({
-        id: 'software',
-        name: 'Software',
-        count: 45, // From snapshot: 15 + 30
-        percentage: 30 // 45/150 * 100
-      });
-    });
-
-    test('should aggregate languages correctly', () => {
-      expect(result.languages).toHaveLength(1);
-      expect(result.languages[0]).toEqual({
-        id: 'eng',
-        name: 'English',
-        count: 105, // From snapshot: 35 + 70
-        percentage: 70 // 105/150 * 100
-      });
-    });
-
-    test('should aggregate subjects correctly', () => {
-      expect(result.subjects).toHaveLength(1);
-      expect(result.subjects[0]).toEqual({
-        id: 'computer-science',
-        name: 'Computer Science',
-        count: 75, // From snapshot: 25 + 50
-        percentage: 50 // 75/150 * 100
-      });
-    });
-
-    test('should aggregate publishers correctly', () => {
-      expect(result.publishers).toHaveLength(1);
-      expect(result.publishers[0]).toEqual({
-        id: 'university-press',
-        name: 'University Press',
-        count: 60, // From snapshot: 20 + 40
-        percentage: 40 // 60/150 * 100
-      });
-    });
-
-    test('should aggregate periodicals correctly', () => {
-      expect(result.periodicals).toHaveLength(1);
-      expect(result.periodicals[0]).toEqual({
-        id: 'journal-of-science',
-        name: 'Journal of Science',
-        count: 30, // From snapshot: 10 + 20
-        percentage: 20 // 30/150 * 100
-      });
-    });
-
-    test('should aggregate file types correctly', () => {
-      expect(result.fileTypes).toHaveLength(1);
-      expect(result.fileTypes[0]).toEqual({
-        id: 'pdf',
-        name: 'PDF',
-        count: 60, // From snapshot: 0 + 60
-        percentage: 40 // 60/150 * 100
-      });
-    });
-
-    test('should aggregate licenses correctly', () => {
-      expect(result.licenses).toHaveLength(1);
-      expect(result.licenses[0]).toEqual({
-        id: 'cc-by-4.0',
-        name: 'Creative Commons Attribution 4.0',
-        count: 90, // From snapshot: 30 + 60
-        percentage: 60 // 90/150 * 100
-      });
-    });
-
-    test('should aggregate access rights correctly', () => {
-      expect(result.accessRights).toHaveLength(1);
-      expect(result.accessRights[0]).toEqual({
-        name: 'Open Access',
-        count: 120, // From snapshot: 40 + 80
-        percentage: 80 // 120/150 * 100
-      });
-    });
-
-    test('should aggregate funders correctly', () => {
-      expect(result.funders).toHaveLength(1);
-      expect(result.funders[0]).toEqual({
-        name: 'National Science Foundation',
-        count: 75, // From snapshot: 25 + 50
-        percentage: 50 // 75/150 * 100
-      });
-    });
-
-    test('should aggregate affiliations correctly', () => {
-      expect(result.affiliations).toHaveLength(2);
-      expect(result.affiliations[0]).toEqual({
-        name: 'University of California, Berkeley',
-        count: 60, // From snapshot: 20 + 40
-        percentage: 40 // 60/150 * 100
-      });
-      expect(result.affiliations[1]).toEqual({
-        name: 'Massachusetts Institute of Technology',
-        count: 45, // From snapshot: 15 + 30
-        percentage: 30 // 45/150 * 100
-      });
-    });
-
-    test('should set use_binary_filesize to true', () => {
-      expect(result.use_binary_filesize).toBe(true);
-    });
-
-    test('should return empty arrays for usage-related data', () => {
-      expect(result.topCountries).toEqual([]);
-      expect(result.referrerDomains).toEqual([]);
-      expect(result.mostDownloadedRecords).toEqual([]);
-      expect(result.mostViewedRecords).toEqual([]);
     });
   });
 
-  describe('with empty input', () => {
-    test('should return default structure when both inputs are null', () => {
-      const result = transformRecordDataToTestData(null, null);
+  describe('with empty input data', () => {
+    test('should return empty structure when rawStats is null', () => {
+      const result = transformApiData(null);
 
-      expect(result.recordCount).toEqual([]);
-      expect(result.uploaders).toEqual([]);
-      expect(result.dataVolume).toEqual([]);
-      expect(result.licenses).toEqual([]);
-      expect(result.affiliations).toEqual([]);
-      expect(result.funders).toEqual([]);
-      expect(result.use_binary_filesize).toBe(true);
+      expect(result).toHaveProperty('recordDeltaDataCreated');
+      expect(result).toHaveProperty('recordDeltaDataAdded');
+      expect(result).toHaveProperty('recordDeltaDataPublished');
+      expect(result).toHaveProperty('recordSnapshotDataCreated');
+      expect(result).toHaveProperty('recordSnapshotDataAdded');
+      expect(result).toHaveProperty('recordSnapshotDataPublished');
+      expect(result).toHaveProperty('usageDeltaData');
+      expect(result).toHaveProperty('usageSnapshotData');
     });
 
-    test('should return default structure when both inputs are empty arrays', () => {
-      const result = transformRecordDataToTestData([], []);
+    test('should return empty structure when rawStats is undefined', () => {
+      const result = transformApiData(undefined);
 
-      expect(result.recordCount).toEqual([]);
-      expect(result.uploaders).toEqual([]);
-      expect(result.dataVolume).toEqual([]);
-      expect(result.licenses).toEqual([]);
-      expect(result.affiliations).toEqual([]);
-      expect(result.funders).toEqual([]);
-      expect(result.use_binary_filesize).toBe(true);
+      expect(result).toHaveProperty('recordDeltaDataCreated');
+      expect(result).toHaveProperty('recordDeltaDataAdded');
+      expect(result).toHaveProperty('recordDeltaDataPublished');
+      expect(result).toHaveProperty('recordSnapshotDataCreated');
+      expect(result).toHaveProperty('recordSnapshotDataAdded');
+      expect(result).toHaveProperty('recordSnapshotDataPublished');
+      expect(result).toHaveProperty('usageDeltaData');
+      expect(result).toHaveProperty('usageSnapshotData');
     });
 
-    test('should return default structure when inputs are undefined', () => {
-      const result = transformRecordDataToTestData(undefined, undefined);
-
-      expect(result.recordCount).toEqual([]);
-      expect(result.uploaders).toEqual([]);
-      expect(result.dataVolume).toEqual([]);
-      expect(result.licenses).toEqual([]);
-      expect(result.affiliations).toEqual([]);
-      expect(result.funders).toEqual([]);
-      expect(result.use_binary_filesize).toBe(true);
-    });
-  });
-
-  describe('with only delta documents', () => {
-    test('should process delta documents correctly without snapshots', () => {
-      const result = transformRecordDataToTestData(sampleDeltaDocs, null);
-
-      expect(result.recordCount).toHaveLength(1);
-      expect(result.recordCount[0].value).toBe(12);
-
-      expect(result.cumulativeRecordCount).toEqual([]);
-      expect(result.cumulativeUploaders).toEqual([]);
-      expect(result.cumulativeDataVolume).toEqual([]);
-    });
-  });
-
-  describe('with only snapshot documents', () => {
-    test('should process snapshot documents correctly without deltas', () => {
-      const result = transformRecordDataToTestData(null, sampleSnapshotDocs);
-
-      expect(result.recordCount).toEqual([]);
-      expect(result.uploaders).toEqual([]);
-      expect(result.dataVolume).toEqual([]);
-
-      expect(result.cumulativeRecordCount).toHaveLength(1);
-      expect(result.cumulativeRecordCount[0].value).toBe(150);
-
-      expect(result.resourceTypes).toHaveLength(2);
-      expect(result.languages).toHaveLength(1);
-      expect(result.subjects).toHaveLength(1);
-    });
-  });
-
-  describe('with missing subcounts', () => {
-    test('should handle documents without subcounts gracefully', () => {
-      const deltaDocWithoutSubcounts = {
-        _source: {
-          community_id: 'test-community',
-          period_start: '2024-01-01T00:00:00',
-          records: {
-            added: { metadata_only: 5, with_files: 10 },
-            removed: { metadata_only: 1, with_files: 2 }
-          },
-          parents: {
-            added: { metadata_only: 3, with_files: 8 },
-            removed: { metadata_only: 1, with_files: 1 }
-          },
-          files: {
-            added: { file_count: 25, data_volume: 50000000 },
-            removed: { file_count: 5, data_volume: 10000000 }
-          },
-          uploaders: 15
-        }
+    test('should handle empty arrays in input data', () => {
+      const emptyRawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
       };
 
-      const result = transformRecordDataToTestData([deltaDocWithoutSubcounts], null);
+      const result = transformApiData(emptyRawStats);
 
-      expect(result.recordCount).toHaveLength(1);
-      expect(result.recordCount[0].value).toBe(12);
-      expect(result.licenses).toEqual([]);
-      expect(result.affiliations).toEqual([]);
-      expect(result.funders).toEqual([]);
+      expect(result).toHaveProperty('recordDeltaDataCreated');
+      expect(result).toHaveProperty('recordDeltaDataAdded');
+      expect(result).toHaveProperty('recordDeltaDataPublished');
+      expect(result).toHaveProperty('recordSnapshotDataCreated');
+      expect(result).toHaveProperty('recordSnapshotDataAdded');
+      expect(result).toHaveProperty('recordSnapshotDataPublished');
+      expect(result).toHaveProperty('usageDeltaData');
+      expect(result).toHaveProperty('usageSnapshotData');
     });
   });
 
-  describe('with multiple days of data', () => {
-    test('should aggregate data across multiple days correctly', () => {
-      const secondDayDelta = {
-        _source: {
-          community_id: 'test-community',
-          period_start: '2024-01-02T00:00:00',
-          records: {
-            added: { metadata_only: 3, with_files: 7 },
-            removed: { metadata_only: 0, with_files: 1 }
-          },
-          parents: {
-            added: { metadata_only: 2, with_files: 5 },
-            removed: { metadata_only: 0, with_files: 1 }
-          },
-          files: {
-            added: { file_count: 15, data_volume: 30000000 },
-            removed: { file_count: 2, data_volume: 4000000 }
-          },
-          uploaders: 10,
-          subcounts: {
-            by_resource_type: [
-              {
-                id: 'dataset',
-                label: 'Dataset',
-                records: {
-                  added: { metadata_only: 1, with_files: 3 },
-                  removed: { metadata_only: 0, with_files: 0 }
-                },
-                parents: {
-                  added: { metadata_only: 1, with_files: 2 },
-                  removed: { metadata_only: 0, with_files: 0 }
-                },
-                files: {
-                  added: { file_count: 8, data_volume: 16000000 },
-                  removed: { file_count: 0, data_volume: 0 }
-                }
-              }
-            ]
+  describe('with real sample data', () => {
+    test('should handle sampleRecordDelta correctly', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+
+      expect(result.recordDeltaDataCreated).toHaveProperty('global');
+      expect(result.recordDeltaDataCreated).toHaveProperty('byFilePresence');
+      expect(result.recordDeltaDataCreated).toHaveProperty('resourceTypes');
+      expect(result.recordDeltaDataCreated).toHaveProperty('accessRights');
+      expect(result.recordDeltaDataCreated).toHaveProperty('languages');
+      expect(result.recordDeltaDataCreated).toHaveProperty('affiliations');
+      expect(result.recordDeltaDataCreated).toHaveProperty('subjects');
+      expect(result.recordDeltaDataCreated).toHaveProperty('publishers');
+      expect(result.recordDeltaDataCreated).toHaveProperty('fileTypes');
+    });
+
+    test('should handle sampleRecordSnapshot correctly', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [sampleRecordSnapshot],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+
+      expect(result.recordSnapshotDataCreated).toHaveProperty('global');
+      expect(result.recordSnapshotDataCreated).toHaveProperty('byFilePresence');
+      expect(result.recordSnapshotDataCreated).toHaveProperty('accessRights');
+    });
+
+    test('should handle sampleUsageSnapshot correctly', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: [sampleUsageSnapshot]
+      };
+
+      const result = transformApiData(rawStats);
+
+      expect(result.usageSnapshotData).toHaveProperty('global');
+      expect(result.usageSnapshotData).toHaveProperty('byFilePresence');
+      expect(result.usageSnapshotData).toHaveProperty('byAccessRights');
+      expect(result.usageSnapshotData).toHaveProperty('byFileTypes');
+      expect(result.usageSnapshotData).toHaveProperty('byLanguages');
+      expect(result.usageSnapshotData).toHaveProperty('byResourceTypes');
+      expect(result.usageSnapshotData).toHaveProperty('topCountriesByView');
+      expect(result.usageSnapshotData).toHaveProperty('topCountriesByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('topSubjectsByView');
+      expect(result.usageSnapshotData).toHaveProperty('topSubjectsByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('topPublishersByView');
+      expect(result.usageSnapshotData).toHaveProperty('topPublishersByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('topLicensesByView');
+      expect(result.usageSnapshotData).toHaveProperty('topLicensesByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('topReferrersByView');
+      expect(result.usageSnapshotData).toHaveProperty('topReferrersByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('topAffiliationsByView');
+      expect(result.usageSnapshotData).toHaveProperty('topAffiliationsByDownload');
+    });
+  });
+
+  describe('data transformation accuracy', () => {
+    test('should calculate net counts correctly for record deltas', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const globalRecords = result.recordDeltaDataCreated.global.records[0];
+
+      // Net records: (0+2) - (0+0) = 2 - 0 = 2
+      expect(globalRecords.data[0].value[1]).toBe(2);
+    });
+
+    test('should calculate total counts correctly for record snapshots', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [sampleRecordSnapshot],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const globalRecords = result.recordSnapshotDataCreated.global.records[0];
+
+      // Total records: 1 + 0 = 1
+      expect(globalRecords.data[0].value[1]).toBe(1);
+    });
+
+    test('should calculate usage metrics correctly for usage deltas', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [],
+        usage_deltas: [sampleUsageDelta],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const globalViews = result.usageDeltaData.global.views[0];
+      const globalDownloads = result.usageDeltaData.global.downloads[0];
+      const globalVisitors = result.usageDeltaData.global.visitors[0];
+      const globalDataVolume = result.usageDeltaData.global.dataVolume[0];
+
+      // Views: 8
+      expect(globalViews.data[0].value[1]).toBe(8);
+      // Downloads: 6
+      expect(globalDownloads.data[0].value[1]).toBe(6);
+      // Visitors: max(8, 6) = 8
+      expect(globalVisitors.data[0].value[1]).toBe(8);
+      // Data volume: 6144.0
+      expect(globalDataVolume.data[0].value[1]).toBe(6144.0);
+    });
+
+    test('should calculate usage metrics correctly for usage snapshots', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: [sampleUsageSnapshot]
+      };
+
+      const result = transformApiData(rawStats);
+      const globalViews = result.usageSnapshotData.global.views[0];
+      const globalDownloads = result.usageSnapshotData.global.downloads[0];
+      const globalVisitors = result.usageSnapshotData.global.visitors[0];
+      const globalDataVolume = result.usageSnapshotData.global.dataVolume[0];
+
+      // Views: 80
+      expect(globalViews.data[0].value[1]).toBe(80);
+      // Downloads: 60
+      expect(globalDownloads.data[0].value[1]).toBe(60);
+      // Visitors: max(80, 60) = 80
+      expect(globalVisitors.data[0].value[1]).toBe(80);
+      // Data volume: 61440.0
+      expect(globalDataVolume.data[0].value[1]).toBe(61440.0);
+    });
+
+    test('should handle filesize valueType correctly', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const globalDataVolume = result.recordDeltaDataCreated.global.dataVolume[0];
+
+      expect(globalDataVolume.valueType).toBe('filesize');
+    });
+
+    test('should handle empty subcount arrays correctly', () => {
+      const rawStats = {
+        record_deltas_created: [
+          {
+            ...sampleRecordDelta,
+            subcounts: {
+              by_access_rights: [],
+              by_affiliation_contributor: [],
+              by_file_type: []
+            }
           }
-        }
+        ],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
       };
 
-      const multiDayDeltas = [...sampleDeltaDocs, secondDayDelta];
-      const result = transformRecordDataToTestData(multiDayDeltas, null);
+      const result = transformApiData(rawStats);
 
-      expect(result.recordCount).toHaveLength(2);
-      expect(result.recordCount[0].value).toBe(12); // Day 1
-      expect(result.recordCount[1].value).toBe(9);  // Day 2: (3+7) - (0+1) = 10 - 1 = 9
+      // Should not crash and should return empty arrays for subcounts
+      expect(result.recordDeltaDataCreated.accessRights.records).toEqual([]);
+      expect(result.recordDeltaDataCreated.affiliations.records).toEqual([]);
+      expect(result.recordDeltaDataCreated.fileTypes.records).toEqual([]);
+    });
 
-      expect(result.resourceTypes).toHaveLength(1);
-      expect(result.resourceTypes[0].count).toBe(21); // Day 1: (2+5) - (0+1) = 6, Day 2: (1+3) - (0+0) = 4, Total: 6 + 4 = 10, but from delta aggregation it's 21
+    test('should handle different subcount item structures correctly', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+
+      // Should handle both nested structure (by_access_rights) and direct structure (by_file_type)
+      expect(result.recordDeltaDataCreated.accessRights.records.length).toBeGreaterThan(0);
+      expect(result.recordDeltaDataCreated.fileTypes.records.length).toBeGreaterThan(0);
+    });
+
+    test('should handle separate view/download structures in usage snapshots', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: [sampleUsageSnapshot]
+      };
+
+      const result = transformApiData(rawStats);
+
+      // Should create separate series for view and download data
+      expect(result.usageSnapshotData.topCountriesByView).toBeDefined();
+      expect(result.usageSnapshotData.topCountriesByDownload).toBeDefined();
+      expect(result.usageSnapshotData.topCountriesByView.views.length).toBeGreaterThan(0);
+      expect(result.usageSnapshotData.topCountriesByDownload.downloads.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('data consistency validation', () => {
+    test('should maintain data consistency between input and output for record deltas', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const globalRecords = result.recordDeltaDataCreated.global.records[0];
+      const globalParents = result.recordDeltaDataCreated.global.parents[0];
+      const globalFiles = result.recordDeltaDataCreated.global.fileCount[0];
+      const globalDataVolume = result.recordDeltaDataCreated.global.dataVolume[0];
+
+      // Verify calculations match expected values from sampleRecordDelta
+      const expectedRecords = 2; // (0+2) - (0+0) = 2
+      const expectedParents = 2; // (0+2) - (0+0) = 2
+      const expectedFiles = 2; // (0+2) - (0+0) = 2 (files in sample data)
+      const expectedDataVolume = 59117831.0; // (0+59117831.0) - (0+0.0) = 59117831.0
+
+      expect(globalRecords.data[0].value[1]).toBe(expectedRecords);
+      expect(globalParents.data[0].value[1]).toBe(expectedParents);
+      expect(globalFiles.data[0].value[1]).toBe(expectedFiles);
+      expect(globalDataVolume.data[0].value[1]).toBe(expectedDataVolume);
+    });
+
+    test('should maintain data consistency between input and output for usage deltas', () => {
+      const rawStats = {
+        record_deltas_created: [],
+        record_snapshots_created: [],
+        usage_deltas: [sampleUsageDelta],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const globalViews = result.usageDeltaData.global.views[0];
+      const globalDownloads = result.usageDeltaData.global.downloads[0];
+      const globalVisitors = result.usageDeltaData.global.visitors[0];
+      const globalDataVolume = result.usageDeltaData.global.dataVolume[0];
+
+      // Verify calculations match expected values from sampleUsageDelta
+      expect(globalViews.data[0].value[1]).toBe(8);
+      expect(globalDownloads.data[0].value[1]).toBe(6);
+      expect(globalVisitors.data[0].value[1]).toBe(8); // max(8, 6)
+      expect(globalDataVolume.data[0].value[1]).toBe(6144.0);
+    });
+
+    test('should validate DataPoint structure consistency', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const dataPoint = result.recordDeltaDataCreated.global.records[0].data[0];
+
+      // Validate DataPoint structure
+      expect(dataPoint).toHaveProperty('value');
+      expect(Array.isArray(dataPoint.value)).toBe(true);
+      expect(dataPoint.value.length).toBe(2);
+      expect(typeof dataPoint.value[0]).toBe('object'); // Date object
+      expect(typeof dataPoint.value[1]).toBe('number'); // Value
+
+      // Validate date parsing - sample data uses 2025-05-30T00:00:00
+      const expectedDate = new Date('2025-05-30T00:00:00Z');
+      expect(dataPoint.value[0].getTime()).toBe(expectedDate.getTime());
+    });
+
+    test('should validate DataSeries structure consistency', () => {
+      const rawStats = {
+        record_deltas_created: [sampleRecordDelta],
+        record_snapshots_created: [],
+        usage_deltas: [],
+        usage_snapshots: []
+      };
+
+      const result = transformApiData(rawStats);
+      const dataSeries = result.recordDeltaDataCreated.global.records[0];
+
+      // Validate DataSeries structure
+      expect(dataSeries).toHaveProperty('id');
+      expect(typeof dataSeries.id).toBe('string');
+      expect(dataSeries).toHaveProperty('name');
+      expect(typeof dataSeries.name).toBe('string');
+      expect(dataSeries).toHaveProperty('data');
+      expect(Array.isArray(dataSeries.data)).toBe(true);
+      expect(dataSeries).toHaveProperty('type');
+      expect(typeof dataSeries.type).toBe('string');
+      expect(dataSeries).toHaveProperty('valueType');
+      expect(typeof dataSeries.valueType).toBe('string');
+
+      // Validate that id and name are consistent
+      expect(dataSeries.id).toBe('global');
+      expect(dataSeries.name).toBe('Global');
     });
   });
 });
