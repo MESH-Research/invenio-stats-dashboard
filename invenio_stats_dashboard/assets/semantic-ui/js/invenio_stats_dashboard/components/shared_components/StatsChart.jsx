@@ -492,19 +492,19 @@ const filterChartSeriesByDate = (chartSeries, dateRange) => {
  *
  * Each RecordMetrics object has the following properties:
  * {
- *   records: DataSeries,
- *   parents: DataSeries,
- *   uploaders: DataSeries,
- *   fileCount: DataSeries,
- *   dataVolume: DataSeries
+ *   records: DataSeries[],
+ *   parents: DataSeries[],
+ *   uploaders: DataSeries[],
+ *   fileCount: DataSeries[],
+ *   dataVolume: DataSeries[]
  * }
  *
  * Each UsageMetrics object has the following properties:
  * {
- *   views: DataSeries,
- *   downloads: DataSeries,
- *   visitors: DataSeries,
- *   dataVolume: DataSeries
+ *   views: DataSeries[],
+ *   downloads: DataSeries[],
+ *   visitors: DataSeries[],
+ *   dataVolume: DataSeries[]
  * }
  *
  * Each DataSeries object has the following properties:
@@ -512,13 +512,14 @@ const filterChartSeriesByDate = (chartSeries, dateRange) => {
  *   id: string,
  *   name: string,
  *   data: DataPoint[],
+ *   type: string,
  *   valueType: string
  * }
  *
  * Each DataPoint object has the following properties:
  * {
- *   date: Date,
- *   value: number,
+ *   value: [Date, number],
+ *   readableDate: string,
  *   valueType: string
  * }
  *
@@ -690,12 +691,101 @@ const StatsChart = ({
 };
 
 StatsChart.propTypes = {
-  data: PropTypes.arrayOf(
-    PropTypes.shape({
-      name: PropTypes.string.isRequired,
-      data: PropTypes.arrayOf(PropTypes.array).isRequired,
-    })
-  ).isRequired,
+  data: PropTypes.shape({
+    global: PropTypes.shape({
+      records: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired, // [Date, number]
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      parents: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      uploaders: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      fileCount: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      dataVolume: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      // Usage metrics
+      views: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      downloads: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+      visitors: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        data: PropTypes.arrayOf(PropTypes.shape({
+          value: PropTypes.array.isRequired,
+          readableDate: PropTypes.string.isRequired,
+          valueType: PropTypes.string.isRequired,
+        })).isRequired,
+        type: PropTypes.string,
+        valueType: PropTypes.string,
+      })),
+    }),
+    // Allow additional breakdown categories
+    [PropTypes.string]: PropTypes.object,
+  }),
   title: PropTypes.string,
   xAxisLabel: PropTypes.string,
   yAxisLabel: PropTypes.string,
