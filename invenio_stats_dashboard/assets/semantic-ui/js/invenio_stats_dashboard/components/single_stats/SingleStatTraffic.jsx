@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
-import { formatNumber, filterByDateRange, formatDate } from '../../utils';
+import { formatNumber, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { getDeltaTotal } from '../../api/dataTransformer';
+import { extractUsageDeltaValue } from '../../utils/singleStatHelpers';
 
 const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", compactThreshold = 1_000_000 }) => {
   const { stats, binary_sizes, dateRange } = useStatsDashboard();
@@ -16,11 +16,12 @@ const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", 
     }
   }, [dateRange]);
 
-  // Get traffic data using the centralized helper function
-  const value = getDeltaTotal(
-    stats.usageDeltaData?.global?.dataVolume,
-    dateRange,
-    filterByDateRange
+  // Extract traffic value using the helper function
+  const value = extractUsageDeltaValue(
+    stats,
+    'dataVolume',
+    'global',
+    dateRange
   );
 
   return (

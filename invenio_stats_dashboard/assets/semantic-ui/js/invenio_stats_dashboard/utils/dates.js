@@ -255,26 +255,30 @@ const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) 
     return '';
   }
 
+  // Convert date strings to Date objects
+  const startDate = createUTCDate(dateRange.start);
+  const endDate = createUTCDate(dateRange.end);
+
   switch (granularity) {
     case 'year':
       return new Intl.DateTimeFormat(i18next.language, {
         year: 'numeric',
         timeZone: 'UTC'
-      }).formatRange(dateRange.start, dateRange.end);
+      }).formatRange(startDate, endDate);
 
     case 'month':
       return new Intl.DateTimeFormat(i18next.language, {
         year: 'numeric',
         month: useShortMonth ? 'short' : 'long',
         timeZone: 'UTC'
-      }).formatRange(dateRange.start, dateRange.end);
+      }).formatRange(startDate, endDate);
 
     case 'quarter':
       // Use built-in Intl to get locale-appropriate separator
       const separator = getLocaleDateSeparator(i18next.language);
 
-      const startQuarter = formatQuarter(dateRange.start);
-      const endQuarter = formatQuarter(dateRange.end);
+      const startQuarter = formatQuarter(startDate);
+      const endQuarter = formatQuarter(endDate);
 
       return startQuarter + separator + endQuarter;
 
@@ -284,7 +288,7 @@ const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) 
       return new Intl.DateTimeFormat(i18next.language, {
         dateStyle: dateStyle,
         timeZone: 'UTC'
-      }).formatRange(dateRange.start, dateRange.end);
+      }).formatRange(startDate, endDate);
   }
 };
 

@@ -30,18 +30,6 @@ import {
   SingleStatViewsCumulative,
   SingleStatTrafficCumulative,
 
-  // Tables
-  MostDownloadedRecordsTable,
-  MostViewedRecordsTable,
-  TopCountriesTable,
-  TopReferrerDomainsTable,
-  AccessRightsTable,
-  LicensesTable,
-  AffiliationsTable,
-  FundersTable,
-  SubjectsTable,
-  LanguagesTable,
-
   // Maps
   StatsMap,
 
@@ -90,18 +78,6 @@ export const componentsMap = {
   'SingleStatViews': SingleStatViews,
   'SingleStatViewsCumulative': SingleStatViewsCumulative,
   'SingleStatTrafficCumulative': SingleStatTrafficCumulative,
-
-  // Tables
-  'MostDownloadedRecordsTable': MostDownloadedRecordsTable,
-  'MostViewedRecordsTable': MostViewedRecordsTable,
-  'TopCountriesTable': TopCountriesTable,
-  'TopReferrerDomainsTable': TopReferrerDomainsTable,
-  'AccessRightsTable': AccessRightsTable,
-  'LicensesTable': LicensesTable,
-  'AffiliationsTable': AffiliationsTable,
-  'FundersTable': FundersTable,
-  'SubjectsTable': SubjectsTable,
-  'LanguagesTable': LanguagesTable,
 
   // Maps
   'StatsMap': StatsMap,

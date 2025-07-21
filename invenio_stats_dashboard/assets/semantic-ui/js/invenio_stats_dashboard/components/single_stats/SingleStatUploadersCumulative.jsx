@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
-import { formatNumber, filterByDateRange, formatDate } from '../../utils';
+import { formatNumber, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { getSnapshotLatest } from '../../api/dataTransformer';
+import { extractRecordSnapshotValue } from '../../utils/singleStatHelpers';
 
 const SingleStatUploadersCumulative = ({ title = i18next.t("Cumulative Uploaders"), icon = "users", compactThreshold = 1_000_000 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, recordStartBasis } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
@@ -16,11 +16,13 @@ const SingleStatUploadersCumulative = ({ title = i18next.t("Cumulative Uploaders
     }
   }, [dateRange]);
 
-  // Get cumulative uploaders data using the centralized helper function
-  const value = getSnapshotLatest(
-    stats.recordSnapshotDataAdded?.global?.uploaders,
-    dateRange,
-    filterByDateRange
+  // Extract cumulative uploaders value using the helper function
+  const value = extractRecordSnapshotValue(
+    stats,
+    recordStartBasis,
+    'uploaders',
+    'global',
+    dateRange
   );
 
   return (

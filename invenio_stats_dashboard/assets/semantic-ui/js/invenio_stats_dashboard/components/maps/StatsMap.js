@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
@@ -6,14 +6,20 @@ import worldJson from './data/world2.json';
 import { COUNTRY_NAME_MAP } from './data/country_mappings';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Card, Header, Segment } from 'semantic-ui-react';
+import { Header, Segment } from 'semantic-ui-react';
+import { extractCountryMapData } from '../../utils/mapHelpers';
 
-const StatsMap = ({ title, height = 500, minHeight = 400, zoom = 1.2, center = [0, -20] }) => {
-  // const chartRef = useRef(null);
+const StatsMap = ({
+  title,
+  height = 500,
+  minHeight = 400,
+  zoom = 1.2,
+  center = [0, -20],
+  metric = 'views',
+  useSnapshot = true
+}) => {
   const [isMapRegistered, setIsMapRegistered] = useState(false);
-  const { stats } = useStatsDashboard();
-  console.log(stats);
-  console.log(title);
+  const { stats, dateRange } = useStatsDashboard();
 
   useEffect(() => {
     // Register the world map
@@ -21,45 +27,10 @@ const StatsMap = ({ title, height = 500, minHeight = 400, zoom = 1.2, center = [
     setIsMapRegistered(true);
   }, []);
 
-    // Initialize the chart
-    // const chart = echarts.init(chartRef.current);
+  const mapData = extractCountryMapData(stats, metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
 
-  // Helper function to extract top countries from the new data structure
-  const extractTopCountries = () => {
-    // Try to get top countries from usage snapshot data
-    if (stats.usageSnapshotData && stats.usageSnapshotData.byCountries) {
-      const countriesData = stats.usageSnapshotData.byCountries;
-      return Object.entries(countriesData).map(([id, data]) => ({
-        name: data.views[2] || id, // Use label if available, otherwise use id
-        count: data.views[1] || 0, // Use the count value
-        id: id,
-      }));
-    }
-
-    // Fallback to empty array if no data available
-    return [];
-  };
-
-  // Prepare the data with proper country name mapping
-  const mapData = extractTopCountries().map(item => {
-    const countryName = item.name?.trim();
-    if (!countryName) return null;
-
-    const mappedName = COUNTRY_NAME_MAP[countryName] || countryName;
-    const value = parseInt(item.count, 10) || 0;
-
-    return {
-      name: mappedName,
-      value: value,
-      originalName: countryName
-    };
-  }).filter(Boolean); // Remove null values
-  console.log(mapData);
-
-  // Calculate max value for the visual map
   const maxValue = Math.max(...mapData.map(item => item.value), 1);
 
-  // Set the chart options
   const option = {
     aria: {
       enabled: true
@@ -91,7 +62,7 @@ const StatsMap = ({ title, height = 500, minHeight = 400, zoom = 1.2, center = [
     },
     series: [
       {
-        name: 'Visits',
+        name: metric === 'views' ? 'Visits' : metric === 'downloads' ? 'Downloads' : metric === 'visitors' ? 'Visitors' : 'Data Volume',
         type: 'map',
         map: 'world',
         roam: true,
@@ -124,18 +95,6 @@ const StatsMap = ({ title, height = 500, minHeight = 400, zoom = 1.2, center = [
     ]
   };
 
-  // // Handle window resize
-  // const handleResize = () => {
-  //   chart.resize();
-  // };
-  // window.addEventListener('resize', handleResize);
-
-  // // Cleanup
-  // return () => {
-  //   window.removeEventListener('resize', handleResize);
-  //   chart.dispose();
-  // };
-
   return (
     <>
       <Header as="h3" attached="top">{title}</Header>
@@ -161,6 +120,8 @@ StatsMap.propTypes = {
   minHeight: PropTypes.number,
   zoom: PropTypes.number,
   center: PropTypes.arrayOf(PropTypes.number),
+  metric: PropTypes.oneOf(['views', 'downloads', 'visitors', 'dataVolume']),
+  useSnapshot: PropTypes.bool,
 };
 
 export { StatsMap };

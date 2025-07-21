@@ -2,26 +2,27 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
-import { formatNumber, filterByDateRange, formatDate } from '../../utils';
+import { formatNumber, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { getSnapshotLatest } from '../../api/dataTransformer';
+import { extractRecordSnapshotValue } from '../../utils/singleStatHelpers';
 
 const SingleStatDataVolumeCumulative = ({ title = i18next.t("Cumulative Data Volume"), icon = "database", compactThreshold = 1_000_000 }) => {
-  const { stats, dateRange, binary_sizes } = useStatsDashboard();
+  const { stats, dateRange, recordStartBasis, binary_sizes } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
-    console.log("dateRange in SingleStatDataVolumeCumulative", dateRange);
     if (dateRange) {
       setDescription(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
     }
   }, [dateRange]);
 
-  // Get cumulative data volume using the centralized helper function
-  const value = getSnapshotLatest(
-    stats.recordSnapshotDataAdded?.global?.dataVolume,
-    dateRange,
-    filterByDateRange
+  // Extract cumulative data volume value using the helper function
+  const value = extractRecordSnapshotValue(
+    stats,
+    recordStartBasis,
+    'dataVolume',
+    'global',
+    dateRange
   );
 
   return (

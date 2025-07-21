@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
-import { formatNumber, filterByDateRange, formatDate } from '../../utils';
+import { formatNumber, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { getDeltaTotal } from '../../api/dataTransformer';
+import { extractRecordDeltaValue } from '../../utils/singleStatHelpers';
 
 const SingleStatRecordCount = ({ title = i18next.t("Records"), icon = "file", compactThreshold = 1_000_000 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, recordStartBasis } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
@@ -16,11 +16,13 @@ const SingleStatRecordCount = ({ title = i18next.t("Records"), icon = "file", co
     }
   }, [dateRange]);
 
-  // Get record count data using the centralized helper function
-  const value = getDeltaTotal(
-    stats.recordDeltaDataAdded?.global?.records,
-    dateRange,
-    filterByDateRange
+  // Extract record count value using the new helper function
+  const value = extractRecordDeltaValue(
+    stats,
+    recordStartBasis,
+    'records',
+    'global',
+    dateRange
   );
 
   return (

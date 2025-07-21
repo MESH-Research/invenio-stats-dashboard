@@ -53,13 +53,21 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
     : null;
   const endDayEnd = dateRange.end
     ? new Date(dateRange.end).setHours(23, 59, 59, 999)
-    : null;
+    : new Date().setHours(23, 59, 59, 999); // Use end of current day if no end date
   const startDayBeginning = dateRange.start
     ? new Date(dateRange.start).setHours(0, 0, 0, 0)
     : null;
 
   const filteredSeriesArray = seriesArray.map((series) => {
     let filteredData;
+
+    // Handle missing or invalid data property
+    if (!series.data || !Array.isArray(series.data)) {
+      return {
+        ...series,
+        data: [],
+      };
+    }
 
     if (latestOnly) {
       let latestData = null;
@@ -68,6 +76,17 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
       // Traverse backwards for efficiency
       for (let i = series.data.length - 1; i >= 0; i--) {
         const current = series.data[i];
+
+        // Skip invalid data points
+        if (!current || !current.value || !Array.isArray(current.value) || current.value.length < 2) {
+          continue;
+        }
+
+        // Skip if first element is not a valid Date
+        if (!(current.value[0] instanceof Date) || isNaN(current.value[0].getTime())) {
+          continue;
+        }
+
         const dateMs = current.value[0].getTime();
         if (endDayBeginning && dateMs === endDayBeginning) {
           latestData = current;
@@ -84,6 +103,16 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
       filteredData = latestData ? [latestData] : [];
     } else {
       filteredData = series.data.filter((point) => {
+        // Skip invalid data points
+        if (!point || !point.value || !Array.isArray(point.value) || point.value.length < 2) {
+          return false;
+        }
+
+        // Skip if first element is not a valid Date
+        if (!(point.value[0] instanceof Date) || isNaN(point.value[0].getTime())) {
+          return false;
+        }
+
         const dateMs = point.value[0].getTime();
         return (
           (!dateRange.start || dateMs >= startDayBeginning) &&

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
-import { formatNumber, filterByDateRange, formatDate } from '../../utils';
+import { formatNumber, formatDate } from '../../utils';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { getSnapshotLatest } from '../../api/dataTransformer';
+import { extractUsageSnapshotValue } from '../../utils/singleStatHelpers';
 
 const SingleStatTrafficCumulative = ({ title = i18next.t("Cumulative Traffic"), icon = "chart line", compactThreshold = 1_000_000 }) => {
   const { stats, binary_sizes, dateRange } = useStatsDashboard();
@@ -16,11 +16,12 @@ const SingleStatTrafficCumulative = ({ title = i18next.t("Cumulative Traffic"), 
     }
   }, [dateRange]);
 
-  // Get cumulative traffic data using the centralized helper function
-  const value = getSnapshotLatest(
-    stats.usageSnapshotData?.global?.dataVolume,
-    dateRange,
-    filterByDateRange
+  // Extract cumulative traffic value using the helper function
+  const value = extractUsageSnapshotValue(
+    stats,
+    'dataVolume',
+    'global',
+    dateRange
   );
 
   return (

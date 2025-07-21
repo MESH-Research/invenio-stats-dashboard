@@ -1402,28 +1402,7 @@ export const transformApiData = (rawStats) => {
   returnData.usageDeltaData = transformUsageDeltaData(rawStats.usage_deltas);
   returnData.usageSnapshotData = transformUsageSnapshotData(rawStats.usage_snapshots);
 
-  // Convert aggregated subcounts to arrays and calculate percentages
-  // const totalRecords = recordCount.reduce((sum, item) => sum + item.value, 0);
-  // const maxTotalRecords = cumulativeRecordCount.length > 0
-  //   ? Math.max(...cumulativeRecordCount.map(item => item.value))
-  //   : 0;
-
-  // // Use the higher of the two totals for percentage calculations
-  // const percentageBase = Math.max(totalRecords, maxTotalRecords);
-
-  // const licenses = Object.values(subcountAggregates.licenses)
-  //   .sort((a, b) => b.count - a.count)
-  //   .map(item => ({
-  //     ...item,
-  //     percentage: percentageBase > 0 ? Math.round((item.count / percentageBase) * 100) : 0
-  //   }));
-
   return returnData;
-    // Empty arrays for data not available in record data
-    // topCountries: [],
-    // referrerDomains: [],
-    // mostDownloadedRecords: [],
-    // mostViewedRecords: []
 };
 
 

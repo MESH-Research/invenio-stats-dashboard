@@ -1,0 +1,436 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { SingleStatTraffic } from './SingleStatTraffic';
+import { useStatsDashboard } from '../../context/StatsDashboardContext';
+
+// Mock the dependencies
+jest.mock('../../context/StatsDashboardContext');
+
+const mockUseStatsDashboard = useStatsDashboard;
+
+describe('SingleStatTraffic', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Basic Rendering', () => {
+    beforeEach(() => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false // Use default setting
+      });
+    });
+
+    it('should render with default title and value', () => {
+      render(<SingleStatTraffic />);
+
+      expect(screen.getByText('Traffic')).toBeInTheDocument();
+      expect(screen.getByText('3.1 kB')).toBeInTheDocument(); // 1024 + 2048 = 3072 bytes = 3.1 kB
+    });
+
+    it('should render with custom title', () => {
+      render(<SingleStatTraffic title="Custom Traffic" />);
+
+      expect(screen.getByText('Custom Traffic')).toBeInTheDocument();
+    });
+
+    it('should display description with date range', () => {
+      render(<SingleStatTraffic />);
+
+      // The description should contain the date range
+      expect(screen.getByText(/from/)).toBeInTheDocument();
+      expect(screen.getByText(/to/)).toBeInTheDocument();
+    });
+
+    it('should use binary formatting when binary_sizes is true', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: true // Test binary formatting
+      });
+
+      render(<SingleStatTraffic />);
+
+      expect(screen.getByText('3 KiB')).toBeInTheDocument(); // Binary formatting
+    });
+  });
+
+  describe('HTML Structure and Accessibility', () => {
+    beforeEach(() => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+    });
+
+    it('should have correct container structure and CSS classes', () => {
+      const { container } = render(<SingleStatTraffic />);
+
+      // Check main container
+      const mainContainer = container.querySelector('.ui.statistic.stats-single-stat-container.centered.rel-mb-2.rel-mt-2');
+      expect(mainContainer).toBeInTheDocument();
+      expect(mainContainer).toHaveAttribute('role', 'region');
+      expect(mainContainer).toHaveAttribute('aria-describedby');
+      expect(mainContainer).toHaveAttribute('aria-label', 'Traffic');
+    });
+
+    it('should have correct value element structure', () => {
+      const { container } = render(<SingleStatTraffic />);
+
+      // Check value element
+      const valueElement = container.querySelector('.value.stats-single-stat-value');
+      expect(valueElement).toBeInTheDocument();
+      expect(valueElement).toHaveAttribute('aria-label', '3.1 kB Traffic');
+      expect(valueElement).toHaveTextContent('3.1 kB');
+    });
+
+    it('should have correct header structure with icon', () => {
+      const { container } = render(<SingleStatTraffic />);
+
+      // Check header element
+      const headerElement = container.querySelector('.label.stats-single-stat-header.mt-5');
+      expect(headerElement).toBeInTheDocument();
+      expect(headerElement).toHaveTextContent('Traffic');
+
+      // Check icon
+      const iconElement = headerElement.querySelector('.chart.line.icon.mr-10');
+      expect(iconElement).toBeInTheDocument();
+      expect(iconElement).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('should have correct description structure', () => {
+      const { container } = render(<SingleStatTraffic />);
+
+      // Check description element
+      const descriptionElement = container.querySelector('.label.stats-single-stat-description.mt-5');
+      expect(descriptionElement).toBeInTheDocument();
+      expect(descriptionElement).toHaveAttribute('id');
+      expect(descriptionElement).toHaveAttribute('aria-label');
+      expect(descriptionElement).toHaveTextContent(/from/);
+    });
+
+    it('should have proper accessibility attributes', () => {
+      const { container } = render(<SingleStatTraffic />);
+
+      const mainContainer = container.querySelector('.ui.statistic');
+      const descriptionElement = container.querySelector('.stats-single-stat-description');
+
+      // Check that aria-describedby points to the description element
+      const describedBy = mainContainer.getAttribute('aria-describedby');
+      expect(describedBy).toBe(descriptionElement.getAttribute('id'));
+    });
+
+    it('should handle custom title in accessibility attributes', () => {
+      const { container } = render(<SingleStatTraffic title="Custom Title" />);
+
+      const mainContainer = container.querySelector('.ui.statistic');
+      const valueElement = container.querySelector('.value');
+
+      expect(mainContainer).toHaveAttribute('aria-label', 'Custom Title');
+      expect(valueElement).toHaveAttribute('aria-label', '3.1 kB Custom Title');
+    });
+
+    it('should handle custom icon', () => {
+      const { container } = render(<SingleStatTraffic icon="chart bar" />);
+
+      const iconElement = container.querySelector('.chart.bar.icon.mr-10');
+      expect(iconElement).toBeInTheDocument();
+      expect(iconElement).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
+  describe('Date Filtering and Cumulative Totaling', () => {
+    it('should filter data by date range and sum values correctly', () => {
+      // Test data with values inside and outside the date range
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Outside range
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // Inside range
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // Inside range
+                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // Outside range
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      // Should only sum values within the date range: 1024 + 2048 = 3072 bytes = 3.1 kB
+      expect(screen.getByText('3.1 kB')).toBeInTheDocument();
+    });
+
+    it('should handle data completely outside date range', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2023-12-30T00:00:00.000Z'), 512] },  // Outside range
+                    { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] }, // Outside range
+                    { value: [new Date('2024-01-03T00:00:00.000Z'), 2048] }, // Outside range
+                    { value: [new Date('2024-01-04T00:00:00.000Z'), 4096] }  // Outside range
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      // Should show 0 since no data is within the date range
+      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+    });
+
+    it('should handle partial date ranges (only start date)', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before start
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // On start date
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // After start
+                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After start
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      // Should include all data from start date onwards: 1024 + 2048 + 4096 = 7168 bytes = 7.2 kB
+      expect(screen.getByText('7.2 kB')).toBeInTheDocument();
+    });
+
+    it('should handle partial date ranges (only end date)', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before end
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // Before end
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // On end date
+                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After end
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      // Should include all data up to and including end date: 512 + 1024 + 2048 = 3584 bytes = 3.6 kB
+      expect(screen.getByText('3.6 kB')).toBeInTheDocument();
+    });
+  });
+
+  describe('Edge Cases and Error Handling', () => {
+    it('should handle empty stats gracefully', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: null,
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+    });
+
+    it('should handle empty data array', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: []
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+    });
+
+    it('should handle missing data property', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume'
+                  // Missing data property
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+    });
+
+    it('should handle invalid data points', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
+                    { value: null }, // Invalid data point
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] },
+                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
+                    { value: ['not a date', 4096] } // Invalid date
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      // Should only sum valid data points within range: 1024 + 2048 = 3072 bytes = 3.1 kB
+      expect(screen.getByText('3.1 kB')).toBeInTheDocument();
+    });
+
+    it('should handle no date range', () => {
+      mockUseStatsDashboard.mockReturnValue({
+        stats: {
+          usageDeltaData: {
+            global: {
+              dataVolume: [
+                {
+                  id: 'dataVolume',
+                  name: 'Data Volume',
+                  data: [
+                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
+                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        dateRange: null,
+        binary_sizes: false
+      });
+
+      render(<SingleStatTraffic />);
+
+      // Should sum all data when no date range is provided: 1024 + 2048 = 3072 bytes = 3.1 kB
+      expect(screen.getByText('3.1 kB')).toBeInTheDocument();
+    });
+  });
+});
