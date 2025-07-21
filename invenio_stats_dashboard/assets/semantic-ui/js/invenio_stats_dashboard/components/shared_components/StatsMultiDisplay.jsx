@@ -82,6 +82,7 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
       className={`stats-multi-display-container ${tableLabel}-stats-multi-display-container rel-mb-1 rel-mt-1`}
       role="region"
       aria-label={title}
+      data-testid="stats-multi-display"
     >
       {title && (
         <Header as="h3" id={`${tableLabel}-stats-multi-display-header`} className="stats-multi-display-header" attached="top">
@@ -124,12 +125,13 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
 };
 
 StatsMultiDisplay.propTypes = {
-  title: PropTypes.string.required,
+  title: PropTypes.string.isRequired,
   icon: PropTypes.string,
   label: PropTypes.string,
-  headers: PropTypes.array.required,
-  rows: PropTypes.array.required,
-  chartOption: PropTypes.object,
+  headers: PropTypes.array.isRequired,
+  rows: PropTypes.array.isRequired,
+  chartOptions: PropTypes.object.isRequired,
+  defaultViewMode: PropTypes.string,
   onEvents: PropTypes.object,
 };
 

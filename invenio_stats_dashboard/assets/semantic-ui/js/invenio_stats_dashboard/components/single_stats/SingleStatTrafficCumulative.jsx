@@ -12,7 +12,7 @@ const SingleStatTrafficCumulative = ({ title = i18next.t("Cumulative Traffic"), 
 
   useEffect(() => {
     if (dateRange) {
-      setDescription(i18next.t("as of") + " " + formatDate(dateRange.end, true));
+      setDescription(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
     }
   }, [dateRange]);
 

@@ -4,54 +4,37 @@ import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { formatNumber } from "../../utils/numbers";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
+import { filterSeriesArrayByDate } from "../../utils";
+import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
 const LicensesMultiDisplay = ({
   title = i18next.t("Licenses"),
   icon: labelIcon = "copyright",
   headers = [i18next.t("License"), i18next.t("Works")],
-  default_view,
-  pageSize=10,
-  available_views = ["list", "pie", "bar"],
+  default_view = "pie",
+  pageSize = 10,
+  available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
 
-  // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.licenses?.slice(0, pageSize).map((license, index) => ({
-    name: license.name,
-    value: license.count,
-    percentage: license.percentage,
-    id: license.name.toLowerCase().replace(/\s+/g, '-'),
-    link: `/search?q=metadata.license.id:${license.name.toLowerCase().replace(/\s+/g, '-')}`,
-    itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-    }
-  })) || [];
+  const seriesCategoryMap = {
+    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
+  };
 
-  const remainingItems = stats.licenses?.slice(pageSize) || [];
-  const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, license) => {
-    acc.value += license.count;
-    acc.percentage += license.percentage;
-    return acc;
-  }, {
-    id: "other",
-    name: "Other",
-    value: 0,
-    percentage: 0,
-    itemStyle: {
-      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
-    }
-  }) : null;
+  const licensesData = seriesCategoryMap[recordStartBasis]?.licenses?.records;
+  const rawLicenses = filterSeriesArrayByDate(licensesData, dateRange, true);
 
-  const rowsWithLinks = [
-    ...transformedData,
-    ...(otherData ? [otherData] : [])
-  ].map(({ name, value, percentage, link }) => [
-    null,
-    link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : name,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
-  ]);
+  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+    rawLicenses,
+    pageSize,
+    'metadata.license.id',
+    CHART_COLORS.secondary
+  );
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
     const options = {
@@ -75,8 +58,13 @@ const LicensesMultiDisplay = ({
         series: [
           {
             type: "pie",
-            radius: ["20%", "70%"],
-            data: [...transformedData, otherData],
+            radius: ["30%", "70%"],
+            data: [...transformedData, ...(otherData ? [otherData] : [])],
+            spacing: 2,
+            itemStyle: {
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
             label: {
               show: true,
               fontSize: 14
@@ -132,15 +120,13 @@ const LicensesMultiDisplay = ({
                 value: item.value,
                 percentage: item.percentage,
                 id: item.id,
-                itemStyle: {
-                  color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
-                },
+                itemStyle: item.itemStyle,
                 label: {
                   show: true,
                   formatter: "{b}",
                   fontSize: 14,
                   position: item.value < maxValue * 0.3 ? 'right' : 'inside',
-                  color: item.value < maxValue * 0.3 ? CHART_COLORS.primary[index % CHART_COLORS.primary.length][1] : '#fff',
+                  color: item.value < maxValue * 0.3 ? item.itemStyle.color : '#fff',
                   align: item.value < maxValue * 0.3 ? 'left' : 'center',
                   verticalAlign: 'middle'
                 }
@@ -161,10 +147,18 @@ const LicensesMultiDisplay = ({
     <StatsMultiDisplay
       title={title}
       icon={labelIcon}
+      label={"licenses"}
       headers={headers}
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      onEvents={{
+        click: (params) => {
+          if (params.data && params.data.id) {
+            window.open(params.data.link, '_blank');
+          }
+        }
+      }}
       {...otherProps}
     />
   );

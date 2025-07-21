@@ -2,12 +2,18 @@ import React, { useEffect, useState, useRef } from "react";
 import PropTypes from "prop-types";
 import { Dropdown, Button, Popup, Card, Form, Select, Segment } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { today, getLocalTimeZone } from "@internationalized/date";
+import {
+  getCurrentUTCDate,
+  addDays,
+  addMonths,
+  addYears,
+  setDateParts
+} from "../../utils/dates";
 
 const getDateRange = (todayDate, period, maxHistoryYears) => {
-  let startDate = todayDate.subtract({ days: 30 });
+  let startDate = addDays(todayDate, -30);
   let endDate = todayDate;
-  const currentMonth = todayDate.month;
+  const currentMonth = todayDate.getUTCMonth() + 1; // Convert to 1-indexed
   // Get current quarter (0-3)
   const currentQuarterIndex = Math.floor((currentMonth - 1) / 3);
   // Get current quarter start date
@@ -15,165 +21,164 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
 
   switch (period) {
     case "allTime":
-      startDate = todayDate.subtract({ years: maxHistoryYears }).set({ month: 1, day: 1 });
+      startDate = setDateParts(addYears(todayDate, -maxHistoryYears), { month: 1, day: 1 });
       break;
     // Day periods
     case "7days":
-      startDate = todayDate.subtract({ days: 7 });
+      startDate = addDays(todayDate, -7);
       break;
     case "30days":
-      startDate = todayDate.subtract({ days: 30 });
+      startDate = addDays(todayDate, -30);
       break;
     case "90days":
-      startDate = todayDate.subtract({ days: 90 });
+      startDate = addDays(todayDate, -90);
       break;
 
     // Week periods
     case "1week":
-      startDate = todayDate.subtract({ weeks: 1 });
+      startDate = addDays(todayDate, -7);
       break;
     case "2weeks":
-      startDate = todayDate.subtract({ weeks: 2 });
+      startDate = addDays(todayDate, -14);
       break;
     case "4weeks":
-      startDate = todayDate.subtract({ weeks: 4 });
+      startDate = addDays(todayDate, -28);
       break;
     case "8weeks":
-      startDate = todayDate.subtract({ weeks: 8 });
+      startDate = addDays(todayDate, -56);
       break;
     case "12weeks":
-      startDate = todayDate.subtract({ weeks: 12 });
+      startDate = addDays(todayDate, -84);
       break;
     case "24weeks":
-      startDate = todayDate.subtract({ weeks: 24 });
+      startDate = addDays(todayDate, -168);
       break;
 
     // Month periods
     case "currentMonth":
-      startDate = todayDate.set({ day: 1 });
+      startDate = setDateParts(todayDate, { day: 1 });
       break;
     case "1month":
-      startDate = todayDate.subtract({ months: 1 });
+      startDate = addMonths(todayDate, -1);
       break;
     case "3months":
-      startDate = todayDate.subtract({ months: 3 });
+      startDate = addMonths(todayDate, -3);
       break;
     case "6months":
-      startDate = todayDate.subtract({ months: 6 });
+      startDate = addMonths(todayDate, -6);
       break;
     case "12months":
-      startDate = todayDate.subtract({ months: 12 });
+      startDate = addMonths(todayDate, -12);
       break;
 
     // Quarter periods
     // The periods for 2 quarters, 3 quarters and 4 quarters include the current quarter
     // up to the current day.
     case "currentQuarter":
-      startDate = todayDate.set({ month: quarterStartMonth, day: 1 });
+      startDate = setDateParts(todayDate, { month: quarterStartMonth, day: 1 });
       break;
     case "previousQuarter":
       // Get previous quarter's start month (1-12)
       const prevQuarterStartMonth = (currentQuarterIndex - 1) * 3 + 1;
       // Get previous quarter's end month (1-12)
       const prevQuarterEndMonth = prevQuarterStartMonth + 2;
-      startDate = todayDate.set({ month: prevQuarterStartMonth, day: 1 });
-      endDate = todayDate
-        .set({ month: prevQuarterEndMonth + 1, day: 1 })
-        .subtract({ days: 1 });
+      startDate = setDateParts(todayDate, { month: prevQuarterStartMonth, day: 1 });
+      endDate = addDays(setDateParts(todayDate, { month: prevQuarterEndMonth + 1, day: 1 }), -1);
       break;
     case "2quarters":
-      startDate = todayDate
-        .set({ month: quarterStartMonth, day: 1 })
-        .subtract({ months: 6 });
+      startDate = addMonths(setDateParts(todayDate, { month: quarterStartMonth, day: 1 }), -6);
       break;
     case "3quarters":
-      startDate = todayDate
-        .set({ month: quarterStartMonth, day: 1 })
-        .subtract({ months: 9 });
+      startDate = addMonths(setDateParts(todayDate, { month: quarterStartMonth, day: 1 }), -9);
       break;
     case "4quarters":
-      startDate = todayDate
-        .set({ month: quarterStartMonth, day: 1 })
-        .subtract({ months: 12 });
+      startDate = addMonths(setDateParts(todayDate, { month: quarterStartMonth, day: 1 }), -12);
       break;
 
     // Year periods
     // Multi year periods treat the current year up to the current day as one year.
     case "currentYear":
-      startDate = todayDate.set({ month: 1, day: 1 });
+      startDate = setDateParts(todayDate, { month: 1, day: 1 });
       break;
     case "previousYear":
-      startDate = todayDate.subtract({ years: 1 }).set({ month: 1, day: 1 });
-      endDate = todayDate.subtract({ years: 1 }).set({ month: 12, day: 31 });
+      startDate = setDateParts(addYears(todayDate, -1), { month: 1, day: 1 });
+      endDate = setDateParts(addYears(todayDate, -1), { month: 12, day: 31 });
       break;
     case "2years":
-      startDate = todayDate.subtract({ years: 2 }).set({ month: 1, day: 1 });
+      startDate = setDateParts(addYears(todayDate, -2), { month: 1, day: 1 });
       break;
     case "3years":
-      startDate = todayDate.subtract({ years: 3 }).set({ month: 1, day: 1 });
+      startDate = setDateParts(addYears(todayDate, -3), { month: 1, day: 1 });
       break;
     case "4years":
-      startDate = todayDate.subtract({ years: 4 }).set({ month: 1, day: 1 });
+      startDate = setDateParts(addYears(todayDate, -4), { month: 1, day: 1 });
       break;
     case "5years":
-      startDate = todayDate.subtract({ years: 5 }).set({ month: 1, day: 1 });
+      startDate = setDateParts(addYears(todayDate, -5), { month: 1, day: 1 });
       break;
 
     default:
-      startDate = todayDate.subtract({ days: 30 });
+      startDate = addDays(todayDate, -30);
   }
-  if (maxHistoryYears && startDate < todayDate.subtract({ years: maxHistoryYears }) ) {
-    startDate = todayDate.subtract({ years: maxHistoryYears }).set({ month: 1, day: 1 });
+
+  if (maxHistoryYears && startDate < addYears(todayDate, -maxHistoryYears)) {
+    startDate = setDateParts(addYears(todayDate, -maxHistoryYears), { month: 1, day: 1 });
   }
 
   return { start: startDate, end: endDate };
 };
 
 const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
-  const todayDate = today(getLocalTimeZone());
-  const diff = todayDate.subtract(dateRange?.start);
-  const startMonth = dateRange?.start?.month;
-  const startDay = dateRange?.start?.day;
-  const endMonth = dateRange?.end?.month;
-  const endDay = dateRange?.end?.day;
+  const todayDate = getCurrentUTCDate();
+
+  // Calculate difference in milliseconds
+  const diffMs = todayDate.getTime() - dateRange?.start?.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  const startMonth = dateRange?.start?.getUTCMonth() + 1;
+  const startDay = dateRange?.start?.getUTCDate();
+  const endMonth = dateRange?.end?.getUTCMonth() + 1;
+  const endDay = dateRange?.end?.getUTCDate();
 
   // Check if the date range spans the maximum history
-  if (startDay === 1 && startMonth === 1 && diff.years >= maxHistoryYears) {
+  if (startDay === 1 && startMonth === 1 && diffYears >= maxHistoryYears) {
     return "allTime";
   }
 
   switch (granularity) {
     case "day":
-      if (diff.days === 7) return "7days";
-      if (diff.days === 30) return "30days";
-      if (diff.days === 90) return "90days";
+      if (diffDays === 7) return "7days";
+      if (diffDays === 30) return "30days";
+      if (diffDays === 90) return "90days";
       break;
 
     case "week":
-      if (diff.weeks === 1) return "1week";
-      if (diff.weeks === 2) return "2weeks";
-      if (diff.weeks === 4) return "4weeks";
-      if (diff.weeks === 8) return "8weeks";
-      if (diff.weeks === 12) return "12weeks";
-      if (diff.weeks === 24) return "24weeks";
+      if (diffDays === 7) return "1week";
+      if (diffDays === 14) return "2weeks";
+      if (diffDays === 28) return "4weeks";
+      if (diffDays === 56) return "8weeks";
+      if (diffDays === 84) return "12weeks";
+      if (diffDays === 168) return "24weeks";
       break;
 
     case "month":
       if (
         startDay === 1 &&
-        startMonth === todayDate.month &&
-        endMonth === todayDate.month
+        startMonth === todayDate.getUTCMonth() + 1 &&
+        endMonth === todayDate.getUTCMonth() + 1
       ) {
         return "currentMonth";
       }
-      if (diff.months === 1) return "1month";
-      if (diff.months === 3) return "3months";
-      if (diff.months === 6) return "6months";
-      if (diff.months === 12) return "1year";
+      if (diffMonths === 1) return "1month";
+      if (diffMonths === 3) return "3months";
+      if (diffMonths === 6) return "6months";
+      if (diffMonths === 12) return "1year";
       break;
 
     case "quarter":
-      const currentQuarterIndex = Math.floor((todayDate.month - 1) / 3);
+      const currentQuarterIndex = Math.floor((todayDate.getUTCMonth()) / 3);
       const quarterStartMonth = currentQuarterIndex * 3 + 1;
       const prevQuarterStartMonth = (currentQuarterIndex - 1) * 3 + 1;
 
@@ -186,22 +191,22 @@ const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
       ) {
         return "previousQuarter";
       }
-      if (diff.months === 6) return "2quarters";
-      if (diff.months === 9) return "3quarters";
-      if (diff.months === 12) return "4quarters";
+      if (diffMonths === 6) return "2quarters";
+      if (diffMonths === 9) return "3quarters";
+      if (diffMonths === 12) return "4quarters";
       break;
 
     case "year":
       if (startDay === 1 && startMonth === 1) {
-        if (endMonth === todayDate.month && endDay === todayDate.day) {
+        if (endMonth === todayDate.getUTCMonth() + 1 && endDay === todayDate.getUTCDate()) {
           return "currentYear";
         }
         if (endDay === 31 && endMonth === 12) {
-          if (diff.years === 1) return "previousYear";
-          if (diff.years === 2) return "2years";
-          if (diff.years === 3) return "3years";
-          if (diff.years === 4) return "4years";
-          if (diff.years === 5) return "5years";
+          if (diffYears === 1) return "previousYear";
+          if (diffYears === 2) return "2years";
+          if (diffYears === 3) return "3years";
+          if (diffYears === 4) return "4years";
+          if (diffYears === 5) return "5years";
         }
       }
       break;
@@ -296,7 +301,7 @@ const DateRangeSelector = ({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
-  const todayDate = today(getLocalTimeZone());
+  const todayDate = getCurrentUTCDate();
   const currentPeriodOptions = periodOptions[granularity];
   const [currentSelectedOption, setCurrentSelectedOption] = useState(dateRange ? getCurrentPeriod(dateRange, granularity, maxHistoryYears) : currentPeriodOptions[0].value);
   console.log("dateRange", dateRange);

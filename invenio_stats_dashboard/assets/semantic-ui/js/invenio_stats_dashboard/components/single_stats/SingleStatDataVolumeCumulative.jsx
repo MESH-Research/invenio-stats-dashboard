@@ -13,7 +13,7 @@ const SingleStatDataVolumeCumulative = ({ title = i18next.t("Cumulative Data Vol
   useEffect(() => {
     console.log("dateRange in SingleStatDataVolumeCumulative", dateRange);
     if (dateRange) {
-      setDescription(i18next.t("as of") + " " + formatDate(dateRange.end, true));
+      setDescription(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
     }
   }, [dateRange]);
 

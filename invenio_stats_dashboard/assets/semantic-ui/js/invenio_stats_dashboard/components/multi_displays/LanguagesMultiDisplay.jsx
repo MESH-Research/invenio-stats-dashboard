@@ -1,56 +1,40 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { StatsMultiDisplay } from '../shared_components/StatsMultiDisplay';
-import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
+import { PropTypes } from "prop-types";
 import { formatNumber } from "../../utils/numbers";
-import { CHART_COLORS } from '../../constants';
+import { useStatsDashboard } from "../../context/StatsDashboardContext";
+import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
+import { filterSeriesArrayByDate } from "../../utils";
+import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
-const TopDevicesMultiDisplay = ({
-  title = undefined,
-  icon = "mobile",
+const TopLanguagesMultiDisplay = ({
+  title = i18next.t("Languages"),
+  icon: labelIcon = "language",
+  headers = [i18next.t("Language"), i18next.t("Works")],
+  default_view = "pie",
   pageSize = 10,
-  headers = [i18next.t("Device"), i18next.t("Visits")],
-  default_view,
-  available_views = ["list", "pie", "bar"],
+  available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
 
-  // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.devices?.slice(0, pageSize).map((device, index) => ({
-    name: device.name,
-    value: device.count,
-    percentage: device.percentage,
-    id: device.name.toLowerCase().replace(/\s+/g, '-'),
-    itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-    }
-  })) || [];
+  const seriesCategoryMap = {
+    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
+  };
 
-  const remainingItems = stats.devices?.slice(pageSize) || [];
-  const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, device) => {
-    acc.value += device.count;
-    acc.percentage += device.percentage;
-    return acc;
-  }, {
-    id: "other",
-    name: "Other",
-    value: 0,
-    percentage: 0,
-    itemStyle: {
-      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
-    }
-  }) : null;
+  const languagesData = seriesCategoryMap[recordStartBasis]?.languages?.records;
+  const rawLanguages = filterSeriesArrayByDate(languagesData, dateRange, true);
 
-  const rowsWithLinks = [
-    ...transformedData,
-    ...(otherData ? [otherData] : [])
-  ].map(({ name, value, percentage }) => [
-    null,
-    name,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
-  ]);
+  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+    rawLanguages,
+    pageSize,
+    'metadata.language.id',
+    CHART_COLORS.secondary
+  );
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
     const options = {
@@ -74,8 +58,8 @@ const TopDevicesMultiDisplay = ({
         series: [
           {
             type: "pie",
-            radius: ["20%", "70%"],
-            data: [...transformedData, otherData],
+            radius: ["30%", "70%"],
+            data: [...transformedData, ...(otherData ? [otherData] : [])],
             spacing: 2,
             itemStyle: {
               borderWidth: 2,
@@ -136,15 +120,13 @@ const TopDevicesMultiDisplay = ({
                 value: item.value,
                 percentage: item.percentage,
                 id: item.id,
-                itemStyle: {
-                  color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
-                },
+                itemStyle: item.itemStyle,
                 label: {
                   show: true,
                   formatter: "{b}",
                   fontSize: 14,
                   position: item.value < maxValue * 0.3 ? 'right' : 'inside',
-                  color: item.value < maxValue * 0.3 ? CHART_COLORS.primary[index % CHART_COLORS.primary.length][1] : '#fff',
+                  color: item.value < maxValue * 0.3 ? item.itemStyle.color : '#fff',
                   align: item.value < maxValue * 0.3 ? 'left' : 'center',
                   verticalAlign: 'middle'
                 }
@@ -164,23 +146,31 @@ const TopDevicesMultiDisplay = ({
   return (
     <StatsMultiDisplay
       title={title}
-      icon={icon}
+      icon={labelIcon}
+      label={"languages"}
       headers={headers}
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      onEvents={{
+        click: (params) => {
+          if (params.data && params.data.id) {
+            window.open(params.data.link, '_blank');
+          }
+        }
+      }}
       {...otherProps}
     />
   );
 };
 
-TopDevicesMultiDisplay.propTypes = {
+TopLanguagesMultiDisplay.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
   default_view: PropTypes.string,
   pageSize: PropTypes.number,
-  available_views: PropTypes.array,
+  available_views: PropTypes.arrayOf(PropTypes.string),
 };
 
-export { TopDevicesMultiDisplay };
+export { TopLanguagesMultiDisplay };

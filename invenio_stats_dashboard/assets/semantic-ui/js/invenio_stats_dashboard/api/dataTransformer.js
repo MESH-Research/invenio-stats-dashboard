@@ -1,5 +1,5 @@
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { formatDate, createReadableDate } from "../utils/dates";
+import { readableGranularDate, createUTCDate } from "../utils/dates";
 
 /**
  * Create a data point object for charting.
@@ -10,10 +10,11 @@ import { formatDate, createReadableDate } from "../utils/dates";
  * @returns {DataPoint} Chart data point object
  */
 const createDataPoint = (date, value, valueType = 'number') => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = createUTCDate(date);
+
   return {
     value: [dateObj, value],
-    readableDate: createReadableDate(dateObj.toISOString().split('T')[0], 'day'),
+    readableDate: readableGranularDate(dateObj, 'day'),
     valueType
   };
 };

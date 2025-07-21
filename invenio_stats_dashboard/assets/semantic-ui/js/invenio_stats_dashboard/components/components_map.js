@@ -47,13 +47,14 @@ import {
 
   // Multi Displays
   ResourceTypesMultiDisplay,
+  SubjectsMultiDisplay,
 } from './index';
 
 import { AccessRightsMultiDisplay } from "./multi_displays/AccessRightsMultiDisplay";
 import { LicensesMultiDisplay } from "./multi_displays/LicensesMultiDisplay";
 import { AffiliationsMultiDisplay } from "./multi_displays/AffiliationsMultiDisplay";
 import { FundersMultiDisplay } from "./multi_displays/FundersMultiDisplay";
-import { TopCountriesMultiDisplay } from "./multi_displays/TopCountriesMultiDisplay";
+import { TopCountriesMultiDisplay } from "./multi_displays/CountriesMultiDisplay";
 import { TopReferrerDomainsMultiDisplay } from "./multi_displays/TopReferrerDomainsMultiDisplay";
 import { MostDownloadedRecordsMultiDisplay } from "./multi_displays/MostDownloadedRecordsMultiDisplay";
 import { MostViewedRecordsMultiDisplay } from "./multi_displays/MostViewedRecordsMultiDisplay";
@@ -107,6 +108,7 @@ export const componentsMap = {
 
   // Multi Displays
   'ResourceTypesMultiDisplay': ResourceTypesMultiDisplay,
+  'SubjectsMultiDisplay': SubjectsMultiDisplay,
   'AccessRightsMultiDisplay': AccessRightsMultiDisplay,
   'LicensesMultiDisplay': LicensesMultiDisplay,
   'AffiliationsMultiDisplay': AffiliationsMultiDisplay,

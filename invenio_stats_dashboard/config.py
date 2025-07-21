@@ -156,6 +156,16 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
+                                "component": "SubjectsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Subjects",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "pie",
+                                },
+                            },
+                            {
                                 "component": "AccessRightsMultiDisplay",
                                 "width": 8,
                                 "props": {

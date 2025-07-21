@@ -1,130 +1,303 @@
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
 /**
- * Filter data points by date range
- * @param {Array} data - Array of data points with date property
- * @param {Object} dateRange - Object containing start and end dates
- * @returns {Array} Filtered data points
+ * Create a Date object with proper UTC handling for date strings
+ * @param {string|Date} date - The date to parse (string or Date object)
+ * @returns {Date} Date object with proper UTC handling
  */
-export const filterByDateRange = (data, dateRange) => {
-  if (!data || !dateRange || !dateRange.start || !dateRange.end) {
-    return data;
+const createUTCDate = (date) => {
+  if (date instanceof Date) {
+    return date;
+  } else if (typeof date === 'string') {
+    // If the string doesn't have time components, assume UTC midnight
+    if (!date.includes('T') && !date.includes(':')) {
+      // Parse YYYY-MM-DD or YYYY-MM format and create UTC date
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        return new Date(Date.UTC(year, month - 1, day));
+      } else if (parts.length === 2) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        // For YYYY-MM format, use the first day of the month
+        return new Date(Date.UTC(year, month - 1, 1));
+      } else if (parts.length === 1) {
+        const year = parseInt(parts[0], 10);
+        // For YYYY format, use January 1st of the year
+        return new Date(Date.UTC(year, 0, 1));
+      }
+      return new Date(date + 'T00:00:00.000Z');
+    } else {
+      return new Date(date);
+    }
+  } else {
+    return new Date(date);
   }
-
-  const startDate = new Date(dateRange.start);
-  const endDate = new Date(dateRange.end);
-
-  return data.filter(point => {
-    const pointDate = new Date(point.date);
-    return pointDate >= startDate && pointDate <= endDate;
-  });
 };
 
 /**
- * Create a human-readable date string for aggregated data points based on granularity
- * @param {string} key - The aggregation key (date string)
+ * Create a UTC date from year, month, day components
+ * @param {number} year - The year
+ * @param {number} month - The month (1-12)
+ * @param {number} day - The day (1-31)
+ * @returns {Date} UTC Date object
+ */
+const createUTCDateFromParts = (year, month, day) => {
+  return new Date(Date.UTC(year, month - 1, day)); // month is 0-indexed in Date constructor
+};
+
+/**
+ * Get current UTC date (midnight UTC)
+ * @returns {Date} Current UTC date
+ */
+const getCurrentUTCDate = () => {
+  const today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD
+  return new Date(today + 'T00:00:00.000Z');
+};
+
+/**
+ * Add days to a date
+ * @param {Date} date - The date to add days to
+ * @param {number} days - Number of days to add (can be negative)
+ * @returns {Date} New date with days added
+ */
+const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+};
+
+/**
+ * Add months to a date
+ * @param {Date} date - The date to add months to
+ * @param {number} months - Number of months to add (can be negative)
+ * @returns {Date} New date with months added
+ */
+const addMonths = (date, months) => {
+  const result = new Date(date);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  return result;
+};
+
+/**
+ * Add years to a date
+ * @param {Date} date - The date to add years to
+ * @param {number} years - Number of years to add (can be negative)
+ * @returns {Date} New date with years added
+ */
+const addYears = (date, years) => {
+  const result = new Date(date);
+  result.setUTCFullYear(result.getUTCFullYear() + years);
+  return result;
+};
+
+/**
+ * Set specific date parts on a date
+ * @param {Date} date - The date to modify
+ * @param {Object} parts - Object with year, month, day properties
+ * @returns {Date} New date with specified parts set
+ */
+const setDateParts = (date, { year, month, day }) => {
+  const result = new Date(date);
+  if (year !== undefined) result.setUTCFullYear(year);
+  if (month !== undefined) result.setUTCMonth(month - 1); // month is 0-indexed
+  if (day !== undefined) result.setUTCDate(day);
+  return result;
+};
+
+/**
+ * Get the locale-appropriate date range separator using Intl.DateTimeFormat
+ * @param {string} locale - The locale to use (e.g., 'en', 'fr', 'ja')
+ * @returns {string} The locale-appropriate range separator
+ */
+const getLocaleDateSeparator = (locale) => {
+  const yearFormatter = new Intl.DateTimeFormat(locale, { year: 'numeric' });
+  const startDate = new Date('2024-01-01');
+  const endDate = new Date('2025-01-01');
+  const yearRange = yearFormatter.formatRange(startDate, endDate);
+  const startYear = yearFormatter.format(startDate);
+  const endYear = yearFormatter.format(endDate);
+
+  // Extract the separator by removing the start and end years from the range
+  return yearRange.slice(startYear.length, -endYear.length);
+};
+
+/**
+ * Format a quarter string or date into a localized quarter format
+ * @param {string|Date} quarterInput - Quarter string (e.g., "2024-Q1") or Date object
+ * @returns {string} Formatted quarter string (e.g., "Q1 2024")
+ */
+const formatQuarter = (quarterInput) => {
+  let year, quarter;
+
+  if (typeof quarterInput === 'string' && quarterInput.includes('Q')) {
+    // Handle quarter string format (e.g., "2024-Q1")
+    [year, quarter] = quarterInput.split('-Q');
+  } else if (quarterInput instanceof Date) {
+    // Handle Date object - calculate quarter from month
+    year = quarterInput.getUTCFullYear();
+    quarter = Math.floor(quarterInput.getUTCMonth() / 3) + 1;
+  } else {
+    return '';
+  }
+
+  return `${i18next.t('Q')}${quarter} ${year}`;
+};
+
+/**
+ * Create a human-readable date string at a given granularity for a given date
+ *
+ * For example, if the date is 2024-01-01 the following granularities will give the following results:
+ * - 'month': "January 2024"
+ * - 'year': "2024"
+ * - 'quarter': "Q1 2024"
+ * - 'week': "Jan 1 - 7, 2024"
+ * - 'day': "January 1, 2024"
+ *
+ * @param {string|Date} date - The date to format (date string or Date object)
  * @param {string} granularity - The time granularity (day, week, month, quarter, year)
  * @returns {string} Human-readable date string
  */
-export const createReadableDate = (key, granularity) => {
-  const date = new Date(key + 'T00:00:00Z');
+const readableGranularDate = (date, granularity) => {
+  const dateObj = date instanceof Date ? date : createUTCDate(date);
 
   switch (granularity) {
     case 'quarter':
-      const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
-      const quarterYear = date.getUTCFullYear();
-      return `${quarterYear} Q${quarter}`;
+      return formatDate(dateObj, 'quarter');
 
     case 'week':
-      // For weeks, show the date range using localized formatting
-      const monday = date;
-      const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6));
+      // Find the Monday of the week containing the provided date
+      const dayOfWeek = dateObj.getUTCDay();
+      let monday;
+      if (dayOfWeek !== 1) { // 1 = Monday
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, so it's 6 days from Monday
+        monday = new Date(Date.UTC(
+          dateObj.getUTCFullYear(),
+          dateObj.getUTCMonth(),
+          dateObj.getUTCDate() - daysFromMonday
+        ));
+      } else {
+        monday = dateObj;
+      }
 
-      return new Intl.DateTimeFormat(i18next.language, {
-        dateStyle: 'medium',
-        timeZone: 'UTC'
-      }).formatRange(monday, sunday);
+      const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6));
+      return formatDateRange({ start: monday, end: sunday }, 'day', true);
 
     case 'month':
-      return new Intl.DateTimeFormat(i18next.language, {
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC'
-      }).format(date);
+      return formatDate(dateObj, 'month');
 
     case 'year':
-      return new Intl.DateTimeFormat(i18next.language, {
-        year: 'numeric',
-        timeZone: 'UTC'
-      }).format(date);
+      return formatDate(dateObj, 'year');
 
     default:
-      // Default case for day granularity - use formatDate for consistency
-      return formatDate(date, true); // Use short month for chart display
+      return formatDate(dateObj, 'day', true);
   }
 };
 
 /**
  * Format a date string or Date object into a localized, human-readable format
  * @param {string|Date} date - The date to format (string or Date object)
+ * @param {string} granularity - The granularity to format ('day', 'month', 'year') or undefined for full date
  * @param {boolean} useShortMonth - Whether to use short month names (default: false)
  * @param {boolean} isStartDate - Whether this is the start date in a range (default: false)
  * @param {string|Date} endDate - The end date to compare with (required if isStartDate is true)
  * @returns {string} The formatted date string
  */
-export const formatDate = (date, useShortMonth = false, isStartDate = false, endDate = null) => {
-  // If date is null or undefined, return empty string
+const formatDate = (date, granularity = 'day', useShortMonth = false, endDate = null) => {
   if (!date) {
     return '';
   }
 
-  // If date is already a Date object, use it directly
-  let dateObj = date instanceof Date ? date : new Date(date);
-
-  // Handle quarter format (only for string inputs)
+  // Handle quarter strings that can't be converted to a Date object
   if (typeof date === 'string' && date.includes('Q')) {
-    const [year, quarter] = date.split('-Q');
-    return `${i18next.t('Q')}${quarter} ${year}`;
+    return formatQuarter(date);
   }
 
-  // Handle month format (only for string inputs)
-  if (typeof date === 'string' && date.match(/^\d{4}-\d{2}$/)) {
-    const [year, month] = date.split('-');
-    return new Intl.DateTimeFormat(i18next.language, {
-      year: 'numeric',
-      month: useShortMonth ? 'short' : 'long'
-    }).format(new Date(year, parseInt(month) - 1));
+  // If we have an endDate, delegate to formatDateRange
+  if (endDate) {
+    return formatDateRange({ start: date, end: endDate }, granularity, useShortMonth);
   }
 
-  // Handle year format (only for string inputs)
-  if (typeof date === 'string' && date.match(/^\d{4}$/)) {
-    return date;
-  }
+  const dateObj = createUTCDate(date);
 
-  // For start dates in a range, check if we need to show the year
-  if (isStartDate && endDate) {
-    const endDateObj = endDate instanceof Date ? endDate : new Date(endDate);
-    if (dateObj.getFullYear() === endDateObj.getFullYear()) {
-      // If years are the same, only show month and day
+  switch (granularity) {
+    case 'year':
       return new Intl.DateTimeFormat(i18next.language, {
-        month: useShortMonth ? 'short' : 'long',
-        day: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'
       }).format(dateObj);
-    }
+
+    case 'quarter':
+      return formatQuarter(dateObj);
+
+    case 'month':
+      return new Intl.DateTimeFormat(i18next.language, {
+        year: 'numeric',
+        month: useShortMonth ? 'short' : 'long',
+        timeZone: 'UTC'
+      }).format(dateObj);
+
+    case 'day':
+    default:
+      const dateStyle = useShortMonth ? 'medium' : 'long';
+      return new Intl.DateTimeFormat(i18next.language, {
+        dateStyle: dateStyle,
+        timeZone: 'UTC'
+      }).format(dateObj);
   }
 
-  // Handle day format (for both string and Date objects)
-  return new Intl.DateTimeFormat(i18next.language, {
-    year: 'numeric',
-    month: useShortMonth ? 'short' : 'long',
-    day: 'numeric'
-  }).format(dateObj);
 };
 
-export const formatDateRange = (dateRange, useShortMonth = false) => {
+const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) => {
   if (!dateRange || !dateRange.start || !dateRange.end) {
     return '';
   }
 
-  return `${formatDate(dateRange.start, useShortMonth, true)} - ${formatDate(dateRange.end, useShortMonth, false)}`;
+  switch (granularity) {
+    case 'year':
+      return new Intl.DateTimeFormat(i18next.language, {
+        year: 'numeric',
+        timeZone: 'UTC'
+      }).formatRange(dateRange.start, dateRange.end);
+
+    case 'month':
+      return new Intl.DateTimeFormat(i18next.language, {
+        year: 'numeric',
+        month: useShortMonth ? 'short' : 'long',
+        timeZone: 'UTC'
+      }).formatRange(dateRange.start, dateRange.end);
+
+    case 'quarter':
+      // Use built-in Intl to get locale-appropriate separator
+      const separator = getLocaleDateSeparator(i18next.language);
+
+      const startQuarter = formatQuarter(dateRange.start);
+      const endQuarter = formatQuarter(dateRange.end);
+
+      return startQuarter + separator + endQuarter;
+
+    case 'day':
+    default:
+      const dateStyle = useShortMonth ? 'medium' : 'long';
+      return new Intl.DateTimeFormat(i18next.language, {
+        dateStyle: dateStyle,
+        timeZone: 'UTC'
+      }).formatRange(dateRange.start, dateRange.end);
+  }
+};
+
+// Exports
+export {
+  createUTCDate,
+  createUTCDateFromParts,
+  getCurrentUTCDate,
+  addDays,
+  addMonths,
+  addYears,
+  setDateParts,
+  readableGranularDate,
+  formatDate,
+  formatDateRange
 };

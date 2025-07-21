@@ -4,7 +4,9 @@ import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { formatNumber } from "../../utils/numbers";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
+import { filterSeriesArrayByDate } from "../../utils";
+import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
 const AccessRightsMultiDisplay = ({
   title = i18next.t("Access Rights"),
@@ -15,69 +17,24 @@ const AccessRightsMultiDisplay = ({
   available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
 
-  // Helper function to extract access rights from the new data structure
-  const extractAccessRights = () => {
-    // Try to get access rights from record snapshot data
-    if (stats.recordSnapshotDataAdded && stats.recordSnapshotDataAdded.accessRights) {
-      const accessRightsData = stats.recordSnapshotDataAdded.accessRights;
-      return Object.entries(accessRightsData).map(([id, data]) => ({
-        name: data.records[2] || id, // Use label if available, otherwise use id
-        count: data.records[1] || 0, // Use the count value
-        percentage: 0, // Calculate percentage later
-        id: id,
-      }));
-    }
-
-    // Fallback to empty array if no data available
-    return [];
+  const seriesCategoryMap = {
+    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
   };
 
-  const rawAccessRights = extractAccessRights();
+  const accessRightsData = seriesCategoryMap[recordStartBasis]?.accessRights?.records;
+  const rawAccessRights = filterSeriesArrayByDate(accessRightsData, dateRange, true);
 
-  // Calculate percentages
-  const totalCount = rawAccessRights.reduce((sum, right) => sum + right.count, 0);
-  const accessRightsWithPercentages = rawAccessRights.map(right => ({
-    ...right,
-    percentage: totalCount > 0 ? Math.round((right.count / totalCount) * 100) : 0,
-  }));
-
-  // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = accessRightsWithPercentages.slice(0, pageSize).map((right, index) => ({
-    name: right.name,
-    value: right.count,
-    percentage: right.percentage,
-    id: right.id,
-    link: `/search?q=metadata.access_right.id:${right.id}`,
-    itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-    }
-  }));
-
-  const remainingItems = accessRightsWithPercentages.slice(pageSize) || [];
-  const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, right) => {
-    acc.value += right.count;
-    acc.percentage += right.percentage;
-    return acc;
-  }, {
-    id: "other",
-    name: "Other",
-    value: 0,
-    percentage: 0,
-    itemStyle: {
-      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
-    }
-  }) : null;
-
-  const rowsWithLinks = [
-    ...transformedData,
-    ...(otherData ? [otherData] : [])
-  ].map(({ name, value, percentage, link }) => [
-    null,
-    link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : name,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
-  ]);
+  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+    rawAccessRights,
+    pageSize,
+    'metadata.access_right.id',
+    CHART_COLORS.secondary
+  );
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
     const options = {
@@ -102,7 +59,7 @@ const AccessRightsMultiDisplay = ({
           {
             type: "pie",
             radius: ["30%", "70%"],
-            data: [...transformedData, otherData],
+            data: [...transformedData, ...(otherData ? [otherData] : [])],
             spacing: 2,
             itemStyle: {
               borderWidth: 2,
@@ -163,15 +120,13 @@ const AccessRightsMultiDisplay = ({
                 value: item.value,
                 percentage: item.percentage,
                 id: item.id,
-                itemStyle: {
-                  color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
-                },
+                itemStyle: item.itemStyle,
                 label: {
                   show: true,
                   formatter: "{b}",
                   fontSize: 14,
                   position: item.value < maxValue * 0.3 ? 'right' : 'inside',
-                  color: item.value < maxValue * 0.3 ? CHART_COLORS.primary[index % CHART_COLORS.primary.length][1] : '#fff',
+                  color: item.value < maxValue * 0.3 ? item.itemStyle.color : '#fff',
                   align: item.value < maxValue * 0.3 ? 'left' : 'center',
                   verticalAlign: 'middle'
                 }

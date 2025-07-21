@@ -1,56 +1,35 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { StatsMultiDisplay } from '../shared_components/StatsMultiDisplay';
-import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
+import { PropTypes } from "prop-types";
 import { formatNumber } from "../../utils/numbers";
+import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { CHART_COLORS } from '../../constants';
+import { filterSeriesArrayByDate } from "../../utils";
+import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
 const TopReferrersMultiDisplay = ({
-  title = undefined,
-  icon = "external alternate",
-  pageSize = 10,
+  title = i18next.t("Referrers"),
+  icon: labelIcon = "external alternate",
   headers = [i18next.t("Referrer"), i18next.t("Visits")],
-  default_view,
-  available_views = ["list", "pie", "bar"],
+  default_view = "pie",
+  pageSize = 10,
+  available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
   const { stats, dateRange } = useStatsDashboard();
 
-  // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.referrers?.slice(0, pageSize).map((referrer, index) => ({
-    name: referrer.name,
-    value: referrer.count,
-    percentage: referrer.percentage,
-    id: referrer.name.toLowerCase().replace(/\s+/g, '-'),
-    itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-    }
-  })) || [];
+  // Use usage snapshot data with view-based series
+  const referrersData = stats?.usageSnapshotData?.topReferrersByView?.views;
+  const rawReferrers = filterSeriesArrayByDate(referrersData, dateRange, true);
 
-  const remainingItems = stats.referrers?.slice(pageSize) || [];
-  const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, referrer) => {
-    acc.value += referrer.count;
-    acc.percentage += referrer.percentage;
-    return acc;
-  }, {
-    id: "other",
-    name: "Other",
-    value: 0,
-    percentage: 0,
-    itemStyle: {
-      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
-    }
-  }) : null;
-
-  const rowsWithLinks = [
-    ...transformedData,
-    ...(otherData ? [otherData] : [])
-  ].map(({ name, value, percentage }) => [
-    null,
-    name,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
-  ]);
+  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+    rawReferrers,
+    pageSize,
+    'metadata.referrer.id',
+    CHART_COLORS.secondary
+  );
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
     const options = {
@@ -75,8 +54,8 @@ const TopReferrersMultiDisplay = ({
           {
             type: "pie",
             radius: ["30%", "70%"],
-            data: [...transformedData, otherData],
-            padAngle: 0.02,
+            data: [...transformedData, ...(otherData ? [otherData] : [])],
+            spacing: 2,
             itemStyle: {
               borderWidth: 2,
               borderColor: '#fff'
@@ -136,15 +115,13 @@ const TopReferrersMultiDisplay = ({
                 value: item.value,
                 percentage: item.percentage,
                 id: item.id,
-                itemStyle: {
-                  color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
-                },
+                itemStyle: item.itemStyle,
                 label: {
                   show: true,
                   formatter: "{b}",
                   fontSize: 14,
                   position: item.value < maxValue * 0.3 ? 'right' : 'inside',
-                  color: item.value < maxValue * 0.3 ? CHART_COLORS.primary[index % CHART_COLORS.primary.length][1] : '#fff',
+                  color: item.value < maxValue * 0.3 ? item.itemStyle.color : '#fff',
                   align: item.value < maxValue * 0.3 ? 'left' : 'center',
                   verticalAlign: 'middle'
                 }
@@ -164,11 +141,19 @@ const TopReferrersMultiDisplay = ({
   return (
     <StatsMultiDisplay
       title={title}
-      icon={icon}
+      icon={labelIcon}
+      label={"referrers"}
       headers={headers}
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      onEvents={{
+        click: (params) => {
+          if (params.data && params.data.id) {
+            window.open(params.data.link, '_blank');
+          }
+        }
+      }}
       {...otherProps}
     />
   );
@@ -180,7 +165,7 @@ TopReferrersMultiDisplay.propTypes = {
   headers: PropTypes.array,
   default_view: PropTypes.string,
   pageSize: PropTypes.number,
-  available_views: PropTypes.array,
+  available_views: PropTypes.arrayOf(PropTypes.string),
 };
 
 export { TopReferrersMultiDisplay };

@@ -42,7 +42,7 @@ const StatsTable = ({ headers = [], rows = [], title, label }) => {
       </Table.Header>
       <Table.Body>
         {rows.map(([iconName, ...values], rowIndex) => (
-          <Table.Row key={rowIndex}>
+          <Table.Row key={rowIndex} data-testid={`row-${rowIndex}`}>
             <Table.Cell collapsing className="stats-table-icon-cell pr-0">
               {iconName && (
                 <Icon
@@ -54,7 +54,7 @@ const StatsTable = ({ headers = [], rows = [], title, label }) => {
               )}
             </Table.Cell>
             {values.map((value, cellIndex) => (
-              <Table.Cell key={cellIndex}>{value}</Table.Cell>
+              <Table.Cell key={cellIndex} data-testid={`cell-${rowIndex}-${cellIndex + 1}`}>{value}</Table.Cell>
             ))}
           </Table.Row>
         ))}

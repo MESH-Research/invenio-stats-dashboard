@@ -5,8 +5,8 @@ import { Button, Container, Header, Segment, Popup, Icon, Form, Checkbox } from 
 import ReactECharts from "echarts-for-react";
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { CHART_COLORS } from '../../constants';
-import { formatNumber, filterByDateRange } from '../../utils';
-import { formatDate, createReadableDate } from '../../utils/dates';
+import { formatNumber, filterSeriesArrayByDate } from '../../utils';
+import { formatDateRange, readableGranularDate } from '../../utils/dates';
 
 // Chart configuration constants
 const CHART_CONFIG = {
@@ -324,7 +324,6 @@ const createAggregationKey = (date, granularity) => {
 };
 
 
-
 const aggregateData = (data, granularity) => {
   if (!data) return [];
   if (granularity === 'day') {
@@ -348,7 +347,7 @@ const aggregateData = (data, granularity) => {
       const key = createAggregationKey(date, granularity);
 
       if (!aggregatedPoints.has(key)) {
-        const readableDate = createReadableDate(key, granularity);
+        const readableDate = readableGranularDate(key, granularity);
 
         aggregatedPoints.set(key, {
           value: 0,
@@ -460,27 +459,6 @@ const getAxisIntervals = (granularity, aggregatedData) => {
 };
 
 /**
- * Filter chart series data by date range
- * @param {Array} chartSeries - Array of DataSeries objects
- * @param {Object} dateRange - Date range object with start and end properties
- * @returns {Array} Filtered series data in the expected format for aggregation
- */
-const filterChartSeriesByDate = (chartSeries, dateRange) => {
-  if (!chartSeries || chartSeries.length === 0) {
-    return [];
-  }
-
-  return chartSeries.map(series => ({
-    ...series,
-    data: series.data.filter(point => {
-      const date = point.value[0];
-      return (!dateRange.start || date >= dateRange.start) &&
-             (!dateRange.end || date <= dateRange.end);
-    }),
-  }));
-};
-
-/**
  * Main component for rendering the stats chart
  *
  * Each property of the data object is a RecordMetrics or UsageMetrics object.
@@ -555,7 +533,7 @@ const StatsChart = ({
   const [chartInstance, setChartInstance] = useState(null);
   const [aggregatedData, setAggregatedData] = useState([]);
 
-  const chartSeries = useMemo(() => {
+  const seriesArray = useMemo(() => {
     if (!data || !data.global) return [];
     let seriesToProcess;
 
@@ -570,10 +548,10 @@ const StatsChart = ({
   }, [data, selectedMetric, displaySeparately]);
 
   useEffect(() => {
-    const filteredData = filterChartSeriesByDate(chartSeries, dateRange);
+    const filteredData = filterSeriesArrayByDate(seriesArray, dateRange);
     const aggregatedData = aggregateData(filteredData, granularity);
     setAggregatedData(aggregatedData);
-  }, [chartSeries, granularity, dateRange]);
+  }, [seriesArray, granularity, dateRange]);
 
   const seriesColorIndex = useMemo(() =>
     seriesSelectorOptions?.findIndex(option => option.value === selectedMetric) || 0,
@@ -648,7 +626,7 @@ const StatsChart = ({
           </Header.Content>
           {dateRange && (
             <Header.Subheader>
-              {formatDate(dateRange.start, true, true)} - {formatDate(dateRange.end, true, false)}
+              {formatDateRange({start: dateRange.start, "end": dateRange.end}, 'day', true)}
             </Header.Subheader>
           )}
         </Header>

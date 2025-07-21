@@ -8,7 +8,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
  * @param {object} options - Additional options (compactThreshold, binary, etc).
  * @returns {string} - The formatted number string.
  */
-export function formatNumber(number, format = 'default', options = {}) {
+function formatNumber(number, format = 'default', options = {}) {
   // Filesize formatting
   if (format === 'filesize') {
     const binary = options.binary || false;
@@ -64,3 +64,6 @@ export function formatNumber(number, format = 'default', options = {}) {
 
   return formatter.format(number);
 }
+
+// Exports
+export { formatNumber };

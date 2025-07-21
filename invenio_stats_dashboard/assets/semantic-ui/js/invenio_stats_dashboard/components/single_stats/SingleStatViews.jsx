@@ -12,7 +12,7 @@ const SingleStatViews = ({ title = i18next.t("Views"), icon = "eye", compactThre
 
   useEffect(() => {
     if (dateRange) {
-      setDescription(i18next.t("from") + " " + formatDate(dateRange.start, true, true, dateRange.end) + " " + i18next.t("to") + " " + formatDate(dateRange.end, true));
+      setDescription(i18next.t("from") + " " + formatDate(dateRange.start, 'day', true, dateRange.end) + " " + i18next.t("to") + " " + formatDate(dateRange.end, 'day', true));
     }
   }, [dateRange]);
 

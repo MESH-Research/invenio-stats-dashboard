@@ -25,7 +25,7 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
 
   useEffect(() => {
     if (dateRange) {
-      const newDisplayDateRange = ['content', 'traffic'].includes(variant) ? formatDate(dateRange.end, true, false) : formatDateRange(dateRange, true);
+      const newDisplayDateRange = ['content', 'traffic'].includes(variant) ? formatDate(dateRange.end, 'day', true) : formatDateRange(dateRange, 'day', true);
       setDisplayDateRange(newDisplayDateRange);
     }
   }, [dateRange, variant]);

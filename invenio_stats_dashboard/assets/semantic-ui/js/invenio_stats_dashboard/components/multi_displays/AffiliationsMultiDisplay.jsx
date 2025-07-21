@@ -4,18 +4,9 @@ import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { formatNumber } from "../../utils/numbers";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-
-// Define colors for different series
-const SERIES_COLORS = [
-  ['red', '#b54f1e'],  // Dark Red
-  ['green', '#6c7839'],  // Dark Green
-  ['gold', '#b29017'],  // Dark Yellow
-  ['teal', '#276f86'],  // Dark Teal
-  ['ivy', '#1c4036'],  // Dark Ivy
-  ['verdigris', '#669999'], // Verdigris
-  ['purple', '#581c87'],  // Dark Purple
-  ['grey', '#666666'],  // Grey for "Other"
-];
+import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
+import { filterSeriesArrayByDate } from "../../utils";
+import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
 const AffiliationsMultiDisplay = ({
   title = i18next.t("Affiliations"),
@@ -26,39 +17,24 @@ const AffiliationsMultiDisplay = ({
   available_views = ["list", "pie", "bar"],
   ...otherProps
 }) => {
-  const { stats } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
 
-  // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.affiliations?.slice(0, pageSize).map((affiliation, index) => ({
-    name: affiliation.name,
-    value: affiliation.count,
-    percentage: affiliation.percentage,
-    id: affiliation.name.toLowerCase().replace(/\s+/g, '-'),
-    link: `/search?q=metadata.affiliations.affiliation:${affiliation.name.toLowerCase().replace(/\s+/g, '-')}`,
-    itemStyle: {
-      color: SERIES_COLORS[index % SERIES_COLORS.length][1]
-    }
-  })) || [];
+  const seriesCategoryMap = {
+    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
+  };
 
-  const otherData = stats.affiliations?.slice(pageSize)?.reduce((acc, affiliation) => {
-    acc.value += affiliation.count;
-    acc.percentage += affiliation.percentage;
-    return acc;
-  }, {
-    id: "other",
-    name: "Other",
-    value: 0,
-    percentage: 0,
-    itemStyle: {
-      color: SERIES_COLORS[7][1] // Use grey color for "Other"
-    }
-  });
+  const affiliationsData = seriesCategoryMap[recordStartBasis]?.affiliations?.records;
+  const rawAffiliations = filterSeriesArrayByDate(affiliationsData, dateRange, true);
 
-  const rowsWithLinks = [...transformedData, otherData].map(({ name, value, percentage, link }) => [
-    null,
-    link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : name,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
-  ]);
+  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+    rawAffiliations,
+    pageSize,
+    'metadata.affiliations.affiliation',
+    CHART_COLORS.secondary
+  );
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
     const options = {
@@ -82,8 +58,13 @@ const AffiliationsMultiDisplay = ({
         series: [
           {
             type: "pie",
-            radius: ["20%", "70%"],
-            data: [...transformedData, otherData],
+            radius: ["30%", "70%"],
+            data: [...transformedData, ...(otherData ? [otherData] : [])],
+            spacing: 2,
+            itemStyle: {
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
             label: {
               show: true,
               fontSize: 14
@@ -133,7 +114,7 @@ const AffiliationsMultiDisplay = ({
           {
             type: "bar",
             barWidth: '90%',
-            data: [...transformedData, ...(otherData ? [otherData] : [])].map((item) => {
+            data: [...transformedData, ...(otherData ? [otherData] : [])].map((item, index) => {
               const maxValue = Math.max(...[...transformedData, ...(otherData ? [otherData] : [])].map(d => d.value));
               return {
                 value: item.value,
