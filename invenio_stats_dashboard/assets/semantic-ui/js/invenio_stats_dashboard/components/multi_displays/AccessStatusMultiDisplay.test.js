@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { AccessRightsMultiDisplay } from './AccessRightsMultiDisplay';
+import { AccessStatusMultiDisplay } from './AccessStatusMultiDisplay';
 import { filterSeriesArrayByDate } from '../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
 
@@ -39,14 +39,14 @@ jest.mock('../../constants', () => ({
   }
 }));
 
-describe('AccessRightsMultiDisplay', () => {
+describe('AccessStatusMultiDisplay', () => {
   const mockUseStatsDashboard = require('../../context/StatsDashboardContext').useStatsDashboard;
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
       stats: {
         recordSnapshotDataAdded: {
-          accessRights: {
+          accessStatus: {
             records: [
               {
                 id: 'open',
@@ -74,7 +74,7 @@ describe('AccessRightsMultiDisplay', () => {
 
   describe('transformMultiDisplayData (helper function)', () => {
     it('should return empty data when input is null', () => {
-      const result = transformMultiDisplayData(null, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(null, 10, 'metadata.access_status.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -84,7 +84,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should return empty data when input is undefined', () => {
-      const result = transformMultiDisplayData(undefined, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(undefined, 10, 'metadata.access_status.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -94,7 +94,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should return empty data when input is not an array', () => {
-      const result = transformMultiDisplayData('not an array', 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData('not an array', 10, 'metadata.access_status.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -122,7 +122,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 2, 'metadata.access_status.id');
 
       expect(result.totalCount).toBe(250);
       expect(result.transformedData).toHaveLength(2);
@@ -151,7 +151,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_status.id');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
       expect(result.transformedData).toHaveLength(3);
@@ -173,7 +173,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_status.id');
 
       expect(result.totalCount).toBe(100);
       expect(result.transformedData[0].percentage).toBe(80); // 80/100 * 100
@@ -189,9 +189,9 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_status.id');
 
-      expect(result.transformedData[0].link).toBe('/search?q=metadata.access_right.id:open');
+      expect(result.transformedData[0].link).toBe('/search?q=metadata.access_status.id:open');
     });
 
     it('should create transformed data with all expected properties', () => {
@@ -208,7 +208,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_status.id');
 
       expect(result.transformedData).toHaveLength(2);
 
@@ -218,7 +218,7 @@ describe('AccessRightsMultiDisplay', () => {
       expect(firstItem).toHaveProperty('value', 100);
       expect(firstItem).toHaveProperty('percentage', 67); // 100/150 * 100 rounded
       expect(firstItem).toHaveProperty('id', 'open');
-      expect(firstItem).toHaveProperty('link', '/search?q=metadata.access_right.id:open');
+      expect(firstItem).toHaveProperty('link', '/search?q=metadata.access_status.id:open');
       expect(firstItem).toHaveProperty('itemStyle');
       expect(firstItem.itemStyle).toHaveProperty('color');
       expect(typeof firstItem.itemStyle.color).toBe('string');
@@ -229,7 +229,7 @@ describe('AccessRightsMultiDisplay', () => {
       expect(secondItem).toHaveProperty('value', 50);
       expect(secondItem).toHaveProperty('percentage', 33); // 50/150 * 100 rounded
       expect(secondItem).toHaveProperty('id', 'restricted');
-      expect(secondItem).toHaveProperty('link', '/search?q=metadata.access_right.id:restricted');
+      expect(secondItem).toHaveProperty('link', '/search?q=metadata.access_status.id:restricted');
       expect(secondItem).toHaveProperty('itemStyle');
       expect(secondItem.itemStyle).toHaveProperty('color');
       expect(typeof secondItem.itemStyle.color).toBe('string');
@@ -254,7 +254,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 2, 'metadata.access_status.id');
 
       expect(result.otherData).toBeTruthy();
       expect(result.otherData).toHaveProperty('id', 'other');
@@ -280,7 +280,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_status.id');
 
       expect(result.otherData).toBeNull();
     });
@@ -294,7 +294,7 @@ describe('AccessRightsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.access_status.id');
 
       expect(result.totalCount).toBe(0);
       expect(result.transformedData[0].percentage).toBe(0);
@@ -308,13 +308,13 @@ describe('AccessRightsMultiDisplay', () => {
           name: 'Open Access',
           value: 100,
           percentage: 80,
-          link: '/search?q=metadata.access_right.id:open'
+          link: '/search?q=metadata.access_status.id:open'
         },
         {
           name: 'Restricted Access',
           value: 25,
           percentage: 20,
-          link: '/search?q=metadata.access_right.id:restricted'
+          link: '/search?q=metadata.access_status.id:restricted'
         }
       ];
 
@@ -323,13 +323,13 @@ describe('AccessRightsMultiDisplay', () => {
       expect(rows).toHaveLength(2);
       expect(rows[0][0]).toBe(null);
       expect(rows[0][1].type).toBe('a');
-      expect(rows[0][1].props.href).toBe('/search?q=metadata.access_right.id:open');
+      expect(rows[0][1].props.href).toBe('/search?q=metadata.access_status.id:open');
       expect(rows[0][1].props.children).toBe('Open Access');
       expect(rows[0][2]).toBe('100 (80%)');
 
       expect(rows[1][0]).toBe(null);
       expect(rows[1][1].type).toBe('a');
-      expect(rows[1][1].props.href).toBe('/search?q=metadata.access_right.id:restricted');
+      expect(rows[1][1].props.href).toBe('/search?q=metadata.access_status.id:restricted');
       expect(rows[1][1].props.children).toBe('Restricted Access');
       expect(rows[1][2]).toBe('25 (20%)');
     });
@@ -340,7 +340,7 @@ describe('AccessRightsMultiDisplay', () => {
           name: 'Open Access',
           value: 100,
           percentage: 80,
-          link: '/search?q=metadata.access_right.id:open'
+          link: '/search?q=metadata.access_status.id:open'
         }
       ];
 
@@ -355,7 +355,7 @@ describe('AccessRightsMultiDisplay', () => {
       expect(rows).toHaveLength(2);
       expect(rows[0][0]).toBe(null);
       expect(rows[0][1].type).toBe('a');
-      expect(rows[0][1].props.href).toBe('/search?q=metadata.access_right.id:open');
+      expect(rows[0][1].props.href).toBe('/search?q=metadata.access_status.id:open');
       expect(rows[0][1].props.children).toBe('Open Access');
       expect(rows[0][2]).toBe('100 (80%)');
 
@@ -390,7 +390,7 @@ describe('AccessRightsMultiDisplay', () => {
 
   describe('filterSeriesArrayByDate integration', () => {
     it('should filter access rights data by date range correctly', () => {
-      const mockAccessRightsData = [
+      const mockAccessStatusData = [
         {
           id: 'open',
           name: 'Open Access',
@@ -416,7 +416,7 @@ describe('AccessRightsMultiDisplay', () => {
         end: new Date('2024-01-25')
       };
 
-      const filteredData = filterSeriesArrayByDate(mockAccessRightsData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockAccessStatusData, dateRange, true);
 
       // Should only include data points within the date range
       expect(filteredData).toHaveLength(2);
@@ -433,7 +433,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should handle empty date range by returning latest data when latestOnly is true', () => {
-      const mockAccessRightsData = [
+      const mockAccessStatusData = [
         {
           id: 'open',
           name: 'Open Access',
@@ -446,7 +446,7 @@ describe('AccessRightsMultiDisplay', () => {
 
       const dateRange = {};
 
-      const filteredData = filterSeriesArrayByDate(mockAccessRightsData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockAccessStatusData, dateRange, true);
 
       // When latestOnly=true with empty date range, it returns only the latest data point
       expect(filteredData).toHaveLength(1);
@@ -456,7 +456,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should handle data outside the date range by returning empty data', () => {
-      const mockAccessRightsData = [
+      const mockAccessStatusData = [
         {
           id: 'open',
           name: 'Open Access',
@@ -472,7 +472,7 @@ describe('AccessRightsMultiDisplay', () => {
         end: new Date('2024-01-20')
       };
 
-      const filteredData = filterSeriesArrayByDate(mockAccessRightsData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockAccessStatusData, dateRange, true);
 
       // Should return series with empty data when no points fall within range
       expect(filteredData).toHaveLength(1);
@@ -481,7 +481,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should work with the actual component data flow', () => {
-      const mockAccessRightsData = [
+      const mockAccessStatusData = [
         {
           id: 'open',
           name: 'Open Access',
@@ -506,10 +506,10 @@ describe('AccessRightsMultiDisplay', () => {
       };
 
       // Simulate the component's filtering step
-      const filteredData = filterSeriesArrayByDate(mockAccessRightsData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockAccessStatusData, dateRange, true);
 
       // Then transform the filtered data using our helper function
-      const result = transformMultiDisplayData(filteredData, 10, 'metadata.access_right.id');
+      const result = transformMultiDisplayData(filteredData, 10, 'metadata.access_status.id');
 
       expect(result.totalCount).toBe(225); // 150 + 75
       expect(result.transformedData).toHaveLength(2);
@@ -525,7 +525,7 @@ describe('AccessRightsMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           recordSnapshotDataAdded: {
-            accessRights: {
+            accessStatus: {
               records: [
                 {
                   id: 'open',
@@ -552,7 +552,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render with list configuration', () => {
-      render(<AccessRightsMultiDisplay default_view="list" />);
+      render(<AccessStatusMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -567,7 +567,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', () => {
-      render(<AccessRightsMultiDisplay pageSize={2} default_view="list" />);
+      render(<AccessStatusMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -582,7 +582,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render with custom available_views', () => {
-      render(<AccessRightsMultiDisplay available_views={["list"]} default_view="list" />);
+      render(<AccessStatusMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -597,7 +597,7 @@ describe('AccessRightsMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           recordSnapshotDataAdded: {
-            accessRights: {
+            accessStatus: {
               records: []
             }
           }
@@ -606,7 +606,7 @@ describe('AccessRightsMultiDisplay', () => {
         dateRange: { start: '2024-01-01', end: '2024-01-31' }
       });
 
-      render(<AccessRightsMultiDisplay default_view="list" />);
+      render(<AccessStatusMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -616,7 +616,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render with custom title and icon', () => {
-      render(<AccessRightsMultiDisplay title="Custom Title" icon="lock" default_view="list" />);
+      render(<AccessStatusMultiDisplay title="Custom Title" icon="lock" default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -624,7 +624,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', () => {
-      render(<AccessRightsMultiDisplay default_view="list" />);
+      render(<AccessStatusMultiDisplay default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -645,7 +645,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render table rows with proper structure', () => {
-      render(<AccessRightsMultiDisplay default_view="list" />);
+      render(<AccessStatusMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -662,7 +662,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should render table cells with proper data', () => {
-      render(<AccessRightsMultiDisplay default_view="list" />);
+      render(<AccessStatusMultiDisplay default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -676,7 +676,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', () => {
-      render(<AccessRightsMultiDisplay default_view="list" />);
+      render(<AccessStatusMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -688,7 +688,7 @@ describe('AccessRightsMultiDisplay', () => {
 
     it('should render with custom headers properly', () => {
       const customHeaders = ['Custom Access Rights', 'Custom Count'];
-      render(<AccessRightsMultiDisplay headers={customHeaders} default_view="list" />);
+      render(<AccessStatusMultiDisplay headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -701,7 +701,7 @@ describe('AccessRightsMultiDisplay', () => {
     });
 
     it('should maintain proper table structure with pagination', () => {
-      render(<AccessRightsMultiDisplay pageSize={2} default_view="list" />);
+      render(<AccessStatusMultiDisplay pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

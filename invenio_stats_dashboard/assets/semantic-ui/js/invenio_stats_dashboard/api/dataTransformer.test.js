@@ -58,7 +58,7 @@ describe('transformApiData', () => {
       // Check subcount categories
       expect(deltaData).toHaveProperty('resourceTypes');
       expect(deltaData).toHaveProperty('languages');
-      expect(deltaData).toHaveProperty('accessRights');
+      expect(deltaData).toHaveProperty('accessStatus');
       expect(deltaData).toHaveProperty('affiliations');
       expect(deltaData).toHaveProperty('funders');
       expect(deltaData).toHaveProperty('subjects');
@@ -122,7 +122,7 @@ describe('transformApiData', () => {
       expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
 
       // Check subcount categories
-      expect(deltaData).toHaveProperty('byAccessRights');
+      expect(deltaData).toHaveProperty('byAccessStatus');
       expect(deltaData).toHaveProperty('byFileTypes');
       expect(deltaData).toHaveProperty('byLanguages');
       expect(deltaData).toHaveProperty('byResourceTypes');
@@ -298,7 +298,7 @@ describe('transformApiData', () => {
       expect(result.recordDeltaDataCreated).toHaveProperty('global');
       expect(result.recordDeltaDataCreated).toHaveProperty('byFilePresence');
       expect(result.recordDeltaDataCreated).toHaveProperty('resourceTypes');
-      expect(result.recordDeltaDataCreated).toHaveProperty('accessRights');
+      expect(result.recordDeltaDataCreated).toHaveProperty('accessStatus');
       expect(result.recordDeltaDataCreated).toHaveProperty('languages');
       expect(result.recordDeltaDataCreated).toHaveProperty('affiliations');
       expect(result.recordDeltaDataCreated).toHaveProperty('subjects');
@@ -318,7 +318,7 @@ describe('transformApiData', () => {
 
       expect(result.recordSnapshotDataCreated).toHaveProperty('global');
       expect(result.recordSnapshotDataCreated).toHaveProperty('byFilePresence');
-      expect(result.recordSnapshotDataCreated).toHaveProperty('accessRights');
+      expect(result.recordSnapshotDataCreated).toHaveProperty('accessStatus');
     });
 
     test('should handle sampleUsageSnapshot correctly', () => {
@@ -333,7 +333,7 @@ describe('transformApiData', () => {
 
       expect(result.usageSnapshotData).toHaveProperty('global');
       expect(result.usageSnapshotData).toHaveProperty('byFilePresence');
-      expect(result.usageSnapshotData).toHaveProperty('byAccessRights');
+      expect(result.usageSnapshotData).toHaveProperty('byAccessStatus');
       expect(result.usageSnapshotData).toHaveProperty('byFileTypes');
       expect(result.usageSnapshotData).toHaveProperty('byLanguages');
       expect(result.usageSnapshotData).toHaveProperty('byResourceTypes');
@@ -451,7 +451,7 @@ describe('transformApiData', () => {
           {
             ...sampleRecordDelta,
             subcounts: {
-              by_access_rights: [],
+              by_access_status: [],
               by_affiliation_contributor: [],
               by_file_type: []
             }
@@ -465,7 +465,7 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       // Should not crash and should return empty arrays for subcounts
-      expect(result.recordDeltaDataCreated.accessRights.records).toEqual([]);
+      expect(result.recordDeltaDataCreated.accessStatus.records).toEqual([]);
       expect(result.recordDeltaDataCreated.affiliations.records).toEqual([]);
       expect(result.recordDeltaDataCreated.fileTypes.records).toEqual([]);
     });
@@ -480,8 +480,8 @@ describe('transformApiData', () => {
 
       const result = transformApiData(rawStats);
 
-      // Should handle both nested structure (by_access_rights) and direct structure (by_file_type)
-      expect(result.recordDeltaDataCreated.accessRights.records.length).toBeGreaterThan(0);
+      // Should handle both nested structure (by_access_status) and direct structure (by_file_type)
+      expect(result.recordDeltaDataCreated.accessStatus.records.length).toBeGreaterThan(0);
       expect(result.recordDeltaDataCreated.fileTypes.records.length).toBeGreaterThan(0);
     });
 

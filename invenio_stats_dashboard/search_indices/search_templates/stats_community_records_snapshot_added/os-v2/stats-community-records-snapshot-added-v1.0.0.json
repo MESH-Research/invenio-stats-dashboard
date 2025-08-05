@@ -118,7 +118,7 @@
                 }
               }
             },
-            "all_access_rights": {
+            "all_access_status": {
               "type": "nested",
               "properties": {
                 "id": {

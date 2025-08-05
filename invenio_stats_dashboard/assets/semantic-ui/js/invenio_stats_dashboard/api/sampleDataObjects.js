@@ -20,7 +20,7 @@ const sampleRecordDelta = {
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
             "subcounts": {
-                "by_access_rights": [
+                "by_access_status": [
                     {
                         "files": {
                             "added": {"data_volume": 59117831.0, "file_count": 2},
@@ -293,7 +293,7 @@ const sampleRecordSnapshot = {
         "community_id": "e64dee43-6bd2-4380-b4e8-2813315cb74e",
         "snapshot_date": "2025-01-15",
         "subcounts": {
-            "all_access_rights": [
+            "all_access_status": [
                 {
                     "files": {"data_volume": 0.0, "file_count": 0},
                     "id": "metadata-only",
@@ -323,7 +323,7 @@ const sampleRecordSnapshot = {
 
 const sampleUsageSnapshot = {'community_id': 'b6f92bbc-a4af-4240-8135-292d47563339',
   'snapshot_date': '2025-06-11T23:59:59',
-  'subcounts': {'all_access_rights': [{'download': {'total_events': 60,
+  'subcounts': {'all_access_status': [{'download': {'total_events': 60,
                                                    'total_volume': 61440.0,
                                                    'unique_files': 39,
                                                    'unique_parents': 39,
@@ -1048,7 +1048,7 @@ const sampleUsageDelta = {
 'community_id': 'b6f92bbc-a4af-4240-8135-292d47563339',
  'period_end': '2025-05-30T23:59:59',
  'period_start': '2025-05-30T00:00:00',
- 'subcounts': {'by_access_rights': [{'download': {'total_events': 6,
+ 'subcounts': {'by_access_status': [{'download': {'total_events': 6,
                                                   'total_volume': 6144.0,
                                                   'unique_files': 3,
                                                   'unique_parents': 3,

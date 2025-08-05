@@ -359,7 +359,7 @@ const testStatsData = {
     { name: "Bulgaria", count: 9, percentage: 0.0 },
     { name: "Croatia", count: 8, percentage: 0.0 }
   ],
-  accessRights: [
+  accessStatus: [
     { name: "Open Access", count: 25432, percentage: 25.4 },
     { name: "Embargoed", count: 15321, percentage: 15.3 },
     { name: "Restricted", count: 12210, percentage: 12.2 },

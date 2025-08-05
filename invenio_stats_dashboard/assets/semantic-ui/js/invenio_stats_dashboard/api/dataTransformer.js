@@ -135,7 +135,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {RecordMetrics} global - Global record metrics
  * @property {RecordMetrics} byFilePresence - Record metrics by file presence
  * @property {RecordMetrics} resourceTypes
- * @property {RecordMetrics} accessRights
+ * @property {RecordMetrics} accessStatus
  * @property {RecordMetrics} languages
  * @property {RecordMetrics} affiliations
  * @property {RecordMetrics} funders
@@ -149,7 +149,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {RecordMetrics} global - Global record metrics
  * @property {RecordMetrics} byFilePresence - Record metrics by file presence
  * @property {RecordMetrics} resourceTypes
- * @property {RecordMetrics} accessRights
+ * @property {RecordMetrics} accessStatus
  * @property {RecordMetrics} languages
  * @property {RecordMetrics} affiliations
  * @property {RecordMetrics} funders
@@ -162,7 +162,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @typedef {Object} UsageDeltaData
  * @property {UsageMetrics} global - Global usage metrics
  * @property {UsageMetrics} byFilePresence - Usage metrics by file presence
- * @property {UsageMetrics} byAccessRights
+ * @property {UsageMetrics} byAccessStatus
  * @property {UsageMetrics} byFileTypes
  * @property {UsageMetrics} byLanguages
  * @property {UsageMetrics} byResourceTypes
@@ -176,7 +176,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @typedef {Object} UsageSnapshotData
  * @property {UsageMetrics} global - Global usage metrics
  * @property {UsageMetrics} byFilePresence - Usage metrics by file presence
- * @property {UsageMetrics} byAccessRights
+ * @property {UsageMetrics} byAccessStatus
  * @property {UsageMetrics} byFileTypes
  * @property {UsageMetrics} byLanguages
  * @property {UsageMetrics} byResourceTypes
@@ -234,7 +234,7 @@ const transformRecordDeltaData = (deltaDocs) => {
       fileCount: [],
       dataVolume: [],
     },
-    accessRights: {
+    accessStatus: {
       records: [],
       parents: [],
       uploaders: [],
@@ -309,7 +309,7 @@ const transformRecordDeltaData = (deltaDocs) => {
 
   const subcountTypes = {
     'by_resource_type': 'resourceTypes',
-    'by_access_rights': 'accessRights',
+    'by_access_status': 'accessStatus',
     'by_language': 'languages',
     'by_affiliation_creator': 'affiliations',
     'by_affiliation_contributor': 'affiliations',
@@ -514,7 +514,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       fileCount: [],
       dataVolume: [],
     },
-    accessRights: {
+    accessStatus: {
       records: [],
       parents: [],
       uploaders: [],
@@ -588,7 +588,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
 
   const subcountTypes = {
     'all_resource_types': 'resourceTypes',
-    'all_access_rights': 'accessRights',
+    'all_access_status': 'accessStatus',
     'all_languages': 'languages',
     'top_affiliations_creator': 'affiliations',
     'top_affiliations_contributor': 'affiliations',
@@ -762,7 +762,7 @@ const transformUsageDeltaData = (deltaDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byAccessRights: {
+    byAccessStatus: {
       views: [],
       downloads: [],
       visitors: [],
@@ -825,7 +825,7 @@ const transformUsageDeltaData = (deltaDocs) => {
   };
 
   const subcountTypes = {
-    'by_access_rights': 'byAccessRights',
+    'by_access_status': 'byAccessStatus',
     'by_file_types': 'byFileTypes',
     'by_languages': 'byLanguages',
     'by_resource_types': 'byResourceTypes',
@@ -997,7 +997,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byAccessRights: {
+    byAccessStatus: {
       views: [],
       downloads: [],
       visitors: [],
@@ -1133,7 +1133,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
   };
 
   const subcountTypes = {
-    'all_access_rights': 'byAccessRights',
+    'all_access_status': 'byAccessStatus',
     'all_file_types': 'byFileTypes',
     'all_languages': 'byLanguages',
     'all_resource_types': 'byResourceTypes',

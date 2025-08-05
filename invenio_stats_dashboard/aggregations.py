@@ -34,7 +34,7 @@ SUBCOUNT_TYPES = {
         "metadata.resource_type.id",
         "metadata.resource_type.title.en",
     ],
-    "access_rights": ["access.status"],
+    "access_status": ["access.status"],
     "language": ["metadata.languages.id", "metadata.languages.title.en"],
     "affiliation_creator": [
         "metadata.creators.affiliations.id",
@@ -827,7 +827,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
             "total_uploaders": 0,
             "subcounts": {
                 "all_resource_types": [],
-                "all_access_rights": [],
+                "all_access_status": [],
                 "all_languages": [],
                 "top_affiliations_creator": [],
                 "top_affiliations_contributor": [],
@@ -1091,7 +1091,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
             ),
             "subcounts": {
                 "all_resource_types": make_subcount_dict("by_resource_type"),
-                "all_access_rights": make_subcount_dict("by_access_rights"),
+                "all_access_status": make_subcount_dict("by_access_status"),
                 "all_languages": make_subcount_dict("by_language"),
                 "top_affiliations_creator": make_subcount_dict(
                     "by_affiliation_creator"
@@ -1308,7 +1308,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             },
             "subcounts": {
                 "all_resource_types": [],
-                "all_access_rights": [],
+                "all_access_status": [],
                 "all_languages": [],
                 "all_file_types": [],
                 "top_subjects": {"by_view": [], "by_download": []},
@@ -1490,7 +1490,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         """Map delta document subcount field names to snapshot field names."""
         field_mapping = {
             "by_resource_types": "all_resource_types",
-            "by_access_rights": "all_access_rights",
+            "by_access_status": "all_access_status",
             "by_languages": "all_languages",
             "by_file_types": "all_file_types",
             "by_licenses": "top_licenses",
@@ -1582,7 +1582,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             # Initialize subcounts from first delta
             current_subcounts = {
                 "all_resource_types": [],
-                "all_access_rights": [],
+                "all_access_status": [],
                 "all_languages": [],
                 "all_file_types": [],
             }
@@ -1594,8 +1594,8 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
                 "all_resource_types": (
                     delta_doc["subcounts"].get("all_resource_types", {})
                 ),
-                "all_access_rights": (
-                    delta_doc["subcounts"].get("all_access_rights", {})
+                "all_access_status": (
+                    delta_doc["subcounts"].get("all_access_status", {})
                 ),
                 "all_languages": delta_doc["subcounts"].get("all_languages", {}),
                 "all_file_types": delta_doc["subcounts"].get("all_file_types", {}),
@@ -2071,7 +2071,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 },
             },
             "subcounts": {
-                "by_access_rights": [],
+                "by_access_status": [],
                 "by_resource_types": [],
                 "by_licenses": [],
                 "by_funders": [],
@@ -2116,7 +2116,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                             },
                         },
                         "publisher": {"type": "keyword"},
-                        "access_rights": {"type": "keyword"},
+                        "access_status": {"type": "keyword"},
                         "languages": {
                             "type": "object",
                             "properties": {
@@ -2434,7 +2434,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                             "title": meta["metadata"]["resource_type"]["title"]["en"],
                         },
                         "publisher": meta["metadata"]["publisher"],
-                        "access_rights": meta["access"]["status"],
+                        "access_status": meta["access"]["status"],
                         "languages": [
                             {
                                 "id": lang["id"],
@@ -2602,7 +2602,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             "resource_type.id",
             ["resource_type.title", "resource_type.id"],
         )
-        self.add_search_agg(agg_search, "by_access_rights", "access_rights", None)
+        self.add_search_agg(agg_search, "by_access_status", "access_status", None)
         self.add_search_agg(
             agg_search,
             "by_languages",
@@ -2794,8 +2794,8 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 },
             },
             "subcounts": {
-                "by_access_rights": add_subcount_to_doc(
-                    results.aggregations.by_access_rights.buckets, None
+                "by_access_status": add_subcount_to_doc(
+                    results.aggregations.by_access_status.buckets, None
                 ),
                 "by_resource_types": add_subcount_to_doc(
                     results.aggregations.by_resource_types.buckets,
@@ -3065,7 +3065,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             "uploaders": 0,
             "subcounts": {
                 "by_resource_type": [],
-                "by_access_rights": [],
+                "by_access_status": [],
                 "by_language": [],
                 "by_affiliation_creator": [],
                 "by_affiliation_contributor": [],
@@ -3344,7 +3344,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             "uploaders": aggs_added.get("uploaders", {}).get("value", 0),
             "subcounts": {
                 "by_resource_type": make_subcount_list("by_resource_type"),
-                "by_access_rights": make_subcount_list("by_access_rights"),
+                "by_access_status": make_subcount_list("by_access_status"),
                 "by_language": make_subcount_list("by_language"),
                 "by_affiliation_creator": make_subcount_list("by_affiliation_creator"),
                 "by_affiliation_contributor": make_subcount_list(

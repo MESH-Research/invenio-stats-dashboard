@@ -166,10 +166,10 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
-                                "component": "AccessRightsMultiDisplay",
+                                "component": "AccessStatusMultiDisplay",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Access Rights",
+                                    "title": "Top Access Statuses",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",

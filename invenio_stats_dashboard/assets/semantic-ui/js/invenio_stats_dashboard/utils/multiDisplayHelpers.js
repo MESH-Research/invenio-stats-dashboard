@@ -6,7 +6,7 @@ import { CHART_COLORS } from '../constants';
  *
  * @param {Array} rawData - Array of data items from the API (access rights, affiliations, etc.)
  * @param {number} pageSize - Number of top items to show individually
- * @param {string} searchField - Field name for search links (e.g., 'metadata.access_right.id', 'metadata.affiliations.affiliation')
+ * @param {string} searchField - Field name for search links (e.g., 'metadata.access_status.id', 'metadata.affiliations.affiliation')
  * @param {Array} colorPalette - Array of color arrays for chart styling
  * @returns {Object} Object containing transformedData, otherData, and totalCount
  */

@@ -40,7 +40,7 @@ The enhanced service follows a 6-step process for each monthly index:
 - Enriches each event with:
   - `community_id`: The community the record belongs to
   - `resource_type`: Record type information
-  - `access_rights`: Access status
+  - `access_status`: Access status
   - `publisher`: Publisher information
   - `languages`: Language metadata
   - `subjects`: Subject classifications

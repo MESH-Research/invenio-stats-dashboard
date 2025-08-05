@@ -8,7 +8,7 @@ import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
 import { filterSeriesArrayByDate } from "../../utils";
 import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
-const AccessRightsMultiDisplay = ({
+const AccessStatusMultiDisplay = ({
   title = i18next.t("Access Rights"),
   icon: labelIcon = "lock",
   headers = [i18next.t("Access Right"), i18next.t("Works")],
@@ -25,13 +25,13 @@ const AccessRightsMultiDisplay = ({
     [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
   };
 
-  const accessRightsData = seriesCategoryMap[recordStartBasis]?.accessRights?.records;
-  const rawAccessRights = filterSeriesArrayByDate(accessRightsData, dateRange, true);
+  const accessStatusData = seriesCategoryMap[recordStartBasis]?.accessStatus?.records;
+  const rawAccessStatus = filterSeriesArrayByDate(accessStatusData, dateRange, true);
 
   const { transformedData, otherData, totalCount } = transformMultiDisplayData(
-    rawAccessRights,
+    rawAccessStatus,
     pageSize,
-    'metadata.access_right.id',
+    'metadata.access_status.id',
     CHART_COLORS.secondary
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
@@ -164,7 +164,7 @@ const AccessRightsMultiDisplay = ({
   );
 };
 
-AccessRightsMultiDisplay.propTypes = {
+AccessStatusMultiDisplay.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
@@ -173,4 +173,4 @@ AccessRightsMultiDisplay.propTypes = {
   available_views: PropTypes.arrayOf(PropTypes.string),
 };
 
-export { AccessRightsMultiDisplay };
+export { AccessStatusMultiDisplay };

@@ -38,7 +38,7 @@ import {
   SubjectsMultiDisplay,
 } from './index';
 
-import { AccessRightsMultiDisplay } from "./multi_displays/AccessRightsMultiDisplay";
+import { AccessStatusMultiDisplay } from "./multi_displays/AccessStatusMultiDisplay";
 import { LicensesMultiDisplay } from "./multi_displays/LicensesMultiDisplay";
 import { AffiliationsMultiDisplay } from "./multi_displays/AffiliationsMultiDisplay";
 import { FundersMultiDisplay } from "./multi_displays/FundersMultiDisplay";
@@ -85,7 +85,7 @@ export const componentsMap = {
   // Multi Displays
   'ResourceTypesMultiDisplay': ResourceTypesMultiDisplay,
   'SubjectsMultiDisplay': SubjectsMultiDisplay,
-  'AccessRightsMultiDisplay': AccessRightsMultiDisplay,
+  'AccessStatusMultiDisplay': AccessStatusMultiDisplay,
   'LicensesMultiDisplay': LicensesMultiDisplay,
   'AffiliationsMultiDisplay': AffiliationsMultiDisplay,
   'FundersMultiDisplay': FundersMultiDisplay,

@@ -15,7 +15,7 @@ NESTED_AGGREGATIONS = {
         "metadata.resource_type.id",
         ["metadata.resource_type.title.en", "metadata.resource_type.id"],
     ],
-    "access_rights": ["access.status"],
+    "access_status": ["access.status"],
     "language": [
         "metadata.languages.id",
         ["metadata.languages.title.en", "metadata.languages.id"],
