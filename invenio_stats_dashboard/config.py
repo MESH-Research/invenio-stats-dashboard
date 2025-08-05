@@ -24,6 +24,8 @@ from .queries import (
 from .permissions import CommunityStatsPermissionFactory
 from .tasks import CommunityStatsAggregationTask
 
+COMMUNITY_STATS_ENABLED = True
+
 COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
     "stats-aggregate-community-record-stats": {
         **CommunityStatsAggregationTask,
@@ -441,7 +443,7 @@ COMMUNITY_STATS_QUERIES = {
             "doc_type": "community-record-delta-added-agg",
         },
     },
-    "community-record-snapshot": {
+    "community-record-snapshot-created": {
         "cls": CommunityRecordSnapshotResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
