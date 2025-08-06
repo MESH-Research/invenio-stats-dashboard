@@ -652,8 +652,9 @@ For more information about the index configuration and creation process, see [Se
 At the service layer, this module provides:
 - celery tasks to aggregate community and global instance statistics on an hourly schedule
 - service components to record community and global add/remove events
-- a service class to facilitate programmatic access to the statistics data
-- helper functions to facilitate setup and maintenance of the statistics indices
+- a service class to facilitate programmatic access to the statistics data (accessed via the `current_community_stats_service` proxy)
+- a second service class to facilitate migration of the usage event indices (accessed via the `current_event_reindexing_service` proxy)
+- a helper class to generate synthetic usage events for testing
 
 The celery tasks are also responsible for ensuring that historical data is progressively aggregated and indexed when the extension is first installed. For more information, see [Setup and Migration](#setup-and-migration) below.
 
@@ -714,9 +715,19 @@ multiple possible methods.
 
 #### Programmatic statistics access service
 
-#### Helper functions for index management
+The module includes a CommunityStatsService class that provides a programmatic interface to the statistics data, accessed via the `current_community_stats_service` proxy. The class exposes the following public methods:
 
-The module includes utility functions for setting up and maintaining the statistics infrastructure:
+- `generate_record_community_events`: Creates community add/remove events for all records in the instance that do not already have events. Can be run via the `invenio community-stats generate-events` CLI command.
+- `aggregate_stats`: Manually triggers the aggregation of statistics for a community or instance. Can be run via the `invenio community-stats aggregate-stats` CLI command.
+- `read_stats`: Reads the statistics data for a community or instance. Can be run via the `invenio community-stats read-stats` CLI command.
+
+#### Helper class for usage event index migration
+
+The module includes an EventReindexingService class that can be used to migrate existing usage events to the new index templates, accessed via the `current_event_reindexing_service` proxy. This class can also be used via the `invenio community-stats migrate-events` CLI command and its associated helper commands.
+
+#### Utilities for generating testing data
+
+- provides methods to generate and index synthetic usage events for testing
 
 ### Presentation layer
 
@@ -795,6 +806,10 @@ The `EventReindexingService.reindex_events` method can be run manually to reinde
 
 
 ### Initial aggregation of historical data
+
+- `CommunityStatsService.generate_record_community_events` creates community add/remove events for all records in the instance that do not already have events
+    - can be run manually via the `invenio community-stats generate-events` CLI command
+- At the start of each aggregator's `run` method, the class checks that the `stats-community-events` index is up-to-date with the latest records in the community/instance. If it is not, the class will call `CommunityStatsService.generate_record_community_events` to create the missing events before proceeding with the aggregation.
 
 ## Usage
 
