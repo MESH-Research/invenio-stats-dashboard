@@ -314,7 +314,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
-                                "component": "TopReferrerDomainsMultiDisplay",
+                                "component": "TopReferrersMultiDisplay",
                                 "width": 8,
                                 "props": {
                                     "title": "Top Referrer Domains",

@@ -15,6 +15,7 @@ import {
   StatsTable,
   SingleStatBox,
   StatsPopup,
+  StatsMultiDisplay,
 
   // Single Stats
   SingleStatRecordCount,
@@ -36,16 +37,19 @@ import {
   // Multi Displays
   ResourceTypesMultiDisplay,
   SubjectsMultiDisplay,
+  AccessStatusMultiDisplay,
+  LicensesMultiDisplay,
+  AffiliationsMultiDisplay,
+  FundersMultiDisplay,
+  TopCountriesMultiDisplay,
+  TopReferrersMultiDisplay,
+  MostDownloadedRecordsMultiDisplay,
+  MostViewedRecordsMultiDisplay,
+  PeriodicalsMultiDisplay,
+  PublishersMultiDisplay,
+  TopLanguagesMultiDisplay,
+  FileTypesMultiDisplay,
 } from './index';
-
-import { AccessStatusMultiDisplay } from "./multi_displays/AccessStatusMultiDisplay";
-import { LicensesMultiDisplay } from "./multi_displays/LicensesMultiDisplay";
-import { AffiliationsMultiDisplay } from "./multi_displays/AffiliationsMultiDisplay";
-import { FundersMultiDisplay } from "./multi_displays/FundersMultiDisplay";
-import { TopCountriesMultiDisplay } from "./multi_displays/CountriesMultiDisplay";
-import { TopReferrerDomainsMultiDisplay } from "./multi_displays/TopReferrerDomainsMultiDisplay";
-import { MostDownloadedRecordsMultiDisplay } from "./multi_displays/MostDownloadedRecordsMultiDisplay";
-import { MostViewedRecordsMultiDisplay } from "./multi_displays/MostViewedRecordsMultiDisplay";
 
 export const componentsMap = {
   // Charts
@@ -64,6 +68,7 @@ export const componentsMap = {
   'StatsTable': StatsTable,
   'SingleStatBox': SingleStatBox,
   'StatsPopup': StatsPopup,
+  'StatsMultiDisplay': StatsMultiDisplay,
 
   // Single Stats
   'SingleStatRecordCount': SingleStatRecordCount,
@@ -90,7 +95,11 @@ export const componentsMap = {
   'AffiliationsMultiDisplay': AffiliationsMultiDisplay,
   'FundersMultiDisplay': FundersMultiDisplay,
   'TopCountriesMultiDisplay': TopCountriesMultiDisplay,
-  'TopReferrerDomainsMultiDisplay': TopReferrerDomainsMultiDisplay,
+  'TopReferrersMultiDisplay': TopReferrersMultiDisplay,
   'MostDownloadedRecordsMultiDisplay': MostDownloadedRecordsMultiDisplay,
   'MostViewedRecordsMultiDisplay': MostViewedRecordsMultiDisplay,
+  'PeriodicalsMultiDisplay': PeriodicalsMultiDisplay,
+  'PublishersMultiDisplay': PublishersMultiDisplay,
+  'TopLanguagesMultiDisplay': TopLanguagesMultiDisplay,
+  'FileTypesMultiDisplay': FileTypesMultiDisplay,
 };
