@@ -54,8 +54,10 @@ class UsageEventFactory:
         session_id = f"test-session-{random.randint(10000, 99999)}"
         ip_address = f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}"
 
-        # Realistic browser user agent
-        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        user_agent = (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
 
         return {
             "timestamp": event_time.format("YYYY-MM-DDTHH:mm:ss"),
@@ -281,16 +283,18 @@ class UsageEventFactory:
 
     @staticmethod
     def generate_repository_events(
-        start_date: str = None,
-        end_date: str = None,
+        start_date: str = "",
+        end_date: str = "",
         events_per_record: int = 5,
-        max_records: int = None,
+        max_records: int = 0,
     ) -> list:
         """Generate events for published records within a date range.
 
         Args:
-            start_date: Start date in YYYY-MM-DD format. If None, uses earliest record creation date.
-            end_date: End date in YYYY-MM-DD format. If None, uses current date.
+            start_date: Start date in YYYY-MM-DD format. If an empty string,
+                uses earliest record creation date.
+            end_date: End date in YYYY-MM-DD format. If an empty string,
+                uses current date.
             events_per_record: Number of events to generate per record.
             max_records: Maximum number of records to process.
 
@@ -298,9 +302,9 @@ class UsageEventFactory:
             List of (event, event_id) tuples.
         """
         # Set default dates if not provided
-        if end_date is None:
+        if end_date == "":
             end_date = arrow.utcnow().format("YYYY-MM-DD")
-        if start_date is None:
+        if start_date == "":
             # Get earliest record creation date
             record_search = Search(
                 using=current_search_client, index=prefix_index("rdmrecords-records")
@@ -344,26 +348,26 @@ class UsageEventFactory:
 
     @staticmethod
     def generate_and_index_repository_events(
-        start_date: str = None,
-        end_date: str = None,
+        start_date: str = "",
+        end_date: str = "",
         events_per_record: int = 5,
-        max_records: int = None,
+        max_records: int = 0,
     ) -> dict:
         """Generate and index events for records within a date range.
 
         Args:
-            start_date: Start date in YYYY-MM-DD format. If None, uses earliest record creation date.
-            end_date: End date in YYYY-MM-DD format. If None, uses current date.
+            start_date: Start date in YYYY-MM-DD format. If an empty string,
+                uses earliest record creation date.
+            end_date: End date in YYYY-MM-DD format. If an empty string,
+                uses current date.
             events_per_record: Number of events to generate per record.
             max_records: Maximum number of records to process.
 
         Returns:
             Dictionary with indexing results.
         """
-        # Generate events
         events = UsageEventFactory.generate_repository_events(
             start_date, end_date, events_per_record, max_records
         )
 
-        # Index events
         return UsageEventFactory.index_usage_events(events)
