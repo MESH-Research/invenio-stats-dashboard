@@ -1,6 +1,7 @@
 import functools
 import time
 from typing import Any, Callable, Type, Union
+
 from flask import current_app
 
 

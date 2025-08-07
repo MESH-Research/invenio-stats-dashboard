@@ -7,16 +7,22 @@ from flask_principal import Identity
 from invenio_rdm_records.proxies import current_rdm_records_service
 from invenio_rdm_records.records.api import RDMDraft, RDMRecord
 from invenio_rdm_records.requests.community_inclusion import (
-    CommunityInclusion,
     AcceptAction as CommunityInclusionAcceptAction,
+)
+from invenio_rdm_records.requests.community_inclusion import (
+    CommunityInclusion,
+)
+from invenio_rdm_records.requests.community_submission import (
+    AcceptAction as CommunitySubmissionAcceptAction,
 )
 from invenio_rdm_records.requests.community_submission import (
     CommunitySubmission,
-    AcceptAction as CommunitySubmissionAcceptAction,
+)
+from invenio_rdm_records.requests.community_transfer import (
+    AcceptCommunityTransfer as CommunityTransferAcceptAction,
 )
 from invenio_rdm_records.requests.community_transfer import (
     CommunityTransferRequest,
-    AcceptCommunityTransfer as CommunityTransferAcceptAction,
 )
 from invenio_records_resources.services.records.components.base import ServiceComponent
 from invenio_records_resources.services.uow import UnitOfWork, unit_of_work

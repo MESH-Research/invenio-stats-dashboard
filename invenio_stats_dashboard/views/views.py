@@ -10,8 +10,8 @@ This module contains the views for the Invenio Stats Dashboard.
 """
 
 from flask import Blueprint, current_app, render_template
-from invenio_communities.views.decorators import pass_community
 from invenio_communities.views.communities import HEADER_PERMISSIONS
+from invenio_communities.views.decorators import pass_community
 from invenio_records_resources.services.errors import PermissionDeniedError
 
 

@@ -1,33 +1,33 @@
 import copy
+import datetime
+import time
 from collections import defaultdict
 from collections.abc import Generator
 from functools import wraps
 from pprint import pformat
 from typing import Any, Callable
 
-import datetime
-import time
-
 import arrow
 from flask import current_app
 from invenio_access.permissions import system_identity
-from opensearchpy import AttrDict, AttrList
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
+from invenio_stats.aggregations import StatAggregator
 from invenio_stats.bookmark import BookmarkAPI
+from opensearchpy import AttrDict, AttrList
 from opensearchpy.helpers.actions import bulk
 from opensearchpy.helpers.aggs import Bucket
-from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.index import Index
+from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
-from invenio_stats.aggregations import StatAggregator
-from .queries import (
-    daily_record_snapshot_query_with_events,
-    daily_record_delta_query_with_events,
-)
-from .proxies import current_community_stats_service
+
 from .exceptions import CommunityEventIndexingError
+from .proxies import current_community_stats_service
+from .queries import (
+    daily_record_delta_query_with_events,
+    daily_record_snapshot_query_with_events,
+)
 
 SUBCOUNT_TYPES = {
     "resource_type": [

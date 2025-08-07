@@ -1,19 +1,21 @@
-import arrow
-import psutil
 import time
 from typing import Any, Dict, List, Optional, Tuple
+
+import arrow
+import psutil
 from flask import Flask, current_app
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search, current_search_client
 from invenio_search.utils import prefix_index
-from opensearchpy.helpers.search import Search
+from opensearchpy.exceptions import ConnectionError, ConnectionTimeout, RequestError
 from opensearchpy.helpers.actions import bulk
-from opensearchpy.exceptions import ConnectionTimeout, ConnectionError, RequestError
+from opensearchpy.helpers.search import Search
+
+from .aggregations import CommunityBookmarkAPI
 from .components import update_community_events_index
 from .queries import CommunityStatsResultsQuery
 from .tasks import CommunityStatsAggregationTask
-from .aggregations import CommunityBookmarkAPI
 
 
 class EventReindexingService:

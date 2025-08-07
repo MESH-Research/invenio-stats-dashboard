@@ -1,13 +1,15 @@
+import uuid
+
 from celery import shared_task
 from celery.schedules import crontab
 from dateutil.parser import parse as dateutil_parse
-from invenio_stats.proxies import current_stats
-from invenio_search.proxies import current_search_client
 from flask import current_app
 from invenio_cache import current_cache
-import uuid
-from .proxies import current_event_reindexing_service as reindexing_service
+from invenio_search.proxies import current_search_client
+from invenio_stats.proxies import current_stats
+
 from .exceptions import TaskLockAcquisitionError
+from .proxies import current_event_reindexing_service as reindexing_service
 
 
 class AggregationTaskLock:

@@ -1,9 +1,10 @@
 """Queries for the stats dashboard."""
 
+from pprint import pformat
+
 import arrow
 from flask import current_app
 from invenio_search.utils import prefix_index
-from pprint import pformat
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.index import Index

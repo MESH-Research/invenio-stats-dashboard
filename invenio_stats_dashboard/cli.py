@@ -8,12 +8,14 @@
 # more details.
 
 from pprint import pprint
+
 import arrow
 import click
 from flask import current_app as app
 from flask.cli import with_appcontext
 from halo import Halo
 from opensearchpy.helpers.search import Search
+
 from .proxies import current_community_stats_service
 from .service import EventReindexingService
 from .tasks import reindex_usage_events_with_metadata

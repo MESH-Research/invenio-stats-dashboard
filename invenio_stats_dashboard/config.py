@@ -1,7 +1,6 @@
 """Configuration for Invenio Stats Dashboard."""
 
 from invenio_i18n import gettext as _
-
 from invenio_rdm_records.resources.stats.event_builders import (
     build_record_unique_id,
 )
@@ -9,19 +8,19 @@ from invenio_stats.contrib.event_builders import build_file_unique_id
 from invenio_stats.processors import (
     EventsIndexer,
     anonymize_user,
-    flag_robots,
     flag_machines,
+    flag_robots,
 )
 
 from .aggregations import register_aggregations
+from .permissions import CommunityStatsPermissionFactory
 from .queries import (
     CommunityRecordDeltaResultsQuery,
     CommunityRecordSnapshotResultsQuery,
+    CommunityStatsResultsQuery,
     CommunityUsageDeltaResultsQuery,
     CommunityUsageSnapshotResultsQuery,
-    CommunityStatsResultsQuery,
 )
-from .permissions import CommunityStatsPermissionFactory
 from .tasks import CommunityStatsAggregationTask
 
 COMMUNITY_STATS_ENABLED = True
