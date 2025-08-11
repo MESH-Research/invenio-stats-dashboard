@@ -36,7 +36,44 @@ This initial setup is handled by the background tasks that run on a regular sche
 
 The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.
 
+## TODOs
+
+- [x] add config flag to switch UI between test data and production data
+- [ ] testing
+  - [ ] move all tests into this package
+  - [ ] fix failing tests
+  - [ ] expand test coverage
+- [ ] aggregation
+  - [ ] refactor CommunityUsageSnapshotAggregator for the enriched event document structure
+  - [ ] ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)
+  - [ ] get tests for queries working with refactored code
+  - [ ] get tests for aggregator classes working
+  - [ ] set up a check in aggregator classes to ensure that view/download event migration has been completed before running the aggregator tasks
+  - [ ] add opensearch health and memory usage checks to the aggregator classes (as in the reindexing service) and quit out gracefully if necessary
+- [ ] UI components
+  - [ ] add proper loading states to the dashboard components
+  - [ ] add an updated timestamp to the dashboard views
+  - [ ] add custom date range picker to the dashboard views
+  - [ ] fix state problems with chart views
+  - [ ] add ReactOverridable support for each of the React components
+  - [ ] add mechanism for adding custom React components to the dashboard views (entry point providing file paths and component labels, to be imported in components_map.js?)
+  - [ ] evaluate whether additional default components are needed
+- [ ] client-side data handling
+  - [ ] add client-side caching of the stats data to display while new data is loading
+- [ ] UI theming
+  - [ ] move default CSS into this package and harmonize it with InvenioRDM defaults
+  - [ ] finish theming of the global dashboard view
+  - [ ] improve mobile responsiveness of the dashboard views
+- [ ] API requests
+  - [ ] implement security policy for API queries
+- [ ] reporting
+  - [ ] implement report generation (via API request? via email? generated client-side?)
+  - [ ] enable report download from dashboard widget
+- [ ] improve documentation
+
 ## Architecture
+
+### Building on the `invenio-stats` module
 
 Wherever possible, this module uses the infrastructure provided by the `invenio-stats` module to store and aggregate the statistics data. The `invenio-stats` module handles:
 - registration of new and expanded search index templates (for a new instance only)
@@ -48,7 +85,6 @@ Wherever possible, this module uses the infrastructure provided by the `invenio-
 - registration of community and global statistics API responses via the `STATS_QUERIES` configuration variable
   - using new query classes to build the community and global statistics API responses
 - management of the stats API endpoint where the configured queries are exposed
-
 
 ### Data layer
 
@@ -676,12 +712,16 @@ only called by the utility service method that sets up the initial indexed event
 instance.
 
 ```{note}
-The `invenio-stats` module expects each configured aggregation to correspond to a configure event type. The default aggregator class, along with several available properties of the `STATS_AGGREGATIONS` config objects, are designed with this kind of event-aggregation structure in mind. The `invenio-stats-dashboard` aggregations, however, are compiling counts based on record metadata or usage events in ways that do not fit this pattern. Hence this package provides aggregator classes that are designed quite differently, although they follow some of the patterns of the default aggregator class (e.g., the use of an `agg_iter` method and the `invenio-stats` bookmarking mechanism). As a result, the `STATS_AGGREGATIONS` config objects for the `invenio-stats-dashboard` aggregations include less information than what must be provided to the default aggregator class.
+The aggregator classes are idempotent, meaning that they can be run multiple times without causing duplicate aggregations. This is achieved first by using the `invenio-stats` bookmarking mechanism to track the progress of the aggregation and begin each aggregation from the last processed date. The aggregator classes also check each time for an existing aggregation document and deleting any that are found for the same date before indexing a new one.
+```
+
+```{note}
+The `invenio-stats` module expects each configured aggregation to correspond to a configured event type. The default aggregator class, along with several available properties of the `STATS_AGGREGATIONS` config objects, are designed with this kind of event-aggregation structure in mind. The `invenio-stats-dashboard` aggregations, however, are compiling counts based on record metadata or usage events in ways that do not fit this pattern. Hence this package provides aggregator classes that are designed quite differently, although they follow some of the patterns of the default aggregator class (e.g., the use of an `agg_iter` method and the `invenio-stats` bookmarking mechanism). As a result, the `STATS_AGGREGATIONS` config objects for the `invenio-stats-dashboard` aggregations include less information than what must be provided to the default aggregator class.
 ```
 
 #### Scheduled aggregation of statistics
 
-The aggregator classes are run via a celery task, tasks.aggregate_community_record_stats. This task calls the `run` method of the eight aggregator classes in turn. These methods are run sequentially by design, to avoid race conditions, and to avoid overloading the OpenSearch domain with too many concurrent requests. The task is scheduled to run hourly by default, but can be configured via the `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` configuration variable.
+The aggregator classes are run via a celery task, tasks.aggregate_community_record_stats. This task calls the `run` method of the eight aggregator classes in turn. These methods are run sequentially by design, to avoid race conditions, and to avoid overloading the OpenSearch domain with too many concurrent requests. The task is scheduled to run hourly by default, but can be configured via the `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` configuration variable. The scheduled tasks can be disabled by setting the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration variable to `False`. (See [Configuration](#configuration) below for more information.)
 
 #### Aggregation task locking and catch-up limits
 
@@ -727,7 +767,8 @@ The module includes an EventReindexingService class that can be used to migrate 
 
 #### Utilities for generating testing data
 
-- provides methods to generate and index synthetic usage events for testing
+The module includes a helper class (utils.usage_events.UsageEventFactory) that can be used to generate synthetic view and download events for testing.
+This class creates usage events *without* the enriched metadata fields that are added to the events by the `invenio-stats-dashboard` module, to facilitate testing of the index migration process for those usage events.
 
 ### Presentation layer
 
@@ -783,7 +824,7 @@ Setup of the `invenio-stats-dashboard` involves simply installing the python pac
 
 If the `invenio-stats-dashboard` extension is installed on a new InvenioRDM instance, the `invenio-stats` module will automatically register the extension's search index templates with the OpenSearch domain. But `invenio-stats` does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the `invenio-stats-dashboard` extension will check at application startup to ensure that the extension's search index templates are registered with the OpenSearch domain. If they are not, it registers them with the `invenio-search` module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.
 
-### Initial migration of existing record usage events
+### Initial migration of existing view/download events
 
 The `invenio-stats` search index templates for view and download events must then be updated to provide mappings for the additional fields used by `invenio-stats-dashboard`. If the InvenioRDM instance has existing legacy view and download events, these will also need to be migrated to the new index templates. The `EventReindexingService` class in the `service.py` performs both of these tasks and must be run before the first scheduled aggregation task can be performed.
 
@@ -795,15 +836,26 @@ Where no legacy view or download events exist, the `EventReindexingService.reind
 4. Confirm that the events have all been copied over.
 5. Update the read aliases to point to the new monthly indices.
 6. Delete the legacy monthly indices for months prior to the current month.
-7. Create a write alias so that new usage events for the current month are indexed to the current month's new index.
+7. Create an alias from the old current-month index to the new current-month index, so that new usage events during the current month are indexed in the new index.
 8. After the month is complete, delete the current month's legacy index.
 
-#### Manual reindexing of existing events
+```{warning}
+Currently, the `EventReindexingService.reindex_events` method must be run manually to perform the migration. It can be run via the `invenio community-stats migrate-events` CLI command and its associated helper commands. In future, the migration will be integrated automatically as part of the scheduled aggregation tasks, to be completed in the background over a series of scheduled runs before the first aggregations are actually performed.
+```
 
-The `EventReindexingService.reindex_events` method can be run manually to reindex the events, or it can be run automatically as part of the first scheduled aggregation task.
+TODO: set up check and automatic migration in aggregator tasks
 
-#### Automatic reindexing of existing events
+#### Preventing overload of OpenSearch or memory
 
+The reindexing service is configured to run in batches, to avoid overwhelming the OpenSearch domain with too many concurrent requests. The batch size and maximum number of batches can be configured via the `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` and `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` configuration variables. The service will also check the memory usage of the OpenSearch domain on starting each batch and exit if the memory usage exceeds the `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` configuration variable. The service will also check the health of the OpenSearch domain on starting each batch and exit if the health is not good.
+
+#### Handling failures
+
+If the reindexing of a particular month fails, the service will leave the original index in place and continue with the next month. It will log a warning and report the failure in the service's output report. The service will try to reindex the month again on the next run.
+
+#### Handling progress across migration runs
+
+If the service hits the maximum number of batches before a monthly index is completely migrated, it will log a warning and report the progress in the service's output report. The service will set a bookmark to record the last processed event id, so that the next reindexing service run can continue from that point. These bookmarks are stored in the `stats-community-events-reindexing` index and are set independently for each monthly index.
 
 ### Initial aggregation of historical data
 
@@ -846,7 +898,7 @@ The macro takes the following parameters:
 
 #### Global dashboard template
 
-A Jinja2 template for the global dashboard, registered as a top-level page template at the global stats dashboard route (`/stats` by default).
+A Jinja2 template for the global dashboard, registered as a top-level page template at the global stats dashboard route (`/stats` by default). A top-level menu item is registered for this template by default, but can be disabled by setting the `STATS_DASHBOARD_MENU_ENABLED` configuration variable to `False`. The text and position of the menu item can be configured via config variables. Alternately, a custom function can be provided to register the menu item (See [Configuration](#configuration) below for more information.)
 
 #### Community dashboard template
 
@@ -856,7 +908,126 @@ To implement this in your community details page, you can add a menu tab to the 
 
 ## Configuration
 
+### Configuration Overrides
+
+The default configuration values are defined in the module's `config.py` file. These defaults can be overridden in the top-level `invenio.cfg` file of
+an InvenioRDM instance or as environment variables.
+
+### Module Enable/Disable
+
+The entire community stats dashboard module can be enabled or disabled using the `COMMUNITY_STATS_ENABLED` configuration variable:
+
+```python
+# Disable the module completely
+COMMUNITY_STATS_ENABLED = False
+```
+
+When disabled:
+- **Scheduled tasks will not run**: No automatic aggregation or migration tasks
+- **CLI commands will fail**: All commands will show an error message
+- **Services will not be initialized**: No event tracking or statistics services
+- **Menus will not be registered**: No dashboard menu items
+- **Components will not be added**: No event tracking components
+
+**Note**: This is a global on/off switch. When disabled, the module will not modify the instance in any way.
+
+### Scheduled Tasks Enable/Disable
+
+Scheduled aggregation tasks can be controlled separately using the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration variable:
+
+```python
+# Enable the module but disable scheduled tasks
+COMMUNITY_STATS_ENABLED = True
+COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
+```
+
+When scheduled tasks are disabled:
+- **Scheduled aggregation tasks will not run**: No automatic daily/weekly aggregation
+- **CLI aggregation commands will fail**: `aggregate-stats` command will show an error
+- **Manual aggregation still works**: You can still run aggregation manually via Celery tasks
+- **All other functionality remains**: Event tracking, migration, and other features work normally
+
+This allows you to enable the module for manual operations while preventing automatic background tasks.
+
+### View/Download event migration
+
+The following configuration variables control the default behavior of migration commands:
+
+```python
+STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000  # Maximum number of batches to process per month
+STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000  # Number of events to process per batch
+STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 75  # Maximum memory usage percentage before stopping
+```
+
+These defaults can be overridden using the corresponding CLI options when running the `migrate-events` command.
+
+### Task scheduling and aggregation
+
+The following configuration variables control the scheduling and behavior of aggregation tasks:
+
+```python
+from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
+
+COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+    "stats-aggregate-community-record-stats": {
+        **CommunityStatsAggregationTask,
+    },
+}
+"""Celery beat schedule for aggregation tasks."""
+
+COMMUNITY_STATS_CATCHUP_INTERVAL = 365
+"""Maximum number of days to catch up when aggregating historical data."""
+```
+
+### Aggregation task locking
+
+The following configuration variables control the locking mechanism for the aggregation task:
+
+```python
+STATS_DASHBOARD_LOCK_CONFIG = {
+    "enabled": True,  # Enable/disable distributed locking
+    "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
+    "lock_name": "community_stats_aggregation",  # Lock name
+}
+```
+
+### Default range options
+
+The following configuration variable controls the default date range options for the dashboard. The keys represent the
+available granularity levels for the date range selector and cannot be changed. The values represent the default date
+range for each granularity level.
+
+```python
+STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
+    "day": "30days",
+    "week": "12weeks",
+    "month": "12months",
+    "quarter": "4quarters",
+    "year": "5years",
+}
+```
+
 ### Menu configuration
+
+The following configuration variables control the menu integration:
+
+```python
+STATS_DASHBOARD_MENU_ENABLED = True
+"""Enable or disable the stats menu item."""
+
+STATS_DASHBOARD_MENU_TEXT = _("Statistics")
+"""Text for the stats menu item."""
+
+STATS_DASHBOARD_MENU_ORDER = 1
+"""Order of the stats menu item in the menu."""
+
+STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
+"""Endpoint for the stats menu item."""
+
+STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the menu item. If None, uses default registration.
+Should be a callable that takes the Flask app as its only argument."""
+```
 
 ### Dashboard layout and components
 
@@ -945,18 +1116,20 @@ The UI configuration for the dashboard is defined by the `STATS_DASHBOARD_UI_CON
 For example, the default UI configuration is:
 
 ```python
-STATS_DASHBOARD_CONFIG = {
+STATS_DASHBOARD_UI_CONFIG = {
     "global": {
-        "title": "Statistics Dashboard",
-        "description": "This is the global stats dashboard.",
+        "title": _("Statistics"),
+        "description": _("This is the global stats dashboard."),
         "maxHistoryYears": 15,
+        "default_granularity": "month",
         "show_title": True,
         "show_description": False,
     },
     "community": {
-        "title": "Community Statistics Dashboard",
-        "description": "This is the community stats dashboard.",
+        "title": _("Statistics"),
+        "description": _("This is the community stats dashboard."),
         "maxHistoryYears": 15,
+        "default_granularity": "month",
         "show_title": True,
         "show_description": False,
     },
@@ -968,6 +1141,35 @@ STATS_DASHBOARD_CONFIG = {
 The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.
 
 The `show_title` and `show_description` options can be used to control whether the title and description are displayed for the global and community dashboards.
+
+### Configuration Reference
+
+The following table provides a complete reference of all available configuration variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COMMUNITY_STATS_ENABLED` | `True` | Enable/disable the entire module |
+| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `True` | Enable/disable scheduled aggregation tasks |
+| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for aggregation tasks |
+| `COMMUNITY_STATS_CATCHUP_INTERVAL` | `365` | Maximum days to catch up when aggregating historical data |
+| `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
+| `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
+| `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration |
+| `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |
+| `STATS_DASHBOARD_ROUTES` | `{...}` | URL routes for dashboard pages |
+| `STATS_DASHBOARD_UI_CONFIG` | `{...}` | UI configuration for dashboard appearance |
+| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS` | `{...}` | Default date range options |
+| `STATS_DASHBOARD_LAYOUT` | `{...}` | Dashboard layout and component configuration |
+| `STATS_DASHBOARD_MENU_ENABLED` | `True` | Enable/disable menu integration |
+| `STATS_DASHBOARD_MENU_TEXT` | `_("Statistics")` | Menu item text |
+| `STATS_DASHBOARD_MENU_ORDER` | `1` | Menu item order |
+| `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
+| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
+| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
+| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `1000` | Events per batch for migration |
+| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `75` | Maximum memory usage for migration |
+
+**Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
 
 ## Statistics
 
@@ -1021,3 +1223,282 @@ We want to show the following statistics:
 ## Search indices for statistics
 
 **Assume that STATS_REGISTER_INDEX_TEMPLATES is set to True.**
+
+## CLI Commands
+
+The `invenio-stats-dashboard` module provides the following CLI commands for managing statistics infrastructure, migrating events, and monitoring progress. All commands are available as subcommands under the `invenio community-stats` command.
+
+### Usage Event Migration Commands
+
+#### `migrate-events`
+
+Migrate existing usage (view and download) events to enriched indices with community and record metadata.
+
+```bash
+invenio community-stats migrate-events [OPTIONS]
+```
+
+**Options:**
+- `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
+- `--max-batches, -b`: Maximum batches to process per month (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`)
+- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`)
+- `--max-memory-percent`: Maximum memory usage percentage before stopping (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`)
+- `--dry-run`: Show what would be migrated without doing it
+- `--async`: Run reindexing asynchronously using Celery
+- `--delete-old-indices`: Delete old indices after migration (default is to keep them)
+
+**Examples:**
+```bash
+# Basic migration for all event types
+invenio community-stats migrate-events
+
+# Dry run to see what would be migrated
+invenio community-stats migrate-events --dry-run
+
+# Limit batches for testing
+invenio community-stats migrate-events --max-batches 10
+
+# Migrate only view events
+invenio community-stats migrate-events --event-types view
+
+# Run asynchronously with custom settings
+invenio community-stats migrate-events --async --batch-size 500 --max-memory-percent 70
+```
+
+#### `migrate-month`
+
+Migrate a specific monthly download or view event index.
+
+```bash
+invenio community-stats migrate-month [OPTIONS]
+```
+
+**Options:**
+- `--event-type, -e`: Event type (view or download) [required]
+- `--month, -m`: Month to migrate (YYYY-MM) [required]
+- `--max-batches, -b`: Maximum batches to process (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`)
+- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`)
+- `--max-memory-percent`: Maximum memory usage percentage (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`)
+- `--delete-old-indices`: Delete old indices after migration
+
+**Examples:**
+```bash
+# Migrate specific month
+invenio community-stats migrate-month --event-type view --month 2024-01
+
+# Resume interrupted migration with batch limit
+invenio community-stats migrate-month --event-type download --month 2024-02 --max-batches 50
+
+# Migrate with custom settings
+invenio community-stats migrate-month --event-type view --month 2024-03 --batch-size 500 --max-memory-percent 70
+```
+
+### Status and Progress Commands
+
+#### `migration-status`
+
+Show the current migration status and progress across all monthly indices.
+
+```bash
+invenio community-stats migration-status
+```
+
+**Output includes:**
+- System health status and memory usage
+- Event estimates for each type (view, download)
+- Monthly indices found with current month indicators
+- Migration bookmarks showing progress for each month
+
+**Example output:**
+```
+Migration Status
+===============
+System Health: ✅ OK
+Memory Usage: 45.2%
+
+Event Estimates:
+  view: 1,234,567 events
+  download: 567,890 events
+  Total: 1,802,457 events
+
+Monthly Indices:
+  view: 24 indices
+    - kcworks-events-stats-record-view-2023-01
+    - kcworks-events-stats-record-view-2023-02
+    - kcworks-events-stats-record-view-2024-01 (current)
+  download: 24 indices
+    - kcworks-events-stats-file-download-2023-01
+    - kcworks-events-stats-file-download-2023-02
+    - kcworks-events-stats-file-download-2024-01 (current)
+
+Migration Bookmarks:
+  view:
+    2023-01: not started
+    2023-02: abc123def456
+    2024-01: xyz789uvw012
+  download:
+    2023-01: not started
+    2023-02: def456ghi789
+    2024-01: uvw012xyz345
+```
+
+#### `show-interrupted`
+
+Show details about interrupted migrations and provide resume commands.
+
+```bash
+invenio community-stats show-interrupted
+```
+
+**Output includes:**
+- List of interrupted migrations by event type and month
+- Source and target indices for each interrupted migration
+- Last processed event ID
+- Resume commands for each interrupted migration
+
+**Example output:**
+```
+Interrupted Migrations
+=====================
+
+⏸️  VIEW 2024-01:
+  Source index: kcworks-events-stats-record-view-2024-01
+  Last processed ID: abc123def456
+  More records available: Yes
+  Resume command:
+    invenio community-stats migrate-month --event-type view --month 2024-01
+
+⏸️  DOWNLOAD 2024-02:
+  Source index: kcworks-events-stats-file-download-2024-02
+  Last processed ID: xyz789uvw012
+  More records available: Yes
+  Resume command:
+    invenio community-stats migrate-month --event-type download --month 2024-02
+```
+
+#### `estimate-migration`
+
+Estimate the total number of events to migrate and provide time estimates.
+
+```bash
+invenio community-stats estimate-migration
+```
+
+**Output includes:**
+- Event counts by type (view, download)
+- Total events to migrate
+- Rough time estimates for completion
+
+**Example output:**
+```
+Event Migration Estimates:
+========================================
+     view:  1,234,567 events
+ download:    567,890 events
+----------------------------------------
+    TOTAL:  1,802,457 events
+
+Rough time estimate: 3.2 hours
+(This is a very conservative estimate - actual time may vary significantly)
+```
+
+### Community Add/Remove Events Commands
+
+#### `generate-events`
+
+Generate community add/remove events for all records in the instance or specific records/communities. This generates randomized synthetic data for testing purposes.
+
+```bash
+invenio community-stats generate-events [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: The UUID or slug of the community to generate events for. Can be specified multiple times.
+- `--record-ids`: The IDs of the records to generate events for. Can be specified multiple times.
+
+**Examples:**
+```bash
+# Generate events for all records
+invenio community-stats generate-events
+
+# Generate events for specific community
+invenio community-stats generate-events --community-id my-community-slug
+
+# Generate events for specific records
+invenio community-stats generate-events --record-ids abc123 def456 ghi789
+
+# Generate events for multiple communities
+invenio community-stats generate-events --community-id comm1 --community-id comm2
+```
+
+### Statistics Commands
+
+#### `aggregate-stats`
+
+Manually trigger the asynchronous aggregation of statistics for a community or instance.
+
+```bash
+invenio community-stats aggregate-stats [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: The UUID or slug of the community to aggregate stats for. Can also be `global` to aggregate stats for the global instance. If not specified, the aggregation will be done for all communities and the global instance.
+- `--start-date`: The start date to aggregate stats for (default: the creation/publication/adding of the first record in the community/instance)
+- `--end-date`: The end date to aggregate stats for (default: today)
+- `--eager`: Whether to aggregate stats eagerly rather than asynchronously (default: False)
+- `--update-bookmark`: Whether to update the progress bookmark (default: True)
+- `--ignore-bookmark`: Whether to ignore the progress bookmark and force a full re-aggregation (default: False)
+
+**Examples:**
+```bash
+# Aggregate stats for all communities and the global instance
+invenio community-stats aggregate-stats
+
+# Aggregate stats for specific community
+invenio community-stats aggregate-stats --community-id my-community-id
+
+# Aggregate stats for specific date range
+invenio community-stats aggregate-stats --start-date 2024-01-01 --end-date 2024-01-31
+
+# Force eager aggregation
+invenio community-stats aggregate-stats --eager --ignore-bookmark
+```
+
+```{warning}
+Currently this task does not automatically migrate historical view/download events. This needs to be done manually by running the `migrate-events` command before this task is run.
+```
+
+```{note}
+This aggregation task will try to catch up missing community add/remove events, as with the regular scheduled aggregation tasks. It will also observe the aggregators' limits on the number of records to process in a single task run.
+```
+
+```{note}
+Since the Celery task involved employs a lock to prevent concurrent execution, this manual trigger will prevent the scheduled task from running until it is completed.
+```
+
+#### `read-stats`
+
+Read and display statistics data for a community or instance.
+
+```bash
+invenio community-stats read-stats [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: The ID of the community to read stats for (default: "global")
+- `--start-date`: The start date to read stats for (default: yesterday)
+- `--end-date`: The end date to read stats for (default: today)
+
+**Examples:**
+```bash
+# Read global stats for yesterday
+invenio community-stats read-stats
+
+# Read community stats for specific date range
+invenio community-stats read-stats --community-id my-community-id --start-date 2024-01-01 --end-date 2024-01-31
+
+# Read global stats for specific date range
+invenio community-stats read-stats --start-date 2024-01-01 --end-date 2024-01-31
+```
+
+**Note:** This command calls the `read_stats` method on the CommunityStatsService and displays the results using `pprint`.
