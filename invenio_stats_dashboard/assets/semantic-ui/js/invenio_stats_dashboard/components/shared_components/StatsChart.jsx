@@ -8,14 +8,39 @@ import { CHART_COLORS } from '../../constants';
 import { formatNumber, filterSeriesArrayByDate } from '../../utils';
 import { formatDateRange, readableGranularDate } from '../../utils/dates';
 
+// Define y-axis labels for different series
+const SERIES_Y_AXIS_LABELS = {
+  'dataVolume': i18next.t('Uploaded Data Volume (GB)'),
+  'default': i18next.t('Value'),
+  'downloads': i18next.t('Number of Downloads'),
+  'files': i18next.t('Number of Files'),
+  'records': i18next.t('Number of Works'),
+  'traffic': i18next.t('Downloaded Data Volume (GB)'),
+  'uploaders': i18next.t('Number of Uploaders'),
+  'views': i18next.t('Number of Views'),
+};
+
+// Define breakdown category names for display
+const BREAKDOWN_NAMES = {
+  'resourceTypes': 'Work Types',
+  'subjects': 'Subjects',
+  'accessStatus': 'Access Status',
+  'licenses': 'Licenses',
+  'affiliations': 'Affiliations',
+  'funders': 'Funders',
+  'countries': 'Countries',
+  'referrers': 'Referrer Domains',
+  'fileTypes': 'File Types',
+  'languages': 'Languages',
+  'periodicals': 'Periodicals',
+  'publishers': 'Publishers',
+  'byFilePresence': 'With/Without Files'
+};
+
 // Chart configuration constants
 const CHART_CONFIG = {
   aria: {
     enabled: true
-  },
-  legend: {
-    show: false,
-    bottom: 0
   },
   xAxis: {
     type: "time",
@@ -98,7 +123,6 @@ const TOOLTIP_CONFIG = {
   trigger: "axis",
   fontSize: 16,
   formatter: function (params) {
-    console.log('params in StatsChart.jsx', params);
     const readableDate = params[0].data.readableDate;
     let result = "<strong>" + readableDate + "</strong><br/>";
     params.forEach((param) => {
@@ -168,6 +192,28 @@ class ChartConfigBuilder {
     return this;
   }
 
+  withLegend(showLegend, displaySeparately) {
+    if (displaySeparately) {
+      // For breakdown view, always show legend with individual series names
+      this.config.legend = {
+        show: true,
+        type: 'scroll', // Allow scrolling if there are many series
+        orient: 'horizontal',
+        bottom: 0,
+        textStyle: {
+          fontSize: 12
+        }
+      };
+    } else {
+      // For global view, respect the showLegend prop
+      this.config.legend = {
+        show: showLegend,
+        bottom: 0
+      };
+    }
+    return this;
+  }
+
   withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked) {
     if (displaySeparately) {
       this.config.series = aggregatedData.map((series, index) => ({
@@ -234,43 +280,12 @@ class ChartConfigBuilder {
 // Separate config for displaySeparately case (different areaStyle opacity)
 const SEPARATE_CHART_CONFIG = {
   ...CHART_CONFIG,
-  legend: {
-    show: true
-  },
   series: {
     ...CHART_CONFIG.series,
     areaStyle: {
       opacity: 0.3  // Different opacity for non-displaySeparately case
     }
   }
-};
-
-// Define y-axis labels for different series
-const SERIES_Y_AXIS_LABELS = {
-  'views': i18next.t('Number of Views'),
-  'downloads': i18next.t('Number of Downloads'),
-  'traffic': i18next.t('Downloaded Data Volume (GB)'),
-  'records': i18next.t('Number of Works'),
-  'uploaders': i18next.t('Number of Uploaders'),
-  'dataVolume': i18next.t('Uploaded Data Volume (GB)'),
-  'default': i18next.t('Value')
-};
-
-// Define breakdown category names for display
-const BREAKDOWN_NAMES = {
-  'resource_types': 'Work Types',
-  'subjects': 'Subjects',
-  'access_rights': 'Access Statuses',
-  'licenses': 'Licenses',
-  'affiliations': 'Affiliations',
-  'funders': 'Funders',
-  'countries': 'Countries',
-  'referrers': 'Referrer Domains',
-  'file_types': 'File Types',
-  'languages': 'Languages',
-  'periodicals': 'Periodicals',
-  'publishers': 'Publishers',
-  'community': 'Community Records'
 };
 
 const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
@@ -298,7 +313,7 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
               <Form.Field key={key}>
                 <Checkbox
                   radio
-                  label={data[key].name || key}
+                  label={BREAKDOWN_NAMES[key] || key}
                   name={`${key}_checkbox`}
                   checked={displaySeparately === key}
                   onChange={() => setDisplaySeparately(key)}
@@ -537,7 +552,7 @@ const StatsChart = ({
   areaStyle = false,
   height = "400px",
   showControls = true,
-  showLegend = true,
+  showLegend = false,  // Always true with displaySeparately
   showTooltip = true,
   showGrid = true,
   showAxisLabels = true,
@@ -548,7 +563,7 @@ const StatsChart = ({
   const { dateRange, granularity } = useStatsDashboard();
   const [selectedMetric, setSelectedMetric] = useState(seriesSelectorOptions?.[0]?.value);
   const [displaySeparately, setDisplaySeparately] = useState(null);
-  const [chartInstance, setChartInstance] = useState(null);
+
   const [aggregatedData, setAggregatedData] = useState([]);
 
   const seriesArray = useMemo(() => {
@@ -565,7 +580,7 @@ const StatsChart = ({
     return seriesToProcess;
   }, [data, selectedMetric, displaySeparately]);
 
-  useEffect(() => {
+    useEffect(() => {
     const filteredData = filterSeriesArrayByDate(seriesArray, dateRange);
 
     // Add names to the series based on the breakdown category or metric type
@@ -574,7 +589,7 @@ const StatsChart = ({
         // For breakdown view, use the breakdown category name
         return {
           ...series,
-          name: BREAKDOWN_NAMES[displaySeparately] || displaySeparately
+          name: series.name || `Series ${index + 1}`
         };
       } else {
         // For global view, use the metric name
@@ -614,6 +629,7 @@ const StatsChart = ({
       .withTooltip(showTooltip, tooltipConfig)
       .withGrid(showGrid, gridConfig)
       .withAxisLabels(showAxisLabels, xAxisLabel, yAxisLabel, seriesYAxisLabel, granularity, minXInterval, maxXInterval, yAxisMin, selectedMetric)
+      .withLegend(showLegend, displaySeparately)
       .withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked)
       .build();
 
@@ -621,7 +637,6 @@ const StatsChart = ({
       ...finalConfig,
     };
 
-    console.log('Chart options:', options);
     return options;
   }, [
     showTooltip,
@@ -629,6 +644,7 @@ const StatsChart = ({
     showGrid,
     gridConfig,
     showAxisLabels,
+    showLegend,
     xAxisLabel,
     yAxisLabel,
     seriesYAxisLabel,
@@ -642,19 +658,12 @@ const StatsChart = ({
     displaySeparately
   ]);
 
-  const onChartReady = (instance) => {
-    setChartInstance(instance);
-  };
-
-  useEffect(() => {
-    if (chartInstance) {
-      chartInstance.setOption(chartOptions);
-    }
-  }, [chartOptions, chartInstance]);
+  // ReactECharts handles option updates automatically when props change
+  // No need for manual chart instance management
 
   return (
     <Container fluid>
-      <FilterSelector data={data} displaySeparately={displaySeparately} setDisplaySeparately={setDisplaySeparately} />
+      <FilterSelector data={data} aggregatedData={aggregatedData} displaySeparately={displaySeparately} setDisplaySeparately={setDisplaySeparately} />
       {title && (
         <Header as="h3" attached="top" fluid textAlign="center" className="rel-mt-1">
           <Header.Content>
@@ -692,9 +701,10 @@ const StatsChart = ({
           )}
           <div className="stats-chart-container">
             <ReactECharts
+              key={`${selectedMetric}-${displaySeparately}-${granularity}`}
               option={chartOptions}
+              notMerge={true}
               style={{ height }}
-              onChartReady={onChartReady}
               aria-label={title || "Statistics Chart"}
               aria-description={`Chart showing ${selectedMetric} over time`}
             />
