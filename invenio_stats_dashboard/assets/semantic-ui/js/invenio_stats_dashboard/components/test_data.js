@@ -151,84 +151,248 @@ const createUsageMetrics = (isSnapshot = false) => {
   };
 };
 
-// Create subcount series for categories
-const createSubcountSeries = (categoryName, items, isSnapshot = false) => {
+// Create subcount series for categories that sums to global totals
+const createSubcountSeries = (categoryName, items, isSnapshot = false, globalMetrics = null) => {
   const dataType = isSnapshot ? generateCumulativeDataPoints : generateMetricDataPoints;
   const dataVolumeType = isSnapshot ? generateCumulativeDataVolumeDataPoints : generateDataVolumeDataPoints;
 
+  // If no global metrics provided, fall back to random data
+  if (!globalMetrics || items.length === 0) {
+    return {
+      records: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(25, 20, 12500),
+        'line',
+        'number'
+      )),
+      parents: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(25, 20, 12500),
+        'line',
+        'number'
+      )),
+      uploaders: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(12, 13, 2500),
+        'line',
+        'number'
+      )),
+      fileCount: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(50, 40, 25000),
+        'line',
+        'number'
+      )),
+      dataVolume: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataVolumeType(50000000, 100000000, 2500000000000),
+        'line',
+        'filesize'
+      ))
+    };
+  }
+
+  // Generate breakdown data that sums to global totals
+  const generateBreakdownData = (globalDataPoints, itemCount) => {
+    const dates = generateDates();
+    return dates.map((date, dateIndex) => {
+      const globalValue = globalDataPoints[dateIndex]?.value?.[1] || 0;
+
+      // Distribute the global value across breakdown items
+      const distribution = [];
+      let remainingValue = globalValue;
+
+      for (let i = 0; i < itemCount; i++) {
+        if (i === itemCount - 1) {
+          // Last item gets the remaining value
+          distribution.push(remainingValue);
+        } else {
+          // Randomly distribute a portion of the remaining value
+          const maxPortion = Math.floor(remainingValue / (itemCount - i));
+          const portion = Math.floor(Math.random() * maxPortion) + 1;
+          distribution.push(portion);
+          remainingValue -= portion;
+        }
+      }
+
+      return distribution;
+    });
+  };
+
+  // Get global data points for each metric
+  const globalRecords = globalMetrics.records[0]?.data || [];
+  const globalParents = globalMetrics.parents[0]?.data || [];
+  const globalUploaders = globalMetrics.uploaders[0]?.data || [];
+  const globalFileCount = globalMetrics.fileCount[0]?.data || [];
+  const globalDataVolume = globalMetrics.dataVolume[0]?.data || [];
+
+  // Generate breakdown distributions
+  const recordsDistribution = generateBreakdownData(globalRecords, items.length);
+  const parentsDistribution = generateBreakdownData(globalParents, items.length);
+  const uploadersDistribution = generateBreakdownData(globalUploaders, items.length);
+  const fileCountDistribution = generateBreakdownData(globalFileCount, items.length);
+  const dataVolumeDistribution = generateBreakdownData(globalDataVolume, items.length);
+
   return {
-    records: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(25, 20, 12500),
-      'line',
-      'number'
-    )),
-    parents: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(25, 20, 12500),
-      'line',
-      'number'
-    )),
-    uploaders: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(12, 13, 2500),
-      'line',
-      'number'
-    )),
-    fileCount: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(50, 40, 25000),
-      'line',
-      'number'
-    )),
-    dataVolume: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataVolumeType(50000000, 100000000, 2500000000000),
-      'line',
-      'filesize'
-    ))
+    records: items.map((item, itemIndex) => {
+      const dataPoints = recordsDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    parents: items.map((item, itemIndex) => {
+      const dataPoints = parentsDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    uploaders: items.map((item, itemIndex) => {
+      const dataPoints = uploadersDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    fileCount: items.map((item, itemIndex) => {
+      const dataPoints = fileCountDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    dataVolume: items.map((item, itemIndex) => {
+      const dataPoints = dataVolumeDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'filesize');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'filesize');
+    })
   };
 };
 
-// Create usage subcount series for categories
-const createUsageSubcountSeries = (categoryName, items, isSnapshot = false) => {
+// Create usage subcount series for categories that sums to global totals
+const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, globalMetrics = null) => {
   const dataType = isSnapshot ? generateCumulativeDataPoints : generateMetricDataPoints;
   const dataVolumeType = isSnapshot ? generateCumulativeDataVolumeDataPoints : generateDataVolumeDataPoints;
 
+  // If no global metrics provided, fall back to random data
+  if (!globalMetrics || items.length === 0) {
+    return {
+      views: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(100, 200, 250000),
+        'line',
+        'number'
+      )),
+      downloads: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(40, 50, 75000),
+        'line',
+        'number'
+      )),
+      visitors: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataType(80, 150, 200000),
+        'line',
+        'number'
+      )),
+      dataVolume: items.map(item => createDataSeries(
+        item.id,
+        item.name,
+        dataVolumeType(200000000, 300000000, 5000000000000),
+        'line',
+        'filesize'
+      ))
+    };
+  }
+
+  // Generate breakdown data that sums to global totals
+  const generateBreakdownData = (globalDataPoints, itemCount) => {
+    const dates = generateDates();
+    return dates.map((date, dateIndex) => {
+      const globalValue = globalDataPoints[dateIndex]?.value?.[1] || 0;
+
+      // Distribute the global value across breakdown items
+      const distribution = [];
+      let remainingValue = globalValue;
+
+      for (let i = 0; i < itemCount; i++) {
+        if (i === itemCount - 1) {
+          // Last item gets the remaining value
+          distribution.push(remainingValue);
+        } else {
+          // Randomly distribute a portion of the remaining value
+          const maxPortion = Math.floor(remainingValue / (itemCount - i));
+          const portion = Math.floor(Math.random() * maxPortion) + 1;
+          distribution.push(portion);
+          remainingValue -= portion;
+        }
+      }
+
+      return distribution;
+    });
+  };
+
+  // Get global data points for each metric
+  const globalViews = globalMetrics.views[0]?.data || [];
+  const globalDownloads = globalMetrics.downloads[0]?.data || [];
+  const globalVisitors = globalMetrics.visitors[0]?.data || [];
+  const globalDataVolume = globalMetrics.dataVolume[0]?.data || [];
+
+  // Generate breakdown distributions
+  const viewsDistribution = generateBreakdownData(globalViews, items.length);
+  const downloadsDistribution = generateBreakdownData(globalDownloads, items.length);
+  const visitorsDistribution = generateBreakdownData(globalVisitors, items.length);
+  const dataVolumeDistribution = generateBreakdownData(globalDataVolume, items.length);
+
   return {
-    views: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(100, 200, 250000),
-      'line',
-      'number'
-    )),
-    downloads: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(40, 50, 75000),
-      'line',
-      'number'
-    )),
-    visitors: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataType(80, 150, 200000),
-      'line',
-      'number'
-    )),
-    dataVolume: items.map(item => createDataSeries(
-      item.id,
-      item.name,
-      dataVolumeType(200000000, 300000000, 5000000000000),
-      'line',
-      'filesize'
-    ))
+    views: items.map((item, itemIndex) => {
+      const dataPoints = viewsDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    downloads: items.map((item, itemIndex) => {
+      const dataPoints = downloadsDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    visitors: items.map((item, itemIndex) => {
+      const dataPoints = visitorsDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
+    }),
+    dataVolume: items.map((item, itemIndex) => {
+      const dataPoints = dataVolumeDistribution.map((distribution, dateIndex) => {
+        const date = generateDates()[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'filesize');
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'filesize');
+    })
   };
 };
 
@@ -347,137 +511,161 @@ const sampleRecords = [
 // Create the test data structure that matches the dataTransformer output
 const testStatsData = {
   // Record Delta Data
-  recordDeltaDataCreated: {
-    global: createRecordMetrics(false),
-    byFilePresence: createRecordMetrics(false),
-    resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false),
-    accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false),
-    languages: createSubcountSeries('languages', languageItems, false),
-    affiliations: createSubcountSeries('affiliations', affiliationItems, false),
-    funders: createSubcountSeries('funders', funderItems, false),
-    subjects: createSubcountSeries('subjects', subjectItems, false),
-    publishers: createSubcountSeries('publishers', publisherItems, false),
-    periodicals: createSubcountSeries('periodicals', []),
-    licenses: createSubcountSeries('licenses', licenseItems, false),
-    fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false)
-  },
+  recordDeltaDataCreated: (() => {
+    const globalMetrics = createRecordMetrics(false);
+    return {
+      global: globalMetrics,
+      byFilePresence: createRecordMetrics(false),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
+      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
+      languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationItems, false, globalMetrics),
+      funders: createSubcountSeries('funders', funderItems, false, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectItems, false, globalMetrics),
+      publishers: createSubcountSeries('publishers', publisherItems, false, globalMetrics),
+      periodicals: createSubcountSeries('periodicals', [], false, globalMetrics),
+      licenses: createSubcountSeries('licenses', licenseItems, false, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false, globalMetrics)
+    };
+  })(),
 
-  recordDeltaDataAdded: {
-    global: createRecordMetrics(false),
-    byFilePresence: createRecordMetrics(false),
-    resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false),
-    accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false),
-    languages: createSubcountSeries('languages', languageItems, false),
-    affiliations: createSubcountSeries('affiliations', affiliationItems, false),
-    funders: createSubcountSeries('funders', funderItems, false),
-    subjects: createSubcountSeries('subjects', subjectItems, false),
-    publishers: createSubcountSeries('publishers', publisherItems, false),
-    periodicals: createSubcountSeries('periodicals', []),
-    licenses: createSubcountSeries('licenses', licenseItems, false),
-    fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false)
-  },
+  recordDeltaDataAdded: (() => {
+    const globalMetrics = createRecordMetrics(false);
+    return {
+      global: globalMetrics,
+      byFilePresence: createRecordMetrics(false),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
+      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
+      languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationItems, false, globalMetrics),
+      funders: createSubcountSeries('funders', funderItems, false, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectItems, false, globalMetrics),
+      publishers: createSubcountSeries('publishers', publisherItems, false, globalMetrics),
+      periodicals: createSubcountSeries('periodicals', [], false, globalMetrics),
+      licenses: createSubcountSeries('licenses', licenseItems, false, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false, globalMetrics)
+    };
+  })(),
 
-  recordDeltaDataPublished: {
-    global: createRecordMetrics(false),
-    byFilePresence: createRecordMetrics(false),
-    resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false),
-    accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false),
-    languages: createSubcountSeries('languages', languageItems, false),
-    affiliations: createSubcountSeries('affiliations', affiliationItems, false),
-    funders: createSubcountSeries('funders', funderItems, false),
-    subjects: createSubcountSeries('subjects', subjectItems, false),
-    publishers: createSubcountSeries('publishers', publisherItems, false),
-    periodicals: createSubcountSeries('periodicals', []),
-    licenses: createSubcountSeries('licenses', licenseItems, false),
-    fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false)
-  },
+  recordDeltaDataPublished: (() => {
+    const globalMetrics = createRecordMetrics(false);
+    return {
+      global: globalMetrics,
+      byFilePresence: createRecordMetrics(false),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
+      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
+      languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationItems, false, globalMetrics),
+      funders: createSubcountSeries('funders', funderItems, false, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectItems, false, globalMetrics),
+      publishers: createSubcountSeries('publishers', publisherItems, false, globalMetrics),
+      periodicals: createSubcountSeries('periodicals', [], false, globalMetrics),
+      licenses: createSubcountSeries('licenses', licenseItems, false, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false, globalMetrics)
+    };
+  })(),
 
   // Record Snapshot Data
-  recordSnapshotDataCreated: {
-    global: createRecordMetrics(true),
-    byFilePresence: createRecordMetrics(true),
-    resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true),
-    accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true),
-    languages: createSubcountSeries('languages', languageItems, true),
-    affiliations: createSubcountSeries('affiliations', affiliationItems, true),
-    funders: createSubcountSeries('funders', funderItems, true),
-    subjects: createSubcountSeries('subjects', subjectItems, true),
-    publishers: createSubcountSeries('publishers', publisherItems, true),
-    periodicals: createSubcountSeries('periodicals', []),
-    licenses: createSubcountSeries('licenses', licenseItems, true),
-    fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true)
-  },
+  recordSnapshotDataCreated: (() => {
+    const globalMetrics = createRecordMetrics(true);
+    return {
+      global: globalMetrics,
+      byFilePresence: createRecordMetrics(true),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
+      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
+      languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationItems, true, globalMetrics),
+      funders: createSubcountSeries('funders', funderItems, true, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectItems, true, globalMetrics),
+      publishers: createSubcountSeries('publishers', publisherItems, true, globalMetrics),
+      periodicals: createSubcountSeries('periodicals', [], true, globalMetrics),
+      licenses: createSubcountSeries('licenses', licenseItems, true, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true, globalMetrics)
+    };
+  })(),
 
-  recordSnapshotDataAdded: {
-    global: createRecordMetrics(true),
-    byFilePresence: createRecordMetrics(true),
-    resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true),
-    accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true),
-    languages: createSubcountSeries('languages', languageItems, true),
-    affiliations: createSubcountSeries('affiliations', affiliationItems, true),
-    funders: createSubcountSeries('funders', funderItems, true),
-    subjects: createSubcountSeries('subjects', subjectItems, true),
-    publishers: createSubcountSeries('publishers', publisherItems, true),
-    periodicals: createSubcountSeries('periodicals', []),
-    licenses: createSubcountSeries('licenses', licenseItems, true),
-    fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true)
-  },
+  recordSnapshotDataAdded: (() => {
+    const globalMetrics = createRecordMetrics(true);
+    return {
+      global: globalMetrics,
+      byFilePresence: createRecordMetrics(true),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
+      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
+      languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationItems, true, globalMetrics),
+      funders: createSubcountSeries('funders', funderItems, true, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectItems, true, globalMetrics),
+      publishers: createSubcountSeries('publishers', publisherItems, true, globalMetrics),
+      periodicals: createSubcountSeries('periodicals', [], true, globalMetrics),
+      licenses: createSubcountSeries('licenses', licenseItems, true, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true, globalMetrics)
+    };
+  })(),
 
-  recordSnapshotDataPublished: {
-    global: createRecordMetrics(true),
-    byFilePresence: createRecordMetrics(true),
-    resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true),
-    accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true),
-    languages: createSubcountSeries('languages', languageItems, true),
-    affiliations: createSubcountSeries('affiliations', affiliationItems, true),
-    funders: createSubcountSeries('funders', funderItems, true),
-    subjects: createSubcountSeries('subjects', subjectItems, true),
-    publishers: createSubcountSeries('publishers', publisherItems, true),
-    periodicals: createSubcountSeries('periodicals', []),
-    licenses: createSubcountSeries('licenses', licenseItems, true),
-    fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true)
-  },
+  recordSnapshotDataPublished: (() => {
+    const globalMetrics = createRecordMetrics(true);
+    return {
+      global: globalMetrics,
+      byFilePresence: createRecordMetrics(true),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
+      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
+      languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationItems, true, globalMetrics),
+      funders: createSubcountSeries('funders', funderItems, true, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectItems, true, globalMetrics),
+      publishers: createSubcountSeries('publishers', publisherItems, true, globalMetrics),
+      periodicals: createSubcountSeries('periodicals', [], true, globalMetrics),
+      licenses: createSubcountSeries('licenses', licenseItems, true, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true, globalMetrics)
+    };
+  })(),
 
   // Usage Delta Data
-  usageDeltaData: {
-    global: createUsageMetrics(false),
-    byFilePresence: createUsageMetrics(false),
-    byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, false),
-    byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, false),
-    byLanguages: createUsageSubcountSeries('byLanguages', languageItems, false),
-    byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypeItems, false),
-    bySubjects: createUsageSubcountSeries('bySubjects', subjectItems, false),
-    byPublishers: createUsageSubcountSeries('byPublishers', publisherItems, false),
-    byLicenses: createUsageSubcountSeries('byLicenses', licenseItems, false),
-    byCountries: createUsageSubcountSeries('byCountries', countryItems, false),
-    byReferrers: createUsageSubcountSeries('byReferrers', referrerItems, false),
-    byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationItems, false)
-  },
+  usageDeltaData: (() => {
+    const globalMetrics = createUsageMetrics(false);
+    return {
+      global: globalMetrics,
+      byFilePresence: createUsageMetrics(false),
+      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, false, globalMetrics),
+      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, false, globalMetrics),
+      byLanguages: createUsageSubcountSeries('byLanguages', languageItems, false, globalMetrics),
+      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypeItems, false, globalMetrics),
+      bySubjects: createUsageSubcountSeries('bySubjects', subjectItems, false, globalMetrics),
+      byPublishers: createUsageSubcountSeries('byPublishers', publisherItems, false, globalMetrics),
+      byLicenses: createUsageSubcountSeries('byLicenses', licenseItems, false, globalMetrics),
+      byCountries: createUsageSubcountSeries('byCountries', countryItems, false, globalMetrics),
+      byReferrers: createUsageSubcountSeries('byReferrers', referrerItems, false, globalMetrics),
+      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationItems, false, globalMetrics)
+    };
+  })(),
 
   // Usage Snapshot Data
-  usageSnapshotData: {
-    global: createUsageMetrics(true),
-    byFilePresence: createUsageMetrics(true),
-    byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, true),
-    byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, true),
-    byLanguages: createUsageSubcountSeries('byLanguages', languageItems, true),
-    byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypeItems, true),
-    bySubjects: createUsageSubcountSeries('bySubjects', subjectItems, true),
-    byPublishers: createUsageSubcountSeries('byPublishers', publisherItems, true),
-    byLicenses: createUsageSubcountSeries('byLicenses', licenseItems, true),
-    byCountries: createUsageSubcountSeries('byCountries', countryItems, true),
-    byReferrers: createUsageSubcountSeries('byReferrers', referrerItems, true),
-    byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationItems, true),
-    topCountriesByView: createUsageSubcountSeries('topCountriesByView', countryItems, true),
-    topCountriesByDownload: createUsageSubcountSeries('topCountriesByDownload', countryItems, true),
-    topSubjectsByView: createUsageSubcountSeries('topSubjectsByView', subjectItems, true),
-    topSubjectsByDownload: createUsageSubcountSeries('topSubjectsByDownload', subjectItems, true),
-    topPublishersByView: createUsageSubcountSeries('topPublishersByView', publisherItems, true),
-    topPublishersByDownload: createUsageSubcountSeries('topPublishersByDownload', publisherItems, true),
-    topLicensesByView: createUsageSubcountSeries('topLicensesByView', licenseItems, true),
-    topLicensesByDownload: createUsageSubcountSeries('topLicensesByDownload', licenseItems, true),
-    topReferrersByView: createUsageSubcountSeries('topReferrersByView', referrerItems, true)
-  },
+  usageSnapshotData: (() => {
+    const globalMetrics = createUsageMetrics(true);
+    return {
+      global: globalMetrics,
+      byFilePresence: createUsageMetrics(true),
+      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, true, globalMetrics),
+      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, true, globalMetrics),
+      byLanguages: createUsageSubcountSeries('byLanguages', languageItems, true, globalMetrics),
+      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypeItems, true, globalMetrics),
+      bySubjects: createUsageSubcountSeries('bySubjects', subjectItems, true, globalMetrics),
+      byPublishers: createUsageSubcountSeries('byPublishers', publisherItems, true, globalMetrics),
+      byLicenses: createUsageSubcountSeries('byLicenses', licenseItems, true, globalMetrics),
+      byCountries: createUsageSubcountSeries('byCountries', countryItems, true, globalMetrics),
+      byReferrers: createUsageSubcountSeries('byReferrers', referrerItems, true, globalMetrics),
+      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationItems, true, globalMetrics),
+      topCountriesByView: createUsageSubcountSeries('topCountriesByView', countryItems, true, globalMetrics),
+      topCountriesByDownload: createUsageSubcountSeries('topCountriesByDownload', countryItems, true, globalMetrics),
+      topSubjectsByView: createUsageSubcountSeries('topSubjectsByView', subjectItems, true, globalMetrics),
+      topSubjectsByDownload: createUsageSubcountSeries('topSubjectsByDownload', subjectItems, true, globalMetrics),
+      topPublishersByView: createUsageSubcountSeries('topPublishersByView', publisherItems, true, globalMetrics),
+      topPublishersByDownload: createUsageSubcountSeries('topPublishersByDownload', publisherItems, true, globalMetrics),
+      topLicensesByView: createUsageSubcountSeries('topLicensesByView', licenseItems, true, globalMetrics),
+      topLicensesByDownload: createUsageSubcountSeries('topLicensesByDownload', licenseItems, true, globalMetrics),
+      topReferrersByView: createUsageSubcountSeries('topReferrersByView', referrerItems, true, globalMetrics)
+    };
+  })(),
 
   // TODO: Implement these in the API data
   // Most viewed/downloaded records data (for backward compatibility)
