@@ -1,42 +1,41 @@
-@verdigris: #669999;
-@verdigrisDark: #547d7d;
+/* KCWorks Theme Variables for Stats Dashboard */
+@stats-primary: #276f86; /* KCWorks infoBlue */
+@stats-secondary: #1C4036; /* KCWorks ivy */
+@stats-accent: #669999; /* KCWorks verdigris */
+@stats-accent-dark: #547d7d; /* KCWorks verdigrisDark */
+@stats-background: #eff6f4; /* KCWorks mint30 */
+@stats-border: #DEEEEA; /* KCWorks mint60 */
+@stats-text: #547d7d; /* KCWorks verdigrisDark */
+@stats-text-light: #607972; /* KCWorks ivy70 */
+@verdigris: #669999; /* Original variable for backward compatibility */
+@verdigrisDark: #547d7d; /* Original variable for backward compatibility */
 
 #stats-dashboard {
   .button {
     &.blue {
-      background-color: #276f86 !important;
+      background-color: @stats-primary !important;
       color: #fff !important;
     }
     &.green {
-      background-color: #1C4036 !important;
+      background-color: @stats-secondary !important;
       color: #fff !important;
     }
-
     &.teal {
-      background-color: #669999 !important; // #547d7d
+      background-color: @stats-accent !important;
       color: #fff !important;
     }
-
     &.purple {
       background-color: #581c87 !important;
       color: #fff !important;
     }
-
     &.olive {
       background-color: #6c7839 !important;
       color: #fff !important;
     }
-
     &.yellow {
       background-color: #b29017 !important;
       color: #fff !important;
     }
-
-    &.teal {
-      background-color: #276f86 !important;
-      color: #fff !important;
-    }
-
     &.red {
       background-color: #b54f1e !important;
       color: #fff !important;
@@ -172,6 +171,21 @@
       font-size: 1rem;
       font-weight: normal;
       text-transform: none;
+    }
+  }
+
+}
+
+
+.stats-chart-filter-selector {
+  fieldset {
+    padding: 0;
+    border: none;
+    .field {
+      label {
+        color: @verdigrisDark !important;
+        font-weight: normal;
+      }
     }
   }
 }

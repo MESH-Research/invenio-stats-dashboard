@@ -247,13 +247,30 @@ const SEPARATE_CHART_CONFIG = {
 
 // Define y-axis labels for different series
 const SERIES_Y_AXIS_LABELS = {
-  'Views': i18next.t('Number of Views'),
-  'Downloads': i18next.t('Number of Downloads'),
-  'Traffic': i18next.t('Downloaded Data Volume (GB)'),
-  'Records': i18next.t('Number of Works'),
-  'Uploaders': i18next.t('Number of Uploaders'),
-  'Data Volume': i18next.t('Uploaded Data Volume (GB)'),
+  'views': i18next.t('Number of Views'),
+  'downloads': i18next.t('Number of Downloads'),
+  'traffic': i18next.t('Downloaded Data Volume (GB)'),
+  'records': i18next.t('Number of Works'),
+  'uploaders': i18next.t('Number of Uploaders'),
+  'dataVolume': i18next.t('Uploaded Data Volume (GB)'),
   'default': i18next.t('Value')
+};
+
+// Define breakdown category names for display
+const BREAKDOWN_NAMES = {
+  'resource_types': 'Work Types',
+  'subjects': 'Subjects',
+  'access_rights': 'Access Statuses',
+  'licenses': 'Licenses',
+  'affiliations': 'Affiliations',
+  'funders': 'Funders',
+  'countries': 'Countries',
+  'referrers': 'Referrer Domains',
+  'file_types': 'File Types',
+  'languages': 'Languages',
+  'periodicals': 'Periodicals',
+  'publishers': 'Publishers',
+  'community': 'Community Records'
 };
 
 const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
@@ -263,11 +280,11 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
     <Popup
       trigger={
         <Button
-          name="filter"
+          name="stats-chart-filter"
           floated="right"
           size="small"
           icon={<Icon name="filter" />}
-          aria-label="Filter"
+          aria-label="Stats Chart Filter"
           className="stats-chart-filter-selector rel-mt-1 rel-mr-1"
         />
       }
@@ -275,14 +292,14 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
         <Form>
           <fieldset>
             <Form.Field>
-              <label htmlFor="filter">Show separately</label>
+              <label htmlFor="stats-chart-filter">Show separately</label>
             </Form.Field>
             {breakdownOptions.map(key => (
               <Form.Field key={key}>
                 <Checkbox
                   radio
+                  label={data[key].name || key}
                   name={`${key}_checkbox`}
-                  label={data[key].name}
                   checked={displaySeparately === key}
                   onChange={() => setDisplaySeparately(key)}
                 />
@@ -297,6 +314,7 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
       on="click"
       position="bottom right"
       style={{ zIndex: 1000 }}
+      className="stats-chart-filter-selector"
     />
   );
 };
@@ -549,9 +567,27 @@ const StatsChart = ({
 
   useEffect(() => {
     const filteredData = filterSeriesArrayByDate(seriesArray, dateRange);
-    const aggregatedData = aggregateData(filteredData, granularity);
+
+    // Add names to the series based on the breakdown category or metric type
+    const namedSeries = filteredData.map((series, index) => {
+      if (displaySeparately) {
+        // For breakdown view, use the breakdown category name
+        return {
+          ...series,
+          name: BREAKDOWN_NAMES[displaySeparately] || displaySeparately
+        };
+      } else {
+        // For global view, use the metric name
+        return {
+          ...series,
+          name: selectedMetric || `Series ${index + 1}`
+        };
+      }
+    });
+
+    const aggregatedData = aggregateData(namedSeries, granularity);
     setAggregatedData(aggregatedData);
-  }, [seriesArray, granularity, dateRange]);
+  }, [seriesArray, granularity, dateRange, displaySeparately, selectedMetric]);
 
   const seriesColorIndex = useMemo(() =>
     seriesSelectorOptions?.findIndex(option => option.value === selectedMetric) || 0,

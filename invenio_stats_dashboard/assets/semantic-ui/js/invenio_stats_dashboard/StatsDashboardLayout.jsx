@@ -40,7 +40,8 @@ const StatsDashboardLayout = ({
   containerClassNames,
   sidebarClassNames,
   bodyClassNames,
-  getStatsParams = null
+  getStatsParams = null,
+  stats: initialStats = null
 }) => {
   const availableTabs = dashboardConfig?.layout?.tabs?.map(tab => ({
     name: tab.name,
@@ -64,7 +65,7 @@ const StatsDashboardLayout = ({
     dashboardConfig?.default_record_start_basis || "added"
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState(initialStats);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -73,6 +74,12 @@ const StatsDashboardLayout = ({
   };
 
   useEffect(() => {
+    // If initialStats is provided, use it and don't fetch from API
+    if (initialStats) {
+      setStats(initialStats);
+      return;
+    }
+
     let isMounted = true;
 
     const fetchStats = async () => {
@@ -108,7 +115,7 @@ const StatsDashboardLayout = ({
     return () => {
       isMounted = false;
     };
-  }, [selectedTab, dateRange, community, dashboardType, getStatsParams]);
+  }, [initialStats, selectedTab, dateRange, community, dashboardType, getStatsParams]);
 
   const contextValue = {
     binary_sizes,

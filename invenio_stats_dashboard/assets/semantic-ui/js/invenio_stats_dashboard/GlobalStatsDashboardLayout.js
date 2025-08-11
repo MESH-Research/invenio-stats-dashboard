@@ -14,7 +14,7 @@ import PropTypes from "prop-types";
 /**
  * Global stats dashboard layout
  */
-const GlobalStatsDashboardLayout = ({ dashboardConfig }) => {
+const GlobalStatsDashboardLayout = ({ dashboardConfig, stats }) => {
   const dashboardType = DASHBOARD_TYPES.GLOBAL;
 
   // Global-specific configuration
@@ -34,12 +34,14 @@ const GlobalStatsDashboardLayout = ({ dashboardConfig }) => {
       sidebarClassNames={sidebarClassNames}
       bodyClassNames={bodyClassNames}
       getStatsParams={getStatsParams}
+      stats={stats}
     />
   );
 };
 
 GlobalStatsDashboardLayout.propTypes = {
   dashboardConfig: PropTypes.object.isRequired,
+  stats: PropTypes.object,
 };
 
 export { GlobalStatsDashboardLayout };

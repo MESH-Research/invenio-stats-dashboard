@@ -14,7 +14,7 @@ import PropTypes from "prop-types";
 /**
  * Community stats dashboard layout
  */
-const CommunityStatsDashboardLayout = ({ community, dashboardConfig }) => {
+const CommunityStatsDashboardLayout = ({ community, dashboardConfig, stats }) => {
   const dashboardType = DASHBOARD_TYPES.COMMUNITY;
 
   // Community-specific configuration
@@ -35,6 +35,7 @@ const CommunityStatsDashboardLayout = ({ community, dashboardConfig }) => {
       sidebarClassNames={sidebarClassNames}
       bodyClassNames={bodyClassNames}
       getStatsParams={getStatsParams}
+      stats={stats}
     />
   );
 };
@@ -42,6 +43,7 @@ const CommunityStatsDashboardLayout = ({ community, dashboardConfig }) => {
 CommunityStatsDashboardLayout.propTypes = {
   community: PropTypes.object.isRequired,
   dashboardConfig: PropTypes.object.isRequired,
+  stats: PropTypes.object,
 };
 
 export { CommunityStatsDashboardLayout };

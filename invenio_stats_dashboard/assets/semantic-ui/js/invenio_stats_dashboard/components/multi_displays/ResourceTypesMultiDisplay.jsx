@@ -5,7 +5,9 @@ import { PropTypes } from "prop-types";
 import { formatNumber } from "../../utils/numbers";
 import ReactECharts from "echarts-for-react";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
+import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
+import { filterSeriesArrayByDate } from "../../utils/filters";
 
 const ResourceTypesMultiDisplay = ({
   title = i18next.t("Resource Types"),
@@ -16,74 +18,24 @@ const ResourceTypesMultiDisplay = ({
   available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
 
-  // Helper function to extract resource types from the new data structure
-  const extractResourceTypes = () => {
-    // Try to get resource types from record snapshot data
-    if (stats.recordSnapshotDataAdded && stats.recordSnapshotDataAdded.resourceTypes) {
-      const resourceTypesData = stats.recordSnapshotDataAdded.resourceTypes;
-      return Object.entries(resourceTypesData).map(([id, data]) => ({
-        name: data.records[2] || id, // Use label if available, otherwise use id
-        count: data.records[1] || 0, // Use the count value
-        percentage: 0, // Calculate percentage later
-        id: id,
-      }));
-    }
-
-    // Fallback to empty array if no data available
-    return [];
+  const seriesCategoryMap = {
+    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
   };
 
-  const rawResourceTypes = extractResourceTypes();
+  const resourceTypesData = seriesCategoryMap[recordStartBasis]?.resourceTypes?.records;
+  const rawResourceTypes = filterSeriesArrayByDate(resourceTypesData, dateRange, true);
 
-  // Calculate percentages
-  const totalCount = rawResourceTypes.reduce((sum, type) => sum + type.count, 0);
-  const resourceTypesWithPercentages = rawResourceTypes.map(type => ({
-    ...type,
-    percentage: totalCount > 0 ? Math.round((type.count / totalCount) * 100) : 0,
-  }));
-
-  // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = resourceTypesWithPercentages.slice(0, pageSize).map((type, index) => ({
-    name: type.name,
-    value: type.count,
-    percentage: type.percentage,
-    id: type.id,
-    itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-    }
-  }));
-
-  const remainingItems = resourceTypesWithPercentages.slice(pageSize) || [];
-  const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, type) => {
-    acc.value += type.count;
-    acc.percentage += type.percentage;
-    return acc;
-  }, {
-    id: "other",
-    name: "Other",
-    value: 0,
-    percentage: 0,
-    itemStyle: {
-      color: CHART_COLORS.secondary[CHART_COLORS.secondary.length - 1][1] // Use last color for "Other"
-    }
-  }) : null;
-
-  const rowsWithLinks = [
-    ...transformedData,
-    ...(otherData ? [otherData] : [])
-  ].map(({ name, value, percentage, id }) => [
-    null,
-    <a
-      href={`/search?q=metadata.resource_type.id:${id}`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      {name}
-    </a>,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
-  ]);
+  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+    rawResourceTypes,
+    pageSize,
+    'metadata.resource_type.id',
+    CHART_COLORS.secondary
+  );
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
     const options = {
@@ -108,7 +60,7 @@ const ResourceTypesMultiDisplay = ({
           {
             type: "pie",
             radius: ["30%", "70%"],
-            data: [...transformedData, otherData],
+            data: [...transformedData, ...(otherData ? [otherData] : [])],
             spacing: 2,
             itemStyle: {
               borderWidth: 2,

@@ -1,3 +1,4 @@
+import React from "react";
 import { formatNumber } from "./numbers";
 import { CHART_COLORS } from '../constants';
 
