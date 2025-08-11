@@ -754,3 +754,568 @@ class CommunityStatsResultsQuery(Query):
             community_id, start_date, end_date
         )
         return results
+
+
+class CommunityUsageDeltaQuery:
+    """Query builder for community usage delta aggregation.
+
+    This class encapsulates the logic for building aggregation queries
+    on the enriched event indices
+    """
+
+    def __init__(self, client=None):
+        """Initialize the query builder.
+
+        Args:
+            client: The OpenSearch client to use.
+        """
+        if client is None:
+            from invenio_search.proxies import current_search_client
+
+            client = current_search_client
+        self.client = client
+
+    def build_view_query(
+        self,
+        community_id: str,
+        date: arrow.Arrow,
+        view_index: str,
+    ) -> Search:
+        """Build a query for view events.
+
+        Args:
+            community_id (str): The community ID to query for.
+            date (arrow.Arrow): The date to aggregate for.
+            view_index (str): The view events index.
+
+        Returns:
+            Search: The search object for view events.
+        """
+        query_dict = self._build_view_query_dict(community_id, date)
+        return Search(using=self.client, index=view_index).update_from_dict(query_dict)
+
+    def build_download_query(
+        self,
+        community_id: str,
+        date: arrow.Arrow,
+        download_index: str,
+    ) -> Search:
+        """Build a query for download events.
+
+        Args:
+            community_id (str): The community ID to query for.
+            date (arrow.Arrow): The date to aggregate for.
+            download_index (str): The download events index.
+
+        Returns:
+            Search: The search object for download events.
+        """
+        query_dict = self._build_download_query_dict(community_id, date)
+        return Search(using=self.client, index=download_index).update_from_dict(
+            query_dict
+        )
+
+    def _build_view_query_dict(self, community_id: str, date: arrow.Arrow) -> dict:
+        """Build a query dictionary for view events.
+
+        Args:
+            community_id (str): The community ID to query for.
+            date (arrow.Arrow): The date to aggregate for.
+
+        Returns:
+            dict: The query dictionary for view events.
+        """
+        query_dict = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "range": {
+                                "timestamp": {
+                                    "gte": (
+                                        date.floor("day").format("YYYY-MM-DDTHH:mm:ss")
+                                    ),
+                                    "lt": (
+                                        date.ceil("day").format("YYYY-MM-DDTHH:mm:ss")
+                                    ),
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "aggs": {
+                "view": {
+                    "filter": {"term": {"recid": {"exists": True}}},
+                    "aggs": self._get_view_metrics_dict(),
+                }
+            },
+        }
+
+        # Add community filter if not global
+        if community_id != "global":
+            query_dict["query"]["bool"]["filter"].append(
+                {"term": {"community_ids": community_id}}
+            )
+
+        # Add subcount aggregations
+        query_dict["aggs"].update(self._get_view_subcount_aggregations_dict())
+
+        return query_dict
+
+    def _build_download_query_dict(self, community_id: str, date: arrow.Arrow) -> dict:
+        """Build a query dictionary for download events.
+
+        Args:
+            community_id (str): The community ID to query for.
+            date (arrow.Arrow): The date to aggregate for.
+
+        Returns:
+            dict: The query dictionary for download events.
+        """
+        query_dict = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "range": {
+                                "timestamp": {
+                                    "gte": (
+                                        date.floor("day").format("YYYY-MM-DDTHH:mm:ss")
+                                    ),
+                                    "lt": (
+                                        date.ceil("day").format("YYYY-MM-DDTHH:mm:ss")
+                                    ),
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "aggs": {
+                "download": {
+                    "filter": {"term": {"recid": {"exists": True}}},
+                    "aggs": self._get_download_metrics_dict(),
+                }
+            },
+        }
+
+        # Add community filter if not global
+        if community_id != "global":
+            query_dict["query"]["bool"]["filter"].append(
+                {"term": {"community_ids": community_id}}
+            )
+
+        # Add subcount aggregations
+        query_dict["aggs"].update(self._get_download_subcount_aggregations_dict())
+
+        return query_dict
+
+    def _get_view_metrics_dict(self) -> dict:
+        """Get the metrics dictionary for view events.
+
+        Returns:
+            dict: The metrics dictionary for view events.
+        """
+        return {
+            "unique_visitors": {"cardinality": {"field": "visitor_id"}},
+            "unique_records": {"cardinality": {"field": "recid"}},
+            "unique_parents": {"cardinality": {"field": "parent_recid"}},
+        }
+
+    def _get_download_metrics_dict(self) -> dict:
+        """Get the metrics dictionary for download events.
+
+        Returns:
+            dict: The metrics dictionary for download events.
+        """
+        return {
+            "unique_visitors": {"cardinality": {"field": "visitor_id"}},
+            "unique_records": {"cardinality": {"field": "recid"}},
+            "unique_parents": {"cardinality": {"field": "parent_recid"}},
+            "unique_files": {"cardinality": {"field": "file_id"}},
+            "total_volume": {"sum": {"field": "size"}},
+        }
+
+    def _get_view_subcount_aggregations_dict(self) -> dict:
+        """Get the subcount aggregations dictionary for view events.
+
+        Returns:
+            dict: The subcount aggregations dictionary for view events.
+        """
+        return {
+            "by_resource_types": {
+                "terms": {"field": "resource_type.id", "size": 1000},
+                "aggs": {
+                    "view": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_view_metrics_dict(),
+                    },
+                    "title": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {
+                                "includes": [
+                                    "resource_type.title.en",
+                                    "resource_type.id",
+                                ]
+                            },
+                        }
+                    },
+                },
+            },
+            "by_access_status": {
+                "terms": {"field": "access_status", "size": 1000},
+                "aggs": {
+                    "view": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_view_metrics_dict(),
+                    },
+                },
+            },
+            "by_languages": {
+                "nested": {"path": "languages"},
+                "aggs": {
+                    "by_language_id": {
+                        "terms": {"field": "languages.id", "size": 1000},
+                        "aggs": {
+                            "view": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_view_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["languages.title", "languages.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_subjects": {
+                "nested": {"path": "subjects"},
+                "aggs": {
+                    "by_subject_id": {
+                        "terms": {"field": "subjects.id", "size": 1000},
+                        "aggs": {
+                            "view": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_view_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["subjects.title", "subjects.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_licenses": {
+                "nested": {"path": "rights"},
+                "aggs": {
+                    "by_rights_id": {
+                        "terms": {"field": "rights.id", "size": 1000},
+                        "aggs": {
+                            "view": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_view_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["rights.title", "rights.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_funders": {
+                "nested": {"path": "funders"},
+                "aggs": {
+                    "by_funder_id": {
+                        "terms": {"field": "funders.id", "size": 1000},
+                        "aggs": {
+                            "view": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_view_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["funders.name", "funders.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_periodicals": {
+                "terms": {"field": "journal_title", "size": 1000},
+                "aggs": {
+                    "view": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_view_metrics_dict(),
+                    },
+                },
+            },
+            "by_publishers": {
+                "terms": {"field": "publisher", "size": 1000},
+                "aggs": {
+                    "view": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_view_metrics_dict(),
+                    },
+                },
+            },
+            "by_affiliations": {
+                "nested": {"path": "affiliations"},
+                "aggs": {
+                    "by_affiliation_id": {
+                        "terms": {"field": "affiliations.id", "size": 1000},
+                        "aggs": {
+                            "view": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_view_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": [
+                                            "affiliations.name",
+                                            "affiliations.id",
+                                        ]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_countries": {
+                "terms": {"field": "country", "size": 1000},
+                "aggs": {
+                    "view": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_view_metrics_dict(),
+                    },
+                },
+            },
+            "by_referrers": {
+                "terms": {"field": "referrer", "size": 1000},
+                "aggs": {
+                    "view": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_view_metrics_dict(),
+                    },
+                },
+            },
+        }
+
+    def _get_download_subcount_aggregations_dict(self) -> dict:
+        """Get the subcount aggregations dictionary for download events.
+
+        Returns:
+            dict: The subcount aggregations dictionary for download events.
+        """
+        return {
+            "by_resource_types": {
+                "terms": {"field": "resource_type.id", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                    "title": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {
+                                "includes": [
+                                    "resource_type.title.en",
+                                    "resource_type.id",
+                                ]
+                            },
+                        }
+                    },
+                },
+            },
+            "by_access_status": {
+                "terms": {"field": "access_status", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                },
+            },
+            "by_languages": {
+                "nested": {"path": "languages"},
+                "aggs": {
+                    "by_language_id": {
+                        "terms": {"field": "languages.id", "size": 1000},
+                        "aggs": {
+                            "download": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_download_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["languages.title", "languages.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_subjects": {
+                "nested": {"path": "subjects"},
+                "aggs": {
+                    "by_subject_id": {
+                        "terms": {"field": "subjects.id", "size": 1000},
+                        "aggs": {
+                            "download": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_download_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["subjects.title", "subjects.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_licenses": {
+                "nested": {"path": "rights"},
+                "aggs": {
+                    "by_rights_id": {
+                        "terms": {"field": "rights.id", "size": 1000},
+                        "aggs": {
+                            "download": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_download_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["rights.title", "rights.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_funders": {
+                "nested": {"path": "funders"},
+                "aggs": {
+                    "by_funder_id": {
+                        "terms": {"field": "funders.id", "size": 1000},
+                        "aggs": {
+                            "download": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_download_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": ["funders.name", "funders.id"]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_periodicals": {
+                "terms": {"field": "journal_title", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                },
+            },
+            "by_publishers": {
+                "terms": {"field": "publisher", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                },
+            },
+            "by_affiliations": {
+                "nested": {"path": "affiliations"},
+                "aggs": {
+                    "by_affiliation_id": {
+                        "terms": {"field": "affiliations.id", "size": 1000},
+                        "aggs": {
+                            "download": {
+                                "filter": {"term": {"recid": {"exists": True}}},
+                                "aggs": self._get_download_metrics_dict(),
+                            },
+                            "title": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {
+                                        "includes": [
+                                            "affiliations.name",
+                                            "affiliations.id",
+                                        ]
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "by_countries": {
+                "terms": {"field": "country", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                },
+            },
+            "by_referrers": {
+                "terms": {"field": "referrer", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                },
+            },
+            "by_file_types": {
+                "terms": {"field": "file_type", "size": 1000},
+                "aggs": {
+                    "download": {
+                        "filter": {"term": {"recid": {"exists": True}}},
+                        "aggs": self._get_download_metrics_dict(),
+                    },
+                },
+            },
+        }

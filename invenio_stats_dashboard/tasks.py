@@ -72,6 +72,7 @@ def aggregate_community_record_stats(
     end_date=None,
     update_bookmark=True,
     ignore_bookmark=False,
+    community_ids=None,  # Add community_ids parameter
 ):
     """Aggregate community record stats from created records."""
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
@@ -87,7 +88,7 @@ def aggregate_community_record_stats(
                     "Acquired aggregation lock, starting aggregation..."
                 )
                 return _run_aggregation(
-                    aggregations, start_date, end_date, update_bookmark
+                    aggregations, start_date, end_date, update_bookmark, community_ids
                 )
         except TaskLockAcquisitionError:
             # Lock acquisition failed - another task is running
@@ -98,10 +99,14 @@ def aggregate_community_record_stats(
     else:
         # Run without locking
         current_app.logger.info("Running aggregation without distributed lock...")
-        return _run_aggregation(aggregations, start_date, end_date, update_bookmark)
+        return _run_aggregation(
+            aggregations, start_date, end_date, update_bookmark, community_ids
+        )
 
 
-def _run_aggregation(aggregations, start_date, end_date, update_bookmark):
+def _run_aggregation(
+    aggregations, start_date, end_date, update_bookmark, community_ids=None
+):
     """Run the actual aggregation logic."""
     start_date = dateutil_parse(start_date) if start_date else None
     end_date = dateutil_parse(end_date) if end_date else None
@@ -112,7 +117,10 @@ def _run_aggregation(aggregations, start_date, end_date, update_bookmark):
 
     for aggr_name in aggregations:
         aggr_cfg = current_stats.aggregations[aggr_name]
-        aggregator = aggr_cfg.cls(name=aggr_cfg.name, **aggr_cfg.params)
+        params = aggr_cfg.params.copy()
+        if community_ids:
+            params["community_ids"] = community_ids
+        aggregator = aggr_cfg.cls(name=aggr_cfg.name, **params)
         result = aggregator.run(start_date, end_date, update_bookmark)
         results.append(result)
 

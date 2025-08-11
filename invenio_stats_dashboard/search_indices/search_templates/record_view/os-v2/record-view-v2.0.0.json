@@ -190,9 +190,7 @@
               "type": "keyword"
             },
             "name": {
-              "type": "text",
-              "analyzer": "accent_analyzer",
-              "search_analyzer": "accent_analyzer"
+              "type": "keyword"
             },
             "identifiers": {
               "properties": {
@@ -216,7 +214,7 @@
               "type": "keyword"
             },
             "name": {
-              "type": "text"
+              "type": "keyword"
             },
             "identifiers": {
               "properties": {
@@ -240,9 +238,14 @@
           "type": "date"
         }
       }
+    },
+    "aliases": {
+      "__SEARCH_INDEX_PREFIX__events-stats-record-view": {}
     }
   },
-  "aliases": {
-    "__SEARCH_INDEX_PREFIX__events-stats-record-view": {}
+  "priority": 100,
+  "version": 2,
+  "_meta": {
+    "description": "Record View Events v2.0.0 with enriched metadata fields for KCWorks"
   }
 }

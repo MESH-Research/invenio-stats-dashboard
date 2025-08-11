@@ -28,6 +28,9 @@ def global_stats_dashboard():
             "default_range_options": current_app.config[
                 "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
             ],
+            "use_test_data": current_app.config.get(
+                "STATS_DASHBOARD_USE_TEST_DATA", True
+            ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -56,6 +59,9 @@ def community_stats_dashboard(pid_value, community, community_ui):
             "default_range_options": current_app.config[
                 "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
             ],
+            "use_test_data": current_app.config.get(
+                "STATS_DASHBOARD_USE_TEST_DATA", True
+            ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
         },
         community=community_ui,

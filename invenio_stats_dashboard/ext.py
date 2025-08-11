@@ -108,49 +108,68 @@ class InvenioStatsDashboard:
     def init_app(self, app):
         """Flask application initialization."""
         self.init_config(app)
-        self.service = CommunityStatsService(app)
-        self.event_reindexing_service = EventReindexingService(app)
-        app.extensions["invenio-stats-dashboard"] = self
+
+        if app.config.get("COMMUNITY_STATS_ENABLED", True):
+            self.service = CommunityStatsService(app)
+            self.event_reindexing_service = EventReindexingService(app)
+            app.extensions["invenio-stats-dashboard"] = self
 
     def init_config(self, app):
         """Initialize configuration."""
         for k in dir(config):
             if k.startswith("STATS_DASHBOARD_"):
                 app.config.setdefault(k, getattr(config, k))
-        existing_schedule = app.config.get("CELERY_BEAT_SCHEDULE", {})
-        app.config["CELERY_BEAT_SCHEDULE"] = {
-            **existing_schedule,
-            **config.COMMUNITY_STATS_CELERYBEAT_SCHEDULE,
-        }
+
+        if not app.config.get("COMMUNITY_STATS_ENABLED", True):
+            app.logger.info(
+                "Community stats dashboard is disabled. Skipping initialization."
+            )
+            return
+
+        if app.config.get("COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED", True):
+            existing_schedule = app.config.get("CELERY_BEAT_SCHEDULE", {})
+            app.config["CELERY_BEAT_SCHEDULE"] = {
+                **existing_schedule,
+                **config.COMMUNITY_STATS_CELERYBEAT_SCHEDULE,
+            }
+        else:
+            app.logger.info(
+                "Community stats scheduled tasks are disabled. "
+                "Scheduled aggregation tasks will not run, but manual "
+                "aggregation is still possible."
+            )
+
         existing_events = app.config.get("STATS_EVENTS", {})
         app.config["STATS_EVENTS"] = {
             **existing_events,
             **config.STATS_EVENTS,
         }
+
         existing_aggregations = app.config.get("STATS_AGGREGATIONS", {})
         app.config["STATS_AGGREGATIONS"] = {
             **existing_aggregations,
             **config.COMMUNITY_STATS_AGGREGATIONS,
         }
+
         existing_queries = app.config.get("STATS_QUERIES", {})
         app.config["STATS_QUERIES"] = {
             **existing_queries,
             **config.COMMUNITY_STATS_QUERIES,
         }
+
         app.config["REQUESTS_EVENTS_SERVICE_COMPONENTS"] = [
             *app.config.get("REQUESTS_EVENTS_SERVICE_COMPONENTS", []),
             CommunityAcceptedEventComponent,
         ]
+
         existing_rdm_record_components = app.config.get(
             "RDM_RECORDS_SERVICE_COMPONENTS", []
-        )
-        app.logger.error(
-            f"existing_rdm_record_components: {existing_rdm_record_components}"
         )
         app.config["RDM_RECORDS_SERVICE_COMPONENTS"] = [
             *existing_rdm_record_components,
             RecordCommunityEventComponent,
         ]
+
         existing_record_communities_components = app.config.get(
             "RDM_RECORD_COMMUNITIES_SERVICE_COMPONENTS", []
         )
@@ -168,8 +187,10 @@ def finalize_app(app):
 
 def _register_menus(app):
     """Register menu."""
-    # Check if menu is enabled
-    if not app.config.get("STATS_DASHBOARD_MENU_ENABLED", True):
+    # Check if stats and menu entry are enabled
+    if not app.config.get("COMMUNITY_STATS_ENABLED", True) or not app.config.get(
+        "STATS_DASHBOARD_MENU_ENABLED", True
+    ):
         return
 
     # Check for custom registration function

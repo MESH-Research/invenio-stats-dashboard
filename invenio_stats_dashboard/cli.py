@@ -7,23 +7,42 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
-from pprint import pprint
-
 import arrow
 import click
-from flask import current_app as app
+from flask import current_app
 from flask.cli import with_appcontext
 from halo import Halo
+from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from opensearchpy.helpers.search import Search
+from pprint import pprint
 
 from .proxies import current_community_stats_service
 from .service import EventReindexingService
 from .tasks import reindex_usage_events_with_metadata
 
 
+def check_stats_enabled():
+    """Check if community stats are enabled."""
+    if not current_app.config.get("COMMUNITY_STATS_ENABLED", True):
+        raise click.ClickException(
+            "Community stats dashboard is disabled. "
+            "Set COMMUNITY_STATS_ENABLED=True to enable this command."
+        )
+
+
+def check_scheduled_tasks_enabled():
+    """Check if scheduled tasks are enabled."""
+    if not current_app.config.get("COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED", True):
+        raise click.ClickException(
+            "Community stats scheduled tasks are disabled. "
+            "Set COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED=True to enable "
+            "aggregation tasks."
+        )
+
+
 @click.group()
 def cli():
-    """Stats dashboard CLI commands."""
+    """Community stats dashboard CLI."""
     pass
 
 
@@ -47,6 +66,7 @@ def generate_events_command(community_id, record_ids):
     """
     Generate community events for all records in the instance.
     """
+    check_stats_enabled()
     current_community_stats_service.generate_record_community_events(
         community_ids=list(community_id) if community_id else None,
         recids=list(record_ids) if record_ids else None,
@@ -57,40 +77,51 @@ def generate_events_command(community_id, record_ids):
 @click.option(
     "--community-id",
     type=str,
-    help="The ID of the community to aggregate stats for.",
+    multiple=True,
+    help="The UUID or slug of the community to aggregate stats for",
 )
 @click.option(
     "--start-date",
     type=str,
-    help="The start date to aggregate stats for.",
+    help="The start date to aggregate stats for (YYYY-MM-DD)",
 )
 @click.option(
     "--end-date",
     type=str,
-    help="The end date to aggregate stats for.",
+    help="The end date to aggregate stats for (YYYY-MM-DD)",
 )
 @click.option(
     "--eager",
     is_flag=True,
-    help="Whether to aggregate stats eagerly.",
+    help="Run aggregation eagerly (synchronously)",
 )
 @click.option(
     "--update-bookmark",
     is_flag=True,
-    help="Whether to update the bookmark.",
+    default=True,
+    help="Update the bookmark after aggregation",
 )
 @click.option(
     "--ignore-bookmark",
     is_flag=True,
-    help="Whether to ignore the bookmark.",
+    help="Ignore the bookmark and process all records",
 )
 @with_appcontext
 def aggregate_stats_command(
-    community_id, start_date, end_date, eager, update_bookmark, ignore_bookmark
+    community_id,
+    start_date,
+    end_date,
+    eager,
+    update_bookmark,
+    ignore_bookmark,
 ):
-    """Aggregate stats for a community."""
+    """Aggregate community record statistics."""
+    check_stats_enabled()
+    check_scheduled_tasks_enabled()
+
+    community_ids = list(community_id) if community_id else None
     current_community_stats_service.aggregate_stats(
-        community_ids=[community_id] if community_id else None,
+        community_ids=community_ids,
         start_date=start_date,
         end_date=end_date,
         eager=eager,
@@ -121,8 +152,9 @@ def aggregate_stats_command(
 @with_appcontext
 def read_stats_command(community_id, start_date, end_date):
     """Read stats for a community."""
+    check_stats_enabled()
     print(f"Reading stats for community {community_id} from {start_date} to {end_date}")
-    stats = current_community_stats_service.get_community_stats(
+    stats = current_community_stats_service.read_stats(
         community_id, start_date=start_date, end_date=end_date
     )
     pprint(stats)
@@ -175,7 +207,7 @@ def migrate_events_command(
     delete_old_indices,
 ):
     """Migrate events to enriched indices with monthly index support."""
-    from flask import current_app
+    check_stats_enabled()
 
     if not event_types:
         event_types = ["view", "download"]
@@ -218,9 +250,7 @@ def migrate_events_command(
             delete_old_indices=delete_old_indices,
         )
         click.echo(f"Task ID: {task.id}")
-        click.echo(
-            "Use 'invenio stats-dashboard get-reindexing-progress' to check progress"
-        )
+        click.echo("Use 'invenio community-stats migration-status' to check progress")
     else:
         click.echo("Running synchronously...")
         try:
@@ -329,7 +359,7 @@ def migrate_events_command(
                     )
                     for migration in interrupted:
                         click.echo(
-                            f"     invenio stats-dashboard migrate-month "
+                            f"     invenio community-stats migrate-month "
                             f"--event-type {migration['event_type']} "
                             f"--month {migration['month']}"
                         )
@@ -341,7 +371,7 @@ def migrate_events_command(
                     click.echo("  3. Run the migration again:")
                     for migration in failed:
                         click.echo(
-                            f"     invenio stats-dashboard migrate-month "
+                            f"     invenio community-stats migrate-month "
                             f"--event-type {migration['event_type']} "
                             f"--month {migration['month']}"
                         )
@@ -355,7 +385,7 @@ def migrate_events_command(
 @with_appcontext
 def migration_status_command():
     """Show the current migration status and progress."""
-    from flask import current_app
+    check_stats_enabled()
 
     service = EventReindexingService(current_app)
 
@@ -408,7 +438,7 @@ def migration_status_command():
 @with_appcontext
 def show_interrupted_command():
     """Show details about interrupted migrations."""
-    from flask import current_app
+    check_stats_enabled()
 
     service = EventReindexingService(current_app)
     progress = service.get_reindexing_progress()
@@ -446,7 +476,7 @@ def show_interrupted_command():
                             click.echo("  More records available: Yes")
                             click.echo("  Resume command:")
                             click.echo(
-                                f"    invenio stats-dashboard migrate-month "
+                                f"    invenio community-stats migrate-month "
                                 f"--event-type {event_type} --month {month}"
                             )
                     except Exception as e:
@@ -483,7 +513,7 @@ def migrate_month_command(
     event_type, month, max_batches, batch_size, max_memory_percent, delete_old_indices
 ):
     """Migrate a specific monthly index."""
-    from flask import current_app
+    check_stats_enabled()
 
     if event_type not in ["view", "download"]:
         click.echo("❌ Event type must be 'view' or 'download'")
@@ -535,7 +565,7 @@ def migrate_month_command(
             click.echo(f"Target index: {results['target_index']}")
             click.echo("\n💡 To resume this migration:")
             click.echo(
-                f"  invenio stats-dashboard migrate-month "
+                f"  invenio community-stats migrate-month "
                 f"--event-type {event_type} --month {month} "
                 f"--max-batches <remaining_batches>"
             )
@@ -552,8 +582,9 @@ def migrate_month_command(
 @with_appcontext
 def estimate_migration_command():
     """Estimate the total number of events to migrate."""
-    reindexing_service = EventReindexingService(app)
-    estimates = reindexing_service.estimate_total_events()
+    check_stats_enabled()
+
+    estimates = current_event_reindexing_service.estimate_total_events()
 
     total_events = sum(estimates.values())
 

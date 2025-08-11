@@ -1,7 +1,6 @@
 import copy
 import datetime
 import time
-from collections import defaultdict
 from collections.abc import Generator
 from functools import wraps
 from pprint import pformat
@@ -17,7 +16,6 @@ from invenio_stats.aggregations import StatAggregator
 from invenio_stats.bookmark import BookmarkAPI
 from opensearchpy import AttrDict, AttrList
 from opensearchpy.helpers.actions import bulk
-from opensearchpy.helpers.aggs import Bucket
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
@@ -27,6 +25,7 @@ from .proxies import current_community_stats_service
 from .queries import (
     daily_record_delta_query_with_events,
     daily_record_snapshot_query_with_events,
+    CommunityUsageDeltaQuery,
 )
 
 SUBCOUNT_TYPES = {
@@ -1917,6 +1916,91 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
 
 class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
+    SUBCOUNT_CONFIGS = {
+        "by_resource_types": {
+            "view_field": "resource_type.id",
+            "download_field": "resource_type.id",
+            "title_field": "resource_type.title.en",
+            "is_nested": False,
+        },
+        "by_access_status": {
+            "view_field": "access_status",
+            "download_field": "access_status",
+            "title_field": None,
+            "is_nested": False,
+        },
+        "by_languages": {
+            "view_field": "languages.id",
+            "download_field": "languages.id",
+            "title_field": "languages.title",
+            "is_nested": True,
+            "nested_path": "languages",
+            "nested_agg": "by_language_id",
+        },
+        "by_subjects": {
+            "view_field": "subjects.id",
+            "download_field": "subjects.id",
+            "title_field": "subjects.title",
+            "is_nested": True,
+            "nested_path": "subjects",
+            "nested_agg": "by_subject_id",
+        },
+        "by_licenses": {
+            "view_field": "rights.id",
+            "download_field": "rights.id",
+            "title_field": "rights.title",
+            "is_nested": True,
+            "nested_path": "rights",
+            "nested_agg": "by_rights_id",
+        },
+        "by_funders": {
+            "view_field": "funders.id",
+            "download_field": "funders.id",
+            "title_field": "funders.name",
+            "is_nested": True,
+            "nested_path": "funders",
+            "nested_agg": "by_funder_id",
+        },
+        "by_periodicals": {
+            "view_field": "journal_title",
+            "download_field": "journal_title",
+            "title_field": None,
+            "is_nested": False,
+        },
+        "by_publishers": {
+            "view_field": "publisher",
+            "download_field": "publisher",
+            "title_field": None,
+            "is_nested": False,
+        },
+        "by_affiliations": {
+            "view_field": "affiliations.id",
+            "download_field": "affiliations.id",
+            "title_field": "affiliations.name",
+            "is_nested": True,
+            "nested_path": "affiliations",
+            "nested_agg": "by_affiliation_id",
+        },
+        "by_countries": {
+            "view_field": "country",
+            "download_field": "country",
+            "title_field": None,
+            "is_nested": False,
+        },
+        "by_referrers": {
+            "view_field": "referrer",
+            "download_field": "referrer",
+            "title_field": None,
+            "is_nested": False,
+        },
+        "by_file_types": {
+            "view_field": None,  # Only in download events
+            "download_field": "file_type",
+            "title_field": None,
+            "is_nested": False,
+        },
+    }
+
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.event_index: list[tuple[str, str]] = [
@@ -1926,6 +2010,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         self.aggregation_index = prefix_index("stats-community-usage-delta")
         self.event_date_field = "timestamp"
         self.event_community_query_term = lambda community_id: Q("match_all")
+        self.query_builder = CommunityUsageDeltaQuery(client=self.client)
 
     def _should_skip_aggregation(
         self,
@@ -1970,70 +2055,15 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             # If community_id is not "global", we need to check if any of these events
             # belong to records that are in the community on this date
             if community_id != "global":
-                # Get all record IDs from events in this date range
-                record_search = Search(using=self.client, index=event_index)
-                record_search = record_search.filter(
-                    "range",
-                    timestamp={
-                        "gte": start_date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                        "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                    },
-                )
-                record_search.aggs.bucket(
-                    "by_record", "terms", field="recid", size=1000
-                )
-                record_results = record_search.execute()
-
-                if not record_results.aggregations.by_record.buckets:
-                    continue
-
-                # Check if any of these records are in the community on this date
-                record_ids = [
-                    bucket.key
-                    for bucket in record_results.aggregations.by_record.buckets
-                ]
-                community_search = (
-                    Search(
-                        using=self.client, index=prefix_index("stats-community-events")
-                    )
-                    .filter("term", community_id=community_id)
-                    .filter("terms", record_id=record_ids)
-                    .filter(
-                        "range",
-                        event_date={
-                            "lte": start_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                        },
-                    )
-                )
-
-                # Add terms aggregation to get unique records
-                record_agg = community_search.aggs.bucket(
-                    "by_record", "terms", field="record_id"
-                )
-                record_agg.bucket(
-                    "top_hits",
-                    "top_hits",
-                    size=1,
-                    sort=[{"event_date": {"order": "desc"}}],
-                    _source={"includes": ["event_type"]},
-                )
-
-                community_results = community_search.execute()
-
-                # Check if any records have "added" as their last event type
-                for bucket in community_results.aggregations.by_record.buckets:
-                    if bucket.top_hits.hits[0]["event_type"] == "added":
-                        # Found at least one record with usage events in the community
-                        events_found = True
-                        break
-
-                # No records with usage events found in community
-                continue
+                # Use the new community_ids field directly from the enriched events
+                search = search.filter("term", community_ids=community_id)
             else:
                 # For global aggregator, just check if there are any events at all
-                if search.count() > 0:
-                    events_found = True
-                    break
+                pass
+
+            if search.count() > 0:
+                events_found = True
+                break
 
         return not events_found
 
@@ -2086,592 +2116,179 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             },
         }
 
-    def _create_temp_index(self, temp_index: str) -> None:
-        """Create temporary index with appropriate mappings."""
-        self.client.indices.create(
-            index=temp_index,
-            body={
-                "settings": {"number_of_shards": 1, "number_of_replicas": 0},
-                "mappings": {
-                    "properties": {
-                        "record_id": {"type": "keyword"},
-                        "parent_record_id": {"type": "keyword"},
-                        "community_id": {"type": "keyword"},
-                        "timestamp": {"type": "date"},
-                        "via_api": {"type": "boolean"},
-                        "is_robot": {"type": "boolean"},
-                        "visitor_id": {"type": "keyword"},
-                        "event_type": {"type": "keyword"},
-                        "size": {"type": "long"},
-                        "file_key": {"type": "keyword"},
-                        "file_id": {"type": "keyword"},
-                        "file_type": {"type": "keyword"},
-                        "country": {"type": "keyword"},
-                        "referrer": {"type": "keyword"},
-                        "resource_type": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "keyword"},
-                                "title": {"type": "keyword"},
-                            },
-                        },
-                        "publisher": {"type": "keyword"},
-                        "access_status": {"type": "keyword"},
-                        "languages": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "keyword"},
-                                "title": {"type": "keyword"},
-                            },
-                        },
-                        "subjects": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "keyword"},
-                                "title": {"type": "keyword"},
-                            },
-                        },
-                        "licenses": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "keyword"},
-                                "title": {"type": "keyword"},
-                            },
-                        },
-                        "affiliations": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "keyword"},
-                                "name": {"type": "keyword"},
-                                "identifiers": {"type": "keyword"},
-                            },
-                        },
-                        "funders": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "keyword"},
-                                "title": {"type": "keyword"},
-                            },
-                        },
-                        "periodical": {"type": "keyword"},
-                    }
-                },
-            },
-            ignore=400,
-        )
+    def _combine_query_results(
+        self, view_results, download_results, community_id: str, date: arrow.Arrow
+    ) -> dict:
+        """Combine results from separate view and download queries.
 
-    def _process_event_type(
-        self,
-        temp_index: str,
-        community_id: str,
-        date: arrow.Arrow,
-        event_type: str,
-        event_index: str,
-    ) -> None:
-        """Process events of a specific type for a given date using aggregations.
-
-        Page through the indexed events grouped by record id and enrich the results
-        with metadata about the record involved in the event. (The grouping allows us
-        to retrieve record metadata in batches and only once per record.) We then
-        create a new document in the temporary index for each event with its enriched
-        metadata.
-
-        If the community_id is "global", we will process all events in the event
-        index without restricting by community. Restriction by community is performed
-        when we search for the record metadata matching the event's record id, since
-        the record's communities are not stored in the event index.
-
-        Parameters:
-        - temp_index: The name of the temporary index to use for the enriched documents
-        - community_id: The ID of the community to process events for or "global".
-        - date: The date to process events for
-        - event_type: The type of event to process
-        - event_index: The name of the index to search for events
+        Args:
+            view_results: Results from view query (or None).
+            download_results: Results from download query (or None).
+            community_id (str): The community ID.
+            date (arrow.Arrow): The date for the aggregation.
 
         Returns:
-        - None
+            dict: Combined aggregation document.
         """
-        page = 0
-        search_after = None
-
-        # Sliding window cache for metadata in case of page edge overlaps
-        metadata_cache = {}
-        search_page_size = 1000
-        max_cache_size = search_page_size + 1  # Only need +1 for edge case records
-
-        while True:
-            current_app.logger.error(
-                f"Processing page {page} for {event_type} on "
-                f"{date.format('YYYY-MM-DD')}"
-            )
-
-            search = Search(using=self.client, index=event_index)
-            search = search.filter(
-                "range",
-                timestamp={
-                    "gte": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                    "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+        combined_results = {
+            "community_id": community_id,
+            "period_start": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "period_end": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+            "totals": {
+                "view": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
                 },
-            )
-
-            if search_after:
-                search = search.extra(search_after=search_after)
-
-            search = search.extra(size=search_page_size)
-            # Sort by record_id first to minimize cross-page duplicates
-            search = search.sort("recid", "timestamp")
-
-            current_app.logger.error(
-                f"Event search found {search.count()} events for {event_type} on "
-                f"{date.format('YYYY-MM-DD')}"
-            )
-
-            response = search.execute()
-            hits = response.hits.hits
-
-            if not hits:
-                current_app.logger.info(
-                    f"No more hits found for {event_type} on "
-                    f"{date.format('YYYY-MM-DD')}"
-                )
-                break
-
-            current_app.logger.error(f"Found {len(hits)} hits on page {page}")
-
-            # Group hits by record ID
-            hits_by_recid = defaultdict(list)
-            for hit in hits:
-                hits_by_recid[hit["_source"]["recid"]].append(hit["_source"])
-
-            # Get unique record IDs from this page
-            record_ids = set(hits_by_recid.keys())
-            current_app.logger.error(f"Record IDs: {pformat(record_ids)}")
-
-            # Filter records in the community on the date
-            current_app.logger.error(f"About to filter for community {community_id}")
-            if community_id != "global":
-                record_ids = self._filter_for_community(record_ids, community_id, date)
-
-            # Find record IDs that we haven't cached metadata for yet
-            new_record_ids = record_ids - set(metadata_cache.keys())
-            if new_record_ids:
-                # Fetch metadata only for new record IDs
-                new_metadata = self._get_metadata_for_records(
-                    community_id, new_record_ids, date, page_size=search_page_size
-                )
-                # Add to cache
-                metadata_cache.update(new_metadata)
-
-                # Implement sliding window cache
-                if len(metadata_cache) > max_cache_size:
-                    # Remove oldest entries (simple FIFO approach)
-                    # In practice, with record_id sorting, this should rarely happen
-                    # as records from the same ID should be grouped together
-                    excess = len(metadata_cache) - max_cache_size
-                    oldest_keys = list(metadata_cache.keys())[:excess]
-                    for key in oldest_keys:
-                        del metadata_cache[key]
-                    current_app.logger.error(
-                        f"Cache limit reached. Removed {excess} oldest entries."
-                    )
-
-                current_app.logger.error(
-                    f"Fetched metadata for {len(new_record_ids)} new records. "
-                    f"Cache now contains {len(metadata_cache)} records."
-                )
-
-            # Filter to only records that have metadata
-            record_ids_with_metadata = {i for i in record_ids if i in metadata_cache}
-            current_app.logger.error(
-                f"Record IDs with metadata: {pformat(record_ids_with_metadata)}"
-            )
-
-            if len(record_ids_with_metadata):
-                docs = self._create_enriched_docs_from_aggs(
-                    record_ids_with_metadata,
-                    metadata_cache,  # Use the global cache directly
-                    temp_index,
-                    community_id,
-                    event_type,
-                    hits_by_recid,
-                )
-
-                if docs:
-                    bulk(self.client, docs)
-                    current_app.logger.error(f"Bulk indexed {len(docs)} documents")
-                    # Force a refresh to make the documents searchable
-                    self.client.indices.refresh(index=temp_index)
-
-            # Update search_after for next page
-            if len(hits) > 0:
-                search_after = hits[-1]["sort"]
-            else:
-                break
-
-            page += 1
-
-    def _filter_for_community(
-        self, record_ids: set[str], community_id: str, date: arrow.Arrow
-    ) -> set[str]:
-        """Filter record IDs to find those in the community on the date."""
-
-        community_search = (
-            Search(using=self.client, index=prefix_index("stats-community-events"))
-            .filter(
-                "term",
-                community_id=community_id,
-            )
-            .filter("terms", record_id=list(record_ids))
-            .filter(
-                "range",
-                event_date={
-                    "lte": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                "download": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                    "unique_files": 0,
+                    "total_volume": 0,
                 },
-            )
-        )
+            },
+            "subcounts": {},
+        }
 
-        # Add terms aggregation by record_id with top_hits sub-aggregation
-        by_record_agg = community_search.aggs.bucket(
-            "by_record", "terms", field="record_id"
-        )
-        by_record_agg.bucket(
-            "top_hits",
-            "top_hits",
-            size=1,
-            sort=[{"event_date": {"order": "desc"}}],
-            _source={"includes": ["event_date", "event_type"]},
-        )
+        if view_results and hasattr(view_results.aggregations, "view"):
+            view_bucket = view_results.aggregations.view
+            combined_results["totals"]["view"] = {
+                "total_events": view_bucket.doc_count,
+                "unique_visitors": view_bucket.unique_visitors.value,
+                "unique_records": view_bucket.unique_records.value,
+                "unique_parents": view_bucket.unique_parents.value,
+            }
 
-        community_results = community_search.execute()
+        if download_results and hasattr(download_results.aggregations, "download"):
+            download_bucket = download_results.aggregations.download
+            combined_results["totals"]["download"] = {
+                "total_events": download_bucket.doc_count,
+                "unique_visitors": download_bucket.unique_visitors.value,
+                "unique_records": download_bucket.unique_records.value,
+                "unique_parents": download_bucket.unique_parents.value,
+                "unique_files": download_bucket.unique_files.value,
+                "total_volume": download_bucket.total_volume.value,
+            }
 
-        # Find the records whose last event before the date was an "added" event
-        community_record_ids = set()
-        for bucket in community_results.aggregations.by_record.buckets:
-            if bucket.top_hits.hits[0]["event_type"] == "added":
-                community_record_ids.add(bucket.key)
+        for subcount_name, config in self.SUBCOUNT_CONFIGS.items():
+            combined_results["subcounts"][subcount_name] = []
 
-        current_app.logger.error(
-            f"Community record IDs: {pformat(community_record_ids)}"
-        )
-        return community_record_ids
+            view_buckets = []
+            if view_results and hasattr(view_results.aggregations, subcount_name):
+                view_agg = getattr(view_results.aggregations, subcount_name)
+                if config["is_nested"]:
+                    # Handle nested aggregations
+                    nested_agg = getattr(view_agg, config["nested_agg"])
+                    view_buckets = nested_agg.buckets
+                else:
+                    view_buckets = view_agg.buckets
 
-    def _get_metadata_for_records(
-        self,
-        community_id: str,
-        record_ids: set[str],
-        date: arrow.Arrow,
-        page_size: int = 1000,
-    ) -> dict:
-        """Get metadata for a set of record IDs."""
-        meta_search = Search(
-            using=self.client, index=prefix_index("rdmrecords-records")
-        )
-        meta_search = meta_search.filter("terms", id=list(record_ids))
-        meta_search = meta_search.source(
-            [
-                "access.status",
-                "custom_fields.journal:journal.title.keyword",
-                "files.types",
-                "id",
-                "metadata.resource_type.id",
-                "metadata.resource_type.title.en",
-                "metadata.languages.id",
-                "metadata.languages.title.en",
-                "metadata.subjects.id",
-                "metadata.subjects.subject",
-                "metadata.publisher",
-                "metadata.rights.id",
-                "metadata.rights.title.en",
-                "metadata.creators.affiliations.id",
-                "metadata.creators.affiliations.name.keyword",
-                "metadata.contributors.affiliations.id",
-                "metadata.contributors.affiliations.name.keyword",
-                "metadata.funding.funder.id",
-                "metadata.funding.funder.title.en",
-                "parent.communities.ids",
-            ]
-        )
-        meta_search = meta_search.extra(size=page_size)
+            download_buckets = []
+            if download_results and hasattr(
+                download_results.aggregations, subcount_name
+            ):
+                download_agg = getattr(download_results.aggregations, subcount_name)
+                if config["is_nested"]:
+                    # Handle nested aggregations
+                    nested_agg = getattr(download_agg, config["nested_agg"])
+                    download_buckets = nested_agg.buckets
+                else:
+                    download_buckets = download_agg.buckets
 
-        # NOTE: The search here should never exceed the page size from
-        # _process_event_type() so we can use simple execute() instead of scan()
-        # or pagination
-        meta_hits = meta_search.execute().hits.hits
-        results = {hit["_source"]["id"]: hit.to_dict()["_source"] for hit in meta_hits}
-        return results
+            # Combine buckets by key
+            all_keys = set()
+            for bucket in view_buckets:
+                all_keys.add(bucket.key)
+            for bucket in download_buckets:
+                all_keys.add(bucket.key)
 
-    def _create_enriched_docs_from_aggs(
-        self,
-        record_ids: set[str],
-        meta_for_recids: dict,
-        temp_index: str,
-        community_id: str,
-        event_type: str,
-        hits_by_recid: dict[str, list],
-    ) -> list:
-        """Create enriched documents from aggregation buckets."""
-        docs = []
-        for recid in record_ids:
-            meta = meta_for_recids.get(recid)
-            if not meta:
-                continue
+            for key in all_keys:
+                view_bucket = None
+                for bucket in view_buckets:
+                    if bucket.key == key:
+                        view_bucket = bucket
+                        break
 
-            # Create one document per hit with the same recid
-            for hit in hits_by_recid[recid]:
-                doc = {
-                    "_index": temp_index,
-                    "_source": {
-                        "record_id": recid,
-                        "parent_record_id": hit["parent_recid"],
-                        "community_id": community_id,
-                        "timestamp": hit["timestamp"],
-                        "via_api": hit["via_api"],
-                        "is_robot": hit["is_robot"],
-                        "visitor_id": hit["visitor_id"],
-                        "event_type": event_type,
-                        "resource_type": {
-                            "id": meta["metadata"]["resource_type"]["id"],
-                            "title": meta["metadata"]["resource_type"]["title"]["en"],
-                        },
-                        "publisher": meta["metadata"]["publisher"],
-                        "access_status": meta["access"]["status"],
-                        "languages": [
-                            {
-                                "id": lang["id"],
-                                "title": lang["title"]["en"],
-                            }
-                            for lang in meta["metadata"].get("languages", [])
-                        ],
-                        "subjects": [
-                            {
-                                "id": subject["id"],
-                                "title": subject["subject"],
-                            }
-                            for subject in meta["metadata"].get("subjects", [])
-                        ],
-                        "licenses": [
-                            {
-                                "id": right["id"],
-                                "title": right["title"]["en"],
-                            }
-                            for right in meta["metadata"].get("rights", [])
-                        ],
-                        "funders": [
-                            {
-                                "id": funder["id"],
-                                "title": funder["title"]["en"],
-                            }
-                            for funder in meta["metadata"]
-                            .get("funding", {})
-                            .get("funder", [])
-                        ],
+                download_bucket = None
+                for bucket in download_buckets:
+                    if bucket.key == key:
+                        download_bucket = bucket
+                        break
+
+                # Extract label from title aggregation
+                label = str(key)  # Default to key as label
+                if (
+                    config["title_field"]
+                    and view_bucket
+                    and hasattr(view_bucket, "title")
+                ):
+                    title_hits = view_bucket.title.hits.hits
+                    if title_hits and title_hits[0]._source:
+                        source = title_hits[0]._source
+                        if config["is_nested"]:
+                            nested_path = config["nested_path"]
+                            title_field = config["title_field"].split(".", 1)[1]
+                            if nested_path in source:
+                                for item in source[nested_path]:
+                                    if item.get("id") == key:
+                                        label = item.get(title_field, str(key))
+                                        break
+                        else:
+                            title_field = config["title_field"]
+                            if title_field in source:
+                                label = source[title_field]
+
+                subcount_item = {
+                    "id": str(key),
+                    "label": label,
+                    "view": {
+                        "total_events": 0,
+                        "unique_visitors": 0,
+                        "unique_records": 0,
+                        "unique_parents": 0,
+                    },
+                    "download": {
+                        "total_events": 0,
+                        "unique_visitors": 0,
+                        "unique_records": 0,
+                        "unique_parents": 0,
+                        "unique_files": 0,
+                        "total_volume": 0,
                     },
                 }
 
-                for contributor in meta["metadata"].get("creators", []) + meta[
-                    "metadata"
-                ].get("contributors", []):
-                    if contributor.get("affiliations"):
-                        for affiliation in contributor.get("affiliations", []):
-                            doc["_source"].setdefault("affiliations", []).append(
-                                {
-                                    "id": affiliation.get("id", ""),
-                                    "name": affiliation.get("name", ""),
-                                    "identifiers": affiliation.get("identifiers", []),
-                                }
-                            )
+                if view_bucket and hasattr(view_bucket, "view"):
+                    view_metrics = view_bucket.view
+                    subcount_item["view"] = {
+                        "total_events": view_metrics.doc_count,
+                        "unique_visitors": view_metrics.unique_visitors.value,
+                        "unique_records": view_metrics.unique_records.value,
+                        "unique_parents": view_metrics.unique_parents.value,
+                    }
 
-                if "custom_fields" in meta:
-                    doc["_source"]["periodical"] = meta["custom_fields"].get(
-                        "journal:journal.title.keyword", {}
-                    )
+                if download_bucket and hasattr(download_bucket, "download"):
+                    download_metrics = download_bucket.download
+                    subcount_item["download"] = {
+                        "total_events": download_metrics.doc_count,
+                        "unique_visitors": download_metrics.unique_visitors.value,
+                        "unique_records": download_metrics.unique_records.value,
+                        "unique_parents": download_metrics.unique_parents.value,
+                        "unique_files": download_metrics.unique_files.value,
+                        "total_volume": download_metrics.total_volume.value,
+                    }
 
-                if event_type == "view":
-                    file_types = meta.get("files", {}).get("types", [])
-                    # Convert AttrList to regular list if needed
-                    file_types = list(file_types)
-                    doc["_source"]["file_type"] = file_types
+                combined_results["subcounts"][subcount_name].append(subcount_item)
 
-                if event_type == "download":
-                    doc["_source"]["referrer"] = hit["referrer"]
-                    doc["_source"]["country"] = hit["country"]
-                    doc["_source"]["size"] = hit["size"]
-                    doc["_source"]["file_id"] = hit["file_id"]
-                    doc["_source"]["file_type"] = [hit["file_key"].split(".")[-1]]
+        return combined_results
 
-                docs.append(doc)
-        return docs
-
-    def _add_metrics_to_agg(self, agg_bucket, event_type):
-        """Add common metrics to an aggregation bucket."""
-        agg_bucket.metric(
-            "unique_visitors",
-            "cardinality",
-            field="visitor_id",
-        ).metric(
-            "unique_records",
-            "cardinality",
-            field="record_id",
-        ).metric(
-            "unique_parents",
-            "cardinality",
-            field="parent_record_id",
-        )
-
-        # Only add file-related metrics for download events
-        if event_type == "download":
-            agg_bucket.metric(
-                "unique_files",
-                "cardinality",
-                field="file_id",
-            ).metric(
-                "total_volume",
-                "sum",
-                field="size",
-            )
-
-        return agg_bucket
-
-    def add_search_agg(
-        self,
-        agg_search: Search,
-        agg_name: str,
-        agg_field: str | None = None,
-        title_field: str | list[str] | None = None,
-        field_bucket: Bucket | None = None,
-    ) -> Search:
-        """Add a search aggregation to the search object."""
-        # Create the field aggregation first
-        if field_bucket is None:
-            field_bucket = agg_search.aggs.bucket(
-                agg_name,
-                "terms",
-                field=agg_field,
-                size=1000,
-            )
-
-        # Add event type aggregation under each field value
-        for event_type in ["view", "download"]:
-            event_bucket = field_bucket.bucket(  # type: ignore
-                event_type,
-                "filter",
-                term={"event_type": event_type},
-            )
-
-            # Add metrics to the event type bucket
-            self._add_metrics_to_agg(event_bucket, event_type)
-
-        # Add title field if specified
-        if title_field:
-            field_bucket.bucket(  # type: ignore
-                "title",
-                "top_hits",
-                size=1,
-                _source={"includes": title_field},
-                sort=[{"_score": "desc"}],
-            )
-
-        return agg_search
-
-    def _temp_index_search_query(
-        self, temp_index: str, date: arrow.Arrow, community_id: str
-    ) -> Search:
-        """Create a search query for the temporary index."""
-        agg_search = Search(using=self.client, index=temp_index)
-        must_clauses = [
-            Q(
-                "range",
-                timestamp={
-                    "gte": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
-                    "lt": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                },
-            )
-        ]
-        if community_id != "global":
-            must_clauses.append(Q("term", community_id=community_id))
-
-        agg_search = agg_search.query(Q("bool", must=must_clauses))
-        current_app.logger.error(
-            f"Counting {agg_search.count()} records in temp index {temp_index}"
-            f" for community {community_id} on {date.format('YYYY-MM-DD')}"
-        )
-
-        self.add_search_agg(
-            agg_search,
-            "by_resource_types",
-            "resource_type.id",
-            ["resource_type.title", "resource_type.id"],
-        )
-        self.add_search_agg(agg_search, "by_access_status", "access_status", None)
-        self.add_search_agg(
-            agg_search,
-            "by_languages",
-            "languages.id",
-            ["languages.title", "languages.id"],
-        )
-        self.add_search_agg(
-            agg_search, "by_subjects", "subjects.id", ["subjects.title", "subjects.id"]
-        )
-        self.add_search_agg(
-            agg_search, "by_licenses", "licenses.id", ["licenses.title", "licenses.id"]
-        )
-        self.add_search_agg(
-            agg_search, "by_funders", "funders.id", ["funders.title", "funders.id"]
-        )
-        self.add_search_agg(agg_search, "by_periodicals", "periodical", None)
-        self.add_search_agg(agg_search, "by_publishers", "publisher", None)
-        self.add_search_agg(agg_search, "by_file_types", "file_type", None)
-        self.add_search_agg(agg_search, "by_countries", "country", None)
-        self.add_search_agg(agg_search, "by_referrers", "referrer", None)
-
-        # Aggregate by affiliation
-        affiliation_agg = agg_search.aggs.bucket(
-            "by_affiliations",
-            "composite",
-            size=100,
-            sources=[
-                {"id": {"terms": {"field": "affiliations.id"}}},
-                {"name": {"terms": {"field": "affiliations.name"}}},
-            ],
-        )
-        self.add_search_agg(
-            agg_search,
-            "by_affiliations",
-            agg_field=None,
-            title_field=None,
-            field_bucket=affiliation_agg,
-        )
-
-        # Add top-level metrics
-        for event_type in ["view", "download"]:
-            event_bucket = agg_search.aggs.bucket(
-                event_type,
-                "filter",
-                term={"event_type": event_type},
-            )
-
-            # Add metrics to the event type bucket
-            self._add_metrics_to_agg(event_bucket, event_type)
-
-        return agg_search
-
-    def _create_aggregation_doc(
-        self, temp_index: str, community_id: str, date: arrow.Arrow
+    def _create_aggregation_doc_from_results(
+        self, results, community_id: str, date: arrow.Arrow
     ) -> dict:
-        """Create the final aggregation document from the temporary index."""
-
-        agg_search = self._temp_index_search_query(temp_index, date, community_id)
-        results = agg_search.execute()
-
-        # current_app.logger.error(
-        #     f"Results: {pformat(results.aggregations.to_dict())}"
-        # )
-
-        # Get top-level metrics
-        views_bucket = results.aggregations.view if results.aggregations.view else None
-        downloads_bucket = (
-            results.aggregations.download if results.aggregations.download else None
-        )
+        """Create the final aggregation document from direct query results."""
 
         def add_subcount_to_doc(
             buckets: list, title_path: list | None | Callable = None
@@ -2745,11 +2362,10 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 )
             return subcount_list
 
-        current_app.logger.error(
-            f"period_start: {date.floor('day').format('YYYY-MM-DDTHH:mm:ss')}"
-        )
-        current_app.logger.error(
-            f"period_end: {date.ceil('day').format('YYYY-MM-DDTHH:mm:ss')}"
+        # Get top-level metrics
+        views_bucket = results.aggregations.view if results.aggregations.view else None
+        downloads_bucket = (
+            results.aggregations.download if results.aggregations.download else None
         )
 
         final_dict = {
@@ -2799,15 +2415,15 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 ),
                 "by_resource_types": add_subcount_to_doc(
                     results.aggregations.by_resource_types.buckets,
-                    ["resource_type", "title"],
+                    ["resource_type", "title", "en"],
                 ),
                 "by_licenses": add_subcount_to_doc(
                     results.aggregations.by_licenses.buckets,
-                    ["licenses", 0, "title"],
+                    ["rights", 0, "title", "en"],
                 ),
                 "by_funders": add_subcount_to_doc(
                     results.aggregations.by_funders.buckets,
-                    ["funders", 0, "title"],
+                    ["funders", 0, "name"],
                 ),
                 "by_periodicals": add_subcount_to_doc(
                     results.aggregations.by_periodicals.buckets
@@ -2818,7 +2434,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         "languages",
                         0,
                         "title",
-                    ],  # SUBCOUNT_TYPES["language"][1].split("."),
+                    ],
                 ),
                 "by_subjects": add_subcount_to_doc(
                     results.aggregations.by_subjects.buckets,
@@ -2867,73 +2483,72 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
 
-        if not should_skip:
-            temp_index = prefix_index(
-                f"temp-usage-stats-{community_id}-"
-                f"{arrow.utcnow().format('YYYY-MM-DD-HH-mm-ss')}"
-            )
-
-            # Clean up any existing temporary indices for this community
-            existing_indices = self.client.indices.get_alias(
-                prefix_index(f"temp-usage-stats-{community_id}-*")
-            )
-            for index_name in existing_indices:
-                self.client.indices.delete(index=index_name, ignore=[400, 404])
-
-            self._create_temp_index(temp_index)
-
         current_iteration_date = start_date
 
-        try:
-            while current_iteration_date <= end_date:
-                # Prepare the _source content based on whether we should skip
-                # aggregation
-                if should_skip:
-                    source_content = self._create_zero_document(
-                        community_id, current_iteration_date
-                    )
-                else:
-                    current_app.logger.error(
-                        f"Processing date: {current_iteration_date} for community "
-                        f"{community_id}"
-                    )
-                    for event_type, event_index in self.event_index:
-                        self._process_event_type(
-                            temp_index,
-                            community_id,
-                            current_iteration_date,
-                            event_type,
-                            event_index,
-                        )
-
-                    source_content = self._create_aggregation_doc(
-                        temp_index, community_id, current_iteration_date
-                    )
-
-                index_name = prefix_index(
-                    "{0}-{1}".format(
-                        self.aggregation_index, current_iteration_date.year
-                    )
+        while current_iteration_date <= end_date:
+            # Prepare the _source content based on whether we should skip
+            # aggregation
+            if should_skip:
+                source_content = self._create_zero_document(
+                    community_id, current_iteration_date
                 )
-                doc_id = f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
-                if self.client.exists(index=index_name, id=doc_id):
-                    self.delete_aggregation(index_name, doc_id)
-
-                yield {
-                    "_id": doc_id,
-                    "_index": index_name,
-                    "_source": source_content,
-                }
+            else:
                 current_app.logger.error(
-                    f"Yielding doc for index: {index_name} with id: {doc_id}"
+                    f"Processing date: {current_iteration_date} for community "
+                    f"{community_id}"
                 )
 
-                current_iteration_date = current_iteration_date.shift(days=1)
+                # Execute separate queries for each event type
+                view_index = None
+                download_index = None
+                for event_type, index in self.event_index:
+                    if event_type == "view":
+                        view_index = index
+                    elif event_type == "download":
+                        download_index = index
 
-        finally:
-            # Clean up temporary index if it was created
-            if not should_skip:
-                self.client.indices.delete(temp_index, ignore=[400, 404])
+                # Execute view query
+                if view_index:
+                    view_search = self.query_builder.build_view_query(
+                        community_id, current_iteration_date, view_index
+                    )
+                    view_results = view_search.execute()
+                else:
+                    view_results = None
+
+                # Execute download query
+                if download_index:
+                    download_search = self.query_builder.build_download_query(
+                        community_id, current_iteration_date, download_index
+                    )
+                    download_results = download_search.execute()
+                else:
+                    download_results = None
+
+                # Combine results
+                combined_results = self._combine_query_results(
+                    view_results, download_results, community_id, current_iteration_date
+                )
+
+                source_content = combined_results
+
+            index_name = prefix_index(
+                "{0}-{1}".format(self.aggregation_index, current_iteration_date.year)
+            )
+            doc_id = f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
+            if self.client.exists(index=index_name, id=doc_id):
+                self.delete_aggregation(index_name, doc_id)
+
+            yield {
+                "_id": doc_id,
+                "_index": index_name,
+                "_source": source_content,
+            }
+            current_app.logger.error(
+                f"Yielding doc for index: {index_name} with id: {doc_id}"
+            )
+
+            current_iteration_date = current_iteration_date.shift(days=1)
 
 
 class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):

@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 from typing import List
 
 from invenio_search.proxies import current_search_client
-from opensearchpy.helpers.search import Search
 from invenio_search.utils import prefix_index
+from opensearchpy.helpers.search import Search
 
 # Import the UsageEventFactory from the utils module
 from ..usage_events import UsageEventFactory

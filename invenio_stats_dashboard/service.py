@@ -31,6 +31,9 @@ class EventReindexingService:
         self.app = app
 
         # Configuration
+        self.max_batches = app.config.get(
+            "STATS_DASHBOARD_REINDEXING_MAX_BATCHES", 1000
+        )
         self.batch_size = app.config.get("STATS_DASHBOARD_REINDEXING_BATCH_SIZE", 1000)
         self.max_memory_percent = app.config.get(
             "STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT", 75
@@ -602,9 +605,33 @@ class EventReindexingService:
 
         # Process events into enriched documents
         record_ids = list(set(hit["_source"]["recid"] for hit in hits))
+        current_app.logger.error(
+            f"Extracted {len(record_ids)} unique record IDs: {record_ids[:5]}..."
+        )
+
+        # Debug: Check what records exist in the index
+        try:
+            all_records = self.client.search(
+                index=prefix_index("rdmrecords-records"),
+                body={"query": {"match_all": {}}, "size": 10},
+            )
+            existing_record_ids = [
+                hit["_source"]["id"] for hit in all_records["hits"]["hits"]
+            ]
+            current_app.logger.error(
+                f"Existing record IDs in index: {existing_record_ids}"
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error checking existing records: {e}")
+
         metadata_by_recid = self.get_metadata_for_records(record_ids)
+        current_app.logger.error(f"Found metadata for {len(metadata_by_recid)} records")
+
         communities_by_recid = self.get_community_membership(
             record_ids, metadata_by_recid
+        )
+        current_app.logger.info(
+            f"Found community membership for {len(communities_by_recid)} records"
         )
 
         enriched_docs = []
@@ -629,7 +656,12 @@ class EventReindexingService:
 
         # Bulk index the enriched documents
         if not enriched_docs:
+            current_app.logger.warning("No enriched documents to index")
             return True, None
+
+        current_app.logger.info(
+            f"Attempting to bulk index {len(enriched_docs)} enriched documents"
+        )
 
         try:
             _, errors = bulk(self.client, enriched_docs, stats_only=False)
@@ -774,21 +806,77 @@ class EventReindexingService:
             RequestError: If there is a request error to OpenSearch
         """
         try:
+            current_app.logger.error(
+                f"Entering process_monthly_index_batch for {event_type}-{month}"
+            )
+
             # Check health conditions
             is_healthy, reason = self.check_health_conditions()
+            current_app.logger.error(
+                f"Health check result: {is_healthy}, reason: {reason}"
+            )
             if not is_healthy:
-                current_app.logger.warning(f"Health check failed: {reason}")
+                current_app.logger.error(f"Health check failed: {reason}")
                 return 0, last_processed_id, False
+
+            # Debug: Check if source index exists and has documents
+            source_count = self.client.count(index=source_index)["count"]
+            current_app.logger.info(
+                f"Source index {source_index} has {source_count} documents"
+            )
+
+            # Debug: Check what events are in the source index
+            try:
+                sample_events = self.client.search(
+                    index=source_index, body={"query": {"match_all": {}}, "size": 5}
+                )
+                sample_recids = [
+                    hit["_source"].get("recid") for hit in sample_events["hits"]["hits"]
+                ]
+                current_app.logger.info(
+                    f"Sample recids from source index: {sample_recids}"
+                )
+            except Exception as e:
+                current_app.logger.error(f"Error checking sample events: {e}")
 
             search = Search(using=self.client, index=source_index)
             search = search.extra(size=self.batch_size)
             search = search.sort("_id")
 
+            current_app.logger.error(
+                f"Search query before search_after: {search.to_dict()}"
+            )
+
             if last_processed_id:
                 search = search.extra(search_after=[last_processed_id])
+                current_app.logger.error(
+                    f"Using search_after with last_processed_id: {last_processed_id}"
+                )
+            else:
+                current_app.logger.error(
+                    "No last_processed_id, starting from beginning"
+                )
+
+            current_app.logger.error(f"Final search query: {search.to_dict()}")
 
             response = search.execute()
             hits = response.hits.hits
+
+            current_app.logger.info(
+                f"Search query returned {len(hits)} hits from {source_index}"
+            )
+
+            # Debug: Check if we're getting any hits at all
+            if not hits:
+                current_app.logger.error(
+                    f"No hits returned from search on {source_index}"
+                )
+                current_app.logger.error(f"Search query: {search.to_dict()}")
+            else:
+                current_app.logger.error(f"First hit ID: {hits[0]['_id']}")
+                current_app.logger.error(
+                    f"First hit source keys: {list(hits[0]['_source'].keys())}"
+                )
 
             if not hits:
                 current_app.logger.info(
@@ -800,10 +888,23 @@ class EventReindexingService:
                 f"Processing {len(hits)} events for {event_type}-{month}"
             )
 
+            # Debug: Check first few hits to see what we're working with
+            if hits:
+                first_hit = hits[0]
+                current_app.logger.info(f"First hit ID: {first_hit['_id']}")
+                current_app.logger.info(
+                    f"First hit source keys: {list(first_hit['_source'].keys())}"
+                )
+                if "recid" in first_hit["_source"]:
+                    current_app.logger.info(
+                        f"First hit recid: {first_hit['_source']['recid']}"
+                    )
+
             success, error_msg = self._process_and_index_events_batch(
                 hits, target_index, "events"
             )
             if not success:
+                current_app.logger.error(f"Failed to process batch: {error_msg}")
                 return 0, last_processed_id, False
 
             last_event_id = hits[-1]["_id"]
@@ -853,12 +954,32 @@ class EventReindexingService:
             "target_index": None,
         }
 
-        current_app.logger.info(f"Starting migration for {event_type}-{month}")
+        current_app.logger.error(f"Starting migration for {event_type}-{month}")
 
         try:
             # Step 1: Create new enriched index
             target_index = self.create_enriched_index(event_type, month)
             results["target_index"] = target_index
+
+            # Debug: Check source index before migration
+            try:
+                source_count = self.client.count(index=source_index)["count"]
+                current_app.logger.error(
+                    f"Source index {source_index} has {source_count} documents"
+                )
+
+                # Check a sample of events
+                sample_events = self.client.search(
+                    index=source_index, body={"query": {"match_all": {}}, "size": 3}
+                )
+                sample_recids = [
+                    hit["_source"].get("recid") for hit in sample_events["hits"]["hits"]
+                ]
+                current_app.logger.error(
+                    f"Sample recids from {source_index}: {sample_recids}"
+                )
+            except Exception as e:
+                current_app.logger.error(f"Error checking source index: {e}")
 
             # Step 2: Migrate data
             bookmark = self.bookmark_api.get_bookmark(
@@ -879,11 +1000,29 @@ class EventReindexingService:
                     )
                     break
 
+                current_app.logger.info(
+                    f"Processing batch {batch_count + 1} for {event_type}-{month}"
+                )
+
+                # Debug: Check if we're about to process a batch
+                current_app.logger.error(
+                    f"About to call process_monthly_index_batch for {event_type}-{month}"
+                )
+
                 # Process batch
                 processed_count, last_id, continue_processing = (
                     self.process_monthly_index_batch(
                         event_type, source_index, target_index, month, last_processed_id
                     )
+                )
+
+                current_app.logger.error(
+                    f"Batch processing result: processed={processed_count}, continue={continue_processing}"
+                )
+
+                current_app.logger.info(
+                    f"Batch {batch_count + 1} result: processed={processed_count}, "
+                    f"continue_processing={continue_processing}, last_id={last_id}"
                 )
 
                 if processed_count > 0:
@@ -1129,6 +1268,7 @@ class EventReindexingService:
         Returns:
             Dictionary with reindexing results and statistics.
         """
+        max_batches = max_batches or self.max_batches
         results = {
             "total_processed": 0,
             "total_errors": 0,
@@ -1150,7 +1290,7 @@ class EventReindexingService:
         if event_types is None:
             event_types = ["view", "download"]
 
-        current_app.logger.info(f"Starting reindexing for event types: {event_types}")
+        current_app.logger.error(f"Starting reindexing for event types: {event_types}")
 
         for event_type in event_types:
             if event_type not in ["view", "download"]:
@@ -1310,6 +1450,7 @@ class CommunityStatsService:
                 end_date=end_date,
                 update_bookmark=update_bookmark,
                 ignore_bookmark=ignore_bookmark,
+                community_ids=community_ids,  # Pass community_ids
             )
         else:
             task_run = task.delay(
@@ -1318,6 +1459,7 @@ class CommunityStatsService:
                 end_date=end_date,
                 update_bookmark=update_bookmark,
                 ignore_bookmark=ignore_bookmark,
+                community_ids=community_ids,  # Pass community_ids
             )
             results = task_run.get()
 
