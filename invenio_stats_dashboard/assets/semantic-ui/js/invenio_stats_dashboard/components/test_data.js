@@ -9,8 +9,9 @@ const generateDates = () => {
   if (cachedDates === null) {
     const dates = [];
     const today = new Date();
-    const startDate = new Date(today.getFullYear() - 3, 0, 1); // Start from 3 years ago
-    const endDate = today;
+    // Use UTC dates to match the dashboard's date handling
+    const startDate = new Date(Date.UTC(today.getFullYear() - 3, 0, 1)); // Start from 3 years ago
+    const endDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
 
     let currentDate = new Date(startDate);
     while (currentDate <= endDate) {
@@ -50,6 +51,7 @@ const createDataPoint = (date, value, valueType = 'number') => {
   if (dateIndex !== -1) {
     // Clone the template and update the value
     const dataPoint = { ...templates[dateIndex] };
+    // DataPoint.value should be [date, value] array as expected by dataTransformer.js
     dataPoint.value = [dataPoint.value[0], value];
     dataPoint.valueType = valueType;
     return dataPoint;
@@ -93,7 +95,7 @@ const generateDataPoints = (baseValue, variance, startValue = 0, isCumulative = 
   const templates = getDataPointTemplates();
 
   return dates.map((date, index) => {
-    const dailyValue = Math.floor(baseValue + (Math.random() * variance));
+    const dailyValue = Math.max(0, Math.floor(baseValue + (Math.random() * variance)));
     const finalValue = isCumulative ? (cumulative += dailyValue) : dailyValue;
 
     // Use cached template for better performance
@@ -110,8 +112,8 @@ const generateMetricDataPoints = (baseValue, variance, startValue = 0) => {
 };
 
 // Generate cumulative data points for a metric
-const generateCumulativeDataPoints = (baseValue, dailyBaseValue, dailyVariance) => {
-  return generateDataPoints(dailyBaseValue, dailyVariance, baseValue, true, 'number');
+const generateCumulativeDataPoints = (startValue, dailyBaseValue, dailyVariance) => {
+  return generateDataPoints(dailyBaseValue, dailyVariance, startValue, true, 'number');
 };
 
 // Generate data volume data points (filesize type)
@@ -120,8 +122,8 @@ const generateDataVolumeDataPoints = (baseValue, variance, startValue = 0) => {
 };
 
 // Generate cumulative data volume data points
-const generateCumulativeDataVolumeDataPoints = (baseValue, dailyBaseValue, dailyVariance) => {
-  return generateDataPoints(dailyBaseValue, dailyVariance, baseValue, true, 'filesize');
+const generateCumulativeDataVolumeDataPoints = (startValue, dailyBaseValue, dailyVariance) => {
+  return generateDataPoints(dailyBaseValue, dailyVariance, startValue, true, 'filesize');
 };
 
 // Create record metrics structure
@@ -130,11 +132,21 @@ const createRecordMetrics = (isSnapshot = false) => {
   const dataVolumeType = isSnapshot ? generateCumulativeDataVolumeDataPoints : generateDataVolumeDataPoints;
 
   return {
-    records: [createGlobalSeries(dataType(25, 20, 12500), 'bar', 'number')],
-    parents: [createGlobalSeries(dataType(25, 20, 12500), 'bar', 'number')],
-    uploaders: [createGlobalSeries(dataType(12, 13, 2500), 'bar', 'number')],
-    fileCount: [createGlobalSeries(dataType(50, 40, 25000), 'bar', 'number')],
-    dataVolume: [createGlobalSeries(dataVolumeType(50000000, 100000000, 2500000000000), 'bar', 'filesize')]
+    records: [createGlobalSeries(dataType(12500, 25, 10), 'bar', 'number')],
+    parents: [createGlobalSeries(dataType(12500, 25, 10), 'bar', 'number')],
+    uploaders: [createGlobalSeries(dataType(2500, 12, 6), 'bar', 'number')],
+    fileCount: [createGlobalSeries(dataType(25000, 50, 20), 'bar', 'number')],
+    dataVolume: [createGlobalSeries(dataVolumeType(2500000000000, 50000000, 20000000), 'bar', 'filesize')]
+  };
+};
+
+// Create file presence metrics structure (only records and parents)
+const createFilePresenceMetrics = (isSnapshot = false) => {
+  const dataType = isSnapshot ? generateCumulativeDataPoints : generateMetricDataPoints;
+
+  return {
+    records: [createGlobalSeries(dataType(12500, 25, 10), 'bar', 'number')],
+    parents: [createGlobalSeries(dataType(12500, 25, 10), 'bar', 'number')]
   };
 };
 
@@ -144,10 +156,10 @@ const createUsageMetrics = (isSnapshot = false) => {
   const dataVolumeType = isSnapshot ? generateCumulativeDataVolumeDataPoints : generateDataVolumeDataPoints;
 
   return {
-    views: [createGlobalSeries(dataType(100, 200, 250000), 'bar', 'number')],
-    downloads: [createGlobalSeries(dataType(40, 50, 75000), 'bar', 'number')],
-    visitors: [createGlobalSeries(dataType(80, 150, 200000), 'bar', 'number')],
-    dataVolume: [createGlobalSeries(dataVolumeType(200000000, 300000000, 5000000000000), 'bar', 'filesize')]
+    views: [createGlobalSeries(dataType(250000, 100, 50), 'bar', 'number')],
+    downloads: [createGlobalSeries(dataType(75000, 40, 20), 'bar', 'number')],
+    visitors: [createGlobalSeries(dataType(200000, 80, 40), 'bar', 'number')],
+    dataVolume: [createGlobalSeries(dataVolumeType(5000000000000, 200000000, 100000000), 'bar', 'filesize')]
   };
 };
 
@@ -158,43 +170,43 @@ const createSubcountSeries = (categoryName, items, isSnapshot = false, globalMet
 
   // If no global metrics provided, fall back to random data
   if (!globalMetrics || items.length === 0) {
-    return {
-      records: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(25, 20, 12500),
-        'line',
-        'number'
-      )),
-      parents: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(25, 20, 12500),
-        'line',
-        'number'
-      )),
-      uploaders: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(12, 13, 2500),
-        'line',
-        'number'
-      )),
-      fileCount: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(50, 40, 25000),
-        'line',
-        'number'
-      )),
-      dataVolume: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataVolumeType(50000000, 100000000, 2500000000000),
-        'line',
-        'filesize'
-      ))
-    };
+          return {
+        records: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(12500, 25, 10),
+          'line',
+          'number'
+        )),
+        parents: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(12500, 25, 10),
+          'line',
+          'number'
+        )),
+        uploaders: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(2500, 12, 6),
+          'line',
+          'number'
+        )),
+        fileCount: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(25000, 50, 20),
+          'line',
+          'number'
+        )),
+        dataVolume: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataVolumeType(2500000000000, 50000000, 20000000),
+          'line',
+          'filesize'
+        ))
+      };
   }
 
   // Generate breakdown data that sums to global totals
@@ -205,18 +217,34 @@ const createSubcountSeries = (categoryName, items, isSnapshot = false, globalMet
 
       // Distribute the global value across breakdown items
       const distribution = [];
-      let remainingValue = globalValue;
 
-      for (let i = 0; i < itemCount; i++) {
-        if (i === itemCount - 1) {
-          // Last item gets the remaining value
-          distribution.push(remainingValue);
-        } else {
-          // Randomly distribute a portion of the remaining value
-          const maxPortion = Math.floor(remainingValue / (itemCount - i));
-          const portion = Math.floor(Math.random() * maxPortion) + 1;
-          distribution.push(portion);
-          remainingValue -= portion;
+      if (globalValue <= 0) {
+        // If no global value, give each item a small random value
+        for (let i = 0; i < itemCount; i++) {
+          distribution.push(Math.floor(Math.random() * 100) + 1);
+        }
+      } else if (itemCount === 0) {
+        // No items to distribute to
+        return distribution;
+      } else if (itemCount === 1) {
+        // Single item gets all the value
+        distribution.push(globalValue);
+      } else {
+        // Distribute across multiple items
+        let remainingValue = globalValue;
+
+        for (let i = 0; i < itemCount; i++) {
+          if (i === itemCount - 1) {
+            // Last item gets the remaining value
+            distribution.push(Math.max(1, remainingValue));
+          } else {
+            // Ensure each item gets at least 1, and distribute the rest fairly
+            const minValue = 1;
+            const maxPortion = Math.max(minValue, Math.floor((remainingValue - (itemCount - i - 1)) / (itemCount - i)));
+            const portion = Math.floor(Math.random() * maxPortion) + minValue;
+            distribution.push(portion);
+            remainingValue -= portion;
+          }
         }
       }
 
@@ -289,36 +317,48 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
 
   // If no global metrics provided, fall back to random data
   if (!globalMetrics || items.length === 0) {
-    return {
-      views: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(100, 200, 250000),
-        'line',
-        'number'
-      )),
-      downloads: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(40, 50, 75000),
-        'line',
-        'number'
-      )),
-      visitors: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataType(80, 150, 200000),
-        'line',
-        'number'
-      )),
-      dataVolume: items.map(item => createDataSeries(
-        item.id,
-        item.name,
-        dataVolumeType(200000000, 300000000, 5000000000000),
-        'line',
-        'filesize'
-      ))
-    };
+          return {
+        views: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(250000, 100, 50).map((dataPoint, index) => {
+            const date = generateDates()[index];
+            return createDataPoint(date, dataPoint.value[1], 'number');
+          }),
+          'line',
+          'number'
+        )),
+        downloads: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(75000, 40, 20).map((dataPoint, index) => {
+            const date = generateDates()[index];
+            return createDataPoint(date, dataPoint.value[1], 'number');
+          }),
+          'line',
+          'number'
+        )),
+        visitors: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataType(200000, 80, 40).map((dataPoint, index) => {
+            const date = generateDates()[index];
+            return createDataPoint(date, dataPoint.value[1], 'number');
+          }),
+          'line',
+          'number'
+        )),
+        dataVolume: items.map(item => createDataSeries(
+          item.id,
+          item.name,
+          dataVolumeType(5000000000000, 200000000, 100000000).map((dataPoint, index) => {
+            const date = generateDates()[index];
+            return createDataPoint(date, dataPoint.value[1], 'filesize');
+          }),
+          'line',
+          'filesize'
+        ))
+      };
   }
 
   // Generate breakdown data that sums to global totals
@@ -329,18 +369,34 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
 
       // Distribute the global value across breakdown items
       const distribution = [];
-      let remainingValue = globalValue;
 
-      for (let i = 0; i < itemCount; i++) {
-        if (i === itemCount - 1) {
-          // Last item gets the remaining value
-          distribution.push(remainingValue);
-        } else {
-          // Randomly distribute a portion of the remaining value
-          const maxPortion = Math.floor(remainingValue / (itemCount - i));
-          const portion = Math.floor(Math.random() * maxPortion) + 1;
-          distribution.push(portion);
-          remainingValue -= portion;
+      if (globalValue <= 0) {
+        // If no global value, give each item a small random value
+        for (let i = 0; i < itemCount; i++) {
+          distribution.push(Math.floor(Math.random() * 100) + 1);
+        }
+      } else if (itemCount === 0) {
+        // No items to distribute to
+        return distribution;
+      } else if (itemCount === 1) {
+        // Single item gets all the value
+        distribution.push(globalValue);
+      } else {
+        // Distribute across multiple items
+        let remainingValue = globalValue;
+
+        for (let i = 0; i < itemCount; i++) {
+          if (i === itemCount - 1) {
+            // Last item gets the remaining value
+            distribution.push(Math.max(1, remainingValue));
+          } else {
+            // Ensure each item gets at least 1, and distribute the rest fairly
+            const minValue = 1;
+            const maxPortion = Math.max(minValue, Math.floor((remainingValue - (itemCount - i - 1)) / (itemCount - i)));
+            const portion = Math.floor(Math.random() * maxPortion) + minValue;
+            distribution.push(portion);
+            remainingValue -= portion;
+          }
         }
       }
 
@@ -464,7 +520,23 @@ const countryItems = [
   { id: 'us', name: 'United States' },
   { id: 'gb', name: 'United Kingdom' },
   { id: 'de', name: 'Germany' },
-  { id: 'fr', name: 'France' }
+  { id: 'fr', name: 'France' },
+  { id: 'ca', name: 'Canada' },
+  { id: 'au', name: 'Australia' },
+  { id: 'nl', name: 'Netherlands' },
+  { id: 'se', name: 'Sweden' },
+  { id: 'ch', name: 'Switzerland' },
+  { id: 'no', name: 'Norway' },
+  { id: 'dk', name: 'Denmark' },
+  { id: 'fi', name: 'Finland' },
+  { id: 'it', name: 'Italy' },
+  { id: 'es', name: 'Spain' },
+  { id: 'jp', name: 'Japan' },
+  { id: 'cn', name: 'China' },
+  { id: 'kr', name: 'South Korea' },
+  { id: 'in', name: 'India' },
+  { id: 'br', name: 'Brazil' },
+  { id: 'mx', name: 'Mexico' }
 ];
 
 const referrerItems = [
@@ -515,7 +587,7 @@ const testStatsData = {
     const globalMetrics = createRecordMetrics(false);
     return {
       global: globalMetrics,
-      byFilePresence: createRecordMetrics(false),
+      byFilePresence: createFilePresenceMetrics(false),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
       accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
       languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
@@ -533,7 +605,7 @@ const testStatsData = {
     const globalMetrics = createRecordMetrics(false);
     return {
       global: globalMetrics,
-      byFilePresence: createRecordMetrics(false),
+      byFilePresence: createFilePresenceMetrics(false),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
       accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
       languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
@@ -551,7 +623,7 @@ const testStatsData = {
     const globalMetrics = createRecordMetrics(false);
     return {
       global: globalMetrics,
-      byFilePresence: createRecordMetrics(false),
+      byFilePresence: createFilePresenceMetrics(false),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
       accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
       languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
@@ -570,7 +642,7 @@ const testStatsData = {
     const globalMetrics = createRecordMetrics(true);
     return {
       global: globalMetrics,
-      byFilePresence: createRecordMetrics(true),
+      byFilePresence: createFilePresenceMetrics(true),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
       accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
       languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
@@ -588,7 +660,7 @@ const testStatsData = {
     const globalMetrics = createRecordMetrics(true);
     return {
       global: globalMetrics,
-      byFilePresence: createRecordMetrics(true),
+      byFilePresence: createFilePresenceMetrics(true),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
       accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
       languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
@@ -606,7 +678,7 @@ const testStatsData = {
     const globalMetrics = createRecordMetrics(true);
     return {
       global: globalMetrics,
-      byFilePresence: createRecordMetrics(true),
+      byFilePresence: createFilePresenceMetrics(true),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
       accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
       languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
@@ -625,7 +697,6 @@ const testStatsData = {
     const globalMetrics = createUsageMetrics(false);
     return {
       global: globalMetrics,
-      byFilePresence: createUsageMetrics(false),
       byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, false, globalMetrics),
       byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, false, globalMetrics),
       byLanguages: createUsageSubcountSeries('byLanguages', languageItems, false, globalMetrics),
@@ -644,7 +715,6 @@ const testStatsData = {
     const globalMetrics = createUsageMetrics(true);
     return {
       global: globalMetrics,
-      byFilePresence: createUsageMetrics(true),
       byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, true, globalMetrics),
       byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, true, globalMetrics),
       byLanguages: createUsageSubcountSeries('byLanguages', languageItems, true, globalMetrics),

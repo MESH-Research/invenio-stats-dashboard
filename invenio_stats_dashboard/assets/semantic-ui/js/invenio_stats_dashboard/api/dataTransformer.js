@@ -20,11 +20,12 @@ const createDataPoint = (date, value, valueType = 'number') => {
 };
 
 /**
- * Create an array of DataSeries objects for byFilePresence data, optionally populating with data points.
+ * Create an array of DataSeries objects from an array of data points with named properties.
+ * This function is used to transform data points that have properties like 'withFiles' and 'metadataOnly'
+ * into separate series for charting.
  *
- * @param {string[]} seriesNames - Array of series names (e.g., ['withFiles', 'withoutFiles'])
- * @param {Object[]} [dataPointsArray] - Array of objects mapping series name to value for each date, e.g.:
- *    [{date: '2024-01-01', withFiles: 5, withoutFiles: 2}, ...]
+ * @param {string[]} seriesNames - Array of property names to extract as separate series
+ * @param {FilePresenceDataPoint[]} [dataPointsArray=[]] - Array of data points with named properties
  * @param {string} [type='line'] - Chart type for all series
  * @param {string} [valueType='number'] - Value type for all series
  * @returns {DataSeries[]} Array of DataSeries objects
@@ -111,6 +112,11 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {string} readableDate - Formatted date string
  * @property {string} valueType - Type of value ('number', 'filesize', etc.)
  *
+ * @typedef {Object} FilePresenceDataPoint
+ * @property {string} date - Date string (YYYY-MM-DD format)
+ * @property {number} withFiles - Value for records with files
+ * @property {number} metadataOnly - Value for metadata-only records
+ *
  * @typedef {Object} DataSeries
  * @property {string} id - Unique identifier for the series
  * @property {string} name - Series name (display name, can be label or id)
@@ -125,6 +131,10 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {DataSeries[]} fileCount - File count series
  * @property {DataSeries[]} dataVolume - Data volume series
  *
+ * @typedef {Object} FilePresenceMetrics
+ * @property {DataSeries[]} records - Record count series split by file presence
+ * @property {DataSeries[]} parents - Parent count series split by file presence
+ *
  * @typedef {Object} UsageMetrics
  * @property {DataSeries[]} views - View count series
  * @property {DataSeries[]} downloads - Download count series
@@ -133,7 +143,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} RecordDeltaData
  * @property {RecordMetrics} global - Global record metrics
- * @property {RecordMetrics} byFilePresence - Record metrics by file presence
+ * @property {FilePresenceMetrics} byFilePresence - Record metrics by file presence (records and parents only)
  * @property {RecordMetrics} resourceTypes
  * @property {RecordMetrics} accessStatus
  * @property {RecordMetrics} languages
@@ -147,7 +157,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} RecordSnapshotData
  * @property {RecordMetrics} global - Global record metrics
- * @property {RecordMetrics} byFilePresence - Record metrics by file presence
+ * @property {FilePresenceMetrics} byFilePresence - Record metrics by file presence (records and parents only)
  * @property {RecordMetrics} resourceTypes
  * @property {RecordMetrics} accessStatus
  * @property {RecordMetrics} languages
@@ -161,7 +171,6 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} UsageDeltaData
  * @property {UsageMetrics} global - Global usage metrics
- * @property {UsageMetrics} byFilePresence - Usage metrics by file presence
  * @property {UsageMetrics} byAccessStatus
  * @property {UsageMetrics} byFileTypes
  * @property {UsageMetrics} byLanguages
@@ -175,7 +184,6 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} UsageSnapshotData
  * @property {UsageMetrics} global - Global usage metrics
- * @property {UsageMetrics} byFilePresence - Usage metrics by file presence
  * @property {UsageMetrics} byAccessStatus
  * @property {UsageMetrics} byFileTypes
  * @property {UsageMetrics} byLanguages
@@ -213,9 +221,8 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
 /**
  * Transform daily record delta aggregation documents for display in the dashboard.
  *
- * @param {Array} deltaDocs - Array of daily record delta aggregation documents
- *
- * @returns {RecordDeltaData} Transformed data with time series metrics organized by category
+ * @param {Array} deltaDocs - Array of daily record delta aggregation documents from the API
+ * @returns {RecordDeltaData} Transformed data with delta time series metrics organized by category
  */
 const transformRecordDeltaData = (deltaDocs) => {
 
@@ -229,10 +236,7 @@ const transformRecordDeltaData = (deltaDocs) => {
     },
     byFilePresence: {
       records: [],
-      parents: [],
-      uploaders: [],
-      fileCount: [],
-      dataVolume: [],
+      parents: []
     },
     accessStatus: {
       records: [],
@@ -322,6 +326,13 @@ const transformRecordDeltaData = (deltaDocs) => {
   };
 
 
+  /**
+   * Calculate the net count change for a subcount item by combining with_files and metadata_only counts.
+   * Handles different subcount item structures from the API.
+   *
+   * @param {Object} item - Subcount item with added/removed properties or nested records structure
+   * @returns {number} Net count change (added - removed)
+   */
   const getNetCount = (item) => {
     // Handle different subcount item structures
     if (item.added && item.removed) {
@@ -338,6 +349,13 @@ const transformRecordDeltaData = (deltaDocs) => {
     return 0;
   };
 
+  /**
+   * Calculate the net file count change for a subcount item.
+   * Handles different subcount item structures from the API.
+   *
+   * @param {Object} item - Subcount item with added/removed properties or nested files structure
+   * @returns {number} Net file count change (added - removed)
+   */
   const getNetFileCount = (item) => {
     // Handle different subcount item structures
     if (item.added && item.removed) {
@@ -353,6 +371,13 @@ const transformRecordDeltaData = (deltaDocs) => {
     return 0;
   };
 
+  /**
+   * Calculate the net data volume change for a subcount item.
+   * Handles different subcount item structures from the API.
+   *
+   * @param {Object} item - Subcount item with added/removed properties or nested files structure
+   * @returns {number} Net data volume change in bytes (added - removed)
+   */
   const getNetDataVolume = (item) => {
     // Handle different subcount item structures
     if (item.added && item.removed) {
@@ -366,8 +391,6 @@ const transformRecordDeltaData = (deltaDocs) => {
   };
 
   if (deltaDocs && Array.isArray(deltaDocs)) {
-    const byFilePresenceDataPoints = [];
-
     deltaDocs.forEach(doc => {
       const source = doc;
       const date = source.period_start.split('T')[0];
@@ -379,11 +402,21 @@ const transformRecordDeltaData = (deltaDocs) => {
       deltaData.global.fileCount.push(createDataPoint(date, getNetFileCount(source.files)));
       deltaData.global.dataVolume.push(createDataPoint(date, getNetDataVolume(source.files), 'filesize'));
 
-      // Collect byFilePresence data points
-      byFilePresenceDataPoints.push({
-        date,
-        withFiles: getNetCount(source.records.added),
-        withoutFiles: getNetCount(source.records.removed)
+      // Collect byFilePresence data points directly into deltaData structure
+      // but only for metrics that have both withFiles and metadataOnly
+      ['records', 'parents'].forEach(key => {
+        const dataPoint = { date };
+
+        // Calculate net change for delta data
+        const addedWithFiles = source[key].added?.with_files || 0;
+        const removedWithFiles = source[key].removed?.with_files || 0;
+        const addedMetadataOnly = source[key].added?.metadata_only || 0;
+        const removedMetadataOnly = source[key].removed?.metadata_only || 0;
+
+        dataPoint.withFiles = addedWithFiles - removedWithFiles;
+        dataPoint.metadataOnly = addedMetadataOnly - removedMetadataOnly;
+
+        deltaData.byFilePresence[key].push(dataPoint);
       });
 
       // Collect subcount data points for each metric type
@@ -458,12 +491,9 @@ const transformRecordDeltaData = (deltaDocs) => {
     // Create byFilePresence series for each metric type
     const byFilePresenceMetrics = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
     byFilePresenceMetrics.forEach(metricType => {
-      const dataPoints = byFilePresenceDataPoints.map(dp => ({
-        date: dp.date,
-        withFiles: dp.withFiles,
-        withoutFiles: dp.withoutFiles
-      }));
-      deltaData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+      const dataPoints = deltaData.byFilePresence[metricType];
+      const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+      deltaData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
     });
 
     // Create subcount series for each metric type
@@ -493,8 +523,7 @@ const transformRecordDeltaData = (deltaDocs) => {
 /**
  * Transform daily record snapshot aggregation documents for display in the dashboard.
  *
- * @param {Array} snapshotDocs - Array of daily record snapshot aggregation documents
- *
+ * @param {Array} snapshotDocs - Array of daily record snapshot aggregation documents from the API
  * @returns {RecordSnapshotData} Transformed data with cumulative time series metrics organized by category
  */
 const transformRecordSnapshotData = (snapshotDocs) => {
@@ -509,10 +538,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
     },
     byFilePresence: {
       records: [],
-      parents: [],
-      uploaders: [],
-      fileCount: [],
-      dataVolume: [],
+      parents: []
     },
     accessStatus: {
       records: [],
@@ -600,24 +626,40 @@ const transformRecordSnapshotData = (snapshotDocs) => {
     'all_file_types': 'fileTypes'
   };
 
+  /**
+   * Calculate the total count for a record item by combining with_files and metadata_only counts.
+   *
+   * @param {Object} item - Record item with metadata_only and with_files properties
+   * @returns {number} Total count (metadata_only + with_files)
+   */
   const getTotalCount = (item) => {
     if (!item) return 0;
     return (item.metadata_only || 0) + (item.with_files || 0);
   };
 
+  /**
+   * Extract the total file count from a record item.
+   *
+   * @param {Object} item - Record item with file_count property
+   * @returns {number} Total file count or 0 if not available
+   */
   const getTotalFileCount = (item) => {
     if (!item) return 0;
     return item.file_count || 0;
   };
 
+  /**
+   * Extract the total data volume from a record item.
+   *
+   * @param {Object} item - Record item with data_volume property
+   * @returns {number} Total data volume in bytes or 0 if not available
+   */
   const getTotalDataVolume = (item) => {
     if (!item) return 0;
     return item.data_volume || 0;
   };
 
   if (snapshotDocs && Array.isArray(snapshotDocs)) {
-    const byFilePresenceDataPoints = [];
-
     snapshotDocs.forEach(doc => {
       const source = doc;
       const date = source.snapshot_date.split('T')[0];
@@ -629,11 +671,15 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       snapshotData.global.fileCount.push(createDataPoint(date, getTotalFileCount(source.total_files)));
       snapshotData.global.dataVolume.push(createDataPoint(date, getTotalDataVolume(source.total_files), 'filesize'));
 
-      // Collect byFilePresence data points
-      byFilePresenceDataPoints.push({
-        date,
-        withFiles: source.total_records.with_files,
-        withoutFiles: source.total_records.metadata_only
+      // Collect byFilePresence data points directly into snapshotData structure
+      // but only for metrics that have both withFiles and metadataOnly
+      ['records', 'parents'].forEach(key => {
+        const dataPoint = { date };
+
+        dataPoint.withFiles = source[`total_${key}`].with_files || 0;
+        dataPoint.metadataOnly = source[`total_${key}`].metadata_only || 0;
+
+        snapshotData.byFilePresence[key].push(dataPoint);
       });
 
       // Collect subcount data points for each metric type
@@ -699,14 +745,11 @@ const transformRecordSnapshotData = (snapshotDocs) => {
     });
 
     // Create byFilePresence series for each metric type
-    const byFilePresenceMetrics = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+    const byFilePresenceMetrics = ['records', 'parents'];
     byFilePresenceMetrics.forEach(metricType => {
-      const dataPoints = byFilePresenceDataPoints.map(dp => ({
-        date: dp.date,
-        withFiles: dp.withFiles,
-        withoutFiles: dp.withoutFiles
-      }));
-      snapshotData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+      const dataPoints = snapshotData.byFilePresence[metricType];
+      const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+      snapshotData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
     });
 
     // Create subcount series for each metric type
@@ -743,8 +786,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
 /**
  * Transform daily usage delta aggregation documents for display in the dashboard.
  *
- * @param {Array} deltaDocs - Array of daily usage delta aggregation documents
- *
+ * @param {Array} deltaDocs - Array of daily usage delta aggregation documents from the API
  * @returns {UsageDeltaData} Transformed data with usage time series metrics organized by category
  */
 const transformUsageDeltaData = (deltaDocs) => {
@@ -837,14 +879,33 @@ const transformUsageDeltaData = (deltaDocs) => {
     'by_affiliations': 'byAffiliations',
   };
 
+  /**
+   * Extract the net view events count from a usage item.
+   *
+   * @param {Object} item - Usage item with optional view property
+   * @returns {number} Total view events count or 0 if not available
+   */
   const getNetViewEvents = (item) => {
     return item && item.view ? item.view.total_events : 0;
   };
 
+  /**
+   * Extract the net download events count from a usage item.
+   *
+   * @param {Object} item - Usage item with optional download property
+   * @returns {number} Total download events count or 0 if not available
+   */
   const getNetDownloadEvents = (item) => {
     return item && item.download ? item.download.total_events : 0;
   };
 
+  /**
+   * Extract the net unique visitors count from a usage item.
+   * Takes the maximum of view and download visitors since a visitor can interact with both.
+   *
+   * @param {Object} item - Usage item with optional view and download properties
+   * @returns {number} Maximum unique visitors count or 0 if not available
+   */
   const getNetVisitors = (item) => {
     if (!item) return 0;
     const viewVisitors = item.view ? item.view.unique_visitors : 0;
@@ -852,6 +913,13 @@ const transformUsageDeltaData = (deltaDocs) => {
     return Math.max(viewVisitors, downloadVisitors);
   };
 
+  /**
+   * Extract the net data volume from a usage item.
+   * Only available for download events.
+   *
+   * @param {Object} item - Usage item with optional download property
+   * @returns {number} Total data volume in bytes or 0 if not available
+   */
   const getNetDataVolume = (item) => {
     return item && item.download ? item.download.total_volume : 0;
   };
@@ -978,8 +1046,7 @@ const transformUsageDeltaData = (deltaDocs) => {
 /**
  * Transform daily usage snapshot aggregation documents for display in the dashboard.
  *
- * @param {Array} snapshotDocs - Array of daily usage snapshot aggregation documents
- *
+ * @param {Array} snapshotDocs - Array of daily usage snapshot aggregation documents from the API
  * @returns {UsageSnapshotData} Transformed data with cumulative usage time series metrics organized by category
  */
 const transformUsageSnapshotData = (snapshotDocs) => {
@@ -1155,20 +1222,46 @@ const transformUsageSnapshotData = (snapshotDocs) => {
     'top_affiliations': { by_view: 'topAffiliationsByView', by_download: 'topAffiliationsByDownload' },
   };
 
+  /**
+   * Extract the total view events count from a usage snapshot item.
+   *
+   * @param {Object} item - Usage snapshot item with optional total_events property
+   * @returns {number} Total view events count or 0 if not available
+   */
   const getTotalViewEvents = (item) => {
     return item && item.total_events ? item.total_events : 0;
   };
 
+  /**
+   * Extract the total download events count from a usage snapshot item.
+   *
+   * @param {Object} item - Usage snapshot item with optional total_events property
+   * @returns {number} Total download events count or 0 if not available
+   */
   const getTotalDownloadEvents = (item) => {
     return item && item.total_events ? item.total_events : 0;
   };
 
+  /**
+   * Extract the total unique visitors count from a usage snapshot item.
+   * Takes the maximum of view and download visitors since a visitor can interact with both.
+   *
+   * @param {Object} item - Usage snapshot item with optional unique_visitors property
+   * @returns {number} Maximum unique visitors count or 0 if not available
+   */
   const getTotalVisitors = (item) => {
     const viewVisitors = item && item.unique_visitors ? item.unique_visitors : 0;
     const downloadVisitors = item && item.unique_visitors ? item.unique_visitors : 0;
     return Math.max(viewVisitors, downloadVisitors);
   };
 
+  /**
+   * Extract the total data volume from a usage snapshot item.
+   * Only available for download events.
+   *
+   * @param {Object} item - Usage snapshot item with optional total_volume property
+   * @returns {number} Total data volume in bytes or 0 if not available
+   */
   const getTotalDataVolume = (item) => {
     return item && item.total_volume ? item.total_volume : 0;
   };

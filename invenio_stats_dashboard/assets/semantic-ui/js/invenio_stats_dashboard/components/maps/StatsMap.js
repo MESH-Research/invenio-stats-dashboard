@@ -29,7 +29,26 @@ const StatsMap = ({
 
   const mapData = extractCountryMapData(stats, metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
 
+  // Debug logging for extracted map data
+  console.log('StatsMap - extracted mapData:', mapData);
+  console.log('StatsMap - mapData length:', mapData.length);
+  console.log('StatsMap - stats structure:', {
+    hasUsageSnapshotData: !!stats.usageSnapshotData,
+    hasTopCountriesByView: !!stats.usageSnapshotData?.topCountriesByView,
+    hasTopCountriesByDownload: !!stats.usageSnapshotData?.topCountriesByDownload,
+    hasByCountries: !!stats.usageSnapshotData?.byCountries,
+    topCountriesByViewViews: stats.usageSnapshotData?.topCountriesByView?.views?.length || 0,
+    topCountriesByDownloadDownloads: stats.usageSnapshotData?.topCountriesByDownload?.downloads?.length || 0,
+    byCountriesViews: stats.usageSnapshotData?.byCountries?.views?.length || 0
+  });
+
+  // Use the extracted map data directly
+  const finalMapData = mapData;
+
   const maxValue = Math.max(...mapData.map(item => item.value), 1);
+
+  // Debug logging for max value
+  console.log('StatsMap - maxValue:', maxValue);
 
   const option = {
     aria: {

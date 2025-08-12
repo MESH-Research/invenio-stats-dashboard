@@ -178,13 +178,17 @@
 
 
 .stats-chart-filter-selector {
-  fieldset {
+  .ui.form fieldset {
     padding: 0;
     border: none;
     .field {
+      margin-bottom: 0;
       label {
         color: @verdigrisDark !important;
         font-weight: normal;
+      }
+      .ui.radio.checkbox {
+        margin-left: -1rem;
       }
     }
   }

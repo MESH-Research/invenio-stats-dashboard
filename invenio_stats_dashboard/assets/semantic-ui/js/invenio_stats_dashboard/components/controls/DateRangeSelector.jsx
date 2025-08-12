@@ -304,41 +304,26 @@ const DateRangeSelector = ({
   const todayDate = getCurrentUTCDate();
   const currentPeriodOptions = periodOptions[granularity];
   const [currentSelectedOption, setCurrentSelectedOption] = useState(dateRange ? getCurrentPeriod(dateRange, granularity, maxHistoryYears) : currentPeriodOptions[0].value);
-  console.log("dateRange", dateRange);
-  console.log("defaultRangeOptions", defaultRangeOptions);
-  console.log("granularity", granularity);
-  console.log("todayDate", todayDate);
-  console.log("currentPeriodOptions", currentPeriodOptions);
-  console.log("currentSelectedOption", currentSelectedOption);
 
   useEffect(() => {
-    console.log("first render");
     if (!dateRange) {
       const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
       const initialDateRange = getDateRange(todayDate, defaultPeriod, maxHistoryYears);
       setDateRange(initialDateRange);
       setCurrentSelectedOption(defaultPeriod);
-      console.log(dateRange);
     }
   }, []);
 
   useEffect(() => {
-    console.log("granularity changed");
-    console.log(granularity);
     const newDefaultPeriod = defaultRangeOptions?.[granularity];
-    console.log("newDefaultPeriod", newDefaultPeriod);
     setCurrentSelectedOption(newDefaultPeriod);
     const newDateRange = getDateRange(todayDate, newDefaultPeriod, maxHistoryYears);
-    console.log("newDateRange", newDateRange);
     setDateRange(newDateRange);
   }, [granularity]);
 
   const handlePeriodChange = (e, { value }) => {
-    console.log("setting date range");
-    console.log(value);
     setCurrentSelectedOption(value);
     const newDateRange = getDateRange(todayDate, value, maxHistoryYears);
-    console.log(newDateRange);
     setDateRange(newDateRange);
     setIsOpen(false);
   };

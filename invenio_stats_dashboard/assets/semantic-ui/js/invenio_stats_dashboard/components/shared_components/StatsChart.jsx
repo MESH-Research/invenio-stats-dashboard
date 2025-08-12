@@ -13,7 +13,7 @@ const SERIES_Y_AXIS_LABELS = {
   'dataVolume': i18next.t('Uploaded Data Volume (GB)'),
   'default': i18next.t('Value'),
   'downloads': i18next.t('Number of Downloads'),
-  'files': i18next.t('Number of Files'),
+  'fileCount': i18next.t('Number of Files'),
   'records': i18next.t('Number of Works'),
   'traffic': i18next.t('Downloaded Data Volume (GB)'),
   'uploaders': i18next.t('Number of Uploaders'),
@@ -214,26 +214,38 @@ class ChartConfigBuilder {
     return this;
   }
 
-  withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked) {
+  withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked, chartType) {
     if (displaySeparately) {
+      // Helper function to determine which series should show labels
+      const shouldShowLabel = (seriesIndex, allSeries) => {
+        // Only show labels for quarter/year granularity
+        if (!['quarter', 'year'].includes(granularity)) {
+          return false;
+        }
+
+        // For stacked series, only show labels on the top series (last in the array)
+        // This ensures only the top of each stack shows a label
+        return seriesIndex === allSeries.length - 1;
+      };
+
       this.config.series = aggregatedData.map((series, index) => ({
         ...this.config.series,
         name: series.name,
-        type: series.type || "line",
+        type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
         stack: displaySeparately, // Use the breakdown type as the stack identifier
         data: series.data,
         label: {
           ...this.config.series.label,
-          show: ['quarter', 'year'].includes(granularity) ? true : false,
-          position: series.type === 'bar' ? 'inside' : 'top',
-          color: series.type === 'bar' ? "#fff" : CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
+          show: shouldShowLabel(index, aggregatedData),
+          position: 'top', // Always position labels above the series for stacked subcount
+          color: CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1] // Use the same color as the metric selector button
         },
-        areaStyle: series.type === 'line' ? {
+        areaStyle: (chartType || series.type || "bar") === 'line' ? {
           ...this.config.series.areaStyle,
           color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
         } : undefined,
         itemStyle: {
-          color: series.type === "bar"
+          color: (chartType || series.type || "bar") === "bar"
             ? CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
             : CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
         },
@@ -245,24 +257,24 @@ class ChartConfigBuilder {
       this.config.series = aggregatedData.map((series) => ({
         ...this.config.series,
         name: series.name,
-        type: series.type || "line",
+        type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
         stack: stacked ? "Total" : undefined,
         data: series.data,
         label: {
           ...this.config.series.label,
           show: ['quarter', 'year'].includes(granularity) ? true : false,
-          position: series.type === 'bar' ? 'inside' : 'top',
-          color: series.type === 'bar' ? "#fff" : CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
+          position: (chartType || series.type || "bar") === 'bar' ? 'inside' : 'top',
+          color: (chartType || series.type || "bar") === 'bar' ? "#fff" : CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
         },
         itemStyle: {
-          color: series.type === "bar"
+          color: (chartType || series.type || "bar") === "bar"
             ? CHART_COLORS.secondary[seriesColorIndex % CHART_COLORS.secondary.length][1]
             : CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
         },
         lineStyle: {
           color: CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
         },
-        areaStyle: areaStyle ? {
+        areaStyle: (areaStyle && (chartType || series.type || "bar") === 'line') ? {
           ...this.config.series.areaStyle,
           color: CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
         } : undefined
@@ -306,11 +318,11 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
       content={
         <Form>
           <fieldset>
-            <Form.Field>
+            <legend className="rel-mb-1">
               <label htmlFor="stats-chart-filter">Show separately</label>
-            </Form.Field>
+            </legend>
             {breakdownOptions.map(key => (
-              <Form.Field key={key}>
+              <Form.Field key={key} className="rel-mb-0">
                 <Checkbox
                   radio
                   label={BREAKDOWN_NAMES[key] || key}
@@ -320,7 +332,7 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
                 />
               </Form.Field>
             ))}
-            <Form.Field>
+            <Form.Field className="rel-mt-1">
               <Button type="submit" icon labelPosition="right" onClick={() => setDisplaySeparately(null)}>Clear<Icon name="close" /></Button>
             </Form.Field>
           </fieldset>
@@ -335,29 +347,41 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
 };
 
 const createAggregationKey = (date, granularity) => {
+  const d = new Date(date);
+
   switch (granularity) {
-    case 'day':
-      return date.toISOString().split('T')[0];
     case 'week':
-      const day = date.getUTCDay();
-      const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
-      return monday.toISOString().split('T')[0];
+      const diff = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
+      const startOfWeek = new Date(d.setDate(diff));
+      return startOfWeek.toISOString().split('T')[0];
+
     case 'month':
-      return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
     case 'quarter':
-      const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
-      const firstDayOfQuarter = new Date(Date.UTC(date.getUTCFullYear(), (quarter - 1) * 3, 1));
-      return firstDayOfQuarter.toISOString().split('T')[0];
+      const quarter = Math.floor(d.getMonth() / 3) + 1;
+      return `${d.getFullYear()}-${String(quarter).padStart(2, '0')}`;
+
     case 'year':
-      return date.getUTCFullYear().toString();
+      return `${d.getFullYear()}`;
+
     default:
       return date.toISOString().split('T')[0];
   }
 };
 
+// Detect if data is cumulative (snapshot data) or non-cumulative (delta data)
+const isDataCumulative = (data) => {
+  if (!data) return false;
 
-const aggregateData = (data, granularity) => {
+  // Check if this is snapshot data by looking for snapshot-related properties
+  // Delta data: recordDeltaData*, usageDeltaData
+  // Snapshot data: recordSnapshotData*, usageSnapshotData
+  return Object.keys(data).some(key => key.includes('Snapshot'));
+};
+
+
+const aggregateData = (data, granularity, isSubcounts = false) => {
   if (!data) return [];
   if (granularity === 'day') {
     return data;
@@ -381,25 +405,48 @@ const aggregateData = (data, granularity) => {
 
       if (!aggregatedPoints.has(key)) {
         const readableDate = readableGranularDate(key, granularity);
-
         aggregatedPoints.set(key, {
-          value: 0,
-          readableDate: readableDate
+          value: value,
+          readableDate: readableDate,
+          lastDate: date
         });
+      } else {
+        const current = aggregatedPoints.get(key);
+        // Always take the last value of each time period
+        if (date > current.lastDate) {
+          current.value = value;
+          current.lastDate = date;
+        }
       }
-
-      aggregatedPoints.get(key).value += value;
     });
 
     return {
       ...series,
       data: Array.from(aggregatedPoints.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, { value, readableDate }]) => ({
-          value: [new Date(date), value],
-          readableDate: readableDate,
-          valueType: series.valueType || 'number'
-        })),
+        .map(([key, { value, readableDate }]) => {
+          // Convert the aggregation key back to a proper date for the chart
+          let chartDate;
+          if (granularity === 'quarter') {
+            const [year, quarter] = key.split('-');
+            const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
+            chartDate = new Date(parseInt(year), month, 1);
+          } else if (granularity === 'month') {
+            const [year, month] = key.split('-');
+            chartDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+          } else if (granularity === 'year') {
+            chartDate = new Date(parseInt(key), 0, 1);
+          } else {
+            // week and day use ISO date strings
+            chartDate = new Date(key);
+          }
+
+          return {
+            value: [chartDate, value],
+            readableDate: readableDate,
+            valueType: series.valueType || 'number'
+          };
+        }),
     };
   });
 
@@ -559,6 +606,7 @@ const StatsChart = ({
   showSeriesControls = true,
   gridConfig,
   tooltipConfig,
+  chartType = undefined, // Optional prop to override chart type consistently
 }) => {
   const { dateRange, granularity } = useStatsDashboard();
   const [selectedMetric, setSelectedMetric] = useState(seriesSelectorOptions?.[0]?.value);
@@ -577,6 +625,7 @@ const StatsChart = ({
       // Global view: get the array of series for the selected metric
       seriesToProcess = data.global?.[selectedMetric] || [];
     }
+
     return seriesToProcess;
   }, [data, selectedMetric, displaySeparately]);
 
@@ -600,7 +649,8 @@ const StatsChart = ({
       }
     });
 
-    const aggregatedData = aggregateData(namedSeries, granularity);
+    const aggregatedData = aggregateData(namedSeries, granularity, displaySeparately);
+
     setAggregatedData(aggregatedData);
   }, [seriesArray, granularity, dateRange, displaySeparately, selectedMetric]);
 
@@ -630,7 +680,7 @@ const StatsChart = ({
       .withGrid(showGrid, gridConfig)
       .withAxisLabels(showAxisLabels, xAxisLabel, yAxisLabel, seriesYAxisLabel, granularity, minXInterval, maxXInterval, yAxisMin, selectedMetric)
       .withLegend(showLegend, displaySeparately)
-      .withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked)
+      .withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked, chartType)
       .build();
 
     const options = {
@@ -655,7 +705,8 @@ const StatsChart = ({
     selectedMetric,
     yAxisMin,
     granularity,
-    displaySeparately
+    displaySeparately,
+    chartType
   ]);
 
   // ReactECharts handles option updates automatically when props change
@@ -831,6 +882,7 @@ StatsChart.propTypes = {
       valueType: PropTypes.string,
     })
   ),
+  chartType: PropTypes.oneOf(['bar', 'line']),
 };
 
 export { StatsChart };

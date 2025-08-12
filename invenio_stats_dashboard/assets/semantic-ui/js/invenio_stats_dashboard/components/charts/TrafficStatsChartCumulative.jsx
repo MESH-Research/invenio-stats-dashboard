@@ -17,8 +17,9 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
  * @param {Object} props - The component props.
  * @param {string} [props.title] - The chart title.
  * @param {number} [props.height] - The chart height.
+ * @param {string} [props.chartType] - The chart type (bar or line). Defaults to "bar".
  */
-const TrafficStatsChartCumulative = ({ title = undefined, height = 300, ...otherProps }) => {
+const TrafficStatsChartCumulative = ({ title = undefined, height = 300, chartType = "bar", ...otherProps }) => {
   const { stats } = useStatsDashboard();
 
   const seriesSelectorOptions = [
@@ -30,6 +31,7 @@ const TrafficStatsChartCumulative = ({ title = undefined, height = 300, ...other
   return (
     <StatsChart
       title={title || i18next.t('Cumulative Usage')}
+      chartType={chartType}
       data={stats.usageSnapshotData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
@@ -41,6 +43,7 @@ const TrafficStatsChartCumulative = ({ title = undefined, height = 300, ...other
 TrafficStatsChartCumulative.propTypes = {
   title: PropTypes.string,
   height: PropTypes.number,
+  chartType: PropTypes.oneOf(['bar', 'line']),
 };
 
 export { TrafficStatsChartCumulative };

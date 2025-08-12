@@ -46,38 +46,34 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, countr
   filteredData.forEach(series => {
     if (series.data && Array.isArray(series.data)) {
       series.data.forEach(dataPoint => {
-        if (dataPoint && dataPoint.value && Array.isArray(dataPoint.value) && dataPoint.value.length >= 3) {
-          // Data structure: [date, value, label, id]
+        if (dataPoint && dataPoint.value && Array.isArray(dataPoint.value) && dataPoint.value.length >= 2) {
+          // Data structure: [date, value] - country name comes from series.name
           const value = dataPoint.value[1];
-          const label = dataPoint.value[2];
-          const id = dataPoint.value[3] || series.id;
+          const countryName = series.name || series.id;
 
-          if (value > 0) {
-            const countryName = label?.trim() || id;
-            if (countryName) {
-              const mappedName = countryNameMap[countryName] || countryName;
-              const numericValue = parseInt(value, 10) || 0;
+          if (value > 0 && countryName) {
+            const mappedName = countryNameMap[countryName] || countryName;
+            const numericValue = parseInt(value, 10) || 0;
 
-              if (useSnapshot) {
-                // For snapshot data, we only want the latest value per country
-                // Since we filtered with latest=true, each country should have only one data point
+            if (useSnapshot) {
+              // For snapshot data, we only want the latest value per country
+              // Since we filtered with latest=true, each country should have only one data point
+              countryDataMap.set(mappedName, {
+                name: mappedName,
+                value: numericValue,
+                originalName: countryName
+              });
+            } else {
+              // For delta data, we sum all values for each country
+              const existing = countryDataMap.get(mappedName);
+              if (existing) {
+                existing.value += numericValue;
+              } else {
                 countryDataMap.set(mappedName, {
                   name: mappedName,
                   value: numericValue,
                   originalName: countryName
                 });
-              } else {
-                // For delta data, we sum all values for each country
-                const existing = countryDataMap.get(mappedName);
-                if (existing) {
-                  existing.value += numericValue;
-                } else {
-                  countryDataMap.set(mappedName, {
-                    name: mappedName,
-                    value: numericValue,
-                    originalName: countryName
-                  });
-                }
               }
             }
           }

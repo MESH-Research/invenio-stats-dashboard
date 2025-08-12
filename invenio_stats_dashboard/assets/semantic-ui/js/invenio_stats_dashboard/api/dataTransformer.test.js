@@ -47,13 +47,13 @@ describe('transformApiData', () => {
       expect(deltaData.global.records[0]).toHaveProperty('type');
       expect(deltaData.global.records[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure
+      // Check byFilePresence structure (only records and parents)
       expect(deltaData).toHaveProperty('byFilePresence');
       expect(deltaData.byFilePresence).toHaveProperty('records');
       expect(deltaData.byFilePresence).toHaveProperty('parents');
-      expect(deltaData.byFilePresence).toHaveProperty('uploaders');
-      expect(deltaData.byFilePresence).toHaveProperty('fileCount');
-      expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
+      expect(deltaData.byFilePresence).not.toHaveProperty('uploaders');
+      expect(deltaData.byFilePresence).not.toHaveProperty('fileCount');
+      expect(deltaData.byFilePresence).not.toHaveProperty('dataVolume');
 
       // Check subcount categories
       expect(deltaData).toHaveProperty('resourceTypes');
@@ -87,13 +87,13 @@ describe('transformApiData', () => {
       expect(snapshotData.global.records[0]).toHaveProperty('type');
       expect(snapshotData.global.records[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure
+      // Check byFilePresence structure (only records and parents)
       expect(snapshotData).toHaveProperty('byFilePresence');
       expect(snapshotData.byFilePresence).toHaveProperty('records');
       expect(snapshotData.byFilePresence).toHaveProperty('parents');
-      expect(snapshotData.byFilePresence).toHaveProperty('uploaders');
-      expect(snapshotData.byFilePresence).toHaveProperty('fileCount');
-      expect(snapshotData.byFilePresence).toHaveProperty('dataVolume');
+      expect(snapshotData.byFilePresence).not.toHaveProperty('uploaders');
+      expect(snapshotData.byFilePresence).not.toHaveProperty('fileCount');
+      expect(snapshotData.byFilePresence).not.toHaveProperty('dataVolume');
     });
 
     test('should transform usage delta data correctly', () => {
@@ -114,12 +114,8 @@ describe('transformApiData', () => {
       expect(deltaData.global.views[0]).toHaveProperty('type');
       expect(deltaData.global.views[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure
-      expect(deltaData).toHaveProperty('byFilePresence');
-      expect(deltaData.byFilePresence).toHaveProperty('views');
-      expect(deltaData.byFilePresence).toHaveProperty('downloads');
-      expect(deltaData.byFilePresence).toHaveProperty('visitors');
-      expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
+      // byFilePresence is not implemented for usage data
+      expect(deltaData).not.toHaveProperty('byFilePresence');
 
       // Check subcount categories
       expect(deltaData).toHaveProperty('byAccessStatus');
@@ -152,12 +148,8 @@ describe('transformApiData', () => {
       expect(snapshotData.global.views[0]).toHaveProperty('type');
       expect(snapshotData.global.views[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure
-      expect(snapshotData).toHaveProperty('byFilePresence');
-      expect(snapshotData.byFilePresence).toHaveProperty('views');
-      expect(snapshotData.byFilePresence).toHaveProperty('downloads');
-      expect(snapshotData.byFilePresence).toHaveProperty('visitors');
-      expect(snapshotData.byFilePresence).toHaveProperty('dataVolume');
+      // byFilePresence is not implemented for usage data
+      expect(snapshotData).not.toHaveProperty('byFilePresence');
 
       // Check separate view/download properties
       expect(snapshotData).toHaveProperty('topCountriesByView');
@@ -332,7 +324,7 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       expect(result.usageSnapshotData).toHaveProperty('global');
-      expect(result.usageSnapshotData).toHaveProperty('byFilePresence');
+      expect(result.usageSnapshotData).not.toHaveProperty('byFilePresence');
       expect(result.usageSnapshotData).toHaveProperty('byAccessStatus');
       expect(result.usageSnapshotData).toHaveProperty('byFileTypes');
       expect(result.usageSnapshotData).toHaveProperty('byLanguages');

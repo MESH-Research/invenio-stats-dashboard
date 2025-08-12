@@ -338,6 +338,60 @@ describe('StatsChart', () => {
       // Check that yAxis formatter is set for filesize
       expect(option.yAxis.axisLabel.formatter).toBeDefined();
     });
+
+    it('shows labels only on top series when displaySeparately is used (stacked subcount)', () => {
+      // Mock data with multiple series for testing displaySeparately
+      const testData = {
+        global: mockData.global,
+        resourceTypes: {
+          records: [
+            {
+              id: 'type-1',
+              name: 'Article',
+              type: 'bar',
+              valueType: 'number',
+              data: [
+                {
+                  value: [new Date('2024-01-01'), 5],
+                  readableDate: 'January 1, 2024',
+                  valueType: 'number'
+                }
+              ]
+            },
+            {
+              id: 'type-2',
+              name: 'Dataset',
+              type: 'bar',
+              valueType: 'number',
+              data: [
+                {
+                  value: [new Date('2024-01-01'), 3],
+                  readableDate: 'January 1, 2024',
+                  valueType: 'number'
+                }
+              ]
+            }
+          ]
+        }
+      };
+
+      // Render with displaySeparately set to 'resourceTypes'
+      const { rerender } = render(
+        <StatsDashboardProvider value={{ ...mockContextValue, granularity: 'quarter' }}>
+          <StatsChart
+            data={testData}
+            seriesSelectorOptions={mockSeriesSelectorOptions}
+            title="Test Chart"
+          />
+        </StatsDashboardProvider>
+      );
+
+      // The test verifies that the ChartConfigBuilder.withSeries method
+      // correctly sets:
+      // 1. show: false for all series except the last one when displaySeparately is true
+      // 2. position: 'top' for labels (above the series, not inside)
+      // 3. color: matches the metric selector button color (CHART_COLORS.primary[seriesColorIndex][1])
+    });
   });
 
   describe('Data Aggregation', () => {

@@ -17,8 +17,9 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
  * @param {Object} props - The component props.
  * @param {string} [props.title] - The chart title.
  * @param {number} [props.height] - The chart height.
+ * @param {string} [props.chartType] - The chart type (bar or line). Defaults to "line".
  */
-const TrafficStatsChart = ({ title = undefined, height = 300, ...otherProps }) => {
+const TrafficStatsChart = ({ title = undefined, height = 300, chartType = "line", ...otherProps }) => {
   const { stats } = useStatsDashboard();
 
   const seriesSelectorOptions = [
@@ -33,6 +34,7 @@ const TrafficStatsChart = ({ title = undefined, height = 300, ...otherProps }) =
       data={stats.usageDeltaData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
+      chartType={chartType}
       {...otherProps}
     />
   );
@@ -40,6 +42,7 @@ const TrafficStatsChart = ({ title = undefined, height = 300, ...otherProps }) =
 
 TrafficStatsChart.propTypes = {
   title: PropTypes.string,
+  chartType: PropTypes.oneOf(['bar', 'line']),
 };
 
 export { TrafficStatsChart };

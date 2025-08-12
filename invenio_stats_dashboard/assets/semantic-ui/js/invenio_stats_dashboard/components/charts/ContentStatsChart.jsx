@@ -21,8 +21,9 @@ import { StatsChart } from "../shared_components/StatsChart";
  * @param {Object} props - The component props.
  * @param {string} props.title - The title of the chart.
  * @param {number} props.height - The height of the chart.
+ * @param {string} [props.chartType] - The chart type (bar or line). Defaults to "line".
  */
-const ContentStatsChart = ({ title = undefined, height = 300, ...otherProps }) => {
+const ContentStatsChart = ({ title = undefined, height = 300, chartType = "line", ...otherProps }) => {
   const { stats, recordStartBasis } = useStatsDashboard();
 
   const seriesCategoryMap = {
@@ -58,6 +59,7 @@ const ContentStatsChart = ({ title = undefined, height = 300, ...otherProps }) =
       data={data}
       seriesSelectorOptions={options}
       height={height}
+      chartType={chartType}
       {...otherProps} />
   );
 };
