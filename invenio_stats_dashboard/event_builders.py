@@ -61,10 +61,11 @@ def file_download_event_builder(event, sender_app, **kwargs):
             ),
             "rights": record.metadata.get("rights", None),
             "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
-            "affiliations": (
-                [c.get("affiliations") for c in record.metadata.get("contributors", [])]
-                + [r.get("affiliations") for r in record.metadata.get("creators", [])]
-            ),
+            "affiliations": [
+                c.get("affiliations")
+                for c in record.metadata.get("contributors", [])
+                + record.metadata.get("creators", [])
+            ],
             "file_type": file_type,
         }
     )
@@ -118,16 +119,11 @@ def record_view_event_builder(event, sender_app, **kwargs):
                 "funders": [
                     f.get("funder") for f in record.metadata.get("funding", [])
                 ],
-                "affiliations": (
-                    [
-                        c.get("affiliations")
-                        for c in record.metadata.get("contributors", [])
-                    ]
-                    + [
-                        r.get("affiliations")
-                        for r in record.metadata.get("creators", [])
-                    ]
-                ),
+                "affiliations": [
+                    c.get("affiliations")
+                    for c in record.metadata.get("contributors", [])
+                    + record.metadata.get("creators", [])
+                ],
                 "file_types": file_types,
             }
         )
