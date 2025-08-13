@@ -7,6 +7,8 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
+from pprint import pprint
+
 import arrow
 import click
 from flask import current_app
@@ -14,7 +16,6 @@ from flask.cli import with_appcontext
 from halo import Halo
 from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from opensearchpy.helpers.search import Search
-from pprint import pprint
 
 from .proxies import current_community_stats_service
 from .service import EventReindexingService

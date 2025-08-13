@@ -23,9 +23,9 @@ from opensearchpy.helpers.search import Search
 from .exceptions import CommunityEventIndexingError
 from .proxies import current_community_stats_service
 from .queries import (
+    CommunityUsageDeltaQuery,
     daily_record_delta_query_with_events,
     daily_record_snapshot_query_with_events,
-    CommunityUsageDeltaQuery,
 )
 
 SUBCOUNT_TYPES = {
