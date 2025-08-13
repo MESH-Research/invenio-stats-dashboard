@@ -144,29 +144,39 @@
           "type": "keyword"
         },
         "languages": {
-          "type": "nested",
+          "type": "object",
           "properties": {
+            "@v": {
+              "type": "keyword"
+            },
             "id": {
               "type": "keyword"
             },
             "title": {
-              "type": "keyword"
+              "type": "object",
+              "dynamic": "true"
             }
           }
         },
         "subjects": {
-          "type": "nested",
+          "type": "object",
           "properties": {
+            "@v": {
+              "type": "keyword"
+            },
             "id": {
               "type": "keyword"
             },
-            "title": {
+            "subject": {
+              "type": "keyword"
+            },
+            "scheme": {
               "type": "keyword"
             }
           }
         },
         "rights": {
-          "type": "nested",
+          "type": "object",
           "properties": {
             "@v": {
               "type": "keyword"
@@ -204,7 +214,7 @@
           }
         },
         "affiliations": {
-          "type": "object",
+          "type": "nested",
           "properties": {
             "@v": {
               "type": "keyword"
@@ -228,7 +238,7 @@
           }
         },
         "funders": {
-          "type": "object",
+          "type": "nested",
           "properties": {
             "@v": {
               "type": "keyword"
@@ -266,9 +276,9 @@
       "__SEARCH_INDEX_PREFIX__events-stats-file-download": {}
     }
   },
-  "priority": 100,
+  "priority": 110,
   "version": 2,
   "_meta": {
-    "description": "File Download Events v2.0.0 with enriched metadata fields for KCWorks"
+    "description": "File Download Events v2.0.0 with enriched metadata fields for invenio-stats-dashboard"
   }
 }

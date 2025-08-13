@@ -6,6 +6,8 @@ from typing import Optional
 
 import arrow
 from flask import current_app
+from invenio_access.permissions import system_identity
+from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from invenio_stats.processors import anonymize_user
@@ -118,8 +120,60 @@ class UsageEventFactory:
         }
 
     @staticmethod
+    def _enrich_event(event: dict, event_type: str) -> dict:
+        """Enrich the event with additional data."""
+        record_metadata = records_service.read(
+            system_identity, id_=event["recid"]
+        ).to_dict()
+
+        file_types = [
+            file["ext"]
+            for file in record_metadata["files"]["entries"].values()
+            if record_metadata["files"]["enabled"]
+            and len(record_metadata["files"]["entries"]) > 0
+        ]
+
+        event.update(
+            {
+                "community_ids": (
+                    record_metadata["parent"]["communities"].get("ids", None)
+                ),
+                "access_status": record_metadata["access"].get("status", None),
+                "publisher": record_metadata["metadata"].get("publisher", None),
+                "languages": record_metadata["metadata"].get("languages", None),
+                "subjects": record_metadata["metadata"].get("subjects", None),
+                "journal_title": (
+                    record_metadata["custom_fields"]
+                    .get("journal:journal", {})
+                    .get("title", None)
+                ),
+                "rights": record_metadata["metadata"].get("rights", None),
+                "funders": [
+                    f.get("funder")
+                    for f in record_metadata["metadata"].get("funding", [])
+                ],
+                "affiliations": [
+                    a.get("affiliations")
+                    for a in record_metadata["metadata"].get("contributors", [])
+                    + record_metadata["metadata"].get("creators", [])
+                ],
+            }
+        )
+
+        if event_type == "download":
+            event.update({"file_type": file_types[0]})
+        elif event_type == "view":
+            event.update(
+                {
+                    "file_types": file_types or None,
+                }
+            )
+
+        return event
+
+    @staticmethod
     def make_view_event(
-        record: dict, event_date: arrow.Arrow, ident: int
+        record: dict, event_date: arrow.Arrow, ident: int, enrich_events: bool = False
     ) -> tuple[dict, str]:
         """Return a view event ready for indexing."""
         event_data = UsageEventFactory._create_base_event_data(
@@ -135,11 +189,14 @@ class UsageEventFactory:
         ).hexdigest()
         event_id = f"{event_data['timestamp']}-{hash_val}"
 
+        if enrich_events:
+            anonymized_event = UsageEventFactory._enrich_event(anonymized_event, "view")
+
         return (anonymized_event, event_id)
 
     @staticmethod
     def make_download_event(
-        record: dict, event_date: arrow.Arrow, ident: int
+        record: dict, event_date: arrow.Arrow, ident: int, enrich_events: bool = False
     ) -> tuple[dict, str]:
         """Return a download event ready for indexing."""
         event_data = UsageEventFactory._create_base_event_data(
@@ -163,6 +220,11 @@ class UsageEventFactory:
             (f"{event_data['unique_id']}{anonymized_event['visitor_id']}").encode()
         ).hexdigest()
         event_id = f"{event_data['timestamp']}-{hash_val}"
+
+        if enrich_events:
+            anonymized_event = UsageEventFactory._enrich_event(
+                anonymized_event, "download"
+            )
 
         return (anonymized_event, event_id)
 
@@ -207,47 +269,74 @@ class UsageEventFactory:
         start_date: arrow.Arrow,
         end_date: arrow.Arrow,
         events_per_record: int,
+        enrich_events: bool = False,
     ) -> list:
         """Generate events for a list of records."""
         events = []
+
+        current_app.logger.info(f"Generating events for {len(records)} records")
+        current_app.logger.info(f"Event date range: {start_date} to {end_date}")
 
         for i, record in enumerate(records):
             record_data = record.to_dict()
             record_created = arrow.get(record_data["created"])
 
-            record_start, record_end = UsageEventFactory._validate_date_range(
+            current_app.logger.info(
+                f"Record {i}: created={record_created}, "
+                f"id={record_data.get('id', 'unknown')}"
+            )
+
+            # Validate and adjust the event date range using the existing function
+            # This ensures event dates are not before record creation and are properly
+            # ordered
+            event_start, event_end = UsageEventFactory._validate_date_range(
                 start_date, end_date, record_created
             )
 
-            if record_start >= record_end:
+            current_app.logger.info(
+                f"Record {i}: event_start={event_start}, event_end={event_end}"
+            )
+
+            if event_start > event_end:
+                current_app.logger.info(
+                    f"Record {i}: Skipping - event_start > event_end"
+                )
                 continue
 
             for j in range(events_per_record):
-                days_range = (record_end - record_start).days
+                days_range = (event_end - event_start).days
                 if days_range > 0:
                     random_days = random.randint(0, days_range)
-                    event_date = record_start.shift(days=random_days)
+                    event_date = event_start.shift(days=random_days)
                 else:
-                    event_date = record_start
+                    event_date = event_start
+
+                current_app.logger.info(
+                    f"Record {i}, Event {j}: event_date={event_date}, "
+                    f"days_range={days_range}"
+                )
 
                 view_event, view_id = UsageEventFactory.make_view_event(
-                    record_data, event_date, len(events)
+                    record_data, event_date, len(events), enrich_events
                 )
                 events.append((view_event, view_id))
 
                 download_event, download_id = UsageEventFactory.make_download_event(
-                    record_data, event_date, len(events)
+                    record_data, event_date, len(events), enrich_events
                 )
                 events.append((download_event, download_id))
 
+        current_app.logger.info(f"Generated {len(events)} total events")
         return events
 
     @staticmethod
     def index_usage_events(events: list) -> dict:
         """Index usage events into the appropriate monthly indices."""
         if not events:
+            current_app.logger.info("No events to index")
             return {"indexed": 0, "errors": 0}
 
+        current_app.logger.info(f"Indexing {len(events)} events")
         indexed = 0
         errors = 0
 
@@ -263,10 +352,18 @@ class UsageEventFactory:
 
             monthly_events[month][event_type].append((event, event_id))
 
+        current_app.logger.info(
+            f"Events grouped by month: {list(monthly_events.keys())}"
+        )
+
         for month, type_events in monthly_events.items():
             for event_type, type_event_list in type_events.items():
                 if not type_event_list:
                     continue
+
+                current_app.logger.info(
+                    f"Indexing {len(type_event_list)} {event_type} events for {month}"
+                )
 
                 if event_type == "view":
                     index_pattern = prefix_index("events-stats-record-view")
@@ -274,6 +371,7 @@ class UsageEventFactory:
                     index_pattern = prefix_index("events-stats-file-download")
 
                 monthly_index = f"{index_pattern}-{month}"
+                current_app.logger.info(f"Using index: {monthly_index}")
 
                 docs = []
                 for event, event_id in type_event_list:
@@ -290,12 +388,29 @@ class UsageEventFactory:
                         current_search_client, docs, stats_only=False
                     )
                     if errors_batch:
+                        current_app.logger.error(
+                            f"Bulk indexing errors for {month} {event_type}: "
+                            f"{len(errors_batch)} errors"
+                        )
+                        current_app.logger.error(
+                            f"First few errors: {errors_batch[:3]}"
+                        )
                         errors += len(errors_batch)
                     else:
                         indexed += len(docs)
-                except Exception:
+                        current_app.logger.info(
+                            f"Successfully indexed {len(docs)} {event_type} "
+                            f"events for {month}"
+                        )
+                except Exception as e:
+                    current_app.logger.error(
+                        f"Exception during bulk indexing for {month} {event_type}: {e}"
+                    )
                     errors += len(docs)
 
+        current_app.logger.info(
+            f"Indexing complete: {indexed} indexed, {errors} errors"
+        )
         return {"indexed": indexed, "errors": errors}
 
     @staticmethod
@@ -304,16 +419,25 @@ class UsageEventFactory:
         end_date: str = "",
         events_per_record: int = 5,
         max_records: int = 0,
+        enrich_events: bool = False,
+        event_start_date: str = "",
+        event_end_date: str = "",
     ) -> list:
         """Generate events for published records within a date range.
 
         Args:
-            start_date: Start date in YYYY-MM-DD format. If an empty string,
-                uses earliest record creation date.
-            end_date: End date in YYYY-MM-DD format. If an empty string,
-                uses current date.
+            start_date: Start date in YYYY-MM-DD format for filtering records by
+                creation date. If an empty string, uses earliest record creation date.
+            end_date: End date in YYYY-MM-DD format for filtering records by
+                creation date. If an empty string, uses current date.
             events_per_record: Number of events to generate per record.
             max_records: Maximum number of records to process.
+            enrich_events: Whether to enrich events with additional data
+                matching the invenio-stats-dashboard extended fields.
+            event_start_date: Start date in YYYY-MM-DD format for event timestamps.
+                If an empty string, uses start_date.
+            event_end_date: End date in YYYY-MM-DD format for event timestamps.
+                If an empty string, uses end_date.
 
         Returns:
             List of (event, event_id) tuples.
@@ -337,15 +461,25 @@ class UsageEventFactory:
             except (IndexError, KeyError):
                 start_date = arrow.utcnow().format("YYYY-MM-DD")
 
-        start_arrow = arrow.get(start_date)
-        end_arrow = arrow.get(end_date)
+        # Use event dates if provided, otherwise fall back to record creation dates
+        if event_start_date == "":
+            event_start_date = start_date
+        if event_end_date == "":
+            event_end_date = end_date
+
+        event_start_arrow = arrow.get(event_start_date)
+        event_end_arrow = arrow.get(event_end_date)
 
         records = UsageEventFactory._get_records_for_date_range(
             start_date, end_date, max_records
         )
 
         events = UsageEventFactory._generate_events_for_records(
-            records, start_arrow, end_arrow, events_per_record
+            records,
+            event_start_arrow,
+            event_end_arrow,
+            events_per_record,
+            enrich_events,
         )
 
         return events
@@ -356,22 +490,36 @@ class UsageEventFactory:
         end_date: str = "",
         events_per_record: int = 5,
         max_records: int = 0,
+        enrich_events: bool = False,
+        event_start_date: str = "",
+        event_end_date: str = "",
     ) -> dict:
         """Generate and index events for records within a date range.
 
         Args:
-            start_date: Start date in YYYY-MM-DD format. If an empty string,
-                uses earliest record creation date.
-            end_date: End date in YYYY-MM-DD format. If an empty string,
-                uses current date.
+            start_date: Start date in YYYY-MM-DD format for filtering records by
+                creation date. If an empty string, uses earliest record creation date.
+            end_date: End date in YYYY-MM-DD format for filtering records by
+                creation date. If an empty string, uses current date.
             events_per_record: Number of events to generate per record.
             max_records: Maximum number of records to process.
+            enrich_events: Whether to enrich events with additional data.
+            event_start_date: Start date in YYYY-MM-DD format for event timestamps.
+                If an empty string, uses start_date.
+            event_end_date: End date in YYYY-MM-DD format for event timestamps.
+                If an empty string, uses end_date.
 
         Returns:
             Dictionary with indexing results.
         """
         events = UsageEventFactory.generate_repository_events(
-            start_date, end_date, events_per_record, max_records
+            start_date,
+            end_date,
+            events_per_record,
+            max_records,
+            enrich_events,
+            event_start_date,
+            event_end_date,
         )
 
         result = UsageEventFactory.index_usage_events(events)

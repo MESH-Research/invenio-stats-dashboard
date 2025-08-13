@@ -51,6 +51,7 @@ def file_download_event_builder(event, sender_app, **kwargs):
             # Who:
             "referrer": request.referrer,
             **get_user(),
+            "resource_type": record.metadata["resource_type"],
             "access_status": record.access.get("status", None),
             "publisher": record.metadata.get("publisher", None),
             "languages": record.metadata.get("languages", None),
@@ -59,7 +60,11 @@ def file_download_event_builder(event, sender_app, **kwargs):
                 record.custom_fields.get("journal:journal", {}).get("title", None)
             ),
             "rights": record.metadata.get("rights", None),
-            "funders": record.metadata.get("funders", None),
+            "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
+            "affiliations": (
+                [c.get("affiliations") for c in record.metadata.get("contributors", [])]
+                + [r.get("affiliations") for r in record.metadata.get("creators", [])]
+            ),
             "file_type": file_type,
         }
     )
@@ -110,7 +115,19 @@ def record_view_event_builder(event, sender_app, **kwargs):
                     record.custom_fields.get("journal:journal", {}).get("title", None)
                 ),
                 "rights": record.metadata.get("rights", None),
-                "funders": record.metadata.get("funders", None),
+                "funders": [
+                    f.get("funder") for f in record.metadata.get("funding", [])
+                ],
+                "affiliations": (
+                    [
+                        c.get("affiliations")
+                        for c in record.metadata.get("contributors", [])
+                    ]
+                    + [
+                        r.get("affiliations")
+                        for r in record.metadata.get("creators", [])
+                    ]
+                ),
                 "file_types": file_types,
             }
         )
