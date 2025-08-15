@@ -797,9 +797,11 @@ class CommunityUsageDeltaQuery:
         if isinstance(end_date, str):
             end_date = arrow.get(end_date)
         query_dict = self._build_view_query_dict(community_id, start_date, end_date)
-        return Search(using=self.client, index=self.view_index).update_from_dict(
+        view_search = Search(using=self.client, index=self.view_index).update_from_dict(
             query_dict
         )
+        view_search = view_search.extra(size=1)
+        return view_search
 
     def build_download_query(
         self,
@@ -930,6 +932,7 @@ class CommunityUsageDeltaQuery:
             dict: The metrics dictionary for view events.
         """
         return {
+            "total_events": {"value_count": {"field": "_id"}},
             "unique_visitors": {"cardinality": {"field": "visitor_id"}},
             "unique_records": {"cardinality": {"field": "recid"}},
             "unique_parents": {"cardinality": {"field": "parent_recid"}},
@@ -942,6 +945,7 @@ class CommunityUsageDeltaQuery:
             dict: The metrics dictionary for download events.
         """
         return {
+            "total_events": {"value_count": {"field": "_id"}},
             "unique_visitors": {"cardinality": {"field": "visitor_id"}},
             "unique_records": {"cardinality": {"field": "recid"}},
             "unique_parents": {"cardinality": {"field": "parent_recid"}},
@@ -1015,29 +1019,28 @@ class CommunityUsageDeltaQuery:
                     },
                 },
             },
-            "by_funders": {
-                "nested": {"path": "funders"},
+            "by_funder_id": {
+                "terms": {"field": "funders.id", "size": 1000},
                 "aggs": {
-                    "by_funder_combinations": {
-                        "composite": {
-                            "size": 1000,
-                            "sources": [
-                                {"funder_id": {"terms": {"field": "funders.id"}}},
-                                {"funder_name": {"terms": {"field": "funders.name"}}},
-                            ],
-                        },
-                        "aggs": {
-                            **self._get_view_metrics_dict(),
-                            "label": {
-                                "top_hits": {
-                                    "size": 1,
-                                    "_source": {
-                                        "includes": ["funders.name", "funders.id"]
-                                    },
-                                }
-                            },
-                        },
-                    }
+                    **self._get_view_metrics_dict(),
+                    "label": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {"includes": ["funders.name", "funders.id"]},
+                        }
+                    },
+                },
+            },
+            "by_funder_name": {
+                "terms": {"field": "funders.name", "size": 1000},
+                "aggs": {
+                    **self._get_view_metrics_dict(),
+                    "label": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {"includes": ["funders.name", "funders.id"]},
+                        }
+                    },
                 },
             },
             "by_periodicals": {
@@ -1048,40 +1051,38 @@ class CommunityUsageDeltaQuery:
                 "terms": {"field": "publisher", "size": 1000},
                 "aggs": self._get_view_metrics_dict(),
             },
-            "by_affiliations": {
-                "nested": {"path": "affiliations"},
+            "by_affiliation_id": {
+                "terms": {"field": "affiliations.id", "size": 1000},
                 "aggs": {
-                    "by_affiliation_combinations": {
-                        "composite": {
-                            "size": 1000,
-                            "sources": [
-                                {
-                                    "affiliation_id": {
-                                        "terms": {"field": "affiliations.id"}
-                                    }
-                                },
-                                {
-                                    "affiliation_name": {
-                                        "terms": {"field": "affiliations.name"}
-                                    }
-                                },
-                            ],
-                        },
-                        "aggs": {
-                            **self._get_view_metrics_dict(),
-                            "label": {
-                                "top_hits": {
-                                    "size": 1,
-                                    "_source": {
-                                        "includes": [
-                                            "affiliations.name",
-                                            "affiliations.id",
-                                        ]
-                                    },
-                                }
+                    **self._get_view_metrics_dict(),
+                    "label": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {
+                                "includes": [
+                                    "affiliations.name",
+                                    "affiliations.id",
+                                ]
                             },
-                        },
-                    }
+                        }
+                    },
+                },
+            },
+            "by_affiliation_name": {
+                "terms": {"field": "affiliations.name", "size": 1000},
+                "aggs": {
+                    **self._get_view_metrics_dict(),
+                    "label": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {
+                                "includes": [
+                                    "affiliations.name",
+                                    "affiliations.id",
+                                ]
+                            },
+                        }
+                    },
                 },
             },
             "by_countries": {
@@ -1164,14 +1165,20 @@ class CommunityUsageDeltaQuery:
                     },
                 },
             },
-            "by_funders": {
-                "composite": {
-                    "size": 1000,
-                    "sources": [
-                        {"funder_id": {"terms": {"field": "funders.id"}}},
-                        {"funder_name": {"terms": {"field": "funders.name"}}},
-                    ],
+            "by_funder_id": {
+                "terms": {"field": "funders.id", "size": 1000},
+                "aggs": {
+                    **self._get_download_metrics_dict(),
+                    "label": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {"includes": ["funders.name", "funders.id"]},
+                        }
+                    },
                 },
+            },
+            "by_funder_name": {
+                "terms": {"field": "funders.name", "size": 1000},
                 "aggs": {
                     **self._get_download_metrics_dict(),
                     "label": {
@@ -1190,14 +1197,25 @@ class CommunityUsageDeltaQuery:
                 "terms": {"field": "publisher", "size": 1000},
                 "aggs": self._get_download_metrics_dict(),
             },
-            "by_affiliations": {
-                "composite": {
-                    "size": 1000,
-                    "sources": [
-                        {"affiliation_id": {"terms": {"field": "affiliations.id"}}},
-                        {"affiliation_name": {"terms": {"field": "affiliations.name"}}},
-                    ],
+            "by_affiliation_id": {
+                "terms": {"field": "affiliations.id", "size": 1000},
+                "aggs": {
+                    **self._get_download_metrics_dict(),
+                    "label": {
+                        "top_hits": {
+                            "size": 1,
+                            "_source": {
+                                "includes": [
+                                    "affiliations.name",
+                                    "affiliations.id",
+                                ]
+                            },
+                        }
+                    },
                 },
+            },
+            "by_affiliation_name": {
+                "terms": {"field": "affiliations.name", "size": 1000},
                 "aggs": {
                     **self._get_download_metrics_dict(),
                     "label": {
