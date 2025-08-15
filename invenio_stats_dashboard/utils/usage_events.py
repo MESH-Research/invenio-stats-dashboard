@@ -139,6 +139,7 @@ class UsageEventFactory:
                     record_metadata["parent"]["communities"].get("ids", None)
                 ),
                 "access_status": record_metadata["access"].get("status", None),
+                "resource_type": record_metadata["metadata"].get("resource_type", None),
                 "publisher": record_metadata["metadata"].get("publisher", None),
                 "languages": record_metadata["metadata"].get("languages", None),
                 "subjects": record_metadata["metadata"].get("subjects", None),
@@ -321,10 +322,12 @@ class UsageEventFactory:
                 )
                 events.append((view_event, view_id))
 
-                download_event, download_id = UsageEventFactory.make_download_event(
-                    record_data, event_date, len(events), enrich_events
-                )
-                events.append((download_event, download_id))
+                # Only generate download events if the record has files enabled
+                if record_data["files"]["enabled"]:
+                    download_event, download_id = UsageEventFactory.make_download_event(
+                        record_data, event_date, len(events), enrich_events
+                    )
+                    events.append((download_event, download_id))
 
         current_app.logger.info(f"Generated {len(events)} total events")
         return events
