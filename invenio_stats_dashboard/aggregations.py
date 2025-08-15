@@ -1264,6 +1264,78 @@ class CommunityRecordsSnapshotPublishedAggregator(
 
 
 class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
+    """Aggregator for creating cumulative usage snapshots from daily delta documents."""
+
+    # Configuration for all subcount metrics
+    SUBCOUNT_CONFIGS = {
+        # Simple metrics that get incremental updates
+        "by_resource_types": {
+            "snapshot_field": "all_resource_types",
+            "label_path": None,  # No label extraction needed
+            "update_strategy": "incremental",
+        },
+        "by_access_status": {
+            "snapshot_field": "all_access_status",
+            "label_path": None,
+            "update_strategy": "incremental",
+        },
+        "by_languages": {
+            "snapshot_field": "all_languages",
+            "label_path": None,
+            "update_strategy": "incremental",
+        },
+        "by_file_types": {
+            "snapshot_field": "all_file_types",
+            "label_path": None,
+            "update_strategy": "incremental",
+        },
+        # Top metrics that get full recalculation
+        "by_subjects": {
+            "snapshot_field": "top_subjects",
+            "label_path": "title.en",  # Extract from title.en
+            "update_strategy": "full_recalculation",
+        },
+        "by_publishers": {
+            "snapshot_field": "top_publishers",
+            "label_path": "name",  # Extract from name
+            "update_strategy": "full_recalculation",
+        },
+        "by_periodicals": {
+            "snapshot_field": "top_periodicals",
+            "label_path": "name",
+            "update_strategy": "full_recalculation",
+        },
+        "by_funders": {
+            "snapshot_field": "top_funders",
+            "label_path": "name",
+            "update_strategy": "full_recalculation",
+        },
+        "by_countries": {
+            "snapshot_field": "top_countries",
+            "label_path": None,  # Countries don't have labels
+            "update_strategy": "full_recalculation",
+        },
+        "by_referrers": {
+            "snapshot_field": "top_referrers",
+            "label_path": None,  # Referrers are URLs
+            "update_strategy": "full_recalculation",
+        },
+        "by_affiliations": {
+            "snapshot_field": "top_affiliations",
+            "label_path": "name",
+            "update_strategy": "full_recalculation",
+        },
+        "by_licenses": {
+            "snapshot_field": "top_licenses",
+            "label_path": "title.en",
+            "update_strategy": "full_recalculation",
+        },
+        "by_user_agents": {
+            "snapshot_field": "top_user_agents",
+            "label_path": None,  # User agents are strings
+            "update_strategy": "full_recalculation",
+        },
+    }
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
@@ -1305,21 +1377,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
                     "total_volume": 0,
                 },
             },
-            "subcounts": {
-                "all_resource_types": [],
-                "all_access_status": [],
-                "all_languages": [],
-                "all_file_types": [],
-                "top_subjects": {"by_view": [], "by_download": []},
-                "top_publishers": {"by_view": [], "by_download": []},
-                "top_periodicals": {"by_view": [], "by_download": []},
-                "top_funders": {"by_view": [], "by_download": []},
-                "top_countries": {"by_view": [], "by_download": []},
-                "top_user_agents": {"by_view": [], "by_download": []},
-                "top_referrers": {"by_view": [], "by_download": []},
-                "top_affiliations": {"by_view": [], "by_download": []},
-                "top_licenses": {"by_view": [], "by_download": []},
-            },
+            "subcounts": self._initialize_subcounts_structure(),
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
 
@@ -1486,28 +1544,19 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         return prior_daily_deltas, period_daily_deltas
 
     def _map_delta_to_snapshot_subcounts(self, delta_doc: dict) -> dict:
-        """Map delta document subcount field names to snapshot field names."""
-        field_mapping = {
-            "by_resource_types": "all_resource_types",
-            "by_access_status": "all_access_status",
-            "by_languages": "all_languages",
-            "by_file_types": "all_file_types",
-            "by_licenses": "top_licenses",
-            "by_subjects": "top_subjects",
-            "by_publishers": "top_publishers",
-            "by_periodicals": "top_periodicals",
-            "by_funders": "top_funders",
-            "by_countries": "top_countries",
-            "by_referrers": "top_referrers",
-            "by_affiliations": "top_affiliations",
-        }
+        """Map delta document subcount field names to snapshot field names.
 
+        This transforms the enriched aggregation field names (e.g., 'by_resource_types')
+        to the snapshot field names (e.g., 'all_resource_types') for consistent
+        processing throughout the aggregator.
+        """
         mapped_doc = delta_doc.copy()
         mapped_subcounts = {}
 
         for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
-            snapshot_field = field_mapping.get(delta_field)
-            if snapshot_field:
+            if delta_field in self.SUBCOUNT_CONFIGS:
+                config = self.SUBCOUNT_CONFIGS[delta_field]
+                snapshot_field = config["snapshot_field"]
                 mapped_subcounts[snapshot_field] = delta_items
 
         mapped_doc["subcounts"] = mapped_subcounts
@@ -1519,7 +1568,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         current_subcounts: dict,
         delta_doc: dict,
     ) -> tuple[dict, dict]:
-        """Update cumulative totals with values from a daily delta document."""
+        """Update cumulative totals with values from enriched daily delta documents."""
 
         def update_totals(current_totals: dict, delta_totals: dict) -> Any:
             """Update cumulative totals with values from a daily delta document."""
@@ -1578,28 +1627,24 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             current_totals = copy.deepcopy(counts_default)
 
         if not current_subcounts:
-            # Initialize subcounts from first delta
-            current_subcounts = {
-                "all_resource_types": [],
-                "all_access_status": [],
-                "all_languages": [],
-                "all_file_types": [],
-            }
+            # Initialize subcounts from first delta using configuration
+            current_subcounts = {}
+            for config in self.SUBCOUNT_CONFIGS.values():
+                snapshot_field = config["snapshot_field"]
+                if config["update_strategy"] == "incremental":
+                    current_subcounts[snapshot_field] = []
+                elif config["update_strategy"] == "full_recalculation":
+                    current_subcounts[snapshot_field] = {
+                        "by_view": [],
+                        "by_download": [],
+                    }
 
+        # Update totals from enriched delta document
         update_totals(current_totals, delta_doc["totals"])
-        update_totals(
-            current_subcounts,
-            {
-                "all_resource_types": (
-                    delta_doc["subcounts"].get("all_resource_types", {})
-                ),
-                "all_access_status": (
-                    delta_doc["subcounts"].get("all_access_status", {})
-                ),
-                "all_languages": delta_doc["subcounts"].get("all_languages", {}),
-                "all_file_types": delta_doc["subcounts"].get("all_file_types", {}),
-            },
-        )
+
+        # Update simple subcounts from mapped delta document
+        # The mapping has already transformed field names to snapshot format
+        update_totals(current_subcounts, delta_doc["subcounts"])
 
         return current_totals, current_subcounts
 
@@ -1608,7 +1653,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         current_subcounts: dict,
         delta_records: list,
     ) -> dict:
-        """Update top subcounts with values from a daily delta document.
+        """Update top subcounts with full recalculation from all delta documents.
 
         These are the subcounts that only include the top 10 values for each field.
         (E.g. top_subjects, top_publishers, etc.) We can't just add the new deltas
@@ -1632,56 +1677,104 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             The updated top subcounts.
         """
 
-        top_subcount_types = {
-            "top_subjects": "by_subjects",
-            "top_publishers": "by_publishers",
-            "top_periodicals": "by_periodicals",
-            "top_funders": "by_funders",
-            "top_countries": "by_countries",
-            "top_user_agents": "by_user_agents",
-            "top_referrers": "by_referrers",
-            "top_affiliations": "by_affiliations",
-            "top_licenses": "by_licenses",
-        }
+        # Get top metrics from configuration
+        top_subcount_types = [
+            config["snapshot_field"]
+            for config in self.SUBCOUNT_CONFIGS.values()
+            if config["update_strategy"] == "full_recalculation"
+        ]
 
         all_subcount_totals = {}
-        for delta in delta_records:
-            for subcount_type in top_subcount_types:
-                mapped_type = top_subcount_types[subcount_type]
-                if mapped_type not in delta["subcounts"]:
-                    continue
-                for delta_item in delta["subcounts"].get(mapped_type, []):
-                    # delta_item is an opensearchpy.helpers.utils.AttrDict
-                    delta_item = delta_item.to_dict()
-                    updated_item = all_subcount_totals.get(subcount_type, {}).get(
-                        delta_item["id"], {}
-                    )
-                    updated_item["id"] = delta_item["id"]
-                    updated_item["label"] = delta_item["label"]
 
-                    for scope in ["view", "download"]:
-                        for stat_label, stat_value in delta_item[scope].items():
-                            updated_item.setdefault(scope, {})[stat_label] = (
-                                updated_item.get(scope, {}).get(stat_label, 0)
-                                + stat_value
-                            )
-                    all_subcount_totals.setdefault(subcount_type, {})[
-                        delta_item["id"]
-                    ] = updated_item
+        # Process all delta records to build cumulative totals
+        for delta in delta_records:
+            delta_dict = delta.to_dict() if hasattr(delta, "to_dict") else delta
+
+            for subcount_type in top_subcount_types:
+                # The delta document should already have mapped field names
+                if subcount_type not in delta_dict.get("subcounts", {}):
+                    continue
+
+                # Process each bucket in the aggregation
+                for bucket in delta_dict["subcounts"][subcount_type].get("buckets", []):
+                    bucket_dict = (
+                        bucket.to_dict() if hasattr(bucket, "to_dict") else bucket
+                    )
+
+                    # Extract the key (ID) and metrics
+                    item_id = bucket_dict.get("key")
+                    if not item_id:
+                        continue
+
+                    # Get or create the item in our cumulative totals
+                    if subcount_type not in all_subcount_totals:
+                        all_subcount_totals[subcount_type] = {}
+
+                    if item_id not in all_subcount_totals[subcount_type]:
+                        all_subcount_totals[subcount_type][item_id] = {
+                            "id": item_id,
+                            "label": self._extract_label_from_bucket(
+                                bucket_dict, subcount_type
+                            ),
+                            "view": {
+                                "total_events": 0,
+                                "unique_visitors": 0,
+                                "unique_records": 0,
+                                "unique_parents": 0,
+                            },
+                            "download": {
+                                "total_events": 0,
+                                "total_volume": 0.0,
+                                "unique_files": 0,
+                                "unique_visitors": 0,
+                                "unique_records": 0,
+                                "unique_parents": 0,
+                            },
+                        }
+
+                    # Update view metrics
+                    view_metrics = bucket_dict.get("view", {})
+                    if view_metrics:
+                        for metric, value in view_metrics.items():
+                            if isinstance(value, dict) and "value" in value:
+                                all_subcount_totals[subcount_type][item_id]["view"][
+                                    metric
+                                ] += value["value"]
+                            elif isinstance(value, (int, float)):
+                                all_subcount_totals[subcount_type][item_id]["view"][
+                                    metric
+                                ] += value
+
+                    # Update download metrics
+                    download_metrics = bucket_dict.get("download", {})
+                    if download_metrics:
+                        for metric, value in download_metrics.items():
+                            if isinstance(value, dict) and "value" in value:
+                                all_subcount_totals[subcount_type][item_id]["download"][
+                                    metric
+                                ] += value["value"]
+                            elif isinstance(value, (int, float)):
+                                all_subcount_totals[subcount_type][item_id]["download"][
+                                    metric
+                                ] += value
 
         # Now sort and assign top subcounts after processing all deltas
         for subcount_type in top_subcount_types:
             if subcount_type in all_subcount_totals:
+                # Sort by view total_events for top 10
                 sorted_by_views = sorted(
                     all_subcount_totals[subcount_type].values(),
                     key=lambda x: x["view"]["total_events"],
                     reverse=True,
                 )[:10]
+
+                # Sort by download total_events for top 10
                 sorted_by_downloads = sorted(
                     all_subcount_totals[subcount_type].values(),
                     key=lambda x: x["download"]["total_events"],
                     reverse=True,
                 )[:10]
+
                 subcount = {
                     "by_view": [v_item for v_item in sorted_by_views],
                     "by_download": [d_item for d_item in sorted_by_downloads],
@@ -1689,6 +1782,75 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
                 current_subcounts[subcount_type] = subcount
 
         return current_subcounts
+
+    def _initialize_subcounts_structure(self) -> dict:
+        """Initialize the subcounts structure based on configuration."""
+        subcounts = {}
+        for config in self.SUBCOUNT_CONFIGS.values():
+            snapshot_field = config["snapshot_field"]
+            if config["update_strategy"] == "incremental":
+                subcounts[snapshot_field] = []
+            elif config["update_strategy"] == "full_recalculation":
+                subcounts[snapshot_field] = {"by_view": [], "by_download": []}
+        return subcounts
+
+    def _get_simple_metrics(self) -> list:
+        """Get list of simple metrics that use incremental updates."""
+        return [
+            config["snapshot_field"]
+            for config in self.SUBCOUNT_CONFIGS.values()
+            if config["update_strategy"] == "incremental"
+        ]
+
+    def _extract_label_from_bucket(self, bucket_dict: dict, metric_type: str) -> str:
+        """Extract the label from a bucket based on the metric type.
+
+        Args:
+            bucket_dict: The bucket dictionary from the aggregation
+            metric_type: The type of metric (e.g., 'top_subjects', 'top_affiliations')
+
+        Returns:
+            The label string, or empty string if not found
+        """
+        config = next(
+            (
+                cfg
+                for cfg in self.SUBCOUNT_CONFIGS.values()
+                if cfg["snapshot_field"] == metric_type
+            ),
+            None,
+        )
+
+        if not config or not config["label_path"]:
+            return ""  # No label extraction needed
+
+        # Check if there's a label sub-aggregation with top_hits
+        if "label" in bucket_dict and "hits" in bucket_dict["label"]:
+            hits = bucket_dict["label"]["hits"]
+            if "hits" in hits and hits["hits"]:
+                # Get the first hit and extract the label
+                first_hit = hits["hits"][0]
+                if "_source" in first_hit:
+                    source = first_hit["_source"]
+                    # Extract label using the configured path
+                    label_path = config["label_path"]
+                    if "." in label_path:
+                        # Handle nested paths like "title.en"
+                        parts = label_path.split(".")
+                        value = source
+                        for part in parts:
+                            if isinstance(value, dict) and part in value:
+                                value = value[part]
+                            else:
+                                value = ""
+                                break
+                        return value if value else ""
+                    else:
+                        # Simple path like "name"
+                        return source.get(label_path, "")
+
+        # Fallback: return empty string
+        return ""
 
     def _get_last_snapshot_document(self, community_id: str, start_date: arrow.Arrow):
         """Get the last snapshot document for a community."""
@@ -1859,21 +2021,34 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
                         f"Updating cumulative totals for "
                         f"{current_iteration_date.format('YYYY-MM-DD')}"
                     )
-                    # Map delta document to snapshot format before updating
-                    mapped_delta_doc = self._map_delta_to_snapshot_subcounts(
-                        current_delta.to_dict()
-                    )
+                    # Map enriched delta document to snapshot format for consistent processing
+                    delta_doc = current_delta.to_dict()
+                    mapped_delta_doc = self._map_delta_to_snapshot_subcounts(delta_doc)
                     cumulative_totals, cumulative_subcounts = (
                         self._update_cumulative_totals(
                             cumulative_totals, cumulative_subcounts, mapped_delta_doc
                         )
                     )
+                    # Get all delta records for full recalculation of top metrics
+                    # We need to map all prior delta records to use consistent field names
                     all_delta_records = list(prior_delta_records) + list(
                         period_delta_records[: current_delta_index + 1]
                     )
+
+                    # Map all delta records to snapshot format for consistent processing
+                    mapped_all_delta_records = []
+                    for delta_record in all_delta_records:
+                        delta_dict = (
+                            delta_record.to_dict()
+                            if hasattr(delta_record, "to_dict")
+                            else delta_record
+                        )
+                        mapped_delta = self._map_delta_to_snapshot_subcounts(delta_dict)
+                        mapped_all_delta_records.append(mapped_delta)
+
                     cumulative_subcounts = self._update_top_subcounts(
                         cumulative_subcounts,
-                        all_delta_records,
+                        mapped_all_delta_records,
                     )
                     current_delta_index += 1
                 elif delta_date.floor("day") < current_iteration_date.floor("day"):
@@ -1918,91 +2093,90 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     SUBCOUNT_CONFIGS = {
         "by_resource_types": {
-            "view_field": "resource_type.id",
-            "download_field": "resource_type.id",
+            "field": "resource_type.id",
             "title_field": "resource_type.title.en",
-            "is_nested": False,
+            "label_source_includes": ["resource_type.title.en", "resource_type.id"],
+            "aggregation_name": "by_resource_types",
         },
         "by_access_status": {
-            "view_field": "access_status",
-            "download_field": "access_status",
+            "field": "access_status",
             "title_field": None,
-            "is_nested": False,
+            "label_source_includes": ["access_status"],
+            "aggregation_name": "by_access_status",
         },
         "by_languages": {
-            "view_field": "languages.id",
-            "download_field": "languages.id",
+            "field": "languages.id",
             "title_field": "languages.title",
-            "is_nested": True,
-            "nested_path": "languages",
-            "nested_agg": "by_language_id",
+            "label_source_includes": ["languages.title", "languages.id"],
+            "aggregation_name": "by_languages",
         },
         "by_subjects": {
-            "view_field": "subjects.id",
-            "download_field": "subjects.id",
+            "field": "subjects.id",
             "title_field": "subjects.title",
-            "is_nested": True,
-            "nested_path": "subjects",
-            "nested_agg": "by_subject_id",
+            "label_source_includes": ["subjects.title", "subjects.id"],
+            "aggregation_name": "by_subjects",
         },
         "by_licenses": {
-            "view_field": "rights.id",
-            "download_field": "rights.id",
+            "field": "rights.id",
             "title_field": "rights.title",
-            "is_nested": True,
-            "nested_path": "rights",
-            "nested_agg": "by_rights_id",
+            "label_source_includes": ["rights.title", "rights.id"],
+            "aggregation_name": "by_licenses",
         },
         "by_funders": {
-            "view_field": "funders.id",
-            "download_field": "funders.id",
+            "field": "funders.id",
             "title_field": "funders.name",
-            "is_nested": True,
-            "nested_path": "funders",
-            "nested_agg": "by_funder_id",
+            "is_combined": True,
+            "id_agg": "by_funder_id",
+            "name_agg": "by_funder_name",
+            "label_source_includes": ["funders.name", "funders.id"],
+            "aggregation_name": "by_funders",
         },
         "by_periodicals": {
-            "view_field": "journal_title",
-            "download_field": "journal_title",
+            "field": "journal_title",
             "title_field": None,
-            "is_nested": False,
+            "label_source_includes": ["journal_title"],
+            "aggregation_name": "by_periodicals",
         },
         "by_publishers": {
-            "view_field": "publisher",
-            "download_field": "publisher",
+            "field": "publisher",
             "title_field": None,
-            "is_nested": False,
+            "label_source_includes": ["publisher"],
+            "aggregation_name": "by_publishers",
         },
         "by_affiliations": {
-            "view_field": "affiliations.id",
-            "download_field": "affiliations.id",
+            "field": "affiliations.id",
             "title_field": "affiliations.name",
-            "is_nested": True,
-            "nested_path": "affiliations",
-            "nested_agg": "by_affiliation_id",
+            "is_nested": False,
+            "is_combined": True,
+            "id_agg": "by_affiliation_id",
+            "name_agg": "by_affiliation_name",
+            "label_source_includes": ["affiliations.name", "affiliations.id"],
+            "aggregation_name": "by_affiliations",
         },
         "by_countries": {
-            "view_field": "country",
-            "download_field": "country",
+            "field": "country",
             "title_field": None,
-            "is_nested": False,
+            "label_source_includes": ["country"],
+            "aggregation_name": "by_countries",
         },
         "by_referrers": {
-            "view_field": "referrer",
-            "download_field": "referrer",
+            "field": "referrer",
             "title_field": None,
-            "is_nested": False,
+            "label_source_includes": ["referrer"],
+            "aggregation_name": "by_referrers",
         },
         "by_file_types": {
-            "view_field": None,  # Only in download events
-            "download_field": "file_type",
+            "field": "file_type",
             "title_field": None,
-            "is_nested": False,
+            "label_source_includes": ["file_type"],
+            "aggregation_name": "by_file_types",
         },
     }
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, subcount_configs=None, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
+        # Use provided configs or fall back to class default
+        self.subcount_configs = subcount_configs or self.SUBCOUNT_CONFIGS
         self.event_index: list[tuple[str, str]] = [
             ("view", prefix_index("events-stats-record-view")),
             ("download", prefix_index("events-stats-file-download")),
@@ -2101,20 +2275,179 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 },
             },
             "subcounts": {
-                "by_access_status": [],
-                "by_resource_types": [],
-                "by_licenses": [],
-                "by_funders": [],
-                "by_periodicals": [],
-                "by_languages": [],
-                "by_subjects": [],
-                "by_publishers": [],
-                "by_affiliations": [],
-                "by_countries": [],
-                "by_referrers": [],
-                "by_file_types": [],
+                subcount_name: [] for subcount_name in self.subcount_configs.keys()
             },
         }
+
+    def _get_view_metrics_dict(self) -> dict:
+        """Get the metrics dictionary for view events.
+
+        Returns:
+            Dictionary of metrics for view events
+        """
+        return {
+            "unique_visitors": {"cardinality": {"field": "visitor_id"}},
+            "unique_records": {"cardinality": {"field": "record_id"}},
+            "unique_parents": {"cardinality": {"field": "parent_id"}},
+        }
+
+    def _get_download_metrics_dict(self) -> dict:
+        """Get the metrics dictionary for download events.
+
+        Returns:
+            Dictionary of metrics for download events
+        """
+        return {
+            "unique_visitors": {"cardinality": {"field": "visitor_id"}},
+            "unique_records": {"cardinality": {"field": "record_id"}},
+            "unique_parents": {"cardinality": {"field": "parent_id"}},
+            "unique_files": {"cardinality": {"field": "file_id"}},
+            "total_volume": {"sum": {"field": "file_size"}},
+        }
+
+    def build_dynamic_view_aggregations(self) -> dict:
+        """Build view aggregations dynamically based on SUBCOUNT_CONFIGS.
+
+        Returns:
+            Dictionary of aggregations for view events
+        """
+        aggregations = {}
+
+        for subcount_name, config in self.subcount_configs.items():
+            field = config.get("field")
+
+            if not field:
+                continue  # Skip subcounts that don't have fields
+
+            # Build the base aggregation
+            agg_config = {
+                "terms": {"field": field, "size": 1000},
+                "aggs": self._get_view_metrics_dict(),
+            }
+
+            # Add label aggregation if title_field is specified
+            title_field = config.get("title_field")
+            if title_field:
+                label_source_includes = config.get("label_source_includes", [field])
+                agg_config["aggs"]["label"] = {
+                    "top_hits": {
+                        "size": 1,
+                        "_source": {"includes": label_source_includes},
+                    }
+                }
+
+            aggregations[subcount_name] = agg_config
+
+        return aggregations
+
+    def build_dynamic_download_aggregations(self) -> dict:
+        """Build download aggregations dynamically based on SUBCOUNT_CONFIGS.
+
+        Returns:
+            Dictionary of aggregations for download events
+        """
+        aggregations = {}
+
+        for subcount_name, config in self.subcount_configs.items():
+            field = config.get("field")
+
+            if not field:
+                continue  # Skip subcounts that don't have download fields
+
+            # Build the base aggregation
+            agg_config = {
+                "terms": {"field": field, "size": 1000},
+                "aggs": self._get_download_metrics_dict(),
+            }
+
+            # Add label aggregation if title_field is specified
+            title_field = config.get("title_field")
+            if title_field:
+                label_source_includes = config.get("label_source_includes", [field])
+                agg_config["aggs"]["label"] = {
+                    "top_hits": {
+                        "size": 1,
+                        "_source": {"includes": label_source_includes},
+                    }
+                }
+
+            aggregations[subcount_name] = agg_config
+
+        return aggregations
+
+    def build_combined_aggregations(self) -> dict:
+        """Build combined aggregations for subcounts that need both ID and name.
+
+        Returns:
+            Dictionary of combined aggregations
+        """
+        combined_aggs = {}
+
+        for subcount_name, config in self.subcount_configs.items():
+            if not config.get("is_combined", False):
+                continue
+
+            id_agg = config.get("id_agg")
+            name_agg = config.get("name_agg")
+            if not id_agg or not name_agg:
+                continue
+            field = config.get("field")
+            title_field = config.get("title_field")
+
+            # Build ID-based aggregation
+            if field:
+                combined_aggs[id_agg] = {
+                    "terms": {"field": field, "size": 1000},
+                    "aggs": {
+                        **self._get_view_metrics_dict(),
+                        "label": {
+                            "top_hits": {
+                                "size": 1,
+                                "_source": {
+                                    "includes": config.get("label_source_includes", [])
+                                },
+                            }
+                        },
+                    },
+                }
+
+            # Build name-based aggregation
+            if title_field:
+                combined_aggs[name_agg] = {
+                    "terms": {"field": title_field, "size": 1000},
+                    "aggs": {
+                        **self._get_view_metrics_dict(),
+                        "label": {
+                            "top_hits": {
+                                "size": 1,
+                                "_source": {
+                                    "includes": config.get("label_source_includes", [])
+                                },
+                            }
+                        },
+                    },
+                }
+
+        return combined_aggs
+
+    def build_all_aggregations(self) -> dict:
+        """Build all aggregations dynamically based on SUBCOUNT_CONFIGS.
+
+        Returns:
+            Dictionary containing all aggregations for both view and download events
+        """
+        all_aggs = {}
+
+        # Add view aggregations
+        all_aggs.update(self.build_dynamic_view_aggregations())
+
+        # Add download aggregations
+        all_aggs.update(self.build_dynamic_download_aggregations())
+
+        # Add combined aggregations
+        all_aggs.update(self.build_combined_aggregations())
+
+        return all_aggs
 
     def _combine_query_results(
         self, view_results, download_results, community_id: str, date: arrow.Arrow
@@ -2154,50 +2487,64 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             "subcounts": {},
         }
 
-        if view_results and hasattr(view_results.aggregations, "view"):
-            view_bucket = view_results.aggregations.view
+        # Process view results
+        if view_results and hasattr(view_results.aggregations, "unique_visitors"):
+            # The new query structure has metrics at the top level
             combined_results["totals"]["view"] = {
-                "total_events": view_bucket.doc_count,
-                "unique_visitors": view_bucket.unique_visitors.value,
-                "unique_records": view_bucket.unique_records.value,
-                "unique_parents": view_bucket.unique_parents.value,
+                "total_events": (
+                    view_results.hits.total.value
+                    if hasattr(view_results.hits, "total")
+                    else 0
+                ),
+                "unique_visitors": view_results.aggregations.unique_visitors.value,
+                "unique_records": view_results.aggregations.unique_records.value,
+                "unique_parents": view_results.aggregations.unique_parents.value,
             }
 
-        if download_results and hasattr(download_results.aggregations, "download"):
-            download_bucket = download_results.aggregations.download
+        # Process download results
+        if download_results and hasattr(
+            download_results.aggregations, "unique_visitors"
+        ):
+            # The new query structure has metrics at the top level
             combined_results["totals"]["download"] = {
-                "total_events": download_bucket.doc_count,
-                "unique_visitors": download_bucket.unique_visitors.value,
-                "unique_records": download_bucket.unique_records.value,
-                "unique_parents": download_bucket.unique_parents.value,
-                "unique_files": download_bucket.unique_files.value,
-                "total_volume": download_bucket.total_volume.value,
+                "total_events": (
+                    download_results.hits.total.value
+                    if hasattr(download_results.hits, "total")
+                    else 0
+                ),
+                "unique_visitors": download_results.aggregations.unique_visitors.value,
+                "unique_records": download_results.aggregations.unique_records.value,
+                "unique_parents": download_results.aggregations.unique_parents.value,
+                "unique_files": download_results.aggregations.unique_files.value,
+                "total_volume": download_results.aggregations.total_volume.value,
             }
 
-        for subcount_name, config in self.SUBCOUNT_CONFIGS.items():
+        # Process subcounts for each category
+        for subcount_name, config in self.subcount_configs.items():
             combined_results["subcounts"][subcount_name] = []
 
+            # Handle combined aggregations (funders and affiliations)
+            if config.get("is_combined", False):
+                combined_results["subcounts"][subcount_name] = (
+                    self._combine_id_name_aggregations(
+                        view_results, download_results, config, subcount_name
+                    )
+                )
+                continue
+
+            # Get view buckets for this subcount
             view_buckets = []
             if view_results and hasattr(view_results.aggregations, subcount_name):
                 view_agg = getattr(view_results.aggregations, subcount_name)
-                if config["is_nested"]:
-                    # Handle nested aggregations
-                    nested_agg = getattr(view_agg, config["nested_agg"])
-                    view_buckets = nested_agg.buckets
-                else:
-                    view_buckets = view_agg.buckets
+                view_buckets = view_agg.buckets
 
+            # Get download buckets for this subcount
             download_buckets = []
             if download_results and hasattr(
                 download_results.aggregations, subcount_name
             ):
                 download_agg = getattr(download_results.aggregations, subcount_name)
-                if config["is_nested"]:
-                    # Handle nested aggregations
-                    nested_agg = getattr(download_agg, config["nested_agg"])
-                    download_buckets = nested_agg.buckets
-                else:
-                    download_buckets = download_agg.buckets
+                download_buckets = download_agg.buckets
 
             # Combine buckets by key
             all_keys = set()
@@ -2219,28 +2566,20 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         download_bucket = bucket
                         break
 
-                # Extract label from title aggregation
-                label = str(key)  # Default to key as label
-                if (
-                    config["title_field"]
-                    and view_bucket
-                    and hasattr(view_bucket, "title")
-                ):
-                    title_hits = view_bucket.title.hits.hits
-                    if title_hits and title_hits[0]._source:
-                        source = title_hits[0]._source
-                        if config["is_nested"]:
-                            nested_path = config["nested_path"]
-                            title_field = config["title_field"].split(".", 1)[1]
-                            if nested_path in source:
-                                for item in source[nested_path]:
-                                    if item.get("id") == key:
-                                        label = item.get(title_field, str(key))
-                                        break
-                        else:
-                            title_field = config["title_field"]
-                            if title_field in source:
-                                label = source[title_field]
+                # Extract label from title aggregation or use key as default
+                label = str(key)
+                title_field = config.get("title_field")
+                if title_field and view_bucket:
+                    if hasattr(view_bucket, "label") and hasattr(
+                        view_bucket.label, "hits"
+                    ):
+                        title_hits = view_bucket.label.hits.hits
+                        if title_hits and title_hits[0]._source:
+                            source = title_hits[0]._source
+                            # Parse the title_field path to find the correct item
+                            label = self._extract_label_from_source(
+                                source, title_field, key
+                            )
 
                 subcount_item = {
                     "id": str(key),
@@ -2261,24 +2600,24 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     },
                 }
 
-                if view_bucket and hasattr(view_bucket, "view"):
-                    view_metrics = view_bucket.view
+                # Extract view metrics from the bucket
+                if view_bucket:
                     subcount_item["view"] = {
-                        "total_events": view_metrics.doc_count,
-                        "unique_visitors": view_metrics.unique_visitors.value,
-                        "unique_records": view_metrics.unique_records.value,
-                        "unique_parents": view_metrics.unique_parents.value,
+                        "total_events": view_bucket.doc_count,
+                        "unique_visitors": view_bucket.unique_visitors.value,
+                        "unique_records": view_bucket.unique_records.value,
+                        "unique_parents": view_bucket.unique_parents.value,
                     }
 
-                if download_bucket and hasattr(download_bucket, "download"):
-                    download_metrics = download_bucket.download
+                # Extract download metrics from the bucket
+                if download_bucket:
                     subcount_item["download"] = {
-                        "total_events": download_metrics.doc_count,
-                        "unique_visitors": download_metrics.unique_visitors.value,
-                        "unique_records": download_metrics.unique_records.value,
-                        "unique_parents": download_metrics.unique_parents.value,
-                        "unique_files": download_metrics.unique_files.value,
-                        "total_volume": download_metrics.total_volume.value,
+                        "total_events": download_bucket.doc_count,
+                        "unique_visitors": download_bucket.unique_visitors.value,
+                        "unique_records": download_bucket.unique_records.value,
+                        "unique_parents": download_bucket.unique_parents.value,
+                        "unique_files": download_bucket.unique_files.value,
+                        "total_volume": download_bucket.total_volume.value,
                     }
 
                 combined_results["subcounts"][subcount_name].append(subcount_item)
@@ -2363,10 +2702,29 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             return subcount_list
 
         # Get top-level metrics
-        views_bucket = results.aggregations.view if results.aggregations.view else None
-        downloads_bucket = (
-            results.aggregations.download if results.aggregations.download else None
-        )
+        # The new query structure has metrics at the top level
+        view_total_events = 0
+        view_unique_visitors = 0
+        view_unique_records = 0
+        view_unique_parents = 0
+
+        download_total_events = 0
+        download_unique_visitors = 0
+        download_unique_records = 0
+        download_unique_parents = 0
+        download_unique_files = 0
+        download_total_volume = 0
+
+        if hasattr(results.aggregations, "unique_visitors"):
+            view_unique_visitors = results.aggregations.unique_visitors.value
+        if hasattr(results.aggregations, "unique_records"):
+            view_unique_records = results.aggregations.unique_records.value
+        if hasattr(results.aggregations, "unique_parents"):
+            view_unique_parents = results.aggregations.unique_parents.value
+        if hasattr(results.aggregations, "unique_files"):
+            download_unique_files = results.aggregations.unique_files.value
+        if hasattr(results.aggregations, "total_volume"):
+            download_total_volume = results.aggregations.total_volume.value
 
         final_dict = {
             "community_id": community_id,
@@ -2375,38 +2733,18 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
             "totals": {
                 "view": {
-                    "total_events": views_bucket.doc_count if views_bucket else 0,
-                    "unique_visitors": (
-                        views_bucket.unique_visitors.value if views_bucket else 0
-                    ),
-                    "unique_records": (
-                        views_bucket.unique_records.value if views_bucket else 0
-                    ),
-                    "unique_parents": (
-                        views_bucket.unique_parents.value if views_bucket else 0
-                    ),
+                    "total_events": view_total_events,
+                    "unique_visitors": view_unique_visitors,
+                    "unique_records": view_unique_records,
+                    "unique_parents": view_unique_parents,
                 },
                 "download": {
-                    "total_events": (
-                        downloads_bucket.doc_count if downloads_bucket else 0
-                    ),
-                    "unique_visitors": (
-                        downloads_bucket.unique_visitors.value
-                        if downloads_bucket
-                        else 0
-                    ),
-                    "unique_records": (
-                        downloads_bucket.unique_records.value if downloads_bucket else 0
-                    ),
-                    "unique_parents": (
-                        downloads_bucket.unique_parents.value if downloads_bucket else 0
-                    ),
-                    "unique_files": (
-                        downloads_bucket.unique_files.value if downloads_bucket else 0
-                    ),
-                    "total_volume": (
-                        downloads_bucket.total_volume.value if downloads_bucket else 0
-                    ),
+                    "total_events": download_total_events,
+                    "unique_visitors": download_unique_visitors,
+                    "unique_records": download_unique_records,
+                    "unique_parents": download_unique_parents,
+                    "unique_files": download_unique_files,
+                    "total_volume": download_total_volume,
                 },
             },
             "subcounts": {
@@ -2419,33 +2757,29 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 ),
                 "by_licenses": add_subcount_to_doc(
                     results.aggregations.by_licenses.buckets,
-                    ["rights", 0, "title", "en"],
+                    ["rights", "title", "en"],
                 ),
                 "by_funders": add_subcount_to_doc(
                     results.aggregations.by_funders.buckets,
-                    ["funders", 0, "name"],
+                    ["funders", "name"],
                 ),
                 "by_periodicals": add_subcount_to_doc(
                     results.aggregations.by_periodicals.buckets
                 ),
                 "by_languages": add_subcount_to_doc(
                     results.aggregations.by_languages.buckets,
-                    [
-                        "languages",
-                        0,
-                        "title",
-                    ],
+                    ["languages", "title"],
                 ),
                 "by_subjects": add_subcount_to_doc(
                     results.aggregations.by_subjects.buckets,
-                    ["subjects", 0, "title"],
+                    ["subjects", "title"],
                 ),
                 "by_publishers": add_subcount_to_doc(
                     results.aggregations.by_publishers.buckets
                 ),
                 "by_affiliations": add_subcount_to_doc(
                     results.aggregations.by_affiliations.buckets,
-                    lambda aff_bucket: aff_bucket.get("key", {}).get("name"),
+                    ["affiliations", "name"],
                 ),
                 "by_countries": add_subcount_to_doc(
                     results.aggregations.by_countries.buckets, None
@@ -2510,7 +2844,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 # Execute view query
                 if view_index:
                     view_search = self.query_builder.build_view_query(
-                        community_id, current_iteration_date, view_index
+                        community_id, current_iteration_date, current_iteration_date
                     )
                     view_results = view_search.execute()
                 else:
@@ -2519,7 +2853,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 # Execute download query
                 if download_index:
                     download_search = self.query_builder.build_download_query(
-                        community_id, current_iteration_date, download_index
+                        community_id, current_iteration_date, current_iteration_date
                     )
                     download_results = download_search.execute()
                 else:
@@ -2549,6 +2883,202 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             )
 
             current_iteration_date = current_iteration_date.shift(days=1)
+
+    def _combine_id_name_aggregations(
+        self, view_results, download_results, config, subcount_name
+    ):
+        """Combine separate id and name aggregations for funders and affiliations.
+
+        This method handles the case where we have separate aggregations for id and name
+        fields (e.g., by_funder_id and by_funder_name) and need to combine them into
+        a single list, deduplicating based on unique combinations of id and name.
+
+        Args:
+            view_results: Results from view query (or None).
+            download_results: Results from download query (or None).
+            config: Configuration for the subcount.
+            subcount_name: Name of the subcount being processed.
+
+        Returns:
+            list: Combined and deduplicated subcount items.
+        """
+        id_agg_name = config["id_agg"]
+        name_agg_name = config["name_agg"]
+
+        # Get buckets from both aggregations
+        buckets = self._get_id_name_buckets(
+            view_results, download_results, id_agg_name, name_agg_name
+        )
+
+        # Combine and deduplicate
+        combined_items = {}
+
+        # Process all buckets
+        for bucket_type, bucket, agg_type in buckets:
+            item_id, name = self._extract_id_name_from_bucket(bucket, bucket_type)
+            key = (item_id, name)
+
+            if key not in combined_items:
+                combined_items[key] = self._create_empty_subcount_item(item_id, name)
+
+            # Add metrics
+            if agg_type == "view":
+                combined_items[key]["view"] = self._extract_view_metrics(bucket)
+            else:  # download
+                combined_items[key]["download"] = self._extract_download_metrics(bucket)
+
+        return list(combined_items.values())
+
+    def _get_id_name_buckets(
+        self, view_results, download_results, id_agg_name, name_agg_name
+    ):
+        """Get all buckets from id and name aggregations for both view and download."""
+        buckets = []
+
+        # Helper to add buckets if they exist
+        def add_buckets(results, agg_name, agg_type):
+            if results and hasattr(results.aggregations, agg_name):
+                agg = getattr(results.aggregations, agg_name)
+                for bucket in agg.buckets:
+                    buckets.append((agg_name, bucket, agg_type))
+
+        # Add all buckets
+        add_buckets(view_results, id_agg_name, "view")
+        add_buckets(view_results, name_agg_name, "view")
+        add_buckets(download_results, id_agg_name, "download")
+        add_buckets(download_results, name_agg_name, "download")
+
+        return buckets
+
+    def _extract_id_name_from_bucket(self, bucket, bucket_type):
+        """Extract id and name from a bucket based on its type."""
+        if bucket_type.endswith("_id"):
+            # ID bucket: key is id, extract name from label
+            item_id = bucket.key
+            name = self._extract_name_from_label(bucket)
+        else:
+            # Name bucket: key is name, extract id from label
+            name = bucket.key
+            item_id = self._extract_id_from_label(bucket)
+
+        return item_id, name
+
+    def _extract_name_from_label(self, bucket):
+        """Extract name from bucket label aggregation."""
+        if hasattr(bucket, "label") and hasattr(bucket.label, "hits"):
+            title_hits = bucket.label.hits.hits
+            if title_hits and title_hits[0]._source:
+                source = title_hits[0]._source
+                if "funders" in source and "name" in source["funders"]:
+                    return source["funders"]["name"]
+                elif "affiliations" in source and "name" in source["affiliations"]:
+                    return source["affiliations"]["name"]
+        return str(bucket.key)
+
+    def _extract_id_from_label(self, bucket):
+        """Extract id from bucket label aggregation."""
+        if hasattr(bucket, "label") and hasattr(bucket.label, "hits"):
+            title_hits = bucket.label.hits.hits
+            if title_hits and title_hits[0]._source:
+                source = title_hits[0]._source
+                if "funders" in source and "id" in source["funders"]:
+                    return source["funders"]["id"]
+                elif "affiliations" in source and "id" in source["affiliations"]:
+                    return source["affiliations"]["id"]
+        return bucket.key
+
+    def _create_empty_subcount_item(self, item_id, name):
+        """Create an empty subcount item with zero metrics."""
+        return {
+            "id": str(item_id),
+            "label": name,
+            "view": {
+                "total_events": 0,
+                "unique_visitors": 0,
+                "unique_records": 0,
+                "unique_parents": 0,
+            },
+            "download": {
+                "total_events": 0,
+                "unique_visitors": 0,
+                "unique_records": 0,
+                "unique_parents": 0,
+                "unique_files": 0,
+                "total_volume": 0,
+            },
+        }
+
+    def _extract_view_metrics(self, bucket):
+        """Extract view metrics from a bucket."""
+        return {
+            "total_events": bucket.doc_count,
+            "unique_visitors": bucket.unique_visitors.value,
+            "unique_records": bucket.unique_records.value,
+            "unique_parents": bucket.unique_parents.value,
+        }
+
+    def _extract_download_metrics(self, bucket):
+        """Extract download metrics from a bucket."""
+        return {
+            "total_events": bucket.doc_count,
+            "unique_visitors": bucket.unique_visitors.value,
+            "unique_records": bucket.unique_records.value,
+            "unique_parents": bucket.unique_parents.value,
+            "unique_files": bucket.unique_files.value,
+            "total_volume": bucket.total_volume.value,
+        }
+
+    def _extract_label_from_source(
+        self, source: dict, title_field: str, bucket_key: str
+    ) -> str:
+        """Extract the correct label from source by matching the bucket key.
+
+        This method handles the case where the label sub-aggregation contains all items
+        (e.g., all subjects), and we need to find the specific one that matches
+        the bucket's key (ID).
+
+        Args:
+            source: The source document from the label sub-aggregation
+            title_field: The field path (e.g., "subjects.title")
+            bucket_key: The bucket key (ID) to match against
+
+        Returns:
+            The label string, or the bucket_key as fallback
+        """
+        if "." not in title_field:
+            # Simple field like "name" - just return the value
+            return source.get(title_field, str(bucket_key))
+
+        # Parse the path (e.g., "subjects.title" -> ["subjects", "title"])
+        parts = title_field.split(".")
+
+        # The first part should be the array field (e.g., "subjects")
+        array_field = parts[0]
+        if array_field not in source or not isinstance(source[array_field], list):
+            return str(bucket_key)
+
+        # Find the item in the array that matches the bucket key
+        for item in source[array_field]:
+            if isinstance(item, dict) and "id" in item:
+                if str(item["id"]) == str(bucket_key):
+                    # Found the matching item, extract the label from remaining path
+                    if len(parts) == 1:
+                        # Just the array field, return the item itself
+                        return str(item)
+                    else:
+                        # Extract from the nested path (e.g., "title")
+                        label_path = parts[1:]
+                        value = item
+                        for part in label_path:
+                            if isinstance(value, dict) and part in value:
+                                value = value[part]
+                            else:
+                                value = ""
+                                break
+                        return str(value) if value else str(bucket_key)
+
+        # No matching item found, return bucket key as fallback
+        return str(bucket_key)
 
 
 class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
