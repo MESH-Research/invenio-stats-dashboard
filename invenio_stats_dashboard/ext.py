@@ -3,6 +3,7 @@
 from flask import Flask
 from flask_menu import current_menu
 from invenio_i18n import lazy_gettext as _
+from invenio_rdm_records.services.components import DefaultRecordsComponents
 from invenio_search.proxies import current_search, current_search_client
 
 from . import config
@@ -117,7 +118,7 @@ class InvenioStatsDashboard:
     def init_config(self, app):
         """Initialize configuration."""
         for k in dir(config):
-            if k.startswith("STATS_DASHBOARD_"):
+            if k.startswith("STATS_DASHBOARD_") or k.startswith("COMMUNITY_STATS_"):
                 app.config.setdefault(k, getattr(config, k))
 
         if not app.config.get("COMMUNITY_STATS_ENABLED", True):
@@ -165,8 +166,15 @@ class InvenioStatsDashboard:
         existing_rdm_record_components = app.config.get(
             "RDM_RECORDS_SERVICE_COMPONENTS", []
         )
+
+        # Ensure the existing components list includes all defaults
+        # This is a hack to fix component corruption during testing
+        corrected_components = self._ensure_rdm_service_components(
+            app, existing_rdm_record_components
+        )
+
         app.config["RDM_RECORDS_SERVICE_COMPONENTS"] = [
-            *existing_rdm_record_components,
+            *corrected_components,
             RecordCommunityEventComponent,
         ]
 
@@ -177,6 +185,46 @@ class InvenioStatsDashboard:
             *existing_record_communities_components,
             RecordCommunityEventTrackingComponent,
         ]
+
+    def _ensure_rdm_service_components(self, app, components_list):
+        """Ensure the components list includes all default RDM components.
+
+        Args:
+            app: Flask application
+            components_list: List of existing components
+
+        Returns:
+            List of components with defaults ensured
+        """
+        try:
+            # Check if the components list has all required defaults
+            component_names = [comp.__name__ for comp in components_list]
+            default_component_names = [
+                comp.__name__ for comp in DefaultRecordsComponents
+            ]
+
+            missing_components = [
+                name for name in default_component_names if name not in component_names
+            ]
+
+            if missing_components:
+                app.logger.warning(
+                    f"Missing default RDM components: {missing_components}"
+                )
+                # Build corrected components list with defaults first
+                corrected_components = DefaultRecordsComponents.copy()
+                corrected_components.extend(components_list)
+                return corrected_components
+            else:
+                # All defaults present, return original list
+                return components_list
+
+        except Exception as e:
+            app.logger.error(f"Error ensuring RDM service components: {e}")
+            # Fallback: return list with defaults
+            corrected_components = DefaultRecordsComponents.copy()
+            corrected_components.extend(components_list)
+            return corrected_components
 
 
 def finalize_app(app):
