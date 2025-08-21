@@ -1,0 +1,77 @@
+flowchart TD
+    A[Start Reindexing Process] --> B[Update & Verify Templates]
+    B --> C{Templates Updated?}
+    C -->|No| D[Log Error & Stop]
+    C -->|Yes| E[Get Monthly Indices]
+
+    E --> F[Process Each Event Type]
+    F --> G[Process Each Monthly Index]
+
+    G --> H[Create Enriched Index]
+    H --> I{Index Created?}
+    I -->|No| J[Log Error & Mark Failed]
+    I -->|Yes| K[Get Bookmark/Resume Point]
+
+    K --> L[Process Batches Loop]
+    L --> M[Health Check]
+    M --> N{Healthy?}
+    N -->|No| O[Log Health Issue & Stop]
+    N -->|Yes| P[Process Batch]
+
+    P --> Q{Batch Success?}
+    Q -->|No| R[Log Error & Mark Failed]
+    Q -->|Yes| S[Update Bookmark]
+
+    S --> T{More Records?}
+    T -->|Yes| U{Max Batches Reached?}
+    U -->|No| L
+    U -->|Yes| V[Mark Interrupted]
+    T -->|No| W[Validate Enriched Data]
+
+    W --> X{Validation Passed?}
+    X -->|No| Y[Log Validation Error & Mark Failed]
+    X -->|Yes| Z[Update Aliases]
+
+    Z --> AA{Aliases Updated?}
+    AA -->|No| BB[Log Error & Mark Failed]
+    AA -->|Yes| CC{Current Month Index?}
+
+    CC -->|Yes| DD[Setup Write Alias]
+    DD --> EE{Write Alias Created?}
+    EE -->|No| FF[Log Error & Mark Failed]
+    EE -->|Yes| GG[Check for New Records]
+
+    GG --> HH{New Records Found?}
+    HH -->|Yes| II[Migrate New Records]
+    II --> JJ{New Records Migrated?}
+    JJ -->|No| KK[Log Error & Mark Failed]
+    JJ -->|Yes| LL[Delete Old Index]
+    HH -->|No| LL
+
+    CC -->|No| LL
+
+    LL --> MM{Delete Enabled?}
+    MM -->|Yes| NN[Delete Old Index]
+    NN --> OO{Delete Success?}
+    OO -->|No| PP[Log Warning]
+    OO -->|Yes| QQ[Mark Completed]
+    MM -->|No| QQ
+
+    V --> RR[Return Results]
+    Y --> RR
+    BB --> RR
+    FF --> RR
+    KK --> RR
+    QQ --> RR
+
+    style A fill:#e1f5fe
+    style D fill:#ffebee
+    style J fill:#ffebee
+    style O fill:#fff3e0
+    style R fill:#ffebee
+    style V fill:#fff3e0
+    style Y fill:#ffebee
+    style BB fill:#ffebee
+    style FF fill:#ffebee
+    style KK fill:#ffebee
+    style QQ fill:#c8e6c9

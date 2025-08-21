@@ -1,0 +1,100 @@
+flowchart TD
+    A[Start Migration] --> B[Pre-Migration Health Check]
+    B --> C{System Healthy?}
+    C -->|No| D[Log Health Issue & Stop]
+    C -->|Yes| E[Begin Migration Process]
+
+    E --> F[Process Monthly Index]
+    F --> G[Create Enriched Index]
+    G --> H{Index Creation Success?}
+    H -->|No| I[Log Error & Mark Failed]
+    H -->|Yes| J[Begin Batch Processing]
+
+    J --> K[Health Check Before Each Batch]
+    K --> L{Memory Usage < 75%?}
+    L -->|No| M[Stop: Memory Too High]
+    M --> N[Save Progress to Bookmark]
+    N --> O[Return Interrupted Status]
+
+    L -->|Yes| P{OpenSearch Responsive?}
+    P -->|No| Q[Stop: OpenSearch Unavailable]
+    Q --> R[Save Progress to Bookmark]
+    R --> O
+
+    P -->|Yes| S[Process Batch]
+    S --> T{Batch Processing Success?}
+    T -->|No| U[Handle Batch Failure]
+    U --> V{Recoverable Error?}
+    V -->|Yes| W[Retry Batch]
+    W --> T
+    V -->|No| X[Log Error & Mark Failed]
+
+    T -->|Yes| Y[Update Bookmark with Progress]
+    Y --> Z{More Records to Process?}
+    Z -->|Yes| AA{Max Batches Reached?}
+    AA -->|No| K
+    AA -->|Yes| BB[Mark Interrupted - Resume Later]
+    Z -->|No| CC[Validation Phase]
+
+    CC --> DD[Validate Enriched Data]
+    DD --> EE{Validation Passed?}
+    EE -->|No| FF[Validation Failure Handling]
+    FF --> GG[Keep Old Index]
+    GG --> HH[Don't Update Aliases]
+    HH --> II[Log Validation Errors]
+    II --> JJ[Mark Migration Failed]
+
+    EE -->|Yes| KK[Update Aliases]
+    KK --> LL{Alias Update Success?}
+    LL -->|No| MM[Rollback: Keep Old Index]
+    MM --> NN[Log Alias Error]
+    NN --> JJ
+
+    LL -->|Yes| OO{Current Month Index?}
+    OO -->|Yes| PP[Setup Write Alias]
+    PP --> QQ{Write Alias Success?}
+    QQ -->|No| RR[Rollback: Keep Old Index]
+    RR --> SS[Log Write Alias Error]
+    SS --> JJ
+
+    QQ -->|Yes| TT[Check for New Records]
+    TT --> UU{New Records Found?}
+    UU -->|Yes| VV[Migrate New Records]
+    VV --> WW{New Records Migration Success?}
+    WW -->|No| XX[Log Error & Mark Failed]
+    WW -->|Yes| YY[Delete Old Index]
+    UU -->|No| YY
+
+    OO -->|No| YY
+
+    YY --> ZZ{Delete Enabled?}
+    ZZ -->|Yes| AAA[Delete Old Index]
+    AAA --> BBB{Delete Success?}
+    BBB -->|No| CCC[Log Warning - Index Not Deleted]
+    BBB -->|Yes| DDD[Mark Migration Completed]
+    ZZ -->|No| DDD
+
+    BB --> EEE[Return Interrupted Status]
+    JJ --> FFF[Return Failed Status]
+    XX --> FFF
+    DDD --> GGG[Return Success Status]
+
+    style A fill:#e1f5fe
+    style D fill:#ffebee
+    style I fill:#ffebee
+    style M fill:#fff3e0
+    style O fill:#fff3e0
+    style Q fill:#fff3e0
+    style X fill:#ffebee
+    style BB fill:#fff3e0
+    style JJ fill:#ffebee
+    style FFF fill:#ffebee
+    style GGG fill:#c8e6c9
+    style DDD fill:#c8e6c9
+    style K fill:#e8f5e8
+    style L fill:#e8f5e8
+    style P fill:#e8f5e8
+    style T fill:#e8f5e8
+    style U fill:#fff3e0
+    style V fill:#fff3e0
+    style W fill:#fff3e0

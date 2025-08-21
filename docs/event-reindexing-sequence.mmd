@@ -1,0 +1,46 @@
+sequenceDiagram
+    participant CLI as CLI Command
+    participant Service as EventReindexingService
+    participant OpenSearch as OpenSearch Cluster
+    participant Bookmark as Bookmark API
+    participant Metadata as RDM Records Index
+
+    CLI->>Service: reindex_events()
+    Service->>Service: update_and_verify_templates()
+    Service->>OpenSearch: Check/Update Templates
+
+    loop For Each Event Type
+        Service->>OpenSearch: get_monthly_indices(event_type)
+        OpenSearch-->>Service: List of monthly indices
+
+        loop For Each Monthly Index
+            Service->>Service: migrate_monthly_index()
+            Service->>OpenSearch: create_enriched_index()
+            OpenSearch-->>Service: New index name
+
+            Service->>Bookmark: get_bookmark()
+            Bookmark-->>Service: Last processed ID
+
+            loop Batch Processing
+                Service->>Service: check_health_conditions()
+                Service->>OpenSearch: process_monthly_index_batch()
+                Service->>Metadata: get_metadata_for_records()
+                Metadata-->>Service: Record metadata
+                Service->>Service: enrich_events()
+                Service->>OpenSearch: bulk_index()
+                Service->>Bookmark: set_bookmark()
+            end
+
+            Service->>Service: validate_enriched_data()
+            Service->>OpenSearch: update_aliases()
+
+            alt Current Month Index
+                Service->>OpenSearch: setup_write_alias()
+                Service->>OpenSearch: migrate_new_records()
+            end
+
+            Service->>OpenSearch: delete_old_index()
+        end
+    end
+
+    Service-->>CLI: Migration results
