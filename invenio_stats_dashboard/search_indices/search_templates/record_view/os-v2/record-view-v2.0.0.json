@@ -191,7 +191,7 @@
           }
         },
         "affiliations": {
-          "type": "nested",
+          "type": "object",
           "properties": {
             "@v": {
               "type": "keyword"
@@ -215,7 +215,7 @@
           }
         },
         "funders": {
-          "type": "nested",
+          "type": "object",
           "properties": {
             "@v": {
               "type": "keyword"

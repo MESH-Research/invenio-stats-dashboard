@@ -25,7 +25,7 @@ const BREAKDOWN_NAMES = {
   'resourceTypes': 'Work Types',
   'subjects': 'Subjects',
   'accessStatus': 'Access Status',
-  'licenses': 'Licenses',
+  'rights': 'Rights',
   'affiliations': 'Affiliations',
   'funders': 'Funders',
   'countries': 'Countries',

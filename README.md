@@ -174,31 +174,31 @@ Each daily record delta document includes:
 - `period_start` and `period_end` (date): The date range for this delta
 - `uploaders` (integer): Number of unique users who uploaded records
 - `subcounts` (object): Detailed breakdowns by various metadata fields including:
-  - `by_resource_type` (array[object]): Breakdown by resource type (journal articles, datasets, etc.)
-  - `by_access_status` (array[object]): Breakdown by access status (open, restricted, etc.)
-  - `by_language` (array[object]): Breakdown by deposit language (English, French, etc.)
-  - `by_affiliation` (array[object]): Breakdown by creator/contributor affiliations
-  - `by_funder` (array[object]): Breakdown by funding organizations
-  - `by_subject` (array[object]): Breakdown by subject classifications
-  - `by_publisher` (array[object]): Breakdown by publisher
-  - `by_periodical` (array[object]): Breakdown by journal/periodical
-  - `by_file_type` (array[object]): Breakdown by file types (PDF, CSV, etc.)
+  - `by_resource_types` (array[object]): Breakdown by resource type (journal articles, datasets, etc.)
+  - `by_access_statuses` (array[object]): Breakdown by access status (open, restricted, etc.)
+  - `by_languages` (array[object]): Breakdown by deposit language (English, French, etc.)
+  - `by_affiliations` (array[object]): Breakdown by creator/contributor affiliations
+  - `by_funders` (array[object]): Breakdown by funding organizations
+  - `by_subjects` (array[object]): Breakdown by subject classifications
+  - `by_publishers` (array[object]): Breakdown by publisher
+  - `by_periodicals` (array[object]): Breakdown by journal/periodical
+  - `by_file_types` (array[object]): Breakdown by file types (PDF, CSV, etc.)
 
-Each of the subcounts is an array of objects. With the exception of the `by_file_type` subcount, each sujcount object in an array has the following fields:
+Each of the subcounts is an array of objects. With the exception of the `by_file_types` subcount, each sujcount object in an array has the following fields:
 - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
 - `label` (string): The readable label for the subcount if one is available (e.g., "open", "English", etc.)
 - `files` (object): The number of added/removed files and data volume for records with the subcount item, structured as in the top-level `files` object
 - `parents` (object): The number of added/removed parent records with the subcount item, structured as in the top-level `parents` object
 - `records` (object): The number of added/removed records with the subcount item, structured as in the top-level `records` object
 
-Since it does not make sense to count metadata-only records in the subcount by file type, the `by_file_type` subcount array objects have a slightly different shape. They have the following fields:
+Since it does not make sense to count metadata-only records in the subcount by file type, the `by_file_types` subcount array objects have a slightly different shape. They have the following fields:
 - `id` (string): The identifier for the subcount (e.g., "pdf", "csv", etc.)
 - `label` (string): The readable label for the subcount if one is available (e.g., "PDF", "CSV", etc.)
 - `added` (object): The number of added files and data volume for records with the subcount item, structured as in the top-level `files.added` object
 - `removed` (object): The number of removed files and data volume for records with the subcount item, structured as in the top-level `files.removed` object
 
 ```{note}
-Each subcount array will include objects for only those subcount values that appear in that day's added or removed records. For example, if there are no records with the "open" access status on a given day, the `by_access_status` subcount array will not include an object for "open".
+Each subcount array will include objects for only those subcount values that appear in that day's added or removed records. For example, if there are no records with the "open" access status on a given day, the `by_access_statuses` subcount array will not include an object for "open".
 ```
 
 These aggregation documents are stored in the indices:
@@ -239,7 +239,7 @@ Each document is shaped like this (the documents for the three different record 
     "period_end": "2021-01-01",
     "uploaders": 100,
     "subcounts": {
-        "by_resource_type": [
+        "by_resource_types": [
             {
                 "id": "dataset",
                 "label": "Dataset",
@@ -261,14 +261,14 @@ Each document is shaped like this (the documents for the three different record 
                 }
             }
         ],
-        "by_access_status": [],
-        "by_language": [],
-        "by_affiliation": [],
-        "by_funder": [],
-        "by_subject": [],
-        "by_publisher": [],
-        "by_periodical": [],
-        "by_file_type": [
+        "by_access_statuses": [],
+        "by_languages": [],
+        "by_affiliations": [],
+        "by_funders": [],
+        "by_subjects": [],
+        "by_publishers": [],
+        "by_periodicals": [],
+        "by_file_types": [
           {
             "id": "pdf",
             "label": "",
@@ -306,7 +306,7 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
   - `all_access_status` (array[object]): Total number of records by access status
   - `all_file_types` (array[object]): Total number of records by file type
   - `all_languages` (array[object]): Total number of records by language
-  - `all_licenses` (array[object]): Total number of records by license
+  - `all_rights` (array[object]): Total number of records by rights
   - `all_resource_types` (array[object]): Total number of records by resource type
   - `top_affiliations_contributor` (array[object]): Top 20 contributor affiliations by number of records
   - `top_affiliations_creator` (array[object]): Top 20 creator affiliations by number of records
@@ -426,9 +426,9 @@ The usage delta aggregations track daily view and download counts for the commun
     - `unique_records` (integer): Total number of unique records downloaded
     - `unique_visitors` (integer): Total number of unique visitors
 - `subcounts` (object): Detailed breakdowns by:
-  - `by_access_status` (array[object]): Usage by access status
+  - `by_access_statuses` (array[object]): Usage by access status
   - `by_resource_types` (array[object]): Usage by resource type
-  - `by_licenses` (array[object]): Usage by license type
+  - `by_rights` (array[object]): Usage by rights type
   - `by_funders` (array[object]): Usage by funding organization
   - `by_periodicals` (array[object]): Usage by journal/periodical
   - `by_languages` (array[object]): Usage by language
@@ -439,7 +439,7 @@ The usage delta aggregations track daily view and download counts for the commun
   - `by_countries` (array[object]): Usage by visitor country
   - `by_referrers` (array[object]): Usage by referrer
 
-Each of the subcount arrays will include objects for only those subcount values that appear in that day's view or download events. For example, if no records with the "open" access status are viewed or downloaded on a given day, the `by_access_status` subcount array will not include an object for "open".
+Each of the subcount arrays will include objects for only those subcount values that appear in that day's view or download events. For example, if no records with the "open" access status are viewed or downloaded on a given day, the `by_access_statuses` subcount array will not include an object for "open".
 
 Each object in the subcount arrays will have the following fields:
 - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
@@ -484,7 +484,7 @@ Each document is shaped like this:
         }
     },
     "subcounts": {
-      "by_access_status": [
+      "by_access_statuses": [
         {
           "id": "open",
           "label": "Open",
@@ -505,7 +505,7 @@ Each document is shaped like this:
         }
       ],
       "by_resource_types": [],
-      "by_licenses": [],
+      "by_rights": [],
       "by_funders": [],
       "by_periodicals": [],
       "by_languages": [],
@@ -546,7 +546,7 @@ document includes:
   - `all_access_status` (array[object]): Total number of records by access status
   - `all_file_types` (array[object]): Total number of records by file type
   - `all_languages` (array[object]): Total number of records by language
-  - `all_licenses` (array[object]): Total number of records by license type
+  - `all_rights` (array[object]): Total number of records by rights type
   - `all_resource_types` (array[object]): Total number of records by resource type
   - `top_affiliations` (array[object]): Top 20 contributor affiliations by number of records
   - `top_funders` (array[object]): Top 20 funders by number of records
@@ -621,7 +621,7 @@ Each document is shaped like this:
           }
         ],
         "all_languages": [],
-        "all_licenses": [],
+        "all_rights": [],
         "all_resource_types": [],
         "top_affiliations": {
           "by_view": [
@@ -1066,7 +1066,7 @@ STATS_DASHBOARD_LAYOUT = {
                         "components": [
                             {"component": "ResourceTypesTable", "width": 8},
                             {"component": "AccessStatusTable", "width": 8},
-                            {"component": "LicensesTable", "width": 8},
+                            {"component": "RightsTable", "width": 8},
                             {"component": "AffiliationsTable", "width": 8},
                         ],
                     },
@@ -1211,7 +1211,7 @@ We want to show the following statistics:
   - During a given period
 - Top record types
   - During a given period
-- Top record licenses
+- Top record rights
   - During a given period
 - Top funders for created records
 - Top affiliations

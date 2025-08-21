@@ -453,70 +453,70 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
 };
 
 // Sample items for different categories
-const resourceTypeItems = [
+const resourceTypesItems = [
   { id: 'dataset', name: 'Dataset' },
   { id: 'software', name: 'Software' },
   { id: 'research_paper', name: 'Research Paper' },
   { id: 'other', name: 'Other' }
 ];
 
-const accessStatusItems = [
+const accessStatusesItems = [
   { id: 'open', name: 'Open Access' },
   { id: 'embargoed', name: 'Embargoed' },
   { id: 'restricted', name: 'Restricted' },
   { id: 'metadata-only', name: 'Metadata Only' }
 ];
 
-const languageItems = [
+const languagesItems = [
   { id: 'eng', name: 'English' },
   { id: 'spa', name: 'Spanish' },
   { id: 'fra', name: 'French' },
   { id: 'deu', name: 'German' }
 ];
 
-const affiliationItems = [
+const affiliationsItems = [
   { id: 'uc-berkeley', name: 'University of California, Berkeley' },
   { id: 'mit', name: 'Massachusetts Institute of Technology' },
   { id: 'stanford', name: 'Stanford University' },
   { id: 'harvard', name: 'Harvard University' }
 ];
 
-const funderItems = [
+const fundersItems = [
   { id: 'nsf', name: 'National Science Foundation' },
   { id: 'nih', name: 'National Institutes of Health' },
   { id: 'erc', name: 'European Research Council' },
   { id: 'wellcome', name: 'Wellcome Trust' }
 ];
 
-const subjectItems = [
+const subjectsItems = [
   { id: 'computer_science', name: 'Computer Science' },
   { id: 'environmental_science', name: 'Environmental Science' },
   { id: 'biology', name: 'Biology' },
   { id: 'physics', name: 'Physics' }
 ];
 
-const publisherItems = [
+const publishersItems = [
   { id: 'springer', name: 'Springer' },
   { id: 'elsevier', name: 'Elsevier' },
   { id: 'wiley', name: 'Wiley' },
   { id: 'nature', name: 'Nature' }
 ];
 
-const licenseItems = [
+const rightsItems = [
   { id: 'cc-by-4.0', name: 'Creative Commons Attribution 4.0 International' },
   { id: 'cc-by-sa-4.0', name: 'Creative Commons Attribution-ShareAlike 4.0 International' },
   { id: 'cc-by-nc-4.0', name: 'Creative Commons Attribution-NonCommercial 4.0 International' },
   { id: 'cc0-1.0', name: 'Creative Commons Zero 1.0 Universal' }
 ];
 
-const fileTypeItems = [
+const fileTypesItems = [
   { id: 'pdf', name: 'PDF' },
   { id: 'csv', name: 'CSV' },
   { id: 'json', name: 'JSON' },
   { id: 'zip', name: 'ZIP' }
 ];
 
-const countryItems = [
+const countriesItems = [
   { id: 'us', name: 'United States' },
   { id: 'gb', name: 'United Kingdom' },
   { id: 'de', name: 'Germany' },
@@ -539,7 +539,7 @@ const countryItems = [
   { id: 'mx', name: 'Mexico' }
 ];
 
-const referrerItems = [
+const referrersItems = [
   { id: 'google.com', name: 'google.com' },
   { id: 'scholar.google.com', name: 'scholar.google.com' },
   { id: 'github.com', name: 'github.com' },
@@ -588,16 +588,16 @@ const testStatsData = {
     return {
       global: globalMetrics,
       byFilePresence: createFilePresenceMetrics(false),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
-      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
-      languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
-      affiliations: createSubcountSeries('affiliations', affiliationItems, false, globalMetrics),
-      funders: createSubcountSeries('funders', funderItems, false, globalMetrics),
-      subjects: createSubcountSeries('subjects', subjectItems, false, globalMetrics),
-      publishers: createSubcountSeries('publishers', publisherItems, false, globalMetrics),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics),
+      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics),
+      languages: createSubcountSeries('languages', languagesItems, false, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics),
+      funders: createSubcountSeries('funders', fundersItems, false, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics),
+      publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics),
       periodicals: createSubcountSeries('periodicals', [], false, globalMetrics),
-      licenses: createSubcountSeries('licenses', licenseItems, false, globalMetrics),
-      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false, globalMetrics)
+      rights: createSubcountSeries('rights', rightsItems, false, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics)
     };
   })(),
 
@@ -606,16 +606,16 @@ const testStatsData = {
     return {
       global: globalMetrics,
       byFilePresence: createFilePresenceMetrics(false),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
-      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
-      languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
-      affiliations: createSubcountSeries('affiliations', affiliationItems, false, globalMetrics),
-      funders: createSubcountSeries('funders', funderItems, false, globalMetrics),
-      subjects: createSubcountSeries('subjects', subjectItems, false, globalMetrics),
-      publishers: createSubcountSeries('publishers', publisherItems, false, globalMetrics),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics),
+      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics),
+      languages: createSubcountSeries('languages', languagesItems, false, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics),
+      funders: createSubcountSeries('funders', fundersItems, false, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics),
+      publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics),
       periodicals: createSubcountSeries('periodicals', [], false, globalMetrics),
-      licenses: createSubcountSeries('licenses', licenseItems, false, globalMetrics),
-      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false, globalMetrics)
+      rights: createSubcountSeries('rights', rightsItems, false, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics)
     };
   })(),
 
@@ -624,16 +624,16 @@ const testStatsData = {
     return {
       global: globalMetrics,
       byFilePresence: createFilePresenceMetrics(false),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, false, globalMetrics),
-      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, false, globalMetrics),
-      languages: createSubcountSeries('languages', languageItems, false, globalMetrics),
-      affiliations: createSubcountSeries('affiliations', affiliationItems, false, globalMetrics),
-      funders: createSubcountSeries('funders', funderItems, false, globalMetrics),
-      subjects: createSubcountSeries('subjects', subjectItems, false, globalMetrics),
-      publishers: createSubcountSeries('publishers', publisherItems, false, globalMetrics),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics),
+      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics),
+      languages: createSubcountSeries('languages', languagesItems, false, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics),
+      funders: createSubcountSeries('funders', fundersItems, false, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics),
+      publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics),
       periodicals: createSubcountSeries('periodicals', [], false, globalMetrics),
-      licenses: createSubcountSeries('licenses', licenseItems, false, globalMetrics),
-      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, false, globalMetrics)
+      rights: createSubcountSeries('rights', rightsItems, false, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics)
     };
   })(),
 
@@ -643,16 +643,16 @@ const testStatsData = {
     return {
       global: globalMetrics,
       byFilePresence: createFilePresenceMetrics(true),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
-      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
-      languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
-      affiliations: createSubcountSeries('affiliations', affiliationItems, true, globalMetrics),
-      funders: createSubcountSeries('funders', funderItems, true, globalMetrics),
-      subjects: createSubcountSeries('subjects', subjectItems, true, globalMetrics),
-      publishers: createSubcountSeries('publishers', publisherItems, true, globalMetrics),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics),
+      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics),
+      languages: createSubcountSeries('languages', languagesItems, true, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics),
+      funders: createSubcountSeries('funders', fundersItems, true, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics),
+      publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics),
       periodicals: createSubcountSeries('periodicals', [], true, globalMetrics),
-      licenses: createSubcountSeries('licenses', licenseItems, true, globalMetrics),
-      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true, globalMetrics)
+      rights: createSubcountSeries('rights', rightsItems, true, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics)
     };
   })(),
 
@@ -661,16 +661,16 @@ const testStatsData = {
     return {
       global: globalMetrics,
       byFilePresence: createFilePresenceMetrics(true),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
-      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
-      languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
-      affiliations: createSubcountSeries('affiliations', affiliationItems, true, globalMetrics),
-      funders: createSubcountSeries('funders', funderItems, true, globalMetrics),
-      subjects: createSubcountSeries('subjects', subjectItems, true, globalMetrics),
-      publishers: createSubcountSeries('publishers', publisherItems, true, globalMetrics),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics),
+      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics),
+      languages: createSubcountSeries('languages', languagesItems, true, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics),
+      funders: createSubcountSeries('funders', fundersItems, true, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics),
+      publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics),
       periodicals: createSubcountSeries('periodicals', [], true, globalMetrics),
-      licenses: createSubcountSeries('licenses', licenseItems, true, globalMetrics),
-      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true, globalMetrics)
+      rights: createSubcountSeries('rights', rightsItems, true, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics)
     };
   })(),
 
@@ -679,16 +679,16 @@ const testStatsData = {
     return {
       global: globalMetrics,
       byFilePresence: createFilePresenceMetrics(true),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypeItems, true, globalMetrics),
-      accessStatus: createSubcountSeries('accessStatus', accessStatusItems, true, globalMetrics),
-      languages: createSubcountSeries('languages', languageItems, true, globalMetrics),
-      affiliations: createSubcountSeries('affiliations', affiliationItems, true, globalMetrics),
-      funders: createSubcountSeries('funders', funderItems, true, globalMetrics),
-      subjects: createSubcountSeries('subjects', subjectItems, true, globalMetrics),
-      publishers: createSubcountSeries('publishers', publisherItems, true, globalMetrics),
+      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics),
+      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics),
+      languages: createSubcountSeries('languages', languagesItems, true, globalMetrics),
+      affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics),
+      funders: createSubcountSeries('funders', fundersItems, true, globalMetrics),
+      subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics),
+      publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics),
       periodicals: createSubcountSeries('periodicals', [], true, globalMetrics),
-      licenses: createSubcountSeries('licenses', licenseItems, true, globalMetrics),
-      fileTypes: createSubcountSeries('fileTypes', fileTypeItems, true, globalMetrics)
+      rights: createSubcountSeries('rights', rightsItems, true, globalMetrics),
+      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics)
     };
   })(),
 
@@ -697,16 +697,16 @@ const testStatsData = {
     const globalMetrics = createUsageMetrics(false);
     return {
       global: globalMetrics,
-      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, false, globalMetrics),
-      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, false, globalMetrics),
-      byLanguages: createUsageSubcountSeries('byLanguages', languageItems, false, globalMetrics),
-      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypeItems, false, globalMetrics),
-      bySubjects: createUsageSubcountSeries('bySubjects', subjectItems, false, globalMetrics),
-      byPublishers: createUsageSubcountSeries('byPublishers', publisherItems, false, globalMetrics),
-      byLicenses: createUsageSubcountSeries('byLicenses', licenseItems, false, globalMetrics),
-      byCountries: createUsageSubcountSeries('byCountries', countryItems, false, globalMetrics),
-      byReferrers: createUsageSubcountSeries('byReferrers', referrerItems, false, globalMetrics),
-      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationItems, false, globalMetrics)
+      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusesItems, false, globalMetrics),
+      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypesItems, false, globalMetrics),
+      byLanguages: createUsageSubcountSeries('byLanguages', languagesItems, false, globalMetrics),
+      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypesItems, false, globalMetrics),
+      bySubjects: createUsageSubcountSeries('bySubjects', subjectsItems, false, globalMetrics),
+      byPublishers: createUsageSubcountSeries('byPublishers', publishersItems, false, globalMetrics),
+      byRights: createUsageSubcountSeries('byRights', rightsItems, false, globalMetrics),
+      byCountries: createUsageSubcountSeries('byCountries', countriesItems, false, globalMetrics),
+      byReferrers: createUsageSubcountSeries('byReferrers', referrersItems, false, globalMetrics),
+      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationsItems, false, globalMetrics)
     };
   })(),
 
@@ -715,25 +715,25 @@ const testStatsData = {
     const globalMetrics = createUsageMetrics(true);
     return {
       global: globalMetrics,
-      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusItems, true, globalMetrics),
-      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypeItems, true, globalMetrics),
-      byLanguages: createUsageSubcountSeries('byLanguages', languageItems, true, globalMetrics),
-      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypeItems, true, globalMetrics),
-      bySubjects: createUsageSubcountSeries('bySubjects', subjectItems, true, globalMetrics),
-      byPublishers: createUsageSubcountSeries('byPublishers', publisherItems, true, globalMetrics),
-      byLicenses: createUsageSubcountSeries('byLicenses', licenseItems, true, globalMetrics),
-      byCountries: createUsageSubcountSeries('byCountries', countryItems, true, globalMetrics),
-      byReferrers: createUsageSubcountSeries('byReferrers', referrerItems, true, globalMetrics),
-      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationItems, true, globalMetrics),
-      topCountriesByView: createUsageSubcountSeries('topCountriesByView', countryItems, true, globalMetrics),
-      topCountriesByDownload: createUsageSubcountSeries('topCountriesByDownload', countryItems, true, globalMetrics),
-      topSubjectsByView: createUsageSubcountSeries('topSubjectsByView', subjectItems, true, globalMetrics),
-      topSubjectsByDownload: createUsageSubcountSeries('topSubjectsByDownload', subjectItems, true, globalMetrics),
-      topPublishersByView: createUsageSubcountSeries('topPublishersByView', publisherItems, true, globalMetrics),
-      topPublishersByDownload: createUsageSubcountSeries('topPublishersByDownload', publisherItems, true, globalMetrics),
-      topLicensesByView: createUsageSubcountSeries('topLicensesByView', licenseItems, true, globalMetrics),
-      topLicensesByDownload: createUsageSubcountSeries('topLicensesByDownload', licenseItems, true, globalMetrics),
-      topReferrersByView: createUsageSubcountSeries('topReferrersByView', referrerItems, true, globalMetrics)
+      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusesItems, true, globalMetrics),
+      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypesItems, true, globalMetrics),
+      byLanguages: createUsageSubcountSeries('byLanguages', languagesItems, true, globalMetrics),
+      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypesItems, true, globalMetrics),
+      bySubjects: createUsageSubcountSeries('bySubjects', subjectsItems, true, globalMetrics),
+      byPublishers: createUsageSubcountSeries('byPublishers', publishersItems, true, globalMetrics),
+      byRights: createUsageSubcountSeries('byRights', rightsItems, true, globalMetrics),
+      byCountries: createUsageSubcountSeries('byCountries', countriesItems, true, globalMetrics),
+      byReferrers: createUsageSubcountSeries('byReferrers', referrersItems, true, globalMetrics),
+      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationsItems, true, globalMetrics),
+      topCountriesByView: createUsageSubcountSeries('topCountriesByView', countriesItems, true, globalMetrics),
+      topCountriesByDownload: createUsageSubcountSeries('topCountriesByDownload', countriesItems, true, globalMetrics),
+      topSubjectsByView: createUsageSubcountSeries('topSubjectsByView', subjectsItems, true, globalMetrics),
+      topSubjectsByDownload: createUsageSubcountSeries('topSubjectsByDownload', subjectsItems, true, globalMetrics),
+      topPublishersByView: createUsageSubcountSeries('topPublishersByView', publishersItems, true, globalMetrics),
+      topPublishersByDownload: createUsageSubcountSeries('topPublishersByDownload', publishersItems, true, globalMetrics),
+      topRightsByView: createUsageSubcountSeries('topRightsByView', rightsItems, true, globalMetrics),
+      topRightsByDownload: createUsageSubcountSeries('topRightsByDownload', rightsItems, true, globalMetrics),
+      topReferrersByView: createUsageSubcountSeries('topReferrersByView', referrersItems, true, globalMetrics)
     };
   })(),
 

@@ -182,10 +182,10 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
-                                "component": "LicensesMultiDisplay",
+                                "component": "RightsMultiDisplay",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Licenses",
+                                    "title": "Top Rights",
                                     "pageSize": 10,
                                     "available_views": ["pie", "list"],
                                     "default_view": "list",
@@ -548,3 +548,221 @@ STATS_EVENTS = {
 STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000
 STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000
 STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 75
+
+COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
+    "by_resource_types": {
+        "records": {
+            "delta_aggregation_name": "by_resource_types",
+            "field": "metadata.resource_type.id",
+            "label_field": "metadata.resource_type.title",
+            "label_source_includes": [
+                "metadata.resource_type.title",
+                "metadata.resource_type.id",
+            ],
+            "snapshot_type": "all",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_resource_types",
+            "field": "resource_type.id",
+            "label_field": "resource_type.title",
+            "label_source_includes": ["resource_type.title", "resource_type.id"],
+            "snapshot_type": "all",
+        },
+    },
+    "by_access_statuses": {
+        "records": {
+            "delta_aggregation_name": "by_access_statuses",
+            "field": "access.status",
+            "label_field": None,
+            "snapshot_type": "all",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_access_statuses",
+            "field": "access_status",
+            "label_field": None,
+            "snapshot_type": "all",
+        },
+    },
+    "by_languages": {
+        "records": {
+            "delta_aggregation_name": "by_languages",
+            "field": "metadata.languages.id",
+            "label_field": "metadata.languages.title",
+            "label_source_includes": [
+                "metadata.languages.title",
+                "metadata.languages.id",
+            ],
+            "snapshot_type": "all",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_languages",
+            "field": "languages.id",
+            "label_field": "languages.title",
+            "label_source_includes": ["languages.title", "languages.id"],
+            "snapshot_type": "all",
+        },
+    },
+    "by_subjects": {
+        "records": {
+            "delta_aggregation_name": "by_subjects",
+            "field": "metadata.subjects.id",
+            "label_field": "metadata.subjects.subject",
+            "label_source_includes": [
+                "metadata.subjects.subject",
+                "metadata.subjects.scheme",
+                "metadata.subjects.id",
+            ],
+            "snapshot_type": "top",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_subjects",
+            "field": "subjects.id",
+            "label_field": "subjects.subject",
+            "label_source_includes": ["subjects.subject", "subjects.id"],
+            "snapshot_type": "top",
+        },
+    },
+    "by_rights": {
+        "records": {
+            "delta_aggregation_name": "by_rights",
+            "field": "metadata.rights.id",
+            "label_field": "metadata.rights.title",
+            "label_source_includes": ["metadata.rights.title", "metadata.rights.id"],
+            "snapshot_type": "top",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_rights",
+            "field": "rights.id",
+            "label_field": "rights.title",
+            "label_source_includes": ["rights.title", "rights.id"],
+            "snapshot_type": "top",
+        },
+    },
+    "by_funders": {
+        "records": {
+            "delta_aggregation_name": "by_funders",
+            "field": "metadata.funding.funder.id",
+            "label_field": "metadata.funding.funder.name.keyword",
+            "label_source_includes": [
+                "metadata.funding.funder.name.keyword",
+                "metadata.funding.funder.id",
+            ],
+            "combine_queries": [
+                "metadata.funding.funder.id",
+                "metadata.funding.funder.name.keyword",
+            ],
+            "snapshot_type": "top",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_funders",
+            "field": "funders.id",
+            "label_field": "funders.name",
+            "combine_queries": ["funders.id", "funders.name"],
+            "label_source_includes": ["funders.id", "funders.name"],
+            "snapshot_type": "top",
+        },
+    },
+    "by_periodicals": {
+        "records": {
+            "delta_aggregation_name": "by_periodicals",
+            "field": "custom_fields.journal:journal.title.keyword",
+            "label_field": None,
+            "snapshot_type": "top",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_periodicals",
+            "field": "journal_title",
+            "label_field": None,
+            "snapshot_type": "top",
+        },
+    },
+    "by_publishers": {
+        "records": {
+            "delta_aggregation_name": "by_publishers",
+            "field": "metadata.publisher.keyword",
+            "label_field": None,
+            "snapshot_type": "top",
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_publishers",
+            "field": "publisher",
+            "label_field": None,
+            "snapshot_type": "top",
+        },
+    },
+    "by_affiliations": {
+        "records": {
+            "delta_aggregation_name": "by_affiliations_creator",
+            "field": "metadata.creators.affiliations.id",
+            "label_field": "metadata.creators.affiliations.name.keyword",
+            "label_source_includes": [
+                "metadata.creators.affiliations.name.keyword",
+                "metadata.creators.affiliations.id",
+            ],
+            "snapshot_type": "top",
+            "combine_queries": [
+                "metadata.creators.affiliations.id",
+                "metadata.creators.affiliations.name.keyword",
+            ],
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_affiliations",
+            "field": "affiliations.id",
+            "label_field": "affiliations.name",
+            "combine_queries": ["affiliations.id", "affiliations.name"],
+            "label_source_includes": ["affiliations.name", "affiliations.id"],
+            "snapshot_type": "top",
+        },
+    },
+    "by_affiliations_contributor": {
+        "records": {
+            "delta_aggregation_name": "by_affiliations_contributor",
+            "field": "metadata.contributors.affiliations.id",
+            "label_field": "metadata.contributors.affiliations.name.keyword",
+            "label_source_includes": [
+                "metadata.contributors.affiliations.name.keyword",
+                "metadata.contributors.affiliations.id",
+            ],
+            "snapshot_type": "top",
+            "combine_queries": [
+                "metadata.contributors.affiliations.id",
+                "metadata.contributors.affiliations.name.keyword",
+            ],
+            "merge_aggregation_with": "by_affiliations_creator",
+        },
+        "usage_events": {},
+    },
+    "by_countries": {
+        "records": {},
+        "usage_events": {
+            "delta_aggregation_name": "by_countries",
+            "field": "country",
+            "label_field": None,
+            "snapshot_type": "top",
+        },
+    },
+    "by_referrers": {
+        "records": {},
+        "usage_events": {
+            "delta_aggregation_name": "by_referrers",
+            "field": "referrer",
+            "label_field": None,
+            "snapshot_type": "top",
+        },
+    },
+    "by_file_types": {
+        "records": {
+            "delta_aggregation_name": "by_file_types",
+            "field": "files.entries.ext",
+            "label_field": None,
+            "snapshot_type": "all",
+            "with_files_only": True,
+        },
+        "usage_events": {
+            "delta_aggregation_name": "by_file_types",
+            "field": "file_types",
+            "label_field": None,
+            "snapshot_type": "all",
+        },
+    },
+}

@@ -162,7 +162,7 @@
                 }
               }
             },
-            "all_licenses": {
+            "all_rights": {
               "type": "nested",
               "properties": {
                 "id": {

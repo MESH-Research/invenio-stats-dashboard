@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { LicensesMultiDisplay } from './LicensesMultiDisplay';
+import { RightsMultiDisplay } from './RightsMultiDisplay';
 import { filterSeriesArrayByDate } from '../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
 
@@ -39,14 +39,14 @@ jest.mock('../../constants', () => ({
   }
 }));
 
-describe('LicensesMultiDisplay', () => {
+describe('RightsMultiDisplay', () => {
   const mockUseStatsDashboard = require('../../context/StatsDashboardContext').useStatsDashboard;
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
       stats: {
         recordSnapshotDataAdded: {
-          licenses: {
+          rights: {
             records: [
               {
                 id: 'cc-by',
@@ -74,7 +74,7 @@ describe('LicensesMultiDisplay', () => {
 
   describe('transformMultiDisplayData (helper function)', () => {
     it('should return empty data when input is null', () => {
-      const result = transformMultiDisplayData(null, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(null, 10, 'metadata.rights.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -84,7 +84,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should return empty data when input is undefined', () => {
-      const result = transformMultiDisplayData(undefined, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(undefined, 10, 'metadata.rights.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -94,7 +94,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should return empty data when input is not an array', () => {
-      const result = transformMultiDisplayData('not an array', 10, 'metadata.license.id');
+      const result = transformMultiDisplayData('not an array', 10, 'metadata.rights.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -103,7 +103,7 @@ describe('LicensesMultiDisplay', () => {
       });
     });
 
-    it('should transform valid licenses data correctly', () => {
+    it('should transform valid rights data correctly', () => {
       const mockData = [
         {
           id: 'cc-by',
@@ -122,7 +122,7 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 2, 'metadata.rights.id');
 
       expect(result.totalCount).toBe(250);
       expect(result.transformedData).toHaveLength(2);
@@ -151,7 +151,7 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.rights.id');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
       expect(result.transformedData).toHaveLength(3);
@@ -173,14 +173,14 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.rights.id');
 
       expect(result.totalCount).toBe(100);
       expect(result.transformedData[0].percentage).toBe(80); // 80/100 * 100
       expect(result.transformedData[1].percentage).toBe(20); // 20/100 * 100
     });
 
-    it('should create correct links for each license', () => {
+    it('should create correct links for each rights', () => {
       const mockData = [
         {
           id: 'cc-by',
@@ -189,9 +189,9 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.rights.id');
 
-      expect(result.transformedData[0].link).toBe('/search?q=metadata.license.id:cc-by');
+              expect(result.transformedData[0].link).toBe('/search?q=metadata.rights.id:cc-by');
     });
 
     it('should create transformed data with all expected properties', () => {
@@ -208,7 +208,7 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.rights.id');
 
       expect(result.transformedData).toHaveLength(2);
 
@@ -218,7 +218,7 @@ describe('LicensesMultiDisplay', () => {
       expect(firstItem).toHaveProperty('value', 100);
       expect(firstItem).toHaveProperty('percentage', 67); // 100/150 * 100 rounded
       expect(firstItem).toHaveProperty('id', 'cc-by');
-      expect(firstItem).toHaveProperty('link', '/search?q=metadata.license.id:cc-by');
+      expect(firstItem).toHaveProperty('link', '/search?q=metadata.rights.id:cc-by');
       expect(firstItem).toHaveProperty('itemStyle');
       expect(firstItem.itemStyle).toHaveProperty('color');
       expect(typeof firstItem.itemStyle.color).toBe('string');
@@ -229,7 +229,7 @@ describe('LicensesMultiDisplay', () => {
       expect(secondItem).toHaveProperty('value', 50);
       expect(secondItem).toHaveProperty('percentage', 33); // 50/150 * 100 rounded
       expect(secondItem).toHaveProperty('id', 'cc-by-sa');
-      expect(secondItem).toHaveProperty('link', '/search?q=metadata.license.id:cc-by-sa');
+      expect(secondItem).toHaveProperty('link', '/search?q=metadata.rights.id:cc-by-sa');
       expect(secondItem).toHaveProperty('itemStyle');
       expect(secondItem.itemStyle).toHaveProperty('color');
       expect(typeof secondItem.itemStyle.color).toBe('string');
@@ -254,7 +254,7 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 2, 'metadata.rights.id');
 
       expect(result.otherData).toBeTruthy();
       expect(result.otherData).toHaveProperty('id', 'other');
@@ -280,7 +280,7 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.rights.id');
 
       expect(result.otherData).toBeNull();
     });
@@ -294,7 +294,7 @@ describe('LicensesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(mockData, 10, 'metadata.rights.id');
 
       expect(result.totalCount).toBe(0);
       expect(result.transformedData[0].percentage).toBe(0);
@@ -308,13 +308,13 @@ describe('LicensesMultiDisplay', () => {
           name: 'Creative Commons Attribution',
           value: 100,
           percentage: 80,
-          link: '/search?q=metadata.license.id:cc-by'
+          link: '/search?q=metadata.rights.id:cc-by'
         },
         {
           name: 'Creative Commons Attribution-ShareAlike',
           value: 25,
           percentage: 20,
-          link: '/search?q=metadata.license.id:cc-by-sa'
+          link: '/search?q=metadata.rights.id:cc-by-sa'
         }
       ];
 
@@ -323,13 +323,13 @@ describe('LicensesMultiDisplay', () => {
       expect(rows).toHaveLength(2);
       expect(rows[0][0]).toBe(null);
       expect(rows[0][1].type).toBe('a');
-      expect(rows[0][1].props.href).toBe('/search?q=metadata.license.id:cc-by');
+      expect(rows[0][1].props.href).toBe('/search?q=metadata.rights.id:cc-by');
       expect(rows[0][1].props.children).toBe('Creative Commons Attribution');
       expect(rows[0][2]).toBe('100 (80%)');
 
       expect(rows[1][0]).toBe(null);
       expect(rows[1][1].type).toBe('a');
-      expect(rows[1][1].props.href).toBe('/search?q=metadata.license.id:cc-by-sa');
+      expect(rows[1][1].props.href).toBe('/search?q=metadata.rights.id:cc-by-sa');
       expect(rows[1][1].props.children).toBe('Creative Commons Attribution-ShareAlike');
       expect(rows[1][2]).toBe('25 (20%)');
     });
@@ -340,7 +340,7 @@ describe('LicensesMultiDisplay', () => {
           name: 'Creative Commons Attribution',
           value: 100,
           percentage: 80,
-          link: '/search?q=metadata.license.id:cc-by'
+          link: '/search?q=metadata.rights.id:cc-by'
         }
       ];
 
@@ -355,7 +355,7 @@ describe('LicensesMultiDisplay', () => {
       expect(rows).toHaveLength(2);
       expect(rows[0][0]).toBe(null);
       expect(rows[0][1].type).toBe('a');
-      expect(rows[0][1].props.href).toBe('/search?q=metadata.license.id:cc-by');
+      expect(rows[0][1].props.href).toBe('/search?q=metadata.rights.id:cc-by');
       expect(rows[0][1].props.children).toBe('Creative Commons Attribution');
       expect(rows[0][2]).toBe('100 (80%)');
 
@@ -389,8 +389,8 @@ describe('LicensesMultiDisplay', () => {
   });
 
   describe('filterSeriesArrayByDate integration', () => {
-    it('should filter licenses data by date range correctly', () => {
-      const mockLicensesData = [
+    it('should filter rights data by date range correctly', () => {
+      const mockRightsData = [
         {
           id: 'cc-by',
           name: 'Creative Commons Attribution',
@@ -416,7 +416,7 @@ describe('LicensesMultiDisplay', () => {
         end: new Date('2024-01-25')
       };
 
-      const filteredData = filterSeriesArrayByDate(mockLicensesData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockRightsData, dateRange, true);
 
       // Should only include data points within the date range
       expect(filteredData).toHaveLength(2);
@@ -433,7 +433,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should handle empty date range by returning latest data when latestOnly is true', () => {
-      const mockLicensesData = [
+      const mockRightsData = [
         {
           id: 'cc-by',
           name: 'Creative Commons Attribution',
@@ -446,7 +446,7 @@ describe('LicensesMultiDisplay', () => {
 
       const dateRange = {};
 
-      const filteredData = filterSeriesArrayByDate(mockLicensesData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockRightsData, dateRange, true);
 
       // When latestOnly=true with empty date range, it returns only the latest data point
       expect(filteredData).toHaveLength(1);
@@ -456,7 +456,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should handle data outside the date range by returning empty data', () => {
-      const mockLicensesData = [
+      const mockRightsData = [
         {
           id: 'cc-by',
           name: 'Creative Commons Attribution',
@@ -472,7 +472,7 @@ describe('LicensesMultiDisplay', () => {
         end: new Date('2024-01-20')
       };
 
-      const filteredData = filterSeriesArrayByDate(mockLicensesData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockRightsData, dateRange, true);
 
       // Should return series with empty data when no points fall within range
       expect(filteredData).toHaveLength(1);
@@ -481,7 +481,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should work with the actual component data flow', () => {
-      const mockLicensesData = [
+      const mockRightsData = [
         {
           id: 'cc-by',
           name: 'Creative Commons Attribution',
@@ -506,10 +506,10 @@ describe('LicensesMultiDisplay', () => {
       };
 
       // Simulate the component's filtering step
-      const filteredData = filterSeriesArrayByDate(mockLicensesData, dateRange, true);
+      const filteredData = filterSeriesArrayByDate(mockRightsData, dateRange, true);
 
       // Then transform the filtered data using our helper function
-      const result = transformMultiDisplayData(filteredData, 10, 'metadata.license.id');
+      const result = transformMultiDisplayData(filteredData, 10, 'metadata.rights.id');
 
       expect(result.totalCount).toBe(225); // 150 + 75
       expect(result.transformedData).toHaveLength(2);
@@ -525,7 +525,7 @@ describe('LicensesMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           recordSnapshotDataAdded: {
-            licenses: {
+            rights: {
               records: [
                 {
                   id: 'cc-by',
@@ -552,7 +552,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should render with list configuration', () => {
-      render(<LicensesMultiDisplay default_view="list" />);
+      render(<RightsMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -567,7 +567,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', () => {
-      render(<LicensesMultiDisplay pageSize={2} default_view="list" />);
+      render(<RightsMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -582,7 +582,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should render with custom available_views', () => {
-      render(<LicensesMultiDisplay available_views={["list"]} default_view="list" />);
+      render(<RightsMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -597,7 +597,7 @@ describe('LicensesMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           recordSnapshotDataAdded: {
-            licenses: {
+            rights: {
               records: []
             }
           }
@@ -606,7 +606,7 @@ describe('LicensesMultiDisplay', () => {
         dateRange: { start: '2024-01-01', end: '2024-01-31' }
       });
 
-      render(<LicensesMultiDisplay default_view="list" />);
+      render(<RightsMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -616,7 +616,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should render with custom title and icon', () => {
-      render(<LicensesMultiDisplay title="Custom Title" icon="copyright" default_view="list" />);
+      render(<RightsMultiDisplay title="Custom Title" icon="copyright" default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -624,7 +624,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', () => {
-      render(<LicensesMultiDisplay default_view="list" />);
+      render(<RightsMultiDisplay default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -640,29 +640,29 @@ describe('LicensesMultiDisplay', () => {
       expect(headerCells).toHaveLength(3); // icon column + 2 data columns
 
       // The header cells should contain the translated text
-      expect(headerCells[1]).toHaveTextContent('License');
+      expect(headerCells[1]).toHaveTextContent('Rights');
       expect(headerCells[2]).toHaveTextContent('Works');
     });
 
     it('should render table rows with proper structure', () => {
-      render(<LicensesMultiDisplay default_view="list" />);
+      render(<RightsMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
-      expect(dataRows).toHaveLength(3); // 3 licenses
+      expect(dataRows).toHaveLength(3); // 3 rights
 
       // Check first row structure
       const firstRow = dataRows[0];
       const firstRowCells = within(firstRow).getAllByRole('cell');
       expect(firstRowCells).toHaveLength(3); // icon cell + 2 data cells
 
-      // Check that the first data cell contains the license name
+      // Check that the first data cell contains the rights name
       expect(firstRowCells[1]).toHaveTextContent('Creative Commons Attribution');
       expect(firstRowCells[2]).toHaveTextContent('100 (57%)');
     });
 
     it('should render table cells with proper data', () => {
-      render(<LicensesMultiDisplay default_view="list" />);
+      render(<RightsMultiDisplay default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -676,7 +676,7 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', () => {
-      render(<LicensesMultiDisplay default_view="list" />);
+      render(<RightsMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -687,8 +687,8 @@ describe('LicensesMultiDisplay', () => {
     });
 
     it('should render with custom headers properly', () => {
-      const customHeaders = ['Custom License', 'Custom Count'];
-      render(<LicensesMultiDisplay headers={customHeaders} default_view="list" />);
+      const customHeaders = ['Custom Rights', 'Custom Count'];
+      render(<RightsMultiDisplay headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -696,12 +696,12 @@ describe('LicensesMultiDisplay', () => {
 
       const headerCells = within(headerRow).getAllByRole('columnheader');
       expect(headerCells).toHaveLength(3); // icon column + 2 custom headers
-      expect(headerCells[1]).toHaveTextContent('Custom License');
+      expect(headerCells[1]).toHaveTextContent('Custom Rights');
       expect(headerCells[2]).toHaveTextContent('Custom Count');
     });
 
     it('should maintain proper table structure with pagination', () => {
-      render(<LicensesMultiDisplay pageSize={2} default_view="list" />);
+      render(<RightsMultiDisplay pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

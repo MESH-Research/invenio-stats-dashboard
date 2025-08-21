@@ -640,7 +640,7 @@
                                 }
                             }
                         },
-                        "top_licenses": {
+                        "top_rights": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {

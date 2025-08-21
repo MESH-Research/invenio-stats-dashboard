@@ -20,7 +20,7 @@ const sampleRecordDelta = {
     removed: { metadata_only: 0, with_files: 0 },
   },
   subcounts: {
-    by_access_status: [
+    by_access_statuses: [
       {
         files: {
           added: { data_volume: 59117831.0, file_count: 2 },
@@ -38,8 +38,8 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_affiliation_contributor: [],
-    by_affiliation_creator: [
+    by_affiliations_contributor: [],
+    by_affiliations_creator: [
       {
         files: {
           added: { data_volume: 458036.0, file_count: 1 },
@@ -57,26 +57,26 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_file_type: [
+    by_file_types: [
       {
-        added: {
-          data_volume: 59117831.0,
-          files: 2,
-          parents: 2,
-          records: 2,
+        files: {
+          added: { data_volume: 59117831.0, file_count: 2 },
+          removed: { data_volume: 0.0, file_count: 0 },
         },
         id: "pdf",
         label: "",
-        removed: {
-          data_volume: 0.0,
-          files: 0,
-          parents: 0,
-          records: 0,
+        parents: {
+          added: { metadata_only: 0, with_files: 2 },
+          removed: { metadata_only: 0, with_files: 0 },
+        },
+        records: {
+          added: { metadata_only: 0, with_files: 2 },
+          removed: { metadata_only: 0, with_files: 0 },
         },
       },
     ],
-    by_funder: [],
-    by_language: [
+    by_funders: [],
+    by_languages: [
       {
         files: {
           added: { data_volume: 458036.0, file_count: 1 },
@@ -94,9 +94,9 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_license: [],
-    by_periodical: [],
-    by_publisher: [
+    by_rights: [],
+    by_periodicals: [],
+    by_publishers: [
       {
         files: {
           added: { data_volume: 58659795.0, file_count: 1 },
@@ -130,7 +130,7 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_resource_type: [
+    by_resource_types: [
       {
         files: {
           added: { data_volume: 58659795.0, file_count: 1 },
@@ -164,7 +164,7 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_subject: [
+    by_subjects: [
       {
         files: {
           added: { data_volume: 58659795.0, file_count: 1 },
@@ -293,7 +293,7 @@ const sampleRecordSnapshot = {
   community_id: "e64dee43-6bd2-4380-b4e8-2813315cb74e",
   snapshot_date: "2025-01-15",
   subcounts: {
-    all_access_status: [
+    all_access_statuses: [
       {
         files: { data_volume: 0.0, file_count: 0 },
         id: "metadata-only",
@@ -304,7 +304,7 @@ const sampleRecordSnapshot = {
     ],
     all_file_types: [],
     all_languages: [],
-    all_licenses: [],
+    all_rights: [],
     all_resource_types: [],
     top_affiliations: [],
     top_funders: [],
@@ -458,7 +458,7 @@ const sampleUsageSnapshot = {
         },
       },
     ],
-    top_licenses: {
+    top_rights: {
       by_download: [
       {
         download: {
@@ -1473,7 +1473,7 @@ const sampleUsageDelta = {
   period_end: "2025-05-30T23:59:59",
   period_start: "2025-05-30T00:00:00",
   subcounts: {
-    by_access_status: [
+    by_access_statuses: [
       {
         download: {
           total_events: 6,
@@ -1610,7 +1610,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_licenses: [
+    by_rights: [
       {
         download: {
           total_events: 2,

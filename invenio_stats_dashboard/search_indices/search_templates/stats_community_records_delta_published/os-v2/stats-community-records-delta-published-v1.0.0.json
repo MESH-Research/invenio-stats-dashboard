@@ -115,7 +115,7 @@
             "subcounts": {
                 "type": "object",
                 "properties": {
-                    "by_resource_type": {
+                    "by_resource_types": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -207,7 +207,7 @@
                             }
                         }
                     },
-                    "by_access_status": {
+                    "by_access_statuses": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -299,7 +299,7 @@
                             }
                         }
                     },
-                    "by_language": {
+                    "by_languages": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -391,7 +391,7 @@
                             }
                         }
                     },
-                    "by_affiliation_contributor": {
+                    "by_affiliations_contributor": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -483,7 +483,7 @@
                             }
                         }
                     },
-                    "by_affiliation_creator": {
+                    "by_affiliations_creator": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -575,7 +575,7 @@
                             }
                         }
                     },
-                    "by_funder": {
+                    "by_funders": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -667,7 +667,7 @@
                             }
                         }
                     },
-                    "by_subject": {
+                    "by_subjects": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -759,7 +759,7 @@
                             }
                         }
                     },
-                    "by_publisher": {
+                    "by_publishers": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -851,7 +851,7 @@
                             }
                         }
                     },
-                    "by_periodical": {
+                    "by_periodicals": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -943,7 +943,7 @@
                             }
                         }
                     },
-                    "by_file_type": {
+                    "by_file_types": {
                         "type": "nested",
                         "properties": {
                             "id": {
@@ -988,7 +988,7 @@
                             }
                         }
                     },
-                    "by_license": {
+                    "by_rights": {
                         "type": "nested",
                         "properties": {
                             "id": {

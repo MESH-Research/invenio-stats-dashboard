@@ -83,7 +83,7 @@
                                 }
                             }
                         },
-                        "by_access_status": {
+                        "by_access_statuses": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -164,7 +164,7 @@
                                 }
                             }
                         },
-                        "by_licenses": {
+                        "by_rights": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },

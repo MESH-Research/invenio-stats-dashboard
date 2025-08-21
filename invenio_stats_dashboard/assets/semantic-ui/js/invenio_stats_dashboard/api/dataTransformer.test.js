@@ -47,13 +47,13 @@ describe('transformApiData', () => {
       expect(deltaData.global.records[0]).toHaveProperty('type');
       expect(deltaData.global.records[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure (only records and parents)
+      // Check byFilePresence structure (all metrics for record deltas)
       expect(deltaData).toHaveProperty('byFilePresence');
       expect(deltaData.byFilePresence).toHaveProperty('records');
       expect(deltaData.byFilePresence).toHaveProperty('parents');
-      expect(deltaData.byFilePresence).not.toHaveProperty('uploaders');
-      expect(deltaData.byFilePresence).not.toHaveProperty('fileCount');
-      expect(deltaData.byFilePresence).not.toHaveProperty('dataVolume');
+      expect(deltaData.byFilePresence).toHaveProperty('uploaders');
+      expect(deltaData.byFilePresence).toHaveProperty('fileCount');
+      expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
 
       // Check subcount categories
       expect(deltaData).toHaveProperty('resourceTypes');
@@ -64,7 +64,7 @@ describe('transformApiData', () => {
       expect(deltaData).toHaveProperty('subjects');
       expect(deltaData).toHaveProperty('publishers');
       expect(deltaData).toHaveProperty('periodicals');
-      expect(deltaData).toHaveProperty('licenses');
+      expect(deltaData).toHaveProperty('rights');
       expect(deltaData).toHaveProperty('fileTypes');
     });
 
@@ -114,17 +114,17 @@ describe('transformApiData', () => {
       expect(deltaData.global.views[0]).toHaveProperty('type');
       expect(deltaData.global.views[0]).toHaveProperty('valueType');
 
-      // byFilePresence is not implemented for usage data
-      expect(deltaData).not.toHaveProperty('byFilePresence');
+      // byFilePresence is implemented for usage data
+      expect(deltaData).toHaveProperty('byFilePresence');
 
       // Check subcount categories
-      expect(deltaData).toHaveProperty('byAccessStatus');
+      expect(deltaData).toHaveProperty('byAccessStatuses');
       expect(deltaData).toHaveProperty('byFileTypes');
       expect(deltaData).toHaveProperty('byLanguages');
       expect(deltaData).toHaveProperty('byResourceTypes');
       expect(deltaData).toHaveProperty('bySubjects');
       expect(deltaData).toHaveProperty('byPublishers');
-      expect(deltaData).toHaveProperty('byLicenses');
+      expect(deltaData).toHaveProperty('byRights');
       expect(deltaData).toHaveProperty('byCountries');
       expect(deltaData).toHaveProperty('byReferrers');
       expect(deltaData).toHaveProperty('byAffiliations');
@@ -148,8 +148,8 @@ describe('transformApiData', () => {
       expect(snapshotData.global.views[0]).toHaveProperty('type');
       expect(snapshotData.global.views[0]).toHaveProperty('valueType');
 
-      // byFilePresence is not implemented for usage data
-      expect(snapshotData).not.toHaveProperty('byFilePresence');
+      // byFilePresence is implemented for usage data
+      expect(snapshotData).toHaveProperty('byFilePresence');
 
       // Check separate view/download properties
       expect(snapshotData).toHaveProperty('topCountriesByView');
@@ -158,8 +158,8 @@ describe('transformApiData', () => {
       expect(snapshotData).toHaveProperty('topSubjectsByDownload');
       expect(snapshotData).toHaveProperty('topPublishersByView');
       expect(snapshotData).toHaveProperty('topPublishersByDownload');
-      expect(snapshotData).toHaveProperty('topLicensesByView');
-      expect(snapshotData).toHaveProperty('topLicensesByDownload');
+      expect(snapshotData).toHaveProperty('topRightsByView');
+      expect(snapshotData).toHaveProperty('topRightsByDownload');
       expect(snapshotData).toHaveProperty('topReferrersByView');
       expect(snapshotData).toHaveProperty('topReferrersByDownload');
       expect(snapshotData).toHaveProperty('topAffiliationsByView');
@@ -204,10 +204,10 @@ describe('transformApiData', () => {
       expect(Array.isArray(byFilePresence)).toBe(true);
       expect(byFilePresence.length).toBeGreaterThan(0);
 
-      // Should have 'withFiles' and 'withoutFiles' series
+      // Should have 'withFiles' and 'metadataOnly' series
       const seriesNames = byFilePresence.map(series => series.name);
       expect(seriesNames).toContain('withFiles');
-      expect(seriesNames).toContain('withoutFiles');
+      expect(seriesNames).toContain('metadataOnly');
     });
 
     test('should handle subcount data correctly', () => {
@@ -324,8 +324,8 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       expect(result.usageSnapshotData).toHaveProperty('global');
-      expect(result.usageSnapshotData).not.toHaveProperty('byFilePresence');
-      expect(result.usageSnapshotData).toHaveProperty('byAccessStatus');
+      expect(result.usageSnapshotData).toHaveProperty('byFilePresence');
+      expect(result.usageSnapshotData).toHaveProperty('byAccessStatuses');
       expect(result.usageSnapshotData).toHaveProperty('byFileTypes');
       expect(result.usageSnapshotData).toHaveProperty('byLanguages');
       expect(result.usageSnapshotData).toHaveProperty('byResourceTypes');
@@ -335,8 +335,8 @@ describe('transformApiData', () => {
       expect(result.usageSnapshotData).toHaveProperty('topSubjectsByDownload');
       expect(result.usageSnapshotData).toHaveProperty('topPublishersByView');
       expect(result.usageSnapshotData).toHaveProperty('topPublishersByDownload');
-      expect(result.usageSnapshotData).toHaveProperty('topLicensesByView');
-      expect(result.usageSnapshotData).toHaveProperty('topLicensesByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('topRightsByView');
+      expect(result.usageSnapshotData).toHaveProperty('topRightsByDownload');
       expect(result.usageSnapshotData).toHaveProperty('topReferrersByView');
       expect(result.usageSnapshotData).toHaveProperty('topReferrersByDownload');
       expect(result.usageSnapshotData).toHaveProperty('topAffiliationsByView');
@@ -443,9 +443,9 @@ describe('transformApiData', () => {
           {
             ...sampleRecordDelta,
             subcounts: {
-              by_access_status: [],
-              by_affiliation_contributor: [],
-              by_file_type: []
+              by_access_statuses: [],
+              by_affiliations_contributors: [],
+              by_file_types: []
             }
           }
         ],
@@ -472,7 +472,7 @@ describe('transformApiData', () => {
 
       const result = transformApiData(rawStats);
 
-      // Should handle both nested structure (by_access_status) and direct structure (by_file_type)
+      // Should handle both nested structure (by_access_statuses) and direct structure (by_file_types)
       expect(result.recordDeltaDataCreated.accessStatus.records.length).toBeGreaterThan(0);
       expect(result.recordDeltaDataCreated.fileTypes.records.length).toBeGreaterThan(0);
     });

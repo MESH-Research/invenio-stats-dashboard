@@ -30,6 +30,7 @@
         {
           "date_fields": {
             "match_mapping_type": "date",
+            "unmatch": "_id",
             "mapping": {
               "type": "date",
               "format": "strict_date_hour_minute_second"
@@ -214,7 +215,7 @@
           }
         },
         "affiliations": {
-          "type": "nested",
+          "type": "object",
           "properties": {
             "@v": {
               "type": "keyword"
@@ -238,7 +239,7 @@
           }
         },
         "funders": {
-          "type": "nested",
+          "type": "object",
           "properties": {
             "@v": {
               "type": "keyword"
@@ -264,7 +265,7 @@
         "journal_title": {
           "type": "keyword"
         },
-        "file_type": {
+        "file_types": {
           "type": "keyword"
         },
         "update_timestamp": {

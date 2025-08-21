@@ -152,7 +152,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {RecordMetrics} subjects
  * @property {RecordMetrics} publishers
  * @property {RecordMetrics} periodicals
- * @property {RecordMetrics} licenses
+ * @property {RecordMetrics} rights
  * @property {RecordMetrics} fileTypes
  *
  * @typedef {Object} RecordSnapshotData
@@ -166,31 +166,31 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {RecordMetrics} subjects
  * @property {RecordMetrics} publishers
  * @property {RecordMetrics} periodicals
- * @property {RecordMetrics} licenses
+ * @property {RecordMetrics} rights
  * @property {RecordMetrics} fileTypes
  *
  * @typedef {Object} UsageDeltaData
  * @property {UsageMetrics} global - Global usage metrics
- * @property {UsageMetrics} byAccessStatus
+ * @property {UsageMetrics} byAccessStatuses
  * @property {UsageMetrics} byFileTypes
  * @property {UsageMetrics} byLanguages
  * @property {UsageMetrics} byResourceTypes
  * @property {UsageMetrics} bySubjects
  * @property {UsageMetrics} byPublishers
- * @property {UsageMetrics} byLicenses
+ * @property {UsageMetrics} byRights
  * @property {UsageMetrics} byCountries
  * @property {UsageMetrics} byReferrers
  * @property {UsageMetrics} byAffiliations
  *
  * @typedef {Object} UsageSnapshotData
  * @property {UsageMetrics} global - Global usage metrics
- * @property {UsageMetrics} byAccessStatus
+ * @property {UsageMetrics} byAccessStatuses
  * @property {UsageMetrics} byFileTypes
  * @property {UsageMetrics} byLanguages
  * @property {UsageMetrics} byResourceTypes
  * @property {UsageMetrics} bySubjects
  * @property {UsageMetrics} byPublishers
- * @property {UsageMetrics} byLicenses
+ * @property {UsageMetrics} byRights
  * @property {UsageMetrics} byCountries
  * @property {UsageMetrics} byReferrers
  * @property {UsageMetrics} byAffiliations
@@ -200,8 +200,8 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  * @property {UsageMetrics} topSubjectsByDownload
  * @property {UsageMetrics} topPublishersByView
  * @property {UsageMetrics} topPublishersByDownload
- * @property {UsageMetrics} topLicensesByView
- * @property {UsageMetrics} topLicensesByDownload
+ * @property {UsageMetrics} topRightsByView
+ * @property {UsageMetrics} topRightsByDownload
  * @property {UsageMetrics} topReferrersByView
  * @property {UsageMetrics} topReferrersByDownload
  * @property {UsageMetrics} topAffiliationsByView
@@ -287,7 +287,7 @@ const transformRecordDeltaData = (deltaDocs) => {
       fileCount: [],
       dataVolume: [],
     },
-    licenses: {
+    rights: {
       records: [],
       parents: [],
       uploaders: [],
@@ -312,38 +312,30 @@ const transformRecordDeltaData = (deltaDocs) => {
 
 
   const subcountTypes = {
-    'by_resource_type': 'resourceTypes',
-    'by_access_status': 'accessStatus',
-    'by_language': 'languages',
-    'by_affiliation_creator': 'affiliations',
-    'by_affiliation_contributor': 'affiliations',
-    'by_funder': 'funders',
-    'by_subject': 'subjects',
-    'by_publisher': 'publishers',
-    'by_periodical': 'periodicals',
-    'by_license': 'licenses',
-    'by_file_type': 'fileTypes'
+    'by_resource_types': 'resourceTypes',
+    'by_access_statuses': 'accessStatus',
+    'by_languages': 'languages',
+    'by_affiliations_creators': 'affiliations',
+    'by_affiliations_contributors': 'affiliations',
+    'by_funders': 'funders',
+    'by_subjects': 'subjects',
+    'by_publishers': 'publishers',
+    'by_periodicals': 'periodicals',
+    'by_rights': 'rights',
+    'by_file_types': 'fileTypes'
   };
 
 
   /**
    * Calculate the net count change for a subcount item by combining with_files and metadata_only counts.
-   * Handles different subcount item structures from the API.
    *
-   * @param {Object} item - Subcount item with added/removed properties or nested records structure
+   * @param {Object} item - Subcount item with added/removed structure
    * @returns {number} Net count change (added - removed)
    */
   const getNetCount = (item) => {
-    // Handle different subcount item structures
     if (item.added && item.removed) {
-      // Direct added/removed structure (like by_file_type)
       const added = (item.added.metadata_only || 0) + (item.added.with_files || 0);
       const removed = (item.removed.metadata_only || 0) + (item.removed.with_files || 0);
-      return added - removed;
-    } else if (item.records) {
-      // Nested structure with records property
-      const added = (item.records.added?.metadata_only || 0) + (item.records.added?.with_files || 0);
-      const removed = (item.records.removed?.metadata_only || 0) + (item.records.removed?.with_files || 0);
       return added - removed;
     }
     return 0;
@@ -351,21 +343,16 @@ const transformRecordDeltaData = (deltaDocs) => {
 
   /**
    * Calculate the net file count change for a subcount item.
-   * Handles different subcount item structures from the API.
    *
-   * @param {Object} item - Subcount item with added/removed properties or nested files structure
+   * @param {Object} item - Subcount item with added/removed structure or nested files structure
    * @returns {number} Net file count change (added - removed)
    */
   const getNetFileCount = (item) => {
-    // Handle different subcount item structures
     if (item.added && item.removed) {
-      // Direct added/removed structure (like by_file_type)
-      // Check for both files and file_count properties
-      const addedFiles = item.added.files || item.added.file_count || 0;
-      const removedFiles = item.removed.files || item.removed.file_count || 0;
-      return addedFiles - removedFiles;
+      // Direct structure (like source.files)
+      return (item.added.file_count || 0) - (item.removed.file_count || 0);
     } else if (item.files) {
-      // Nested structure with files property
+      // Nested structure (like subcount items)
       return (item.files.added?.file_count || 0) - (item.files.removed?.file_count || 0);
     }
     return 0;
@@ -373,18 +360,16 @@ const transformRecordDeltaData = (deltaDocs) => {
 
   /**
    * Calculate the net data volume change for a subcount item.
-   * Handles different subcount item structures from the API.
    *
-   * @param {Object} item - Subcount item with added/removed properties or nested files structure
+   * @param {Object} item - Subcount item with added/removed structure or nested files structure
    * @returns {number} Net data volume change in bytes (added - removed)
    */
   const getNetDataVolume = (item) => {
-    // Handle different subcount item structures
     if (item.added && item.removed) {
-      // Direct added/removed structure (like by_file_type)
+      // Direct structure (like source.files)
       return (item.added.data_volume || 0) - (item.removed.data_volume || 0);
     } else if (item.files) {
-      // Nested structure with files property
+      // Nested structure (like subcount items)
       return (item.files.added?.data_volume || 0) - (item.files.removed?.data_volume || 0);
     }
     return 0;
@@ -589,7 +574,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       fileCount: [],
       dataVolume: [],
     },
-    licenses: {
+    rights: {
       records: [],
       parents: [],
       uploaders: [],
@@ -622,7 +607,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
     'top_subjects': 'subjects',
     'top_publishers': 'publishers',
     'top_periodicals': 'periodicals',
-    'all_licenses': 'licenses',
+    'all_rights': 'rights',
     'all_file_types': 'fileTypes'
   };
 
@@ -804,7 +789,7 @@ const transformUsageDeltaData = (deltaDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byAccessStatus: {
+    byAccessStatuses: {
       views: [],
       downloads: [],
       visitors: [],
@@ -840,7 +825,7 @@ const transformUsageDeltaData = (deltaDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byLicenses: {
+    byRights: {
       views: [],
       downloads: [],
       visitors: [],
@@ -867,13 +852,13 @@ const transformUsageDeltaData = (deltaDocs) => {
   };
 
   const subcountTypes = {
-    'by_access_status': 'byAccessStatus',
+    'by_access_statuses': 'byAccessStatuses',
     'by_file_types': 'byFileTypes',
     'by_languages': 'byLanguages',
     'by_resource_types': 'byResourceTypes',
     'by_subjects': 'bySubjects',
     'by_publishers': 'byPublishers',
-    'by_licenses': 'byLicenses',
+    'by_rights': 'byRights',
     'by_countries': 'byCountries',
     'by_referrers': 'byReferrers',
     'by_affiliations': 'byAffiliations',
@@ -1064,7 +1049,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byAccessStatus: {
+    byAccessStatuses: {
       views: [],
       downloads: [],
       visitors: [],
@@ -1100,7 +1085,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byLicenses: {
+    byRights: {
       views: [],
       downloads: [],
       visitors: [],
@@ -1161,13 +1146,13 @@ const transformUsageSnapshotData = (snapshotDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    topLicensesByView: {
+    topRightsByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topLicensesByDownload: {
+    topRightsByDownload: {
       views: [],
       downloads: [],
       visitors: [],
@@ -1200,13 +1185,13 @@ const transformUsageSnapshotData = (snapshotDocs) => {
   };
 
   const subcountTypes = {
-    'all_access_status': 'byAccessStatus',
+    'all_access_status': 'byAccessStatuses',
     'all_file_types': 'byFileTypes',
     'all_languages': 'byLanguages',
     'all_resource_types': 'byResourceTypes',
     'top_subjects': 'bySubjects',
     'top_publishers': 'byPublishers',
-    'top_licenses': 'byLicenses',
+    'top_rights': 'byRights',
     'top_countries': 'byCountries',
     'top_referrers': 'byReferrers',
     'top_affiliations': 'byAffiliations',
@@ -1217,7 +1202,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
     'top_countries': { by_view: 'topCountriesByView', by_download: 'topCountriesByDownload' },
     'top_subjects': { by_view: 'topSubjectsByView', by_download: 'topSubjectsByDownload' },
     'top_publishers': { by_view: 'topPublishersByView', by_download: 'topPublishersByDownload' },
-    'top_licenses': { by_view: 'topLicensesByView', by_download: 'topLicensesByDownload' },
+    'top_rights': { by_view: 'topRightsByView', by_download: 'topRightsByDownload' },
     'top_referrers': { by_view: 'topReferrersByView', by_download: 'topReferrersByDownload' },
     'top_affiliations': { by_view: 'topAffiliationsByView', by_download: 'topAffiliationsByDownload' },
   };

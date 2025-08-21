@@ -5,7 +5,7 @@ import random
 from typing import Optional
 
 import arrow
-from flask import current_app
+
 from invenio_access.permissions import system_identity
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search.proxies import current_search_client
@@ -158,17 +158,9 @@ class UsageEventFactory:
                     for a in record_metadata["metadata"].get("contributors", [])
                     + record_metadata["metadata"].get("creators", [])
                 ],
+                "file_types": file_types or None,
             }
         )
-
-        if event_type == "download":
-            event.update({"file_type": file_types[0]})
-        elif event_type == "view":
-            event.update(
-                {
-                    "file_types": file_types or None,
-                }
-            )
 
         return event
 
@@ -204,12 +196,26 @@ class UsageEventFactory:
             record, event_date, ident
         )
 
+        # Generate a consistent file_id for each file in the record
+        # Use the first file's ID from the record's files entries, or generate a
+        # consistent one
+        if record.get("files", {}).get("entries"):
+            file_id = record["files"]["entries"][0]["file_id"]
+            # Use the actual file size from the record
+            file_size = record["files"]["entries"][0].get(
+                "size", 1000000
+            )  # Default to 1MB if size not available
+        else:
+            # Fallback: generate a consistent file_id based on record ID
+            file_id = f"test-file-{record['id']}"
+            file_size = 1000000  # Default to 1MB for fallback
+
         event_data.update(
             {
                 "bucket_id": f"test-bucket-{record['id']}",
-                "file_id": f"test-file-{record['id']}-{ident}",
+                "file_id": file_id,
                 "file_key": f"test-file-{record['id']}-{ident}.pdf",
-                "size": random.randint(100000, 5000000),  # 100KB to 5MB
+                "size": file_size,
             }
         )
 
@@ -237,15 +243,17 @@ class UsageEventFactory:
         index_name = prefix_index("rdmrecords-records")
 
         record_search = Search(using=current_search_client, index=index_name)
-        record_search = record_search.filter(
-            "range", created={"gte": start_date, "lte": end_date}
-        )
+
+        if start_date and end_date and start_date != end_date:
+            record_search = record_search.filter(
+                "range", created={"gte": start_date, "lte": end_date}
+            )
+
         record_search = record_search.filter("term", is_published=True)
 
         if max_records:
             record_search = record_search.extra(size=max_records)
 
-        # Execute the search and get results
         results = list(record_search.scan())
         return results
 
@@ -275,71 +283,67 @@ class UsageEventFactory:
         """Generate events for a list of records."""
         events = []
 
-        current_app.logger.info(f"Generating events for {len(records)} records")
-        current_app.logger.info(f"Event date range: {start_date} to {end_date}")
-
         for i, record in enumerate(records):
             record_data = record.to_dict()
             record_created = arrow.get(record_data["created"])
 
-            current_app.logger.info(
-                f"Record {i}: created={record_created}, "
-                f"id={record_data.get('id', 'unknown')}"
-            )
-
-            # Validate and adjust the event date range using the existing function
-            # This ensures event dates are not before record creation and are properly
-            # ordered
             event_start, event_end = UsageEventFactory._validate_date_range(
                 start_date, end_date, record_created
             )
 
-            current_app.logger.info(
-                f"Record {i}: event_start={event_start}, event_end={event_end}"
-            )
-
             if event_start > event_end:
-                current_app.logger.info(
-                    f"Record {i}: Skipping - event_start > event_end"
-                )
                 continue
 
+            start_month = event_start.replace(day=1)
+            end_month = event_end.replace(day=1)
+            month_count = (
+                (end_month.year - start_month.year) * 12
+                + (end_month.month - start_month.month)
+                + 1
+            )
+            events_per_month = events_per_record // month_count
+            remaining_events = events_per_record % month_count
+
             for j in range(events_per_record):
-                days_range = (event_end - event_start).days
+                month_index = min(
+                    j // (events_per_month + (1 if j < remaining_events else 0)),
+                    month_count - 1,
+                )
+
+                month_start = start_month.shift(months=month_index)
+                if month_index == month_count - 1:
+                    month_end = event_end
+                else:
+                    month_end = (
+                        month_start.shift(months=1).replace(day=1).shift(days=-1)
+                    )
+
+                days_range = (month_end - month_start).days
                 if days_range > 0:
                     random_days = random.randint(0, days_range)
-                    event_date = event_start.shift(days=random_days)
+                    event_date = month_start.shift(days=random_days)
                 else:
-                    event_date = event_start
-
-                current_app.logger.info(
-                    f"Record {i}, Event {j}: event_date={event_date}, "
-                    f"days_range={days_range}"
-                )
+                    event_date = month_start
 
                 view_event, view_id = UsageEventFactory.make_view_event(
                     record_data, event_date, len(events), enrich_events
                 )
                 events.append((view_event, view_id))
 
-                # Only generate download events if the record has files enabled
                 if record_data["files"]["enabled"]:
                     download_event, download_id = UsageEventFactory.make_download_event(
                         record_data, event_date, len(events), enrich_events
                     )
                     events.append((download_event, download_id))
 
-        current_app.logger.info(f"Generated {len(events)} total events")
         return events
 
     @staticmethod
     def index_usage_events(events: list) -> dict:
         """Index usage events into the appropriate monthly indices."""
         if not events:
-            current_app.logger.info("No events to index")
             return {"indexed": 0, "errors": 0}
 
-        current_app.logger.info(f"Indexing {len(events)} events")
         indexed = 0
         errors = 0
 
@@ -355,18 +359,10 @@ class UsageEventFactory:
 
             monthly_events[month][event_type].append((event, event_id))
 
-        current_app.logger.info(
-            f"Events grouped by month: {list(monthly_events.keys())}"
-        )
-
         for month, type_events in monthly_events.items():
             for event_type, type_event_list in type_events.items():
                 if not type_event_list:
                     continue
-
-                current_app.logger.info(
-                    f"Indexing {len(type_event_list)} {event_type} events for {month}"
-                )
 
                 if event_type == "view":
                     index_pattern = prefix_index("events-stats-record-view")
@@ -374,7 +370,6 @@ class UsageEventFactory:
                     index_pattern = prefix_index("events-stats-file-download")
 
                 monthly_index = f"{index_pattern}-{month}"
-                current_app.logger.info(f"Using index: {monthly_index}")
 
                 docs = []
                 for event, event_id in type_event_list:
@@ -391,29 +386,14 @@ class UsageEventFactory:
                         current_search_client, docs, stats_only=False
                     )
                     if errors_batch:
-                        current_app.logger.error(
-                            f"Bulk indexing errors for {month} {event_type}: "
-                            f"{len(errors_batch)} errors"
-                        )
-                        current_app.logger.error(
-                            f"First few errors: {errors_batch[:3]}"
-                        )
                         errors += len(errors_batch)
                     else:
                         indexed += len(docs)
-                        current_app.logger.info(
-                            f"Successfully indexed {len(docs)} {event_type} "
-                            f"events for {month}"
-                        )
-                except Exception as e:
-                    current_app.logger.error(
-                        f"Exception during bulk indexing for {month} {event_type}: {e}"
-                    )
+                except Exception:
                     errors += len(docs)
 
-        current_app.logger.info(
-            f"Indexing complete: {indexed} indexed, {errors} errors"
-        )
+                current_search_client.indices.refresh(index=monthly_index)
+
         return {"indexed": indexed, "errors": errors}
 
     @staticmethod
@@ -452,15 +432,19 @@ class UsageEventFactory:
             record_search = Search(
                 using=current_search_client, index=prefix_index("rdmrecords-records")
             )
-            record_search = record_search.filter("term", access_status="published")
+            record_search = record_search.filter("term", is_published=True)
             record_search = record_search.extra(size=1)
             record_search = record_search.sort("created")
 
             try:
-                earliest_record = record_search.execute().hits.hits[0]
-                start_date = arrow.get(earliest_record["_source"]["created"]).format(
-                    "YYYY-MM-DD"
-                )
+                search_result = record_search.execute()
+                if search_result.hits.hits:
+                    earliest_record = search_result.hits.hits[0]
+                    start_date = arrow.get(
+                        earliest_record["_source"]["created"]
+                    ).format("YYYY-MM-DD")
+                else:
+                    raise IndexError("No hits found")
             except (IndexError, KeyError):
                 start_date = arrow.utcnow().format("YYYY-MM-DD")
 
