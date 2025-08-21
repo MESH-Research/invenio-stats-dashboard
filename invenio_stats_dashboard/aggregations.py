@@ -23,9 +23,10 @@ from opensearchpy.helpers.search import Search
 from .exceptions import CommunityEventIndexingError
 from .proxies import current_community_stats_service
 from .queries import (
+    CommunityRecordDeltaQuery,
+    CommunityRecordSnapshotQuery,
     CommunityUsageDeltaQuery,
-    daily_record_delta_query_with_events,
-    daily_record_snapshot_query_with_events,
+    CommunityUsageSnapshotQuery,
 )
 
 SUBCOUNT_TYPES = {
@@ -51,7 +52,7 @@ SUBCOUNT_TYPES = {
     "publisher": ["metadata.publisher.keyword"],
     "periodical": ["custom_fields.journal:journal.title.keyword"],
     "file_type": ["files.entries.ext"],
-    "license": ["metadata.rights.id", "metadata.rights.title.en"],
+    "rights": ["metadata.rights.id", "metadata.rights.title.en"],
 }
 
 
@@ -241,7 +242,7 @@ class CommunityAggregatorBase(StatAggregator):
         self.catchup_interval = current_app.config.get(
             "COMMUNITY_STATS_CATCHUP_INTERVAL", 365
         )
-        # Field name for searching event indices - should be overridden by subclasses
+        # Field name for searching community event indices - overridden by subclasses
         self.event_date_field = "created"
         self.event_community_query_term = lambda community_id: Q(
             "term", parent__communities__ids=community_id
@@ -516,24 +517,21 @@ class CommunityAggregatorBase(StatAggregator):
         ):
             return [(0, [])]
         elif isinstance(self.event_index, list):
-            for label, index in self.event_index:
+            for _, index in self.event_index:
                 if not Index(index, using=self.client).exists():
                     return [(0, [])]
 
-        # FIXME: We need to find a way to ensure that the last aggregation
-        # run isn't still underway and skip if it is
-
         if self.community_ids:
-            all_communities = self.community_ids
+            communities_to_aggregate = self.community_ids
         else:
-            all_communities = [
+            communities_to_aggregate = [
                 c["id"]
                 for c in current_communities.service.read_all(system_identity, [])
             ]
-        all_communities.append("global")  # Global stats are always aggregated
+        communities_to_aggregate.append("global")  # Global stats are always aggregated
 
         results = []
-        for community_id in all_communities:
+        for community_id in communities_to_aggregate:
             current_app.logger.error(f"Running aggregation for {community_id}")
             try:
                 first_event_date, last_event_date = self._find_first_event_date(
@@ -561,13 +559,13 @@ class CommunityAggregatorBase(StatAggregator):
 
             # Ensure we don't aggregate more than self.catchup_interval days
             upper_limit = self._get_end_date(lower_limit, end_date)
+
             # Check that community add/remove events have been indexed for the desired
             # period and if not, index them first. Do this even if we're ignoring the
             # bookmark since otherwise we don't have accurate data in the aggregations.
             first_event_date_safe = first_event_date or arrow.utcnow()
             last_event_date_safe = last_event_date or arrow.utcnow()
 
-            # FIXME: Add a bookmark for the community events index
             try:
                 upper_limit = self._index_missing_community_events_with_retry(
                     community_id,
@@ -584,11 +582,9 @@ class CommunityAggregatorBase(StatAggregator):
                 continue
             # FIXME: We need to periodically check for gaps in the community events
 
-            # Check if upper_limit is now < lower_limit after community event indexing
-            # If so, skip this community iteration without updating the bookmark or
-            # performing aggregations
-            # NOTE: upper_limit could legitimately be lower if we spent this iteration
-            # indexing prior community add/remove events.
+            # upper_limit could legitimately be < lower_limit if we spent this iteration
+            # indexing prior community add/remove events. If so, skip this community
+            # iteration without updating the bookmark or performing aggregations
             if upper_limit < lower_limit:
                 current_app.logger.error(
                     f"Upper limit {upper_limit} < lower limit {lower_limit} "
@@ -648,7 +644,6 @@ class CommunityAggregatorBase(StatAggregator):
         Returns:
             The value at the end of the path, or an empty dict if not found
         """
-        # current_app.logger.error(f"Getting nested value in {data}")
         current = data
         for idx, segment in enumerate(path):
             if isinstance(current, dict) or isinstance(current, AttrDict):
@@ -834,7 +829,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                 "top_subjects": [],
                 "top_publishers": [],
                 "top_periodicals": [],
-                "all_licenses": [],
+                "all_rights": [],
                 "all_file_types": [],
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
@@ -948,8 +943,8 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
             # at the same time in the query, so we need to merge them into a single
             # bucket for the aggregation document
             if subcount_type in [
-                "by_affiliation_creator",
-                "by_affiliation_contributor",
+                "by_affiliations_creator",
+                "by_affiliations_contributor",
             ]:
                 aggs_added[subcount_type] = {
                     "buckets": (
@@ -1102,7 +1097,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                 "top_subjects": make_subcount_dict("by_subject"),
                 "top_publishers": make_subcount_dict("by_publisher"),
                 "top_periodicals": make_subcount_dict("by_periodical"),
-                "all_licenses": make_subcount_dict("by_license"),
+                "all_rights": make_subcount_dict("by_rights"),
                 "all_file_types": make_file_type_dict(),
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
@@ -1151,11 +1146,11 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                     community_id, current_iteration_date
                 )
             else:
-                snapshot_added_search = Search(
-                    using=self.client, index=self.event_index
+                query_builder = CommunityRecordSnapshotQuery(
+                    client=self.client, event_index=self.event_index
                 )
 
-                snapshot_query_added = daily_record_snapshot_query_with_events(
+                snapshot_query_added = query_builder.build_query(
                     earliest_date.format("YYYY-MM-DD"),
                     current_iteration_date.format("YYYY-MM-DD"),
                     community_id=community_id,
@@ -1163,16 +1158,10 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                     use_published_dates=self.use_published_dates,
                     client=self.client,
                 )
-                snapshot_added_search.update_from_dict(snapshot_query_added)
-
-                snapshot_results_added = snapshot_added_search.execute()
+                snapshot_results_added = snapshot_query_added.execute()
                 aggs_added = snapshot_results_added.aggregations.to_dict()
 
-                snapshot_removed_search = Search(
-                    using=self.client, index=self.event_index
-                )
-
-                snapshot_query_removed = daily_record_snapshot_query_with_events(
+                snapshot_query_removed = query_builder.build_query(
                     earliest_date.format("YYYY-MM-DD"),
                     current_iteration_date.format("YYYY-MM-DD"),
                     community_id=community_id,
@@ -1181,9 +1170,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                     use_published_dates=self.use_published_dates,
                     client=self.client,
                 )
-                snapshot_removed_search.update_from_dict(snapshot_query_removed)
-
-                snapshot_results_removed = snapshot_removed_search.execute()
+                snapshot_results_removed = snapshot_query_removed.execute()
                 aggs_removed = snapshot_results_removed.aggregations.to_dict()
 
                 source_content = self.create_agg_dict(
@@ -1266,85 +1253,19 @@ class CommunityRecordsSnapshotPublishedAggregator(
 class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
     """Aggregator for creating cumulative usage snapshots from daily delta documents."""
 
-    # Configuration for all subcount metrics
-    SUBCOUNT_CONFIGS = {
-        # Simple metrics that get incremental updates
-        "by_resource_types": {
-            "snapshot_field": "all_resource_types",
-            "label_path": None,  # No label extraction needed
-            "update_strategy": "incremental",
-        },
-        "by_access_status": {
-            "snapshot_field": "all_access_status",
-            "label_path": None,
-            "update_strategy": "incremental",
-        },
-        "by_languages": {
-            "snapshot_field": "all_languages",
-            "label_path": None,
-            "update_strategy": "incremental",
-        },
-        "by_file_types": {
-            "snapshot_field": "all_file_types",
-            "label_path": None,
-            "update_strategy": "incremental",
-        },
-        # Top metrics that get full recalculation
-        "by_subjects": {
-            "snapshot_field": "top_subjects",
-            "label_path": "title.en",  # Extract from title.en
-            "update_strategy": "full_recalculation",
-        },
-        "by_publishers": {
-            "snapshot_field": "top_publishers",
-            "label_path": "name",  # Extract from name
-            "update_strategy": "full_recalculation",
-        },
-        "by_periodicals": {
-            "snapshot_field": "top_periodicals",
-            "label_path": "name",
-            "update_strategy": "full_recalculation",
-        },
-        "by_funders": {
-            "snapshot_field": "top_funders",
-            "label_path": "name",
-            "update_strategy": "full_recalculation",
-        },
-        "by_countries": {
-            "snapshot_field": "top_countries",
-            "label_path": None,  # Countries don't have labels
-            "update_strategy": "full_recalculation",
-        },
-        "by_referrers": {
-            "snapshot_field": "top_referrers",
-            "label_path": None,  # Referrers are URLs
-            "update_strategy": "full_recalculation",
-        },
-        "by_affiliations": {
-            "snapshot_field": "top_affiliations",
-            "label_path": "name",
-            "update_strategy": "full_recalculation",
-        },
-        "by_licenses": {
-            "snapshot_field": "top_licenses",
-            "label_path": "title.en",
-            "update_strategy": "full_recalculation",
-        },
-        "by_user_agents": {
-            "snapshot_field": "top_user_agents",
-            "label_path": None,  # User agents are strings
-            "update_strategy": "full_recalculation",
-        },
-    }
-
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, subcount_configs=None, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
+        # Use provided configs or fall back to class default
+        self.subcount_configs = (
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        )
         self.event_index = prefix_index("stats-community-usage-delta")
         self.aggregation_index = prefix_index("stats-community-usage-snapshot")
         self.event_date_field = "period_start"
         self.event_community_query_term = lambda community_id: Q(
             "term", community_id=community_id
         )
+        self.query_builder = CommunityUsageSnapshotQuery(client=self.client)
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
@@ -1423,11 +1344,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
 
         if not delta_bookmark:
             # If no bookmark exists, check if there are any delta records at all
-            search = Search(using=self.client, index=self.event_index)
-            search = search.query(Q("term", community_id=community_id))
-            search = search.extra(size=0)
-            search.aggs.bucket("max_date", "max", field="period_start")
-
+            search = self.query_builder.build_dependency_check_query(community_id)
             result = search.execute()
             if not result.aggregations.max_date.value:
                 # No delta records exist at all, skip
@@ -1517,19 +1434,7 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
             - period_daily_deltas: Daily delta records for the community between
                 start and end dates
         """
-        search = Search(using=self.client, index=self.event_index)
-        search = search.query(
-            "bool",
-            must=[
-                Q("term", community_id=community_id),
-                Q(
-                    "range",
-                    period_start={
-                        "lte": end_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
-                    },
-                ),
-            ],
-        ).sort({"period_start": {"order": "asc"}})
+        search = self.query_builder.build_daily_deltas_query(community_id, end_date)
 
         all_daily_deltas = sorted(list(search.scan()), key=lambda x: x.period_start)
         prior_daily_deltas = []
@@ -1554,10 +1459,20 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         mapped_subcounts = {}
 
         for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
-            if delta_field in self.SUBCOUNT_CONFIGS:
-                config = self.SUBCOUNT_CONFIGS[delta_field]
-                snapshot_field = config["snapshot_field"]
-                mapped_subcounts[snapshot_field] = delta_items
+            # Find the config that matches this delta field
+            for subcount_name, config in self.subcount_configs.items():
+                usage_config = config.get("usage_events", {})
+                if not usage_config:
+                    continue
+
+                if usage_config.get("delta_aggregation_name") == delta_field:
+                    # Use snapshot_type to determine the field name
+                    snapshot_type = usage_config.get("snapshot_type", "all")
+                    snapshot_field = (
+                        f"{snapshot_type}_{subcount_name.replace('by_', '')}"
+                    )
+                    mapped_subcounts[snapshot_field] = delta_items
+                    break
 
         mapped_doc["subcounts"] = mapped_subcounts
         return mapped_doc
@@ -1629,17 +1544,24 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         if not current_subcounts:
             # Initialize subcounts from first delta using configuration
             current_subcounts = {}
-            for config in self.SUBCOUNT_CONFIGS.values():
-                snapshot_field = config["snapshot_field"]
-                if config["update_strategy"] == "incremental":
+            # Get all unique subcount configurations from the central config
+            seen_configs = set()
+            for subcount_name, config in self.subcount_configs.items():
+                usage_config = config.get("usage_events", {})
+                if not usage_config:
+                    continue
+
+                snapshot_type = usage_config.get("snapshot_type", "all")
+                snapshot_field = f"{snapshot_type}_{subcount_name.replace('by_', '')}"
+
+                if snapshot_type == "all":
                     current_subcounts[snapshot_field] = []
-                elif config["update_strategy"] == "full_recalculation":
+                elif snapshot_type == "top":
                     current_subcounts[snapshot_field] = {
                         "by_view": [],
                         "by_download": [],
                     }
 
-        # Update totals from enriched delta document
         update_totals(current_totals, delta_doc["totals"])
 
         # Update simple subcounts from mapped delta document
@@ -1678,11 +1600,21 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         """
 
         # Get top metrics from configuration
-        top_subcount_types = [
-            config["snapshot_field"]
-            for config in self.SUBCOUNT_CONFIGS.values()
-            if config["update_strategy"] == "full_recalculation"
-        ]
+        top_subcount_types = []
+        for subcount_name, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
+
+            # Use snapshot_type to determine if this is a top subcount
+            snapshot_type = usage_config.get("snapshot_type", "all")
+            if snapshot_type == "top":
+                delta_field = usage_config.get("delta_aggregation_name")
+                if delta_field:
+                    snapshot_field = (
+                        f"{snapshot_type}_{subcount_name.replace('by_', '')}"
+                    )
+                    top_subcount_types.append(snapshot_field)
 
         all_subcount_totals = {}
 
@@ -1786,21 +1718,36 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
     def _initialize_subcounts_structure(self) -> dict:
         """Initialize the subcounts structure based on configuration."""
         subcounts = {}
-        for config in self.SUBCOUNT_CONFIGS.values():
-            snapshot_field = config["snapshot_field"]
-            if config["update_strategy"] == "incremental":
+        seen_configs = set()
+        for subcount_name, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
+
+            snapshot_type = usage_config.get("snapshot_type", "all")
+            snapshot_field = f"{snapshot_type}_{subcount_name.replace('by_', '')}"
+
+            if snapshot_type == "all":
                 subcounts[snapshot_field] = []
-            elif config["update_strategy"] == "full_recalculation":
+            elif snapshot_type == "top":
                 subcounts[snapshot_field] = {"by_view": [], "by_download": []}
         return subcounts
 
     def _get_simple_metrics(self) -> list:
         """Get list of simple metrics that use incremental updates."""
-        return [
-            config["snapshot_field"]
-            for config in self.SUBCOUNT_CONFIGS.values()
-            if config["update_strategy"] == "incremental"
-        ]
+        simple_metrics = []
+        for subcount_name, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
+
+            # Use snapshot_type to determine if this is a simple metric
+            snapshot_type = usage_config.get("snapshot_type", "all")
+            if snapshot_type == "all":
+                delta_field = usage_config.get("delta_aggregation_name")
+                snapshot_field = f"{snapshot_type}_{subcount_name.replace('by_', '')}"
+                simple_metrics.append(snapshot_field)
+        return simple_metrics
 
     def _extract_label_from_bucket(self, bucket_dict: dict, metric_type: str) -> str:
         """Extract the label from a bucket based on the metric type.
@@ -1812,14 +1759,22 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         Returns:
             The label string, or empty string if not found
         """
-        config = next(
-            (
-                cfg
-                for cfg in self.SUBCOUNT_CONFIGS.values()
-                if cfg["snapshot_field"] == metric_type
-            ),
-            None,
-        )
+        # Find the config that matches this metric type
+        config = None
+        for subcount_name, cfg in self.subcount_configs.items():
+            usage_config = cfg.get("usage_events", {})
+            if not usage_config:
+                continue
+
+            # Check if this config matches the metric type
+            snapshot_type = usage_config.get("snapshot_type", "all")
+            snapshot_field = f"{snapshot_type}_{subcount_name.replace('by_', '')}"
+            if snapshot_field == metric_type:
+                # Extract label path from the usage config
+                label_path = usage_config.get("label_field")
+                if label_path:
+                    config = {"label_path": label_path}
+                    break
 
         if not config or not config["label_path"]:
             return ""  # No label extraction needed
@@ -1856,29 +1811,9 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         """Get the last snapshot document for a community."""
         last_snapshot_document = None
         if self.client.indices.exists(self.aggregation_index):
-            last_snapshot_search = (
-                Search(using=self.client, index=self.aggregation_index)
-                .query(
-                    Q(
-                        "bool",
-                        must=[
-                            Q("term", community_id=community_id),
-                            Q(
-                                "range",
-                                snapshot_date={
-                                    "lt": (
-                                        start_date.floor("day").format(
-                                            "YYYY-MM-DDTHH:mm:ss"
-                                        )
-                                    )
-                                },
-                            ),
-                        ],
-                    ),
-                )
-                .sort({"snapshot_date": {"order": "desc"}})
-                .extra(size=1)
-            )  # fetch one document only
+            last_snapshot_search = self.query_builder.build_last_snapshot_query(
+                community_id, start_date
+            )
             last_snapshot_results = last_snapshot_search.execute()
             if last_snapshot_results.hits.hits:
                 last_snapshot_document = last_snapshot_results.hits.hits[0]
@@ -2091,92 +2026,12 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
 
 class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
-    SUBCOUNT_CONFIGS = {
-        "by_resource_types": {
-            "field": "resource_type.id",
-            "title_field": "resource_type.title.en",
-            "label_source_includes": ["resource_type.title.en", "resource_type.id"],
-            "aggregation_name": "by_resource_types",
-        },
-        "by_access_status": {
-            "field": "access_status",
-            "title_field": None,
-            "label_source_includes": ["access_status"],
-            "aggregation_name": "by_access_status",
-        },
-        "by_languages": {
-            "field": "languages.id",
-            "title_field": "languages.title",
-            "label_source_includes": ["languages.title", "languages.id"],
-            "aggregation_name": "by_languages",
-        },
-        "by_subjects": {
-            "field": "subjects.id",
-            "title_field": "subjects.title",
-            "label_source_includes": ["subjects.title", "subjects.id"],
-            "aggregation_name": "by_subjects",
-        },
-        "by_licenses": {
-            "field": "rights.id",
-            "title_field": "rights.title",
-            "label_source_includes": ["rights.title", "rights.id"],
-            "aggregation_name": "by_licenses",
-        },
-        "by_funders": {
-            "field": "funders.id",
-            "title_field": "funders.name",
-            "is_combined": True,
-            "id_agg": "by_funder_id",
-            "name_agg": "by_funder_name",
-            "label_source_includes": ["funders.name", "funders.id"],
-            "aggregation_name": "by_funders",
-        },
-        "by_periodicals": {
-            "field": "journal_title",
-            "title_field": None,
-            "label_source_includes": ["journal_title"],
-            "aggregation_name": "by_periodicals",
-        },
-        "by_publishers": {
-            "field": "publisher",
-            "title_field": None,
-            "label_source_includes": ["publisher"],
-            "aggregation_name": "by_publishers",
-        },
-        "by_affiliations": {
-            "field": "affiliations.id",
-            "title_field": "affiliations.name",
-            "is_nested": False,
-            "is_combined": True,
-            "id_agg": "by_affiliation_id",
-            "name_agg": "by_affiliation_name",
-            "label_source_includes": ["affiliations.name", "affiliations.id"],
-            "aggregation_name": "by_affiliations",
-        },
-        "by_countries": {
-            "field": "country",
-            "title_field": None,
-            "label_source_includes": ["country"],
-            "aggregation_name": "by_countries",
-        },
-        "by_referrers": {
-            "field": "referrer",
-            "title_field": None,
-            "label_source_includes": ["referrer"],
-            "aggregation_name": "by_referrers",
-        },
-        "by_file_types": {
-            "field": "file_type",
-            "title_field": None,
-            "label_source_includes": ["file_type"],
-            "aggregation_name": "by_file_types",
-        },
-    }
-
     def __init__(self, name, subcount_configs=None, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         # Use provided configs or fall back to class default
-        self.subcount_configs = subcount_configs or self.SUBCOUNT_CONFIGS
+        self.subcount_configs = (
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        )
         self.event_index: list[tuple[str, str]] = [
             ("view", prefix_index("events-stats-record-view")),
             ("download", prefix_index("events-stats-file-download")),
@@ -2314,8 +2169,12 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         aggregations = {}
 
         for subcount_name, config in self.subcount_configs.items():
-            field = config.get("field")
+            # Get the usage_events configuration for this subcount
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
 
+            field = usage_config.get("field")
             if not field:
                 continue  # Skip subcounts that don't have fields
 
@@ -2325,10 +2184,12 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 "aggs": self._get_view_metrics_dict(),
             }
 
-            # Add label aggregation if title_field is specified
-            title_field = config.get("title_field")
-            if title_field:
-                label_source_includes = config.get("label_source_includes", [field])
+            # Add label aggregation if label_field is specified
+            label_field = usage_config.get("label_field")
+            if label_field:
+                label_source_includes = usage_config.get(
+                    "label_source_includes", [field]
+                )
                 agg_config["aggs"]["label"] = {
                     "top_hits": {
                         "size": 1,
@@ -2349,8 +2210,12 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         aggregations = {}
 
         for subcount_name, config in self.subcount_configs.items():
-            field = config.get("field")
+            # Get the usage_events configuration for this subcount
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
 
+            field = usage_config.get("field")
             if not field:
                 continue  # Skip subcounts that don't have download fields
 
@@ -2360,10 +2225,12 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 "aggs": self._get_download_metrics_dict(),
             }
 
-            # Add label aggregation if title_field is specified
-            title_field = config.get("title_field")
-            if title_field:
-                label_source_includes = config.get("label_source_includes", [field])
+            # Add label aggregation if label_field is specified
+            label_field = usage_config.get("label_field")
+            if label_field:
+                label_source_includes = usage_config.get(
+                    "label_source_includes", [field]
+                )
                 agg_config["aggs"]["label"] = {
                     "top_hits": {
                         "size": 1,
@@ -2384,45 +2251,33 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         combined_aggs = {}
 
         for subcount_name, config in self.subcount_configs.items():
-            if not config.get("is_combined", False):
+            # Get the usage_events configuration for this subcount
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
                 continue
 
-            id_agg = config.get("id_agg")
-            name_agg = config.get("name_agg")
-            if not id_agg or not name_agg:
+            # Check if this subcount has combine_queries configuration
+            combine_queries = usage_config.get("combine_queries")
+            if not combine_queries or len(combine_queries) <= 1:
                 continue
-            field = config.get("field")
-            title_field = config.get("title_field")
 
-            # Build ID-based aggregation
-            if field:
-                combined_aggs[id_agg] = {
-                    "terms": {"field": field, "size": 1000},
+            # Build aggregations for each combined query field
+            for query_field in combine_queries:
+                subfield = query_field.split(".")[-1]
+                query_name = f"{usage_config['delta_aggregation_name']}_{subfield}"
+
+                label_source_includes = usage_config.get("label_source_includes", [])
+                if subfield not in label_source_includes:
+                    label_source_includes.append(subfield)
+
+                combined_aggs[query_name] = {
+                    "terms": {"field": query_field, "size": 1000},
                     "aggs": {
                         **self._get_view_metrics_dict(),
                         "label": {
                             "top_hits": {
                                 "size": 1,
-                                "_source": {
-                                    "includes": config.get("label_source_includes", [])
-                                },
-                            }
-                        },
-                    },
-                }
-
-            # Build name-based aggregation
-            if title_field:
-                combined_aggs[name_agg] = {
-                    "terms": {"field": title_field, "size": 1000},
-                    "aggs": {
-                        **self._get_view_metrics_dict(),
-                        "label": {
-                            "top_hits": {
-                                "size": 1,
-                                "_source": {
-                                    "includes": config.get("label_source_includes", [])
-                                },
+                                "_source": {"includes": label_source_includes},
                             }
                         },
                     },
@@ -2523,11 +2378,19 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         for subcount_name, config in self.subcount_configs.items():
             combined_results["subcounts"][subcount_name] = []
 
+            # Get the usage_events configuration for this subcount
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
+
             # Handle combined aggregations (funders and affiliations)
-            if config.get("is_combined", False):
+            if (
+                usage_config.get("combine_queries")
+                and len(usage_config["combine_queries"]) > 1
+            ):
                 combined_results["subcounts"][subcount_name] = (
-                    self._combine_id_name_aggregations(
-                        view_results, download_results, config, subcount_name
+                    self._combine_split_aggregations(
+                        view_results, download_results, usage_config, subcount_name
                     )
                 )
                 continue
@@ -2568,17 +2431,17 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
                 # Extract label from title aggregation or use key as default
                 label = str(key)
-                title_field = config.get("title_field")
-                if title_field and view_bucket:
+                label_field = usage_config.get("label_field")
+                if label_field and view_bucket:
                     if hasattr(view_bucket, "label") and hasattr(
                         view_bucket.label, "hits"
                     ):
                         title_hits = view_bucket.label.hits.hits
                         if title_hits and title_hits[0]._source:
                             source = title_hits[0]._source
-                            # Parse the title_field path to find the correct item
+                            # Parse the label_field path to find the correct item
                             label = self._extract_label_from_source(
-                                source, title_field, key
+                                source, label_field, key
                             )
 
                 subcount_item = {
@@ -2748,15 +2611,15 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 },
             },
             "subcounts": {
-                "by_access_status": add_subcount_to_doc(
-                    results.aggregations.by_access_status.buckets, None
+                "by_access_statuses": add_subcount_to_doc(
+                    results.aggregations.by_access_statuses.buckets, None
                 ),
                 "by_resource_types": add_subcount_to_doc(
                     results.aggregations.by_resource_types.buckets,
                     ["resource_type", "title", "en"],
                 ),
-                "by_licenses": add_subcount_to_doc(
-                    results.aggregations.by_licenses.buckets,
+                "by_rights": add_subcount_to_doc(
+                    results.aggregations.by_rights.buckets,
                     ["rights", "title", "en"],
                 ),
                 "by_funders": add_subcount_to_doc(
@@ -2884,13 +2747,13 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
             current_iteration_date = current_iteration_date.shift(days=1)
 
-    def _combine_id_name_aggregations(
+    def _combine_split_aggregations(
         self, view_results, download_results, config, subcount_name
     ):
         """Combine separate id and name aggregations for funders and affiliations.
 
         This method handles the case where we have separate aggregations for id and name
-        fields (e.g., by_funder_id and by_funder_name) and need to combine them into
+        fields (e.g., by_funders_id and by_funders_name) and need to combine them into
         a single list, deduplicating based on unique combinations of id and name.
 
         Args:
@@ -2902,8 +2765,27 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         Returns:
             list: Combined and deduplicated subcount items.
         """
-        id_agg_name = config["id_agg"]
-        name_agg_name = config["name_agg"]
+        # For the new config structure, we need to build the aggregation names
+        # based on the combine_queries and delta_aggregation_name
+        combine_queries = config.get("combine_queries", [])
+        delta_aggregation_name = config.get("delta_aggregation_name")
+
+        if not combine_queries or len(combine_queries) <= 1:
+            return []
+
+        # Build aggregation names for each query field
+        agg_names = []
+        for query_field in combine_queries:
+            subfield = query_field.split(".")[-1]
+            agg_name = f"{delta_aggregation_name}_{subfield}"
+            agg_names.append(agg_name)
+
+        # Use the first two aggregation names for id and name
+        if len(agg_names) >= 2:
+            id_agg_name = agg_names[0]
+            name_agg_name = agg_names[1]
+        else:
+            return []
 
         # Get buckets from both aggregations
         buckets = self._get_id_name_buckets(
@@ -3081,16 +2963,19 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         return str(bucket_key)
 
 
-class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
+class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
     """Aggregator for community record deltas.
 
     Uses the date the record was created as the initial date of the record.
     """
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, subcount_configs=None, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.event_index = prefix_index("rdmrecords-records")
         self.aggregation_index = prefix_index("stats-community-records-delta-created")
+        self.subcount_configs = (
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        )
 
     def _should_skip_aggregation(
         self,
@@ -3209,17 +3094,11 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             },
             "uploaders": 0,
             "subcounts": {
-                "by_resource_type": [],
-                "by_access_status": [],
-                "by_language": [],
-                "by_affiliation_creator": [],
-                "by_affiliation_contributor": [],
-                "by_funder": [],
-                "by_subject": [],
-                "by_publisher": [],
-                "by_periodical": [],
-                "by_license": [],
-                "by_file_type": [],
+                config["records"]["delta_aggregation_name"]: []
+                for config in self.subcount_configs.values()
+                if "records" in config
+                and "delta_aggregation_name" in config["records"]
+                and not config["records"].get("merge_aggregation_with")
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
@@ -3232,61 +3111,6 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
         aggs_removed: dict,
     ) -> dict:
         """Create a dictionary representing the aggregation result for indexing."""
-
-        def make_file_type_dict():
-            combined_keys = list(
-                set(
-                    b["key"]
-                    for b in aggs_added.get("by_file_type", {}).get("buckets", [])
-                    if b["key"] != "doc_count"
-                )
-                | set(
-                    b["key"]
-                    for b in aggs_removed.get("by_file_type", {}).get("buckets", [])
-                    if b["key"] != "doc_count"
-                )
-            )
-            file_type_list = []
-            for key in combined_keys:
-                added_list = list(
-                    filter(
-                        lambda x: x["key"] == key,
-                        aggs_added.get("by_file_type", {}).get("buckets", []),
-                    )
-                )
-                added = added_list[0] if added_list else {}
-                removed_list = list(
-                    filter(
-                        lambda x: x["key"] == key,
-                        aggs_removed.get("by_file_type", {}).get("buckets", []),
-                    )
-                )
-                removed = removed_list[0] if removed_list else {}
-                file_type_list.append(
-                    {
-                        "id": key,
-                        "label": "",
-                        "added": {
-                            "records": added.get("unique_records", {}).get("value", 0),
-                            "parents": added.get("unique_parents", {}).get("value", 0),
-                            "files": added.get("doc_count", 0),
-                            "data_volume": added.get("total_bytes", {}).get("value", 0),
-                        },
-                        "removed": {
-                            "records": (
-                                removed.get("unique_records", {}).get("value", 0)
-                            ),
-                            "parents": (
-                                removed.get("unique_parents", {}).get("value", 0)
-                            ),
-                            "files": removed.get("doc_count", 0),
-                            "data_volume": (
-                                removed.get("total_bytes", {}).get("value", 0)
-                            ),
-                        },
-                    }
-                )
-            return file_type_list
 
         def find_item_label(added, removed, subcount_def, key):
             label = ""
@@ -3330,16 +3154,45 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             return label
 
         def make_subcount_list(subcount_type):
-            if subcount_type in [
-                "by_affiliation_creator",
-                "by_affiliation_contributor",
-            ]:
-                added_items = aggs_added.get(f"{subcount_type}_id", {}).get(
-                    "buckets", []
-                ) + aggs_added.get(f"{subcount_type}_name", {}).get("buckets", [])
-                removed_items = aggs_removed.get(f"{subcount_type}_id", {}).get(
-                    "buckets", []
-                ) + aggs_removed.get(f"{subcount_type}_name", {}).get("buckets", [])
+            # Find the config for this subcount type
+            config = None
+            for cfg in self.subcount_configs.values():
+                if (
+                    "records" in cfg
+                    and cfg["records"]["delta_aggregation_name"] == subcount_type
+                ):
+                    config = cfg["records"]
+                    break
+
+            # If no config found, return empty list
+            if not config:
+                current_app.logger.warning(
+                    f"No configuration found for subcount type: {subcount_type}"
+                )
+                return []
+
+            # Validate required config fields
+            if "field" not in config:
+                current_app.logger.error(
+                    f"Missing 'field' in config for subcount type: {subcount_type}"
+                )
+                return []
+
+            # Use centralized configuration
+            if config.get("combine_queries"):
+                # Handle combined queries (like affiliations)
+                added_items = []
+                removed_items = []
+                for field in config["combine_queries"]:
+                    field_name = field.split(".")[
+                        -1
+                    ]  # Get the last part of the field path
+                    added_items.extend(
+                        aggs_added.get(f"by_{field_name}", {}).get("buckets", [])
+                    )
+                    removed_items.extend(
+                        aggs_removed.get(f"by_{field_name}", {}).get("buckets", [])
+                    )
             else:
                 added_items = aggs_added.get(subcount_type, {}).get("buckets", [])
                 removed_items = aggs_removed.get(subcount_type, {}).get("buckets", [])
@@ -3349,16 +3202,33 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 | set(b["key"] for b in removed_items)
             )
             subcount_list = []
+
+            # Handle case where no items found
+            if not combined_keys:
+                return subcount_list
+
             for key in combined_keys:
+                # Skip None or empty keys
+                if not key:
+                    continue
+
                 added_filtered = list(filter(lambda x: x["key"] == key, added_items))
                 added = added_filtered[0] if added_filtered else {}
                 removed_filtered = list(
                     filter(lambda x: x["key"] == key, removed_items)
                 )
                 removed = removed_filtered[0] if removed_filtered else {}
-                label = find_item_label(
-                    added, removed, SUBCOUNT_TYPES[subcount_type[3:]], key
-                )
+
+                # Build label configuration for find_item_label
+                label_config = []
+                if config.get("label_field"):
+                    label_config.append(config["field"])
+                    label_config.append(config["label_field"])
+                else:
+                    label_config.append(config["field"])
+
+                label = find_item_label(added, removed, label_config, key)
+
                 subcount_list.append(
                     {
                         "id": key,
@@ -3488,19 +3358,16 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             },
             "uploaders": aggs_added.get("uploaders", {}).get("value", 0),
             "subcounts": {
-                "by_resource_type": make_subcount_list("by_resource_type"),
-                "by_access_status": make_subcount_list("by_access_status"),
-                "by_language": make_subcount_list("by_language"),
-                "by_affiliation_creator": make_subcount_list("by_affiliation_creator"),
-                "by_affiliation_contributor": make_subcount_list(
-                    "by_affiliation_contributor"
-                ),
-                "by_funder": make_subcount_list("by_funder"),
-                "by_subject": make_subcount_list("by_subject"),
-                "by_publisher": make_subcount_list("by_publisher"),
-                "by_periodical": make_subcount_list("by_periodical"),
-                "by_license": make_subcount_list("by_license"),
-                "by_file_type": make_file_type_dict(),
+                **{
+                    config["records"]["delta_aggregation_name"]: make_subcount_list(
+                        config["records"]["delta_aggregation_name"]
+                    )
+                    for config in self.subcount_configs.values()
+                    if (
+                        "records" in config
+                        and "delta_aggregation_name" in config["records"]
+                    )
+                },
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
@@ -3530,6 +3397,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             dict: A dictionary containing lists of buckets for each time period.
         """
         # Check if we should skip aggregation due to no events after start_date
+        # If so, we index a zero document for the community for each day
         should_skip = self._should_skip_aggregation(
             start_date, last_event_date, community_id
         )
@@ -3539,7 +3407,7 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 f"no relevant records after {start_date}"
             )
 
-        # Divide the search into years
+        # Index aggregations in yearly indices
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
         for year in range(start_date.year, end_date.year + 1):
@@ -3551,8 +3419,6 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
             for day in arrow.Arrow.range("day", year_start_date, year_end_date):
                 day_start_date = day.floor("day")
 
-                # Prepare the _source content based on whether we should skip
-                # aggregation
                 if should_skip:
                     source_content = self._create_zero_document(
                         community_id, day_start_date
@@ -3560,42 +3426,31 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 else:
                     day_end_date = day.ceil("day")
 
-                    year_search_added = Search(
-                        using=self.client, index=self.event_index
+                    query_builder = CommunityRecordDeltaQuery(
+                        client=self.client, event_index=self.event_index
                     )
-                    year_search_added.update_from_dict(
-                        daily_record_delta_query_with_events(
-                            day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
-                            day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
-                            community_id=community_id,
-                            use_included_dates=(
-                                self.aggregation_index
-                                == "stats-community-records-delta-added"
-                            ),
-                            use_published_dates=(
-                                self.aggregation_index
-                                == "stats-community-records-delta-published"
-                            ),
-                            client=self.client,
-                        )
+                    year_search_added = query_builder.build_query(
+                        day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        community_id=community_id,
+                        use_included_dates=(
+                            self.aggregation_index
+                            == "stats-community-records-delta-added"
+                        ),
+                        use_published_dates=(
+                            self.aggregation_index
+                            == "stats-community-records-delta-published"
+                        ),
                     )
-
                     day_results_added = year_search_added.execute()
                     aggs_added = day_results_added.aggregations.to_dict()
 
-                    day_search_removed = Search(
-                        using=self.client, index=self.event_index
+                    day_search_removed = query_builder.build_query(
+                        day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        community_id=community_id,
+                        find_deleted=True,
                     )
-                    day_search_removed.update_from_dict(
-                        daily_record_delta_query_with_events(
-                            day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
-                            day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
-                            community_id=community_id,
-                            find_deleted=True,
-                            client=self.client,
-                        )
-                    )
-
                     day_results_removed = day_search_removed.execute()
                     aggs_removed = day_results_removed.aggregations.to_dict()
 
@@ -3618,7 +3473,18 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityAggregatorBase):
                 }
 
 
-class CommunityRecordsDeltaAddedAggregator(CommunityRecordsDeltaCreatedAggregator):
+class CommunityRecordsDeltaCreatedAggregator(CommunityRecordsDeltaAggregatorBase):
+    """Aggregator for community record deltas.
+
+    Uses the date the record was created as the initial date of the record.
+    """
+
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.aggregation_index = prefix_index("stats-community-records-delta-created")
+
+
+class CommunityRecordsDeltaAddedAggregator(CommunityRecordsDeltaAggregatorBase):
     """Aggregator for community records delta added."""
 
     def __init__(self, name, *args, **kwargs):
@@ -3626,7 +3492,7 @@ class CommunityRecordsDeltaAddedAggregator(CommunityRecordsDeltaCreatedAggregato
         self.aggregation_index = prefix_index("stats-community-records-delta-added")
 
 
-class CommunityRecordsDeltaPublishedAggregator(CommunityRecordsDeltaCreatedAggregator):
+class CommunityRecordsDeltaPublishedAggregator(CommunityRecordsDeltaAggregatorBase):
     """Aggregator for community records delta published."""
 
     def __init__(self, name, *args, **kwargs):

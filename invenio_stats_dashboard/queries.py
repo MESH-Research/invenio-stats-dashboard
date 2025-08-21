@@ -1,15 +1,18 @@
 """Queries for the stats dashboard."""
 
-from pprint import pformat
+from itertools import tee
 
 import arrow
 from flask import current_app
+from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
+
+from tests.services.schemas.test_publication_date import test_date
 
 NESTED_AGGREGATIONS = {
     "resource_type": [
@@ -64,7 +67,7 @@ NESTED_AGGREGATIONS = {
     "publisher": ["metadata.publisher.keyword"],
     "periodical": ["custom_fields.journal:journal.title.keyword"],
     "file_type": ["files.entries.ext"],
-    "license": [
+    "rights": [
         "metadata.rights.id",
         ["metadata.rights.title.en", "metadata.rights.id"],
     ],
@@ -88,7 +91,8 @@ def get_relevant_record_ids_from_events(
     Args:
         start_date (str): The start date to query.
         end_date (str): The end date to query.
-        community_id (str): The community ID. Must not be "global" unless use_published_dates=True.
+        community_id (str): The community ID. Must not be "global" unless
+            use_published_dates=True.
         find_deleted (bool, optional): Whether to find deleted records.
         use_included_dates (bool, optional): Whether to use the dates when the record
             was added to the community instead of the created date.
@@ -111,8 +115,9 @@ def get_relevant_record_ids_from_events(
     # Global queries are only supported for published dates since we now have global events
     if community_id == "global" and not use_published_dates:
         raise ValueError(
-            "get_relevant_record_ids_from_events should not be called with community_id='global' "
-            "unless use_published_dates=True. Other global queries should use record date fields directly."
+            "get_relevant_record_ids_from_events should not be called with "
+            "community_id='global' unless use_published_dates=True. "
+            "Other global queries should use record date fields directly."
         )
 
     # Determine which date field to use based on the parameters
@@ -202,371 +207,6 @@ def get_relevant_record_ids_from_events(
         record_ids.add(record_id)
 
     return record_ids
-
-
-def daily_record_snapshot_query_with_events(
-    start_date: str,
-    end_date: str,
-    community_id: str | None = None,
-    find_deleted: bool = False,
-    use_included_dates: bool = False,
-    use_published_dates: bool = False,
-    client=None,
-):
-    """Build the query for a snapshot of one day's cumulative record counts using events index.
-
-    This function first queries the events index to find relevant record IDs,
-    then builds a query for the records index using those IDs.
-
-    For global community queries (community_id="global"), this function uses
-    the events index when use_published_dates=True (since we now have global
-    events with parsed publication dates), otherwise uses record date fields directly.
-
-    Args:
-        start_date (str): The start date to query.
-        end_date (str): The end date to query.
-        community_id (str, optional): The community ID. If "global", uses events index
-            when use_published_dates=True, otherwise uses record date fields directly.
-        find_deleted (bool, optional): Whether to find deleted records.
-        use_included_dates (bool, optional): Whether to use the dates when the
-            record was included to the community instead of the created date.
-            (Ignored for global queries)
-        use_published_dates (bool, optional): Whether to use the metadata
-            publication date instead of the created date.
-        client: The OpenSearch client to use.
-
-    Returns:
-        dict: The query for the daily record cumulative counts.
-    """
-    if community_id is None:
-        raise ValueError("community_id must not be None")
-
-    # For global queries with use_published_dates=True, use the events index
-    # since we now have global events with properly parsed publication dates
-    if community_id == "global" and use_published_dates:
-        # Get relevant record IDs from the events index
-        record_ids = get_relevant_record_ids_from_events(
-            start_date=start_date,
-            end_date=end_date,
-            community_id="global",
-            find_deleted=find_deleted,
-            use_included_dates=use_included_dates,
-            use_published_dates=use_published_dates,
-            client=client,
-        )
-
-        # If no records found, return empty query
-        if not record_ids:
-            # Use an impossible query that will return no results but still execute aggregations
-            must_clauses = [{"term": {"_id": "no-matching-records"}}]
-        else:
-            # Build the query for the records index using the found record IDs
-            must_clauses = [
-                {"terms": {"id": list(record_ids)}},
-                {"term": {"is_published": True}},
-            ]
-    elif community_id == "global":
-        # For global queries without use_published_dates, use record date fields directly
-        # Field to use to find the period's records
-        date_series_field = "created"
-        if find_deleted:
-            date_series_field = "tombstone.removal_date"
-
-        must_clauses: list[dict] = []
-        if find_deleted:
-            must_clauses.append(
-                {
-                    "bool": {
-                        "must": [
-                            {"range": {"tombstone.removal_date": {"lte": end_date}}},
-                            {"range": {date_series_field: {"lte": end_date}}},
-                            {"term": {"is_published": True}},
-                        ],
-                    }
-                }
-            )
-        else:
-            must_clauses.append(
-                {
-                    "bool": {
-                        "must": [
-                            {"range": {date_series_field: {"lte": end_date}}},
-                            {"term": {"is_published": True}},
-                        ]
-                    }
-                }
-            )
-    else:
-        # Get relevant record IDs from the events index
-        record_ids = get_relevant_record_ids_from_events(
-            start_date=start_date,
-            end_date=end_date,
-            community_id=community_id,
-            find_deleted=find_deleted,
-            use_included_dates=use_included_dates,
-            use_published_dates=use_published_dates,
-            client=client,
-        )
-
-        # If no records found, return empty query
-        if not record_ids:
-            # Use an impossible query that will return no results but still execute aggregations
-            must_clauses = [{"term": {"_id": "no-matching-records"}}]
-        else:
-            # Build the query for the records index using the found record IDs
-            must_clauses = [
-                {"terms": {"id": list(record_ids)}},
-                {"term": {"is_published": True}},
-            ]
-
-    # Build aggregations (same for both global and community queries)
-    sub_aggs = {
-        f"by_{subcount_label}": {
-            "terms": {"field": subcount_fields[0]},
-            "aggs": {
-                "with_files": {
-                    "filter": {"term": {"files.enabled": True}},
-                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-                },
-                "without_files": {
-                    "filter": {"term": {"files.enabled": False}},
-                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-                },
-                "file_count": {"value_count": {"field": "files.entries.key"}},
-                "total_bytes": {"sum": {"field": "files.entries.size"}},
-                **(
-                    {
-                        "label": {
-                            "top_hits": {
-                                "size": 1,
-                                "_source": {
-                                    "includes": (
-                                        subcount_fields[1]
-                                        if len(subcount_fields) > 1
-                                        else subcount_fields[0]
-                                    )
-                                },
-                            }
-                        }
-                    }
-                    if len(subcount_fields) > 1
-                    and not subcount_label.startswith("affiliation_")
-                    else {}
-                ),
-            },
-        }
-        for subcount_label, subcount_fields in NESTED_AGGREGATIONS.items()
-    }
-
-    query = {
-        "size": 0,
-        "query": {"bool": {"must": must_clauses}},
-        "aggs": {
-            "total_records": {"value_count": {"field": "_id"}},
-            "with_files": {
-                "filter": {"term": {"files.enabled": True}},
-                "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-            },
-            "without_files": {
-                "filter": {"term": {"files.enabled": False}},
-                "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-            },
-            "uploaders": {
-                "cardinality": {"field": "parent.access.owned_by.user"},
-            },
-            "file_count": {
-                "value_count": {"field": "files.entries.key"},
-            },
-            "total_bytes": {"sum": {"field": "files.entries.size"}},
-            **sub_aggs,
-            "by_file_type": {
-                "terms": {"field": "files.entries.ext"},
-                "aggs": {
-                    "unique_records": {"cardinality": {"field": "_id"}},
-                    "unique_parents": {"cardinality": {"field": "parent.id"}},
-                    "total_bytes": {"sum": {"field": "files.entries.size"}},
-                },
-            },
-        },
-    }
-
-    return query
-
-
-def daily_record_delta_query_with_events(
-    start_date: str,
-    end_date: str,
-    community_id: str | None = None,
-    find_deleted: bool = False,
-    use_included_dates: bool = False,
-    use_published_dates: bool = False,
-    client=None,
-):
-    """Build the query for a delta of records using events index.
-
-    This function first queries the events index to find relevant record IDs,
-    then builds a query for the records index using those IDs.
-
-    For global community queries (community_id="global"), this function uses
-    the events index when use_published_dates=True (since we now have global
-    events with parsed publication dates), otherwise uses record date fields directly.
-
-    Args:
-        start_date (str): The start date to query.
-        end_date (str): The end date to query.
-        community_id (str, optional): The community ID. If "global", uses events index
-            when use_published_dates=True, otherwise uses record date fields directly.
-        find_deleted (bool, optional): Whether to find deleted records.
-        use_included_dates (bool, optional): Whether to use the dates when the record
-            was included to the community instead of the created date.
-            (Ignored for global queries)
-        use_published_dates (bool, optional): Whether to use the metadata publication
-            date instead of the created date.
-        client: The OpenSearch client to use.
-
-    Returns:
-        dict: The query for the daily record delta counts.
-    """
-    if community_id is None:
-        raise ValueError("community_id must not be None")
-
-    # For global queries with use_published_dates=True, use the events index
-    if community_id == "global" and use_published_dates:
-        # Get relevant record IDs from the events index
-        record_ids = get_relevant_record_ids_from_events(
-            start_date=start_date,
-            end_date=end_date,
-            community_id="global",
-            find_deleted=find_deleted,
-            use_included_dates=use_included_dates,
-            use_published_dates=use_published_dates,
-            client=client,
-        )
-
-        # If no records found, return empty query
-        if not record_ids:
-            must_clauses = [{"term": {"_id": "no-matching-records"}}]
-        else:
-            # Build the query for the records index using the found record IDs
-            must_clauses = [
-                {"terms": {"id": list(record_ids)}},
-                {"term": {"is_published": True}},
-            ]
-    elif community_id == "global":
-        # For global queries without use_published_dates, use record date fields directly
-        # Field to use to find the period's records
-        date_series_field = "created"
-        if find_deleted:
-            date_series_field = "tombstone.removal_date"
-
-        must_clauses: list[dict] = [
-            {"term": {"is_published": True}},
-        ]
-
-        if find_deleted:
-            must_clauses.append({"term": {"is_deleted": True}})
-            must_clauses.append(
-                {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
-            )
-        else:
-            must_clauses.append(
-                {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
-            )
-    else:
-        # Get relevant record IDs from the events index
-        record_ids = get_relevant_record_ids_from_events(
-            start_date=start_date,
-            end_date=end_date,
-            community_id=community_id,
-            find_deleted=find_deleted,
-            use_included_dates=use_included_dates,
-            use_published_dates=use_published_dates,
-            client=client,
-        )
-
-        # If no records found, return empty query
-        if not record_ids:
-            must_clauses = [{"term": {"_id": "no-matching-records"}}]
-        else:
-            # Build the query for the records index using the found record IDs
-            must_clauses = [
-                {"terms": {"id": list(record_ids)}},
-                {"term": {"is_published": True}},
-            ]
-
-    # Build aggregations (same for both global and community queries)
-    sub_aggs = {
-        f"by_{subcount_label}": {
-            "terms": {"field": subcount_fields[0]},
-            "aggs": {
-                "with_files": {
-                    "filter": {"term": {"files.enabled": True}},
-                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-                },
-                "without_files": {
-                    "filter": {"term": {"files.enabled": False}},
-                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-                },
-                "file_count": {"value_count": {"field": "files.entries.key"}},
-                "total_bytes": {"sum": {"field": "files.entries.size"}},
-                **(
-                    {
-                        "label": {
-                            "top_hits": {
-                                "size": 1,
-                                "_source": {
-                                    "includes": (
-                                        subcount_fields[1]
-                                        if len(subcount_fields) > 1
-                                        else subcount_fields[0]
-                                    )
-                                },
-                            }
-                        }
-                    }
-                    if len(subcount_fields) > 1
-                    else {}
-                ),
-            },
-        }
-        for subcount_label, subcount_fields in NESTED_AGGREGATIONS.items()
-    }
-
-    return {
-        "size": 0,
-        "query": {
-            "bool": {
-                "must": must_clauses,
-            }
-        },
-        "aggs": {
-            "total_records": {"value_count": {"field": "_id"}},
-            "with_files": {
-                "filter": {"term": {"files.enabled": True}},
-                "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-            },
-            "without_files": {
-                "filter": {"term": {"files.enabled": False}},
-                "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
-            },
-            "uploaders": {
-                "cardinality": {"field": "parent.access.owned_by.user"},
-            },
-            "file_count": {
-                "value_count": {"field": "files.entries.key"},
-            },
-            "total_bytes": {"sum": {"field": "files.entries.size"}},
-            **sub_aggs,
-            "by_file_type": {
-                "terms": {"field": "files.entries.ext"},
-                "aggs": {
-                    "unique_records": {"cardinality": {"field": "_id"}},
-                    "unique_parents": {"cardinality": {"field": "parent.id"}},
-                    "total_bytes": {"sum": {"field": "files.entries.size"}},
-                },
-            },
-        },
-    }
 
 
 class CommunityStatsResultsQueryBase(Query):
@@ -763,19 +403,22 @@ class CommunityUsageDeltaQuery:
     on the enriched event indices
     """
 
-    def __init__(self, client=None):
+    def __init__(
+        self,
+        client=None,
+        view_index="events-stats-record-view",
+        download_index="events-stats-file-download",
+    ):
         """Initialize the query builder.
 
         Args:
             client: The OpenSearch client to use.
         """
         if client is None:
-            from invenio_search.proxies import current_search_client
-
             client = current_search_client
         self.client = client
-        self.view_index = "events-stats-record-view"
-        self.download_index = "events-stats-file-download"
+        self.view_index = view_index
+        self.download_index = download_index
 
     def build_view_query(
         self,
@@ -796,11 +439,12 @@ class CommunityUsageDeltaQuery:
             start_date = arrow.get(start_date)
         if isinstance(end_date, str):
             end_date = arrow.get(end_date)
-        query_dict = self._build_view_query_dict(community_id, start_date, end_date)
-        view_search = Search(using=self.client, index=self.view_index).update_from_dict(
-            query_dict
+        query_dict = self._build_query_dict(community_id, start_date, end_date, "view")
+        view_search = (
+            Search(using=self.client, index=prefix_index(self.view_index))
+            .update_from_dict(query_dict)
+            .extra(size=1)
         )
-        view_search = view_search.extra(size=1)
         return view_search
 
     def build_download_query(
@@ -822,22 +466,31 @@ class CommunityUsageDeltaQuery:
             start_date = arrow.get(start_date)
         if isinstance(end_date, str):
             end_date = arrow.get(end_date)
-        query_dict = self._build_download_query_dict(community_id, start_date, end_date)
-        return Search(using=self.client, index=self.download_index).update_from_dict(
-            query_dict
+        query_dict = self._build_query_dict(
+            community_id, start_date, end_date, "download"
         )
+        download_search = (
+            Search(using=self.client, index=prefix_index(self.download_index))
+            .update_from_dict(query_dict)
+            .extra(size=1)
+        )
+        return download_search
 
-    def _build_view_query_dict(
-        self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
+    def _build_query_dict(
+        self,
+        community_id: str,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        event_type: str,
     ) -> dict:
-        """Build a query dictionary for view events.
+        """Build a query dictionary for view or download events.
 
         Args:
             community_id (str): The community ID to query for.
             date (arrow.Arrow): The date to aggregate for.
 
         Returns:
-            dict: The query dictionary for view events.
+            dict: The query dictionary for view or download events.
         """
         query_dict = {
             "query": {
@@ -862,7 +515,7 @@ class CommunityUsageDeltaQuery:
                     ]
                 }
             },
-            "aggs": self._get_view_metrics_dict(),
+            "aggs": self._make_metrics_dict(event_type),
         }
 
         # Add community filter if not global
@@ -872,375 +525,842 @@ class CommunityUsageDeltaQuery:
             )
 
         # Add subcount aggregations
-        query_dict["aggs"].update(self._get_view_subcount_aggregations_dict())
+        query_dict["aggs"].update(self._make_subcount_aggregations_dict(event_type))
 
         return query_dict
 
-    def _build_download_query_dict(
-        self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
-    ) -> dict:
-        """Build a query dictionary for download events.
-
-        Args:
-            community_id (str): The community ID to query for.
-            date (arrow.Arrow): The date to aggregate for.
-
-        Returns:
-            dict: The query dictionary for download events.
-        """
-        query_dict = {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "range": {
-                                "timestamp": {
-                                    "gte": (
-                                        start_date.floor("day").format(
-                                            "YYYY-MM-DDTHH:mm:ss"
-                                        )
-                                    ),
-                                    "lt": (
-                                        end_date.ceil("day").format(
-                                            "YYYY-MM-DDTHH:mm:ss"
-                                        )
-                                    ),
-                                }
-                            }
-                        }
-                    ]
-                }
-            },
-            "aggs": self._get_download_metrics_dict(),
-        }
-
-        # Add community filter if not global
-        if community_id != "global":
-            query_dict["query"]["bool"]["must"].append(
-                {"term": {"community_ids": community_id}}
-            )
-
-        # Add subcount aggregations
-        query_dict["aggs"].update(self._get_download_subcount_aggregations_dict())
-
-        return query_dict
-
-    def _get_view_metrics_dict(self) -> dict:
+    def _make_metrics_dict(self, event_type: str) -> dict:
         """Get the metrics dictionary for view events.
 
         Returns:
             dict: The metrics dictionary for view events.
         """
-        return {
+        metrics_dict = {
             "total_events": {"value_count": {"field": "_id"}},
             "unique_visitors": {"cardinality": {"field": "visitor_id"}},
             "unique_records": {"cardinality": {"field": "recid"}},
             "unique_parents": {"cardinality": {"field": "parent_recid"}},
         }
+        if event_type == "download":
+            metrics_dict["unique_files"] = {"cardinality": {"field": "file_id"}}
+            metrics_dict["total_volume"] = {"sum": {"field": "size"}}
+        return metrics_dict
 
-    def _get_download_metrics_dict(self) -> dict:
-        """Get the metrics dictionary for download events.
+    def _make_simple_subcount_aggregation(self, field: str, event_type: str) -> dict:
+        """Make a simple subcount aggregation.
 
-        Returns:
-            dict: The metrics dictionary for download events.
+        Args:
+            field (str): The field to aggregate on.
+            label_source_includes (list[str]): The fields to include in the label.
         """
         return {
-            "total_events": {"value_count": {"field": "_id"}},
-            "unique_visitors": {"cardinality": {"field": "visitor_id"}},
-            "unique_records": {"cardinality": {"field": "recid"}},
-            "unique_parents": {"cardinality": {"field": "parent_recid"}},
-            "unique_files": {"cardinality": {"field": "file_id"}},
-            "total_volume": {"sum": {"field": "size"}},
+            "terms": {"field": field, "size": 1000},
+            "aggs": {
+                **self._make_metrics_dict(event_type),
+            },
         }
 
-    def _get_view_subcount_aggregations_dict(self) -> dict:
+    def _make_labeled_subcount_aggregation(
+        self, field: str, label_source_includes: list[str], event_type: str
+    ) -> dict:
+        """Make a labeled subcount aggregation.
+
+        Args:
+            field (str): The field to aggregate on.
+            label_source_includes (list[str]): The fields to include in the label.
+            event_type (str): The type of event (view or download).
+        """
+        agg = self._make_simple_subcount_aggregation(field, event_type)
+        agg["aggs"]["label"] = {
+            "top_hits": {
+                "size": 1,
+                "_source": {"includes": label_source_includes},
+            }
+        }
+        return agg
+
+    def _make_subcount_aggregations_dict(self, event_type: str) -> dict:
         """Get the subcount aggregations dictionary for view events.
 
         Returns:
             dict: The subcount aggregations dictionary for view events.
         """
-        return {
-            "by_resource_types": {
-                "terms": {"field": "resource_type.id", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": [
-                                    "resource_type.title.en",
-                                    "resource_type.id",
-                                ]
-                            },
-                        }
-                    },
-                },
-            },
-            "by_access_status": {
-                "terms": {"field": "access_status", "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            },
-            "by_languages": {
-                "terms": {"field": "languages.id", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": ["languages.title", "languages.id"]
-                            },
-                        }
-                    },
-                },
-            },
-            "by_subjects": {
-                "terms": {"field": "subjects.id", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["subjects.title", "subjects.id"]},
-                        }
-                    },
-                },
-            },
-            "by_licenses": {
-                "terms": {"field": "rights.id", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["rights.title", "rights.id"]},
-                        }
-                    },
-                },
-            },
-            "by_funder_id": {
-                "terms": {"field": "funders.id", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["funders.name", "funders.id"]},
-                        }
-                    },
-                },
-            },
-            "by_funder_name": {
-                "terms": {"field": "funders.name", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["funders.name", "funders.id"]},
-                        }
-                    },
-                },
-            },
-            "by_periodicals": {
-                "terms": {"field": "journal_title", "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            },
-            "by_publishers": {
-                "terms": {"field": "publisher", "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            },
-            "by_affiliation_id": {
-                "terms": {"field": "affiliations.id", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": [
-                                    "affiliations.name",
-                                    "affiliations.id",
-                                ]
-                            },
-                        }
-                    },
-                },
-            },
-            "by_affiliation_name": {
-                "terms": {"field": "affiliations.name", "size": 1000},
-                "aggs": {
-                    **self._get_view_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": [
-                                    "affiliations.name",
-                                    "affiliations.id",
-                                ]
-                            },
-                        }
-                    },
-                },
-            },
-            "by_countries": {
-                "terms": {"field": "country", "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            },
-            "by_referrers": {
-                "terms": {"field": "referrer", "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            },
-            "by_file_types": {
-                "terms": {"field": "file_types", "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            },
-        }
+        subcount_configs = current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        subcounts = {}
+        for config in subcount_configs.values():
+            # Get the usage_events configuration for this subcount
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
 
-    def _get_download_subcount_aggregations_dict(self) -> dict:
-        """Get the subcount aggregations dictionary for download events.
+            if (
+                usage_config.get("combine_queries")
+                and len(usage_config["combine_queries"]) > 1
+            ):
+                for query_field in usage_config["combine_queries"]:
+                    subfield = query_field.split(".")[-1]
+                    query_name = f"{usage_config['delta_aggregation_name']}_{subfield}"
+                    subcounts[query_name] = self._make_labeled_subcount_aggregation(
+                        query_field,
+                        usage_config["label_source_includes"],
+                        event_type,
+                    )
+            elif usage_config.get("label_field"):
+                subcounts[usage_config["delta_aggregation_name"]] = (
+                    self._make_labeled_subcount_aggregation(
+                        usage_config["field"],
+                        usage_config["label_source_includes"],
+                        event_type,
+                    )
+                )
+            else:
+                subcounts[usage_config["delta_aggregation_name"]] = (
+                    self._make_simple_subcount_aggregation(
+                        usage_config["field"], event_type
+                    )
+                )
+        return subcounts
+
+
+class CommunityUsageSnapshotQuery:
+    """Query builder for community usage snapshot aggregation.
+
+    This class encapsulates the logic for building queries needed by the
+    CommunityUsageSnapshotAggregator, including queries for last snapshot
+    documents, daily deltas, and dependency checking.
+    """
+
+    def __init__(
+        self,
+        client=None,
+        delta_index="stats-community-usage-delta",
+        snapshot_index="stats-community-usage-snapshot",
+    ):
+        """Initialize the query builder.
+
+        Args:
+            client: The OpenSearch client to use.
+            delta_index: The index containing usage delta records.
+            snapshot_index: The index containing usage snapshot records.
+        """
+        if client is None:
+            client = current_search_client
+        self.client = client
+        self.delta_index = delta_index
+        self.snapshot_index = snapshot_index
+
+    def build_last_snapshot_query(
+        self,
+        community_id: str,
+        start_date: arrow.Arrow,
+    ) -> Search:
+        """Build a query for the last snapshot document.
+
+        Args:
+            community_id (str): The community ID to query for.
+            start_date (arrow.Arrow): The start date to find snapshots before.
 
         Returns:
-            dict: The subcount aggregations dictionary for download events.
+            Search: The search object for the last snapshot.
         """
-        return {
-            "by_resource_types": {
-                "terms": {"field": "resource_type.id", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": [
-                                    "resource_type.title.en",
-                                    "resource_type.id",
-                                ]
+        if isinstance(start_date, str):
+            start_date = arrow.get(start_date)
+
+        search = (
+            Search(using=self.client, index=prefix_index(self.snapshot_index))
+            .query(
+                Q(
+                    "bool",
+                    must=[
+                        Q("term", community_id=community_id),
+                        Q(
+                            "range",
+                            snapshot_date={
+                                "lt": (
+                                    start_date.floor("day").format(
+                                        "YYYY-MM-DDTHH:mm:ss"
+                                    )
+                                ),
+                            },
+                        ),
+                    ],
+                )
+            )
+            .sort({"snapshot_date": {"order": "desc"}})
+            .extra(size=1)
+        )
+        return search
+
+    def build_daily_deltas_query(
+        self,
+        community_id: str,
+        end_date: arrow.Arrow,
+    ) -> Search:
+        """Build a query for daily delta records.
+
+        Args:
+            community_id (str): The community ID to query for.
+            end_date (arrow.Arrow): The end date for delta records.
+
+        Returns:
+            Search: The search object for daily deltas.
+        """
+        if isinstance(end_date, str):
+            end_date = arrow.get(end_date)
+
+        search = (
+            Search(using=self.client, index=prefix_index(self.delta_index))
+            .query(
+                "bool",
+                must=[
+                    Q("term", community_id=community_id),
+                    Q(
+                        "range",
+                        period_start={
+                            "lte": end_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+                        },
+                    ),
+                ],
+            )
+            .sort({"period_start": {"order": "asc"}})
+        )
+        return search
+
+    def build_dependency_check_query(
+        self,
+        community_id: str,
+    ) -> Search:
+        """Build a query for checking usage delta dependency.
+
+        Args:
+            community_id (str): The community ID to query for.
+
+        Returns:
+            Search: The search object for dependency checking.
+        """
+        search = (
+            Search(using=self.client, index=prefix_index(self.delta_index))
+            .query(Q("term", community_id=community_id))
+            .extra(size=0)
+        )
+        search.aggs.bucket("max_date", "max", field="period_start")
+        return search
+
+
+class CommunityRecordDeltaQuery:
+    """Query builder for community record delta aggregation.
+
+    This class encapsulates the logic for building queries needed by the
+    CommunityRecordDeltaAggregator, including queries for last snapshot
+    documents, daily deltas, and dependency checking.
+    """
+
+    def __init__(
+        self,
+        client=None,
+        event_index=None,
+        subcount_configs=None,
+    ):
+        """Initialize the query builder.
+
+        Args:
+            client: The OpenSearch client to use.
+        """
+        if client is None:
+            client = current_search_client
+        self.client = client
+        self.event_index = event_index
+        self.subcount_configs = (
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        )
+
+    def _get_must_clauses(
+        self,
+        start_date: str,
+        end_date: str,
+        community_id: str,
+        find_deleted: bool,
+        use_included_dates: bool,
+        use_published_dates: bool,
+    ) -> list[dict]:
+        """Get the must clauses for the query.
+
+        Args:
+            start_date (str): The start date to query.
+            community_id (str, optional): The community ID. If "global", uses events index
+                when use_published_dates=True, otherwise uses record date fields directly.
+            find_deleted (bool, optional): Whether to find deleted records.
+
+        Returns:
+            list: The must clauses for the query.
+        """
+        must_clauses: list[dict] = []
+
+        # For global queries with use_published_dates=True, use the events index
+        if community_id == "global" and use_published_dates:
+            # Get relevant record IDs from the events index
+            record_ids = get_relevant_record_ids_from_events(
+                start_date=start_date,
+                end_date=end_date,
+                community_id="global",
+                find_deleted=find_deleted,
+                use_included_dates=use_included_dates,
+                use_published_dates=use_published_dates,
+                client=self.client,
+            )
+
+            # If no records found, return empty query
+            if not record_ids:
+                must_clauses = [{"term": {"_id": "no-matching-records"}}]
+            else:
+                # Build the query for the records index using the found record IDs
+                must_clauses = [
+                    {"terms": {"id": list(record_ids)}},
+                    {"term": {"is_published": True}},
+                ]
+        elif community_id == "global":
+            # For global queries without use_published_dates, use record date fields directly
+            # Field to use to find the period's records
+            date_series_field = "created"
+            if find_deleted:
+                date_series_field = "tombstone.removal_date"
+
+            must_clauses: list[dict] = [
+                {"term": {"is_published": True}},
+            ]
+
+            if find_deleted:
+                must_clauses.append({"term": {"is_deleted": True}})
+                must_clauses.append(
+                    {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
+                )
+            else:
+                must_clauses.append(
+                    {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
+                )
+        else:
+            # Get relevant record IDs from the events index
+            record_ids = get_relevant_record_ids_from_events(
+                start_date=start_date,
+                end_date=end_date,
+                community_id=community_id,
+                find_deleted=find_deleted,
+                use_included_dates=use_included_dates,
+                use_published_dates=use_published_dates,
+                client=self.client,
+            )
+
+            # If no records found, return empty query
+            if not record_ids:
+                must_clauses = [{"term": {"_id": "no-matching-records"}}]
+            else:
+                # Build the query for the records index using the found record IDs
+                must_clauses = [
+                    {"terms": {"id": list(record_ids)}},
+                    {"term": {"is_published": True}},
+                ]
+
+        return must_clauses
+
+    def _get_sub_aggregations(self) -> dict:
+        """Get the sub aggregations for the query.
+
+        Args:
+            start_date (str): The start date to query.
+            end_date (str): The end date to query.
+            community_id (str, optional): The community ID. If "global", uses events index
+                when use_published_dates=True, otherwise uses record date fields directly.
+            find_deleted (bool, optional): Whether to find deleted records.
+            use_included_dates (bool, optional): Whether to use the dates when the record
+                was included to the community instead of the created date.
+            use_published_dates (bool, optional): Whether to use the metadata publication
+                date instead of the created date.
+
+        Returns:
+            dict: The sub aggregations for the query.
+        """
+        sub_aggs: dict = {}
+
+        for config in self.subcount_configs.values():
+            if (
+                "records" in config.keys()
+                and "delta_aggregation_name" in config["records"].keys()
+            ):
+                records_config = config["records"]
+                subcount_key = records_config["delta_aggregation_name"]
+
+                # Handle combined queries (like affiliations)
+                if records_config.get("combine_queries"):
+                    # For combined queries, we need to create separate aggregations
+                    for field in records_config["combine_queries"]:
+                        field_name = field.split(".")[-1]
+                        agg_name = (
+                            f"{records_config['delta_aggregation_name']}_{field_name}"
+                        )
+                        sub_aggs[agg_name] = {
+                            "terms": {"field": field},
+                            "aggs": {
+                                "with_files": {
+                                    "filter": {"term": {"files.enabled": True}},
+                                    "aggs": {
+                                        "unique_parents": {
+                                            "cardinality": {"field": "parent.id"}
+                                        }
+                                    },
+                                },
+                                "without_files": {
+                                    "filter": {"term": {"files.enabled": False}},
+                                    "aggs": {
+                                        "unique_parents": {
+                                            "cardinality": {"field": "parent.id"}
+                                        }
+                                    },
+                                },
+                                "file_count": {
+                                    "value_count": {"field": "files.entries.key"}
+                                },
+                                "total_bytes": {"sum": {"field": "files.entries.size"}},
+                                **(
+                                    {
+                                        "label": {
+                                            "top_hits": {
+                                                "size": 1,
+                                                "_source": {
+                                                    "includes": (
+                                                        records_config[
+                                                            "label_source_includes"
+                                                        ]
+                                                        if records_config.get(
+                                                            "label_source_includes"
+                                                        )
+                                                        else [field]
+                                                    )
+                                                },
+                                            }
+                                        }
+                                    }
+                                    if records_config.get("label_field")
+                                    else {}
+                                ),
                             },
                         }
-                    },
-                },
-            },
-            "by_access_status": {
-                "terms": {"field": "access_status", "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
-            },
-            "by_languages": {
-                "terms": {"field": "languages.id", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": ["languages.title", "languages.id"]
+                else:
+                    # Standard single field aggregation
+                    sub_aggs[subcount_key] = {
+                        "terms": {"field": records_config["field"]},
+                        "aggs": {
+                            "with_files": {
+                                "filter": {"term": {"files.enabled": True}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
                             },
-                        }
-                    },
-                },
-            },
-            "by_subjects": {
-                "terms": {"field": "subjects.id", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["subjects.title", "subjects.id"]},
-                        }
-                    },
-                },
-            },
-            "by_licenses": {
-                "terms": {"field": "rights.id", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["rights.title", "rights.id"]},
-                        }
-                    },
-                },
-            },
-            "by_funder_id": {
-                "terms": {"field": "funders.id", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["funders.name", "funders.id"]},
-                        }
-                    },
-                },
-            },
-            "by_funder_name": {
-                "terms": {"field": "funders.name", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {"includes": ["funders.name", "funders.id"]},
-                        }
-                    },
-                },
-            },
-            "by_periodicals": {
-                "terms": {"field": "journal_title", "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
-            },
-            "by_publishers": {
-                "terms": {"field": "publisher", "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
-            },
-            "by_affiliation_id": {
-                "terms": {"field": "affiliations.id", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": [
-                                    "affiliations.name",
-                                    "affiliations.id",
-                                ]
+                            "without_files": {
+                                "filter": {"term": {"files.enabled": False}},
+                                "aggs": {
+                                    "unique_parents": {
+                                        "cardinality": {"field": "parent.id"}
+                                    }
+                                },
                             },
-                        }
-                    },
-                },
-            },
-            "by_affiliation_name": {
-                "terms": {"field": "affiliations.name", "size": 1000},
-                "aggs": {
-                    **self._get_download_metrics_dict(),
-                    "label": {
-                        "top_hits": {
-                            "size": 1,
-                            "_source": {
-                                "includes": [
-                                    "affiliations.name",
-                                    "affiliations.id",
-                                ]
+                            "file_count": {
+                                "value_count": {"field": "files.entries.key"}
                             },
-                        }
+                            "total_bytes": {"sum": {"field": "files.entries.size"}},
+                            **(
+                                {
+                                    "label": {
+                                        "top_hits": {
+                                            "size": 1,
+                                            "_source": {
+                                                "includes": (
+                                                    records_config[
+                                                        "label_source_includes"
+                                                    ]
+                                                    if records_config.get(
+                                                        "label_source_includes"
+                                                    )
+                                                    else [records_config["field"]]
+                                                )
+                                            },
+                                        }
+                                    }
+                                }
+                                if records_config.get("label_field")
+                                else {}
+                            ),
+                        },
+                    }
+
+        return sub_aggs
+
+    def build_query(
+        self,
+        start_date: str,
+        end_date: str,
+        community_id: str | None = None,
+        find_deleted: bool = False,
+        use_included_dates: bool = False,
+        use_published_dates: bool = False,
+    ) -> Search:
+        """Build the query for a delta of records using events index.
+
+        This function first queries the events index to find relevant record IDs,
+        then builds a query for the records index using those IDs.
+
+        For global community queries (community_id="global"), this function uses
+        the events index when use_published_dates=True (since we now have global
+        events with parsed publication dates), otherwise uses record date fields directly.
+
+        Args:
+            start_date (str): The start date to query.
+            end_date (str): The end date to query.
+            community_id (str, optional): The community ID. If "global", uses events index
+                when use_published_dates=True, otherwise uses record date fields directly.
+            find_deleted (bool, optional): Whether to find deleted records.
+            use_included_dates (bool, optional): Whether to use the dates when the record
+                was included to the community instead of the created date.
+                (Ignored for global queries)
+            use_published_dates (bool, optional): Whether to use the metadata publication
+                date instead of the created date.
+            client: The OpenSearch client to use.
+
+        Returns:
+            dict: The query for the daily record delta counts.
+        """
+        if community_id is None:
+            raise ValueError("community_id must not be None")
+
+        must_clauses = self._get_must_clauses(
+            start_date,
+            end_date,
+            community_id,
+            find_deleted,
+            use_included_dates,
+            use_published_dates,
+        )
+
+        sub_aggregations = self._get_sub_aggregations()
+
+        query = {
+            "size": 0,
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                }
+            },
+            "aggs": {
+                "total_records": {"value_count": {"field": "_id"}},
+                "with_files": {
+                    "filter": {"term": {"files.enabled": True}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "without_files": {
+                    "filter": {"term": {"files.enabled": False}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "uploaders": {
+                    "cardinality": {"field": "parent.access.owned_by.user"},
+                },
+                "file_count": {
+                    "value_count": {"field": "files.entries.key"},
+                },
+                "total_bytes": {"sum": {"field": "files.entries.size"}},
+                **sub_aggregations,
+                "by_file_types": {
+                    "terms": {"field": "files.entries.ext"},
+                    "aggs": {
+                        "unique_records": {"cardinality": {"field": "_id"}},
+                        "unique_parents": {"cardinality": {"field": "parent.id"}},
+                        "total_bytes": {"sum": {"field": "files.entries.size"}},
                     },
                 },
-            },
-            "by_countries": {
-                "terms": {"field": "country", "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
-            },
-            "by_referrers": {
-                "terms": {"field": "referrer", "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
-            },
-            "by_file_types": {
-                "terms": {"field": "file_type", "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
             },
         }
+
+        search = Search(using=self.client, index=self.event_index)
+        search.update_from_dict(query)
+
+        return search
+
+
+class CommunityRecordSnapshotQuery:
+    """Query builder for community record snapshot aggregation.
+
+    This class encapsulates the logic for building queries needed by the
+    CommunityRecordSnapshotAggregator, including queries for last snapshot
+    documents, daily deltas, and dependency checking.
+    """
+
+    def __init__(
+        self,
+        client=None,
+        event_index=None,
+        subcount_configs=None,
+    ):
+        """Initialize the query builder.
+
+        Args:
+            client: The OpenSearch client to use.
+        """
+        if client is None:
+            client = current_search_client
+        self.client = client
+        self.event_index = event_index
+        self.subcount_configs = (
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        )
+
+    def _get_must_clauses(
+        self,
+        start_date: str,
+        end_date: str,
+        community_id: str,
+        find_deleted: bool,
+        use_included_dates: bool,
+        use_published_dates: bool,
+    ) -> list[dict]:
+        """Get the must clauses for the query.
+
+        Args:
+            start_date (str): The start date to query.
+            end_date (str): The end date to query.
+            community_id (str, optional): The community ID. If "global", uses events index
+                when use_published_dates=True, otherwise uses record date fields directly.
+            find_deleted (bool, optional): Whether to find deleted records.
+            use_included_dates (bool, optional): Whether to use the dates when the record
+                was included to the community instead of the created date.
+            use_published_dates (bool, optional): Whether to use the metadata publication
+                date instead of the created date.
+
+        Returns:
+            list[dict]: The must clauses for the query.
+        """
+        must_clauses: list[dict] = []
+
+        # For global queries with use_published_dates=True, use the events index
+        # since we now have global events with properly parsed publication dates
+        if community_id == "global" and use_published_dates:
+            # Get relevant record IDs from the events index
+            record_ids = get_relevant_record_ids_from_events(
+                start_date=start_date,
+                end_date=end_date,
+                community_id="global",
+                find_deleted=find_deleted,
+                use_included_dates=use_included_dates,
+                use_published_dates=use_published_dates,
+                client=self.client,
+            )
+
+            # If no records found, return empty query
+            if not record_ids:
+                # Use an impossible query that will return no results but still execute aggregations
+                must_clauses = [{"term": {"_id": "no-matching-records"}}]
+            else:
+                # Build the query for the records index using the found record IDs
+                must_clauses = [
+                    {"terms": {"id": list(record_ids)}},
+                    {"term": {"is_published": True}},
+                ]
+        elif community_id == "global":
+            # For global queries without use_published_dates, use record date fields directly
+            # Field to use to find the period's records
+            date_series_field = "created"
+            if find_deleted:
+                date_series_field = "tombstone.removal_date"
+
+            must_clauses: list[dict] = []
+            if find_deleted:
+                must_clauses.append(
+                    {
+                        "bool": {
+                            "must": [
+                                {
+                                    "range": {
+                                        "tombstone.removal_date": {"lte": end_date}
+                                    }
+                                },
+                                {"range": {date_series_field: {"lte": end_date}}},
+                                {"term": {"is_published": True}},
+                            ],
+                        }
+                    }
+                )
+            else:
+                must_clauses.append(
+                    {
+                        "bool": {
+                            "must": [
+                                {"range": {date_series_field: {"lte": end_date}}},
+                                {"term": {"is_published": True}},
+                            ]
+                        }
+                    }
+                )
+        else:
+            # Get relevant record IDs from the events index
+            record_ids = get_relevant_record_ids_from_events(
+                start_date=start_date,
+                end_date=end_date,
+                community_id=community_id,
+                find_deleted=find_deleted,
+                use_included_dates=use_included_dates,
+                use_published_dates=use_published_dates,
+                client=self.client,
+            )
+
+            # If no records found, return empty query
+            if not record_ids:
+                # Use an impossible query that will return no results but still execute aggregations
+                must_clauses = [{"term": {"_id": "no-matching-records"}}]
+            else:
+                # Build the query for the records index using the found record IDs
+                must_clauses = [
+                    {"terms": {"id": list(record_ids)}},
+                    {"term": {"is_published": True}},
+                ]
+
+        return must_clauses
+
+    def _make_subcount_aggregation(self, records_config: dict, field: str) -> dict:
+        """Make one subcount aggregation for the query."""
+        subcount = {
+            "terms": {"field": field},
+            "aggs": {
+                "without_files": {
+                    "filter": {"term": {"files.enabled": False}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "with_files": {
+                    "filter": {"term": {"files.enabled": True}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "file_count": {"value_count": {"field": "files.entries.key"}},
+                "total_bytes": {"sum": {"field": "files.entries.size"}},
+            },
+        }
+
+        if records_config.get("label_field"):
+            subcount["aggs"]["label"] = {
+                "top_hits": {
+                    "size": 1,
+                    "_source": {
+                        "includes": (
+                            records_config["label_source_includes"]
+                            if records_config.get("label_source_includes")
+                            else [field]
+                        )
+                    },
+                }
+            }
+
+        return subcount
+
+    def _get_sub_aggregations(
+        self,
+    ) -> dict:
+        """Get the sub aggregations for the query."""
+        sub_aggs: dict = {}
+
+        for config in self.subcount_configs.values():
+            if (
+                "records" in config.keys()
+                and "delta_aggregation_name" in config["records"].keys()
+            ):
+                records_config = config["records"]
+                subcount_key = records_config["delta_aggregation_name"]
+
+                # Handle combined subfield queries (like affiliations)
+                # That use multiple subfield aggregations to be combined later
+                if records_config.get("combine_queries"):
+                    for field in records_config["combine_queries"]:
+                        field_name = field.split(".")[-1]
+                        agg_name = f"by_{field_name}"
+                        sub_aggs[agg_name] = self._make_subcount_aggregation(
+                            records_config, field
+                        )
+                else:
+                    sub_aggs[subcount_key] = self._make_subcount_aggregation(
+                        records_config, records_config["field"]
+                    )
+
+        return sub_aggs
+
+    def build_query(
+        self,
+        start_date: str,
+        end_date: str,
+        community_id: str | None = None,
+        find_deleted: bool = False,
+        use_included_dates: bool = False,
+        use_published_dates: bool = False,
+    ) -> Search:
+        """Build the query for a snapshot of one day's cumulative record counts using events index.
+
+        This function first queries the events index to find relevant record IDs,
+        then builds a query for the records index using those IDs.
+
+        For global community queries (community_id="global"), this function uses
+        the events index when use_published_dates=True (since we now have global
+        events with parsed publication dates), otherwise uses record date fields directly.
+
+        Args:
+            start_date (str): The start date to query.
+            end_date (str): The end date to query.
+            community_id (str, optional): The community ID. If "global", uses events index
+                when use_published_dates=True, otherwise uses record date fields directly.
+            find_deleted (bool, optional): Whether to find deleted records.
+            use_included_dates (bool, optional): Whether to use the dates when the
+                record was included to the community instead of the created date.
+                (Ignored for global queries)
+            use_published_dates (bool, optional): Whether to use the metadata
+                publication date instead of the created date.
+            client: The OpenSearch client to use.
+
+        Returns:
+            dict: The query for the daily record cumulative counts.
+        """
+        if community_id is None:
+            raise ValueError("community_id must not be None")
+
+        must_clauses = self._get_must_clauses(
+            start_date,
+            end_date,
+            community_id,
+            find_deleted,
+            use_included_dates,
+            use_published_dates,
+        )
+
+        sub_aggregations = self._get_sub_aggregations()
+
+        query = {
+            "size": 0,
+            "query": {"bool": {"must": must_clauses}},
+            "aggs": {
+                "total_records": {"value_count": {"field": "_id"}},
+                "with_files": {
+                    "filter": {"term": {"files.enabled": True}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "without_files": {
+                    "filter": {"term": {"files.enabled": False}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "uploaders": {
+                    "cardinality": {"field": "parent.access.owned_by.user"},
+                },
+                "file_count": {
+                    "value_count": {"field": "files.entries.key"},
+                },
+                "total_bytes": {"sum": {"field": "files.entries.size"}},
+                **sub_aggregations,
+            },
+        }
+
+        search = Search(using=self.client, index=self.event_index)
+        search.update_from_dict(query)
+
+        return search
