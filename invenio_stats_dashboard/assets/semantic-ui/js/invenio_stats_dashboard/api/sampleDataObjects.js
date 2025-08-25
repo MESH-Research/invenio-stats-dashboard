@@ -83,7 +83,7 @@ const sampleRecordDelta = {
           removed: { data_volume: 0.0, file_count: 0 },
         },
         id: "eng",
-        label: "English",
+        label: {"en": "English"},
         parents: {
           added: { metadata_only: 0, with_files: 1 },
           removed: { metadata_only: 0, with_files: 0 },
@@ -137,7 +137,7 @@ const sampleRecordDelta = {
           removed: { data_volume: 0.0, file_count: 0 },
         },
         id: "textDocument-bookSection",
-        label: "Book Section",
+        label: {"en": "Book Section"},
         parents: {
           added: { metadata_only: 0, with_files: 1 },
           removed: { metadata_only: 0, with_files: 0 },
@@ -153,7 +153,7 @@ const sampleRecordDelta = {
           removed: { data_volume: 0.0, file_count: 0 },
         },
         id: "textDocument-journalArticle",
-        label: "Journal Article",
+        label: {"en": "Journal Article"},
         parents: {
           added: { metadata_only: 0, with_files: 1 },
           removed: { metadata_only: 0, with_files: 0 },
@@ -303,7 +303,7 @@ const sampleRecordSnapshot = {
       },
     ],
     all_file_types: [],
-    all_languages: [],
+    top_languages: [],
     all_rights: [],
     all_resource_types: [],
     top_affiliations: [],
@@ -382,7 +382,7 @@ const sampleUsageSnapshot = {
         },
       },
     ],
-    all_languages: [
+    top_languages: [
       {
         download: {
           total_events: 40,
@@ -393,7 +393,7 @@ const sampleUsageSnapshot = {
           unique_visitors: 40,
         },
         id: "eng",
-        label: "English",
+        label: {"en": "English"},
         view: {
           total_events: 40,
           unique_parents: 26,
@@ -413,7 +413,7 @@ const sampleUsageSnapshot = {
           unique_visitors: 40,
         },
         id: "textDocument-journalArticle",
-        label: "Journal Article",
+        label: {"en": "Journal Article"},
         view: {
           total_events: 40,
           unique_parents: 26,
@@ -431,7 +431,7 @@ const sampleUsageSnapshot = {
           unique_visitors: 20,
         },
         id: "textDocument-bookSection",
-        label: "Book Section",
+        label: {"en": "Book Section"},
         view: {
           total_events: 20,
           unique_parents: 13,
@@ -449,7 +449,7 @@ const sampleUsageSnapshot = {
           unique_visitors: 0,
         },
         id: "textDocument-book",
-        label: "Book",
+        label: {"en": "Book"},
         view: {
           total_events: 20,
           unique_parents: 13,
@@ -470,7 +470,7 @@ const sampleUsageSnapshot = {
           unique_visitors: 20,
         },
         id: "cc-by-sa-4.0",
-        label: "Creative Commons Attribution-ShareAlike 4.0 International",
+        label: {"en": "Creative Commons Attribution-ShareAlike 4.0 International"},
         view: {
           total_events: 20,
           unique_parents: 13,
@@ -490,7 +490,7 @@ const sampleUsageSnapshot = {
             unique_visitors: 20,
           },
           id: "cc-by-sa-4.0",
-          label: "Creative Commons Attribution-ShareAlike 4.0 International",
+          label: {"en": "Creative Commons Attribution-ShareAlike 4.0 International"},
           view: {
             total_events: 20,
             unique_parents: 13,
@@ -1601,7 +1601,7 @@ const sampleUsageDelta = {
           unique_visitors: 4,
         },
         id: "eng",
-        label: "English",
+        label: {"en": "English"},
         view: {
           total_events: 4,
           unique_parents: 2,
@@ -1621,7 +1621,7 @@ const sampleUsageDelta = {
           unique_visitors: 2,
         },
         id: "cc-by-sa-4.0",
-        label: "Creative Commons Attribution-ShareAlike 4.0 International",
+        label: {"en": "Creative Commons Attribution-ShareAlike 4.0 International"},
         view: {
           total_events: 2,
           unique_parents: 1,
@@ -1754,7 +1754,7 @@ const sampleUsageDelta = {
           unique_visitors: 4,
         },
         id: "textDocument-journalArticle",
-        label: "Journal Article",
+        label: {"en": "Journal Article"},
         view: {
           total_events: 4,
           unique_parents: 2,
@@ -1772,7 +1772,7 @@ const sampleUsageDelta = {
           unique_visitors: 2,
         },
         id: "textDocument-bookSection",
-        label: "Book Section",
+        label: {"en": "Book Section"},
         view: {
           total_events: 2,
           unique_parents: 1,
@@ -1790,7 +1790,7 @@ const sampleUsageDelta = {
           unique_visitors: 0,
         },
         id: "textDocument-book",
-        label: "Book",
+        label: {"en": "Book"},
         view: {
           total_events: 2,
           unique_parents: 1,

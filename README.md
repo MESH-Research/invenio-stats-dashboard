@@ -305,17 +305,17 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
 - `subcounts` (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes.
   - `all_access_status` (array[object]): Total number of records by access status
   - `all_file_types` (array[object]): Total number of records by file type
-  - `all_languages` (array[object]): Total number of records by language
   - `all_rights` (array[object]): Total number of records by rights
   - `all_resource_types` (array[object]): Total number of records by resource type
-  - `top_affiliations_contributor` (array[object]): Top 20 contributor affiliations by number of records
-  - `top_affiliations_creator` (array[object]): Top 20 creator affiliations by number of records
-  - `top_funders` (array[object]): Top 20 funders by number of records
-  - `top_periodicals` (array[object]): Top 20 journals/periodicals by number of records
-  - `top_publishers` (array[object]): Top 20 publishers by number of records
-  - `top_subjects` (array[object]): Top 20 subjects by number of records
+  - `top_languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_affiliations_contributor` (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_affiliations_creator` (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
 
-The subcount properties are named slightly differently from the delta aggregations, with the `by_` prefix removed from the property names. Instead, some the subcount properties will be prefixed with either `all_` or `top_`. The `all_` prefix indicates that the subcount includes all values for the metadata field that have been used in the community/instance to-date. For example, the `all_access_status` subcount will provide a number for all access status values that appear in any record. The `top_` prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the `top_affiliations_contributor` subcount will provide a number for the top 20 contributor affiliations that have been used in the community/instance to-date.
+The subcount properties are named slightly differently from the delta aggregations, with the `by_` prefix removed from the property names. Instead, some the subcount properties will be prefixed with either `all_` or `top_`. The `all_` prefix indicates that the subcount includes all values for the metadata field that have been used in the community/instance to-date. For example, the `all_access_status` subcount will provide a number for all access status values that appear in any record. The `top_` prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the `top_affiliations_contributor` subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 
 Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.
 
@@ -388,7 +388,7 @@ Each document is shaped like this (the documents for the three different record 
             }
           }
         ],
-        "all_languages": [],
+        "top_languages": [],
         "all_resource_types": [],
         "top_affiliations_contributor": [],
         "top_affiliations_creator": [],
@@ -402,7 +402,7 @@ Each document is shaped like this (the documents for the three different record 
 ```
 
 ```{note}
-The `top_` subcounts will in practice never be empty after the first few snapshots, since the top 20 values to-date will always be included.
+The `top_` subcounts will in practice never be empty after the first few snapshots, since the top N values to-date will always be included (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 ```
 
 #### Usage deltas
@@ -545,19 +545,19 @@ document includes:
 - `subcounts` (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes
   - `all_access_status` (array[object]): Total number of records by access status
   - `all_file_types` (array[object]): Total number of records by file type
-  - `all_languages` (array[object]): Total number of records by language
   - `all_rights` (array[object]): Total number of records by rights type
   - `all_resource_types` (array[object]): Total number of records by resource type
-  - `top_affiliations` (array[object]): Top 20 contributor affiliations by number of records
-  - `top_funders` (array[object]): Top 20 funders by number of records
-  - `top_periodicals` (array[object]): Top 20 journals/periodicals by number of records
-  - `top_publishers` (array[object]): Top 20 publishers by number of records
-  - `top_subjects` (array[object]): Top 20 subjects by number of records
-  - `top_countries` (array[object]): Top 20 countries by number of records
-  - `top_referrers` (array[object]): Top 20 referrers by number of records
+  - `top_languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_affiliations` (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_countries` (array[object]): Top N countries by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `top_referrers` (array[object]): Top N referrers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
 
 ```{note}
-Each of the `top_` subcount arrays will include objects for the top 20 values to-date, even if they do not appear in the records added on the snapshot date.
+Each of the `top_` subcount arrays will include objects for the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT), even if they do not appear in the records added on the snapshot date.
 ```
 
 Each object in the `all_` subcount arrays will have the following fields:
@@ -620,7 +620,7 @@ Each document is shaped like this:
             }
           }
         ],
-        "all_languages": [],
+        "top_languages": [],
         "all_rights": [],
         "all_resource_types": [],
         "top_affiliations": {

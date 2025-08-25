@@ -206,7 +206,7 @@
                 }
               }
             },
-            "all_languages": {
+            "top_languages": {
               "type": "nested",
               "properties": {
                 "id": {

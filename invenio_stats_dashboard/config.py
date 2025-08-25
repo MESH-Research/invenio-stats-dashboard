@@ -24,7 +24,7 @@ from .queries import (
 from .tasks import CommunityStatsAggregationTask
 
 COMMUNITY_STATS_ENABLED = True
-COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = True
+COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
 
 COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
     "stats-aggregate-community-record-stats": {
@@ -511,7 +511,7 @@ STATS_EVENTS = {
             "invenio_stats_dashboard.search_indices.search_templates.file_download"
         ),
         "event_builders": [
-            "invenio_stats_dashboard.event_builders.file_download_event_builder",
+            "invenio_stats_dashboard.search_indices.event_builders.file_download_event_builder",
             "invenio_rdm_records.resources.stats.check_if_via_api",
         ],
         "cls": EventsIndexer,
@@ -529,7 +529,7 @@ STATS_EVENTS = {
             "invenio_stats_dashboard.search_indices.search_templates.record_view"
         ),
         "event_builders": [
-            "invenio_stats_dashboard.event_builders.record_view_event_builder",
+            "invenio_stats_dashboard.search_indices.event_builders.record_view_event_builder",
             "invenio_rdm_records.resources.stats.check_if_via_api",
             "invenio_rdm_records.resources.stats.drop_if_via_api",
         ],
@@ -548,6 +548,9 @@ STATS_EVENTS = {
 STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000
 STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000
 STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 75
+
+# Number of top records to collect for "top" type subcounts
+COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
 
 COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
     "by_resource_types": {
@@ -592,14 +595,14 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
                 "metadata.languages.title",
                 "metadata.languages.id",
             ],
-            "snapshot_type": "all",
+            "snapshot_type": "top",
         },
         "usage_events": {
             "delta_aggregation_name": "by_languages",
             "field": "languages.id",
             "label_field": "languages.title",
             "label_source_includes": ["languages.title", "languages.id"],
-            "snapshot_type": "all",
+            "snapshot_type": "top",
         },
     },
     "by_subjects": {

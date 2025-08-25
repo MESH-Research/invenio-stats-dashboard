@@ -225,6 +225,33 @@ describe('transformApiData', () => {
         expect(series).toHaveProperty('type');
         expect(series).toHaveProperty('valueType');
       });
+
+      // Check that labels are properly localized strings (not objects)
+      resourceTypes.forEach(series => {
+        expect(typeof series.name).toBe('string');
+        expect(series.name).not.toBe('[object Object]');
+        expect(series.name.length).toBeGreaterThan(0);
+      });
+
+      // Check languages subcount as well
+      const languages = deltaData.languages.records;
+      if (languages.length > 0) {
+        languages.forEach(series => {
+          expect(typeof series.name).toBe('string');
+          expect(series.name).not.toBe('[object Object]');
+          expect(series.name.length).toBeGreaterThan(0);
+        });
+      }
+
+      // Check rights subcount as well
+      const rights = deltaData.rights.records;
+      if (rights.length > 0) {
+        rights.forEach(series => {
+          expect(typeof series.name).toBe('string');
+          expect(series.name).not.toBe('[object Object]');
+          expect(series.name.length).toBeGreaterThan(0);
+        });
+      }
     });
   });
 

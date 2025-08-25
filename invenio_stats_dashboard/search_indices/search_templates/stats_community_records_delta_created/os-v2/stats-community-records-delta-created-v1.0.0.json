@@ -122,7 +122,8 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "keyword"
+                                "type": "object",
+                                "dynamic": true
                             },
                             "records": {
                                 "type": "object",
@@ -306,7 +307,8 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "keyword"
+                                "type": "object",
+                                "dynamic": true
                             },
                             "records": {
                                 "type": "object",
@@ -952,37 +954,84 @@
                             "label": {
                                 "type": "keyword"
                             },
-                            "added": {
+                            "records": {
                                 "type": "object",
                                 "properties": {
-                                    "records": {
-                                        "type": "integer"
+                                    "added": {
+                                        "type": "object",
+                                        "properties": {
+                                            "metadata_only": {
+                                                "type": "integer"
+                                            },
+                                            "with_files": {
+                                                "type": "integer"
+                                            }
+                                        }
                                     },
-                                    "parents": {
-                                        "type": "integer"
-                                    },
-                                    "files": {
-                                        "type": "integer"
-                                    },
-                                    "data_volume": {
-                                        "type": "long"
+                                    "removed": {
+                                        "type": "object",
+                                        "properties": {
+                                            "metadata_only": {
+                                                "type": "integer"
+                                            },
+                                            "with_files": {
+                                                "type": "integer"
+                                            }
+                                        }
                                     }
                                 }
                             },
-                            "removed": {
+                            "parents": {
                                 "type": "object",
                                 "properties": {
-                                    "records": {
-                                        "type": "integer"
+                                    "added": {
+                                        "type": "object",
+                                        "properties": {
+                                            "metadata_only": {
+                                                "type": "integer"
+                                            },
+                                            "with_files": {
+                                                "type": "integer"
+                                            }
+                                        }
                                     },
-                                    "parents": {
-                                        "type": "integer"
+                                    "removed": {
+                                        "type": "object",
+                                        "properties": {
+                                            "metadata_only": {
+                                                "type": "integer"
+                                            },
+                                            "with_files": {
+                                                "type": "integer"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "files": {
+                                "type": "object",
+                                "properties": {
+                                    "added": {
+                                        "type": "object",
+                                        "properties": {
+                                            "file_count": {
+                                                "type": "integer"
+                                            },
+                                            "data_volume": {
+                                                "type": "long"
+                                            }
+                                        }
                                     },
-                                    "files": {
-                                        "type": "integer"
-                                    },
-                                    "data_volume": {
-                                        "type": "long"
+                                    "removed": {
+                                        "type": "object",
+                                        "properties": {
+                                            "file_count": {
+                                                "type": "integer"
+                                            },
+                                            "data_volume": {
+                                                "type": "long"
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -995,7 +1044,8 @@
                                 "type": "keyword"
                             },
                             "label": {
-                                "type": "keyword"
+                                "type": "object",
+                                "dynamic": true
                             },
                             "records": {
                                 "type": "object",

@@ -117,33 +117,69 @@
                                 }
                             }
                         },
-                        "all_languages": {
+                        "top_languages": {
                             "type": "nested",
                             "properties": {
-                                "id": {
-                                    "type": "keyword"
-                                },
-                                "label": {
-                                    "type": "keyword"
-                                },
-                                "view": {
-                                    "type": "object",
+                                "by_view": {
+                                    "type": "nested",
                                     "properties": {
-                                        "total_events": { "type": "integer" },
-                                        "unique_visitors": { "type": "integer" },
-                                        "unique_records": { "type": "integer" },
-                                        "unique_parents": { "type": "integer" }
+                                        "id": {
+                                            "type": "keyword"
+                                        },
+                                        "label": {
+                                            "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
+                                        }
                                     }
                                 },
-                                "download": {
-                                    "type": "object",
+                                "by_download": {
+                                    "type": "nested",
                                     "properties": {
-                                        "total_events": { "type": "integer" },
-                                        "unique_visitors": { "type": "integer" },
-                                        "unique_records": { "type": "integer" },
-                                        "unique_parents": { "type": "integer" },
-                                        "unique_files": { "type": "integer" },
-                                        "total_volume": { "type": "long" }
+                                        "id": {
+                                            "type": "keyword"
+                                        },
+                                        "label": {
+                                            "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
+                                        }
                                     }
                                 }
                             }

@@ -1,6 +1,8 @@
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { readableGranularDate, createUTCDate } from "../utils/dates";
 
+
+
 /**
  * Create a data point object for charting.
  *
@@ -56,6 +58,8 @@ const createDataSeriesArray = (seriesNames, dataPointsArray = [], type = 'line',
   return seriesArray;
 };
 
+
+
 /**
  * Create an array of DataSeries objects from raw subcount data.
  *
@@ -63,12 +67,13 @@ const createDataSeriesArray = (seriesNames, dataPointsArray = [], type = 'line',
  * @param {Object[]} [dataPointsArray] - Array of objects mapping subcount id to value for each date
  * @param {string} [type='line'] - Chart type for all series
  * @param {string} [valueType='number'] - Value type for all series
+ * @param {Object} [localizationMap] - Map of subcount id to localized label string
  * @returns {DataSeries[]} Array of DataSeries objects
  */
-const createDataSeriesFromItems = (subcountItems, dataPointsArray = [], type = 'line', valueType = 'number') => {
+const createDataSeriesFromItems = (subcountItems, dataPointsArray = [], type = 'line', valueType = 'number', localizationMap = {}) => {
   const seriesArray = subcountItems.map(item => ({
     id: item.id,
-    name: item.label || item.id,
+    name: localizationMap[item.id] || item.id,
     data: [],
     type,
     valueType
@@ -375,7 +380,10 @@ const transformRecordDeltaData = (deltaDocs) => {
     return 0;
   };
 
-  if (deltaDocs && Array.isArray(deltaDocs)) {
+    if (deltaDocs && Array.isArray(deltaDocs)) {
+    // Create localization map from all documents
+    const localizationMap = createLocalizationMap(deltaDocs);
+
     deltaDocs.forEach(doc => {
       const source = doc;
       const date = source.period_start.split('T')[0];
@@ -492,7 +500,8 @@ const transformRecordDeltaData = (deltaDocs) => {
             deltaData[`${targetKey}Items`],
             deltaData[`${targetKey}DataPoints`][metricType],
             'line',
-            valueType
+            valueType,
+            localizationMap
           );
         });
         // Clean up temporary data
@@ -600,7 +609,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
   const subcountTypes = {
     'all_resource_types': 'resourceTypes',
     'all_access_status': 'accessStatus',
-    'all_languages': 'languages',
+    'top_languages': 'languages',
     'top_affiliations_creator': 'affiliations',
     'top_affiliations_contributor': 'affiliations',
     'top_funders': 'funders',
@@ -644,7 +653,10 @@ const transformRecordSnapshotData = (snapshotDocs) => {
     return item.data_volume || 0;
   };
 
-  if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    // Create localization map from all documents
+    const localizationMap = createLocalizationMap(snapshotDocs);
+
     snapshotDocs.forEach(doc => {
       const source = doc;
       const date = source.snapshot_date.split('T')[0];
@@ -737,25 +749,26 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       snapshotData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
     });
 
-    // Create subcount series for each metric type
-    Object.keys(subcountTypes).forEach(subcountType => {
-      const targetKey = subcountTypes[subcountType];
-      if (snapshotData[`${targetKey}Items`] && snapshotData[`${targetKey}DataPoints`]) {
-        const metricTypes = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
-        metricTypes.forEach(metricType => {
-          const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
-          snapshotData[targetKey][metricType] = createDataSeriesFromItems(
-            snapshotData[`${targetKey}Items`],
-            snapshotData[`${targetKey}DataPoints`][metricType],
-            'line',
-            valueType
-          );
+        // Create subcount series for each metric type
+        Object.keys(subcountTypes).forEach(subcountType => {
+          const targetKey = subcountTypes[subcountType];
+          if (snapshotData[`${targetKey}Items`] && snapshotData[`${targetKey}DataPoints`]) {
+            const metricTypes = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+            metricTypes.forEach(metricType => {
+              const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
+              snapshotData[targetKey][metricType] = createDataSeriesFromItems(
+                snapshotData[`${targetKey}Items`],
+                snapshotData[`${targetKey}DataPoints`][metricType],
+                'line',
+                valueType,
+                localizationMap
+              );
+            });
+            // Clean up temporary data
+            delete snapshotData[`${targetKey}Items`];
+            delete snapshotData[`${targetKey}DataPoints`];
+          }
         });
-        // Clean up temporary data
-        delete snapshotData[`${targetKey}Items`];
-        delete snapshotData[`${targetKey}DataPoints`];
-      }
-    });
 
     // Convert global DataPoint arrays to DataSeries arrays
     snapshotData.global.records = [createGlobalSeries(snapshotData.global.records, 'bar', 'number')];
@@ -909,7 +922,10 @@ const transformUsageDeltaData = (deltaDocs) => {
     return item && item.download ? item.download.total_volume : 0;
   };
 
-  if (deltaDocs && Array.isArray(deltaDocs)) {
+    if (deltaDocs && Array.isArray(deltaDocs)) {
+    // Create localization map from all documents
+    const localizationMap = createLocalizationMap(deltaDocs);
+
     const byFilePresenceDataPoints = [];
 
     deltaDocs.forEach(doc => {
@@ -1009,7 +1025,8 @@ const transformUsageDeltaData = (deltaDocs) => {
             deltaData[`${targetKey}Items`],
             deltaData[`${targetKey}DataPoints`][metricType],
             'line',
-            valueType
+            valueType,
+            localizationMap
           );
         });
         // Clean up temporary data
@@ -1187,7 +1204,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
   const subcountTypes = {
     'all_access_status': 'byAccessStatuses',
     'all_file_types': 'byFileTypes',
-    'all_languages': 'byLanguages',
+    'top_languages': 'byLanguages',
     'all_resource_types': 'byResourceTypes',
     'top_subjects': 'bySubjects',
     'top_publishers': 'byPublishers',
@@ -1251,7 +1268,10 @@ const transformUsageSnapshotData = (snapshotDocs) => {
     return item && item.total_volume ? item.total_volume : 0;
   };
 
-  if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    if (snapshotDocs && Array.isArray(snapshotDocs)) {
+    // Create localization map from all documents
+    const localizationMap = createLocalizationMap(snapshotDocs);
+
     const byFilePresenceDataPoints = [];
 
     snapshotDocs.forEach(doc => {
@@ -1399,7 +1419,8 @@ const transformUsageSnapshotData = (snapshotDocs) => {
             snapshotData[`${targetKey}Items`],
             snapshotData[`${targetKey}DataPoints`][metricType],
             'line',
-            valueType
+            valueType,
+            localizationMap
           );
         });
         // Clean up temporary data
@@ -1421,7 +1442,8 @@ const transformUsageSnapshotData = (snapshotDocs) => {
               snapshotData[`${separateKey}Items`],
               snapshotData[`${separateKey}DataPoints`][metricType],
               'line',
-              valueType
+              valueType,
+              localizationMap
             );
           });
           // Clean up temporary data
@@ -1454,6 +1476,76 @@ const transformUsageSnapshotData = (snapshotDocs) => {
  * - By various categories (resource types, access rights, languages, etc.)
  * - Separate view/download data for usage statistics
  */
+export const extractLocalizedLabel = (label, targetLanguage) => {
+  if (typeof label === 'string') {
+    return label;
+  }
+
+  if (label && typeof label === 'object') {
+    // First, try to get the target language directly
+    if (label[targetLanguage]) {
+      return label[targetLanguage];
+    }
+
+    // If target language not available, try English as fallback
+    if (label.en) {
+      // Use i18next to translate the English string to the target language
+      return i18next.t(label.en, { lng: targetLanguage });
+    }
+
+    // If no English fallback, use the first available language
+    const availableLanguages = Object.keys(label);
+    if (availableLanguages.length > 0) {
+      const firstLanguage = availableLanguages[0];
+      const firstLabel = label[firstLanguage];
+      // Translate the first available label to the target language
+      return i18next.t(firstLabel, { lng: targetLanguage });
+    }
+  }
+
+  return '';
+};
+
+export const createLocalizationMap = (docs) => {
+  const localizationMap = {};
+  const currentLanguage = i18next.language || 'en';
+
+  // Collect all unique subcount items from all documents
+  const allSubcountItems = {};
+
+  docs.forEach(doc => {
+    if (doc.subcounts) {
+      Object.keys(doc.subcounts).forEach(subcountType => {
+        const subcountSeries = doc.subcounts[subcountType];
+        if (subcountSeries && Array.isArray(subcountSeries)) {
+          if (!allSubcountItems[subcountType]) {
+            allSubcountItems[subcountType] = [];
+          }
+          subcountSeries.forEach(item => {
+            if (!allSubcountItems[subcountType].find(existing => existing.id === item.id)) {
+              allSubcountItems[subcountType].push(item);
+            }
+          });
+        }
+      });
+    }
+  });
+
+  // Process each subcount category to create the localization map
+  Object.keys(allSubcountItems).forEach(categoryKey => {
+    const subcountItems = allSubcountItems[categoryKey];
+    if (Array.isArray(subcountItems)) {
+      subcountItems.forEach(item => {
+        if (item.id && item.label) {
+          localizationMap[item.id] = extractLocalizedLabel(item.label, currentLanguage);
+        }
+      });
+    }
+  });
+
+  return localizationMap;
+};
+
 export const transformApiData = (rawStats) => {
 
   const returnData = {

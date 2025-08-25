@@ -60,7 +60,10 @@
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
-                                "label": { "type": "keyword" },
+                                "label": {
+                                    "type": "object",
+                                    "dynamic": true
+                                },
                                 "view": {
                                     "type": "object",
                                     "properties": {
@@ -114,7 +117,10 @@
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
-                                "label": { "type": "keyword" },
+                                "label": {
+                                    "type": "object",
+                                    "dynamic": true
+                                },
                                 "view": {
                                     "type": "object",
                                     "properties": {
@@ -168,7 +174,10 @@
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
-                                "label": { "type": "keyword" },
+                                "label": {
+                                    "type": "object",
+                                    "dynamic": true
+                                },
                                 "view": {
                                     "type": "object",
                                     "properties": {
