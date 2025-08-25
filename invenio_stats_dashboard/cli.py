@@ -19,6 +19,7 @@ from opensearchpy.helpers.search import Search
 from .proxies import current_community_stats_service, current_event_reindexing_service
 from .services.usage_reindexing import EventReindexingService
 from .tasks import reindex_usage_events_with_metadata
+from .utils.process_manager import ProcessManager, ProcessMonitor
 
 
 def check_stats_enabled():
@@ -46,7 +47,7 @@ def cli():
     pass
 
 
-@cli.command(name="generate-events")
+@cli.command(name="generate-community-events")
 @click.option(
     "--community-id",
     type=str,
@@ -62,7 +63,7 @@ def cli():
     "Can be specified multiple times.",
 )
 @with_appcontext
-def generate_events_command(community_id, record_ids):
+def generate_community_events_command(community_id, record_ids):
     """
     Generate community events for all records in the instance.
     """
@@ -71,6 +72,320 @@ def generate_events_command(community_id, record_ids):
         community_ids=list(community_id) if community_id else None,
         recids=list(record_ids) if record_ids else None,
     )
+
+
+@cli.command(name="generate-community-events-background")
+@click.option(
+    "--community-id",
+    type=str,
+    multiple=True,
+    help="The ID of the community to generate events for. "
+    "Can be specified multiple times.",
+)
+@click.option(
+    "--record-ids",
+    type=str,
+    multiple=True,
+    help="The IDs of the records to generate events for. "
+    "Can be specified multiple times.",
+)
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory to store PID and status files.",
+)
+@with_appcontext
+def generate_community_events_background_command(community_id, record_ids, pid_dir):
+    """Start community event generation in the background with process management.
+
+    This command provides the same functionality as generate-community-events but runs
+    in the background with full process management capabilities.
+    """
+    check_stats_enabled()
+
+    # Build the command to run
+    cmd = [
+        "invenio",
+        "community-stats",
+        "generate-community-events",
+    ]
+
+    if community_id:
+        for cid in community_id:
+            cmd.extend(["--community-id", cid])
+
+    if record_ids:
+        for rid in record_ids:
+            cmd.extend(["--record-ids", rid])
+
+    process_manager = ProcessManager(
+        "community-event-generation", pid_dir, package_prefix="invenio-community-stats"
+    )
+
+    try:
+        pid = process_manager.start_background_process(cmd)
+        click.echo("\n🎯 Background event generation started successfully!")
+        click.echo(f"Process ID: {pid}")
+        click.echo(f"Command: {' '.join(cmd)}")
+
+        click.echo("\n📊 Monitor progress:")
+        click.echo(
+            "  invenio community-stats process-status community-event-generation"
+        )
+        click.echo(
+            "  invenio community-stats process-status "
+            "community-event-generation --show-log"
+        )
+
+        click.echo("\n🛑 Cancel if needed:")
+        click.echo(
+            "  invenio community-stats cancel-process community-event-generation"
+        )
+
+    except RuntimeError as e:
+        click.echo(f"❌ Failed to start background event generation: {e}")
+        return 1
+
+    except Exception as e:
+        click.echo(f"❌ Unexpected error: {e}")
+        return 1
+
+
+@cli.command(name="generate-usage-events")
+@click.option(
+    "--start-date",
+    type=str,
+    help="Start date for filtering records by creation date (YYYY-MM-DD). "
+    "If not provided, uses earliest record creation date.",
+)
+@click.option(
+    "--end-date",
+    type=str,
+    help="End date for filtering records by creation date (YYYY-MM-DD). "
+    "If not provided, uses current date.",
+)
+@click.option(
+    "--event-start-date",
+    type=str,
+    help="Start date for event timestamps (YYYY-MM-DD). "
+    "If not provided, uses start-date.",
+)
+@click.option(
+    "--event-end-date",
+    type=str,
+    help="End date for event timestamps (YYYY-MM-DD). "
+    "If not provided, uses end-date.",
+)
+@click.option(
+    "--events-per-record",
+    type=int,
+    default=5,
+    help="Number of events to generate per record (default: 5).",
+)
+@click.option(
+    "--max-records",
+    type=int,
+    default=0,
+    help="Maximum number of records to process (default: 0 = all records).",
+)
+@click.option(
+    "--enrich-events",
+    is_flag=True,
+    help="Enrich events with additional data matching extended fields.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Generate events but don't index them.",
+)
+@with_appcontext
+def generate_usage_events_command(
+    start_date,
+    end_date,
+    event_start_date,
+    event_end_date,
+    events_per_record,
+    max_records,
+    enrich_events,
+    dry_run,
+):
+    """Generate synthetic usage events (view/download) for testing purposes."""
+    check_stats_enabled()
+
+    from .utils.usage_events import UsageEventFactory
+
+    click.echo("🎯 Starting usage event generation...")
+    click.echo(f"Events per record: {events_per_record}")
+    if max_records > 0:
+        click.echo(f"Max records to process: {max_records}")
+    if start_date:
+        click.echo(f"Record creation start date: {start_date}")
+    if end_date:
+        click.echo(f"Record creation end date: {end_date}")
+    if event_start_date:
+        click.echo(f"Event timestamp start date: {event_start_date}")
+    if event_end_date:
+        click.echo(f"Event timestamp end date: {event_end_date}")
+    click.echo(f"Enrich events: {enrich_events}")
+    click.echo(f"Dry run: {dry_run}")
+
+    try:
+        factory = UsageEventFactory()
+
+        if dry_run:
+            click.echo("\n📊 Generating events (dry run)...")
+            events = factory.generate_repository_events(
+                start_date=start_date or "",
+                end_date=end_date or "",
+                events_per_record=events_per_record,
+                max_records=max_records,
+                enrich_events=enrich_events,
+                event_start_date=event_start_date or "",
+                event_end_date=event_end_date or "",
+            )
+
+            total_events = len(events)
+            click.echo("✅ Dry run completed successfully!")
+            click.echo(f"Generated {total_events} events")
+            click.echo("No events were indexed (dry run mode)")
+        else:
+            click.echo("\n📊 Generating and indexing events...")
+            result = factory.generate_and_index_repository_events(
+                start_date=start_date or "",
+                end_date=end_date or "",
+                events_per_record=events_per_record,
+                max_records=max_records,
+                enrich_events=enrich_events,
+                event_start_date=event_start_date or "",
+                event_end_date=event_end_date or "",
+            )
+
+            click.echo("✅ Usage event generation completed successfully!")
+            click.echo(f"Indexed: {result.get('indexed', 0)} events")
+            if result.get("errors", 0) > 0:
+                click.echo(f"Errors: {result.get('errors', 0)} events")
+
+    except Exception as e:
+        click.echo(f"❌ Error generating usage events: {e}")
+        raise
+
+
+@cli.command(name="generate-usage-events-background")
+@click.option(
+    "--start-date",
+    type=str,
+    help="Start date for filtering records by creation date (YYYY-MM-DD). "
+    "If not provided, uses earliest record creation date.",
+)
+@click.option(
+    "--end-date",
+    type=str,
+    help="End date for filtering records by creation date (YYYY-MM-DD). "
+    "If not provided, uses current date.",
+)
+@click.option(
+    "--event-start-date",
+    type=str,
+    help="Start date for event timestamps (YYYY-MM-DD). "
+    "If not provided, uses start-date.",
+)
+@click.option(
+    "--event-end-date",
+    type=str,
+    help="End date for event timestamps (YYYY-MM-DD). "
+    "If not provided, uses end-date.",
+)
+@click.option(
+    "--events-per-record",
+    type=int,
+    default=5,
+    help="Number of events to generate per record (default: 5).",
+)
+@click.option(
+    "--max-records",
+    type=int,
+    default=0,
+    help="Maximum number of records to process (default: 0 = all records).",
+)
+@click.option(
+    "--enrich-events",
+    is_flag=True,
+    help="Enrich events with additional data matching extended fields.",
+)
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory to store PID and status files.",
+)
+@with_appcontext
+def generate_usage_events_background_command(
+    start_date,
+    end_date,
+    event_start_date,
+    event_end_date,
+    events_per_record,
+    max_records,
+    enrich_events,
+    pid_dir,
+):
+    """Start usage event generation in the background with process management.
+
+    This command provides the same functionality as generate-usage-events but runs
+    in the background with full process management capabilities.
+    """
+    check_stats_enabled()
+
+    # Build the command to run
+    cmd = [
+        "invenio",
+        "community-stats",
+        "generate-usage-events",
+        "--events-per-record",
+        str(events_per_record),
+    ]
+
+    if start_date:
+        cmd.extend(["--start-date", start_date])
+    if end_date:
+        cmd.extend(["--end-date", end_date])
+    if event_start_date:
+        cmd.extend(["--event-start-date", event_start_date])
+    if event_end_date:
+        cmd.extend(["--event-end-date", event_end_date])
+    if max_records > 0:
+        cmd.extend(["--max-records", str(max_records)])
+    if enrich_events:
+        cmd.append("--enrich-events")
+
+    # Create process manager
+    process_manager = ProcessManager(
+        "usage-event-generation", pid_dir, package_prefix="invenio-community-stats"
+    )
+
+    try:
+        pid = process_manager.start_background_process(cmd)
+        click.echo("\n🎯 Background usage event generation started successfully!")
+        click.echo(f"Process ID: {pid}")
+        click.echo(f"Command: {' '.join(cmd)}")
+
+        click.echo("\n📊 Monitor progress:")
+        click.echo("  invenio community-stats process-status usage-event-generation")
+        click.echo(
+            "  invenio community-stats process-status usage-event-generation --show-log"
+        )
+
+        click.echo("\n🛑 Cancel if needed:")
+        click.echo("  invenio community-stats cancel-process usage-event-generation")
+
+    except RuntimeError as e:
+        click.echo(f"❌ Failed to start background usage event generation: {e}")
+        return 1
+
+    except Exception as e:
+        click.echo(f"❌ Unexpected error: {e}")
+        return 1
 
 
 @cli.command(name="aggregate-stats")
@@ -627,8 +942,6 @@ def estimate_migration_command():
 )
 def process_status_command(process_name, show_log, log_lines, pid_dir):
     """Show the status of a background process."""
-    from .utils.process_manager import ProcessMonitor
-
     monitor = ProcessMonitor(process_name, pid_dir)
     monitor.show_status(show_log=show_log, log_lines=log_lines)
 
@@ -649,8 +962,6 @@ def process_status_command(process_name, show_log, log_lines, pid_dir):
 )
 def cancel_process_command(process_name, timeout, pid_dir):
     """Cancel a running background process."""
-    from .utils.process_manager import ProcessManager
-
     process_manager = ProcessManager(process_name, pid_dir)
 
     if process_manager.cancel_process(timeout=timeout):
@@ -784,8 +1095,6 @@ def migrate_events_background_command(
         cmd.extend(["--event-types", event_type])
 
     # Create process manager
-    from .utils.process_manager import ProcessManager
-
     process_manager = ProcessManager(
         "event-migration", pid_dir, package_prefix="invenio-community-stats"
     )

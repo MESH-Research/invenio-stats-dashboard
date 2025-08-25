@@ -757,7 +757,7 @@ multiple possible methods.
 
 The module includes a CommunityStatsService class that provides a programmatic interface to the statistics data, accessed via the `current_community_stats_service` proxy. The class exposes the following public methods:
 
-- `generate_record_community_events`: Creates community add/remove events for all records in the instance that do not already have events. Can be run via the `invenio community-stats generate-events` CLI command.
+- `generate_record_community_events`: Creates community add/remove events for all records in the instance that do not already have events. Can be run via the `invenio community-stats generate-community-events` CLI command.
 - `aggregate_stats`: Manually triggers the aggregation of statistics for a community or instance. Can be run via the `invenio community-stats aggregate-stats` CLI command.
 - `read_stats`: Reads the statistics data for a community or instance. Can be run via the `invenio community-stats read-stats` CLI command.
 
@@ -860,7 +860,7 @@ If the service hits the maximum number of batches before a monthly index is comp
 ### Initial aggregation of historical data
 
 - `CommunityStatsService.generate_record_community_events` creates community add/remove events for all records in the instance that do not already have events
-    - can be run manually via the `invenio community-stats generate-events` CLI command
+    - can be run manually via the `invenio community-stats generate-community-events` CLI command
 - At the start of each aggregator's `run` method, the class checks that the `stats-community-events` index is up-to-date with the latest records in the community/instance. If it is not, the class will call `CommunityStatsService.generate_record_community_events` to create the missing events before proceeding with the aggregation.
 
 ## Usage
@@ -1265,6 +1265,45 @@ invenio community-stats migrate-events --event-types view
 invenio community-stats migrate-events --async --batch-size 500 --max-memory-percent 70
 ```
 
+#### `migrate-events-background`
+
+Start event migration in the background with full process management capabilities. This command provides the same functionality as `migrate-events` but runs in the background with monitoring and control features.
+
+```bash
+invenio community-stats migrate-events-background [OPTIONS]
+```
+
+**Options:**
+- `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
+- `--max-batches, -b`: Maximum batches to process per month
+- `--batch-size`: Number of events to process per batch (default: 1000)
+- `--max-memory-percent`: Maximum memory usage percentage before stopping (default: 85)
+- `--delete-old-indices`: Delete old indices after migration
+- `--pid-dir`: Directory to store PID and status files (default: `/tmp`)
+
+**Examples:**
+```bash
+# Start background migration for all event types
+invenio community-stats migrate-events-background
+
+# Start background migration with custom settings
+invenio community-stats migrate-events-background \
+  --event-types view download \
+  --batch-size 500 \
+  --max-memory-percent 70 \
+  --max-batches 100
+
+# Use custom PID directory
+invenio community-stats migrate-events-background \
+  --pid-dir /var/run/invenio-community-stats
+```
+
+**Process Management:**
+- Process name: `event-migration`
+- Monitor progress: `invenio community-stats process-status event-migration`
+- Cancel process: `invenio community-stats cancel-process event-migration`
+- View logs: `invenio community-stats process-status event-migration --show-log`
+
 #### `migrate-month`
 
 Migrate a specific monthly download or view event index.
@@ -1402,14 +1441,91 @@ Rough time estimate: 3.2 hours
 (This is a very conservative estimate - actual time may vary significantly)
 ```
 
+### Process Management Commands
+
+These commands provide monitoring and control capabilities for background processes started with the `*-background` commands.
+
+#### `process-status`
+
+Monitor the status of a running background process.
+
+```bash
+invenio community-stats process-status <process-name> [OPTIONS]
+```
+
+**Arguments:**
+- `process-name`: Name of the process to monitor (e.g., `event-migration`, `community-event-generation`)
+
+**Options:**
+- `--show-log`: Show recent log output from the process
+- `--log-lines`: Number of log lines to show (default: 20)
+- `--pid-dir`: Directory containing PID and status files (default: `/tmp`)
+
+**Examples:**
+```bash
+# Check basic status
+invenio community-stats process-status event-migration
+
+# Show recent logs
+invenio community-stats process-status event-migration --show-log
+
+# Show more log lines
+invenio community-stats process-status event-migration --show-log --log-lines 50
+```
+
+#### `cancel-process`
+
+Gracefully cancel a running background process.
+
+```bash
+invenio community-stats cancel-process <process-name> [OPTIONS]
+```
+
+**Arguments:**
+- `process-name`: Name of the process to cancel (e.g., `event-migration`, `community-event-generation`)
+
+**Options:**
+- `--timeout`: Seconds to wait for graceful shutdown before force kill (default: 30)
+- `--pid-dir`: Directory containing PID files (default: `/tmp`)
+
+**Examples:**
+```bash
+# Cancel with default timeout
+invenio community-stats cancel-process event-migration
+
+# Cancel with custom timeout
+invenio community-stats cancel-process event-migration --timeout 60
+```
+
+#### `list-processes`
+
+List all currently running background processes.
+
+```bash
+invenio community-stats list-processes [OPTIONS]
+```
+
+**Options:**
+- `--pid-dir`: Directory containing PID files (default: `/tmp`)
+- `--package-only`: Only show processes managed by invenio-stats-dashboard
+
+**Examples:**
+```bash
+# List all processes
+invenio community-stats list-processes
+
+# List only package processes
+invenio community-stats list-processes --package-only
+```
+
 ### Community Add/Remove Events Commands
 
-#### `generate-events`
+#### `generate-community-events`
 
 Generate community add/remove events for all records in the instance or specific records/communities. This generates randomized synthetic data for testing purposes.
 
 ```bash
-invenio community-stats generate-events [OPTIONS]
+invenio community-stats generate-community-events [OPTIONS]
 ```
 
 **Options:**
@@ -1419,17 +1535,133 @@ invenio community-stats generate-events [OPTIONS]
 **Examples:**
 ```bash
 # Generate events for all records
-invenio community-stats generate-events
+invenio community-stats generate-community-events
 
 # Generate events for specific community
-invenio community-stats generate-events --community-id my-community-slug
+invenio community-stats generate-community-events --community-id my-community-slug
 
 # Generate events for specific records
-invenio community-stats generate-events --record-ids abc123 def456 ghi789
+invenio community-stats generate-community-events --record-ids abc123 def456 ghi789
 
 # Generate events for multiple communities
-invenio community-stats generate-events --community-id comm1 --community-id comm2
+invenio community-stats generate-community-events --community-id comm1 --community-id comm2
 ```
+
+#### `generate-community-events-background`
+
+Start community event generation in the background with full process management capabilities. This command provides the same functionality as `generate-community-events` but runs in the background with monitoring and control features.
+
+```bash
+invenio community-stats generate-community-events-background [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: The UUID or slug of the community to generate events for. Can be specified multiple times.
+- `--record-ids`: The IDs of the records to generate events for. Can be specified multiple times.
+- `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
+
+**Examples:**
+```bash
+# Start background event generation for all records
+invenio community-stats generate-community-events-background
+
+# Start background event generation for specific community
+invenio community-stats generate-community-events-background --community-id my-community-slug
+
+# Start background event generation for specific records
+invenio community-stats generate-community-events-background --record-ids abc123 def456 ghi789
+
+# Use custom PID directory
+invenio community-stats generate-community-events-background --pid-dir /var/run/invenio-community-stats
+```
+
+**Process Management:**
+- Process name: `community-event-generation`
+- Monitor progress: `invenio community-stats process-status community-event-generation`
+- Cancel process: `invenio community-stats cancel-process community-event-generation`
+- View logs: `invenio community-stats process-status community-event-generation --show-log`
+
+### Usage Event Generation Commands
+
+#### `generate-usage-events`
+
+Generate synthetic usage events (view/download) for testing purposes using the UsageEventFactory.
+
+```bash
+invenio community-stats generate-usage-events [OPTIONS]
+```
+
+**Options:**
+- `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
+- `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
+- `--event-start-date`: Start date for event timestamps (YYYY-MM-DD). If not provided, uses start-date.
+- `--event-end-date`: End date for event timestamps (YYYY-MM-DD). If not provided, uses end-date.
+- `--events-per-record`: Number of events to generate per record (default: 5).
+- `--max-records`: Maximum number of records to process (default: 0 = all records).
+- `--enrich-events`: Enrich events with additional data matching extended fields.
+- `--dry-run`: Generate events but don't index them.
+
+**Examples:**
+```bash
+# Generate 5 events per record for all records
+invenio community-stats generate-usage-events
+
+# Generate events for specific date range
+invenio community-stats generate-usage-events \
+  --start-date 2024-01-01 \
+  --end-date 2024-01-31 \
+  --events-per-record 10
+
+# Dry run to see what would be generated
+invenio community-stats generate-usage-events --dry-run
+
+# Generate enriched events for limited records
+invenio community-stats generate-usage-events \
+  --max-records 100 \
+  --enrich-events \
+  --events-per-record 3
+```
+
+#### `generate-usage-events-background`
+
+Start usage event generation in the background with full process management capabilities. This command provides the same functionality as `generate-usage-events` but runs in the background with monitoring and control features.
+
+```bash
+invenio community-stats generate-usage-events-background [OPTIONS]
+```
+
+**Options:**
+- `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
+- `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
+- `--event-start-date`: Start date for event timestamps (YYYY-MM-DD). If not provided, uses start-date.
+- `--event-end-date`: End date for event timestamps (YYYY-MM-DD). If not provided, uses end-date.
+- `--events-per-record`: Number of events to generate per record (default: 5).
+- `--max-records`: Maximum number of records to process (default: 0 = all records).
+- `--enrich-events`: Enrich events with additional data matching extended fields.
+- `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
+
+**Examples:**
+```bash
+# Start background usage event generation
+invenio community-stats generate-usage-events-background
+
+# Start with custom parameters
+invenio community-stats generate-usage-events-background \
+  --start-date 2024-01-01 \
+  --end-date 2024-01-31 \
+  --events-per-record 10 \
+  --enrich-events
+
+# Use custom PID directory
+invenio community-stats generate-usage-events-background \
+  --pid-dir /var/run/invenio-community-stats
+```
+
+**Process Management:**
+- Process name: `usage-event-generation`
+- Monitor progress: `invenio community-stats process-status usage-event-generation`
+- Cancel process: `invenio community-stats cancel-process usage-event-generation`
+- View logs: `invenio community-stats process-status usage-event-generation --show-log`
 
 ### Statistics Commands
 
