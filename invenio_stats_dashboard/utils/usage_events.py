@@ -5,7 +5,6 @@ import random
 from typing import Optional
 
 import arrow
-
 from invenio_access.permissions import system_identity
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search.proxies import current_search_client
@@ -89,10 +88,24 @@ class UsageEventFactory:
         record: dict, event_date: arrow.Arrow, ident: int
     ) -> dict:
         """Create base event data common to all event types."""
-        event_time = arrow.get(event_date).shift(
-            hours=random.randint(0, 23),
-            minutes=random.randint(0, 59),
-            seconds=random.randint(0, 59),
+        # Ensure event time is not in the future
+        current_time = arrow.utcnow()
+        event_date_arrow = arrow.get(event_date)
+
+        # If event_date is today, limit random time to current time
+        if event_date_arrow.date() == current_time.date():
+            max_hour = current_time.hour
+            max_minute = current_time.minute
+            max_second = current_time.second
+        else:
+            max_hour = 23
+            max_minute = 59
+            max_second = 59
+
+        event_time = event_date_arrow.shift(
+            hours=random.randint(0, max_hour),
+            minutes=random.randint(0, max_minute),
+            seconds=random.randint(0, max_second),
         )
 
         # Generate diverse user/session data for realistic anonymization
@@ -261,12 +274,10 @@ class UsageEventFactory:
     def _validate_date_range(
         start_date: arrow.Arrow, end_date: arrow.Arrow, record_created: arrow.Arrow
     ) -> tuple[arrow.Arrow, arrow.Arrow]:
-        """Validate and adjust date range to ensure it doesn't start before record creation."""
-        # Ensure start date is not before record creation
+        """Ensure date range doesn't start before record creation."""
         if start_date < record_created:
             start_date = record_created
 
-        # Ensure end date is not before start date
         if end_date < start_date:
             end_date = start_date
 
@@ -310,7 +321,10 @@ class UsageEventFactory:
                     month_count - 1,
                 )
 
-                month_start = start_month.shift(months=month_index)
+                if month_index == 0:
+                    month_start = event_start
+                else:
+                    month_start = start_month.shift(months=month_index)
                 if month_index == month_count - 1:
                     month_end = event_end
                 else:
