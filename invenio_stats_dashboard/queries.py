@@ -81,6 +81,7 @@ def get_relevant_record_ids_from_events(
     find_deleted: bool = False,
     use_included_dates: bool = False,
     use_published_dates: bool = False,
+    event_index: str = "stats-community-events",
     client=None,
 ):
     """Get relevant record IDs from the events index.
@@ -198,7 +199,7 @@ def get_relevant_record_ids_from_events(
         "_source": ["record_id"],
     }
 
-    result = client.search(index=prefix_index("stats-community-events"), body=query)
+    result = client.search(index=prefix_index(event_index), body=query)
 
     # Extract record IDs from the results
     record_ids = set()
@@ -423,8 +424,8 @@ class CommunityUsageDeltaQuery:
     def build_view_query(
         self,
         community_id: str,
-        start_date: arrow.Arrow,
-        end_date: arrow.Arrow,
+        start_date: arrow.Arrow | str,
+        end_date: arrow.Arrow | str,
     ) -> Search:
         """Build a query for view events.
 
@@ -450,8 +451,8 @@ class CommunityUsageDeltaQuery:
     def build_download_query(
         self,
         community_id: str,
-        start_date: arrow.Arrow,
-        end_date: arrow.Arrow,
+        start_date: arrow.Arrow | str,
+        end_date: arrow.Arrow | str,
     ) -> Search:
         """Build a query for download events.
 
@@ -757,9 +758,10 @@ class CommunityRecordDeltaQuery:
 
     def __init__(
         self,
-        client=None,
-        event_index=None,
-        subcount_configs=None,
+        client: OpenSearch | None = None,
+        event_index: str | None = None,
+        record_index: str | None = None,
+        subcount_configs: dict | None = None,
     ):
         """Initialize the query builder.
 
@@ -769,7 +771,8 @@ class CommunityRecordDeltaQuery:
         if client is None:
             client = current_search_client
         self.client = client
-        self.event_index = event_index
+        self.event_index = event_index or prefix_index("stats-community-events")
+        self.record_index = record_index or prefix_index("rdmrecords-records")
         self.subcount_configs = (
             subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
         )
@@ -806,6 +809,7 @@ class CommunityRecordDeltaQuery:
                 find_deleted=find_deleted,
                 use_included_dates=use_included_dates,
                 use_published_dates=use_published_dates,
+                event_index=self.event_index,
                 client=self.client,
             )
 
@@ -1069,18 +1073,10 @@ class CommunityRecordDeltaQuery:
                 },
                 "total_bytes": {"sum": {"field": "files.entries.size"}},
                 **sub_aggregations,
-                "by_file_types": {
-                    "terms": {"field": "files.entries.ext"},
-                    "aggs": {
-                        "unique_records": {"cardinality": {"field": "_id"}},
-                        "unique_parents": {"cardinality": {"field": "parent.id"}},
-                        "total_bytes": {"sum": {"field": "files.entries.size"}},
-                    },
-                },
             },
         }
 
-        search = Search(using=self.client, index=self.event_index)
+        search = Search(using=self.client, index=self.record_index)
         search.update_from_dict(query)
 
         return search
