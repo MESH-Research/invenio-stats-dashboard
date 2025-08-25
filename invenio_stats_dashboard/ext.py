@@ -7,12 +7,13 @@ from invenio_rdm_records.services.components import DefaultRecordsComponents
 from invenio_search.proxies import current_search, current_search_client
 
 from . import config
-from .components import (
+from .services.components import (
     CommunityAcceptedEventComponent,
     RecordCommunityEventComponent,
     RecordCommunityEventTrackingComponent,
 )
-from .service import CommunityStatsService, EventReindexingService
+from .services.service import CommunityStatsService
+from .services.usage_reindexing import EventReindexingService
 
 
 def _ensure_templates_registered(app: Flask) -> None:
