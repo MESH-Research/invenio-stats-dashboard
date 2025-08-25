@@ -14,11 +14,10 @@ import click
 from flask import current_app
 from flask.cli import with_appcontext
 from halo import Halo
-from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from opensearchpy.helpers.search import Search
 
-from .proxies import current_community_stats_service
-from .service import EventReindexingService
+from .proxies import current_community_stats_service, current_event_reindexing_service
+from .services.usage_reindexing import EventReindexingService
 from .tasks import reindex_usage_events_with_metadata
 
 
@@ -605,3 +604,211 @@ def estimate_migration_command():
             "(This is a very conservative estimate - actual time may vary "
             "significantly)"
         )
+
+
+@cli.command(name="process-status")
+@click.argument("process_name", default="event-migration")
+@click.option(
+    "--show-log",
+    is_flag=True,
+    help="Show recent log output from the process.",
+)
+@click.option(
+    "--log-lines",
+    type=int,
+    default=20,
+    help="Number of log lines to show (default: 20).",
+)
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory containing PID and status files.",
+)
+def process_status_command(process_name, show_log, log_lines, pid_dir):
+    """Show the status of a background process."""
+    from .utils.process_manager import ProcessMonitor
+
+    monitor = ProcessMonitor(process_name, pid_dir)
+    monitor.show_status(show_log=show_log, log_lines=log_lines)
+
+
+@cli.command(name="cancel-process")
+@click.argument("process_name", default="event-migration")
+@click.option(
+    "--timeout",
+    type=int,
+    default=30,
+    help="Seconds to wait for graceful shutdown before force kill.",
+)
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory containing PID and status files.",
+)
+def cancel_process_command(process_name, timeout, pid_dir):
+    """Cancel a running background process."""
+    from .utils.process_manager import ProcessManager
+
+    process_manager = ProcessManager(process_name, pid_dir)
+
+    if process_manager.cancel_process(timeout=timeout):
+        click.echo(f"✅ Process '{process_name}' cancelled successfully")
+    else:
+        click.echo(f"❌ Failed to cancel process '{process_name}'")
+        return 1
+
+
+@cli.command(name="list-processes")
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory containing PID files.",
+)
+@click.option(
+    "--package-only",
+    is_flag=True,
+    help="Only show processes managed by invenio-stats-dashboard.",
+)
+def list_processes_command(pid_dir, package_only):
+    """List running background processes."""
+    from .utils.process_manager import list_running_processes
+
+    # Filter to only show invenio-stats-dashboard processes if requested
+    package_prefix = "invenio-community-stats" if package_only else None
+    running_processes = list_running_processes(pid_dir, package_prefix)
+
+    if not running_processes:
+        if package_only:
+            click.echo(
+                "📭 No invenio-stats-dashboard background processes "
+                "are currently running"
+            )
+        else:
+            click.echo("📭 No background processes are currently running")
+        return
+
+    # Show header for running processes
+    if package_only:
+        click.echo("🔄 Running invenio-stats-dashboard Background Processes:")
+    else:
+        click.echo("🔄 Running Background Processes:")
+    click.echo("=" * 40)
+
+    for process_name in running_processes:
+        click.echo(f"• {process_name}")
+
+    click.echo(f"\nTotal: {len(running_processes)} process(es)")
+    click.echo(
+        "\n💡 Use 'invenio community-stats process-status <process_name>' "
+        "to check status"
+    )
+    click.echo(
+        "🛑 Use 'invenio community-stats cancel-process <process_name>' "
+        "to stop a process"
+    )
+
+
+@cli.command(name="migrate-events-background")
+@click.option(
+    "--event-types",
+    "-e",
+    multiple=True,
+    help="Event types to migrate (view, download). Defaults to both.",
+)
+@click.option(
+    "--max-batches", "-b", type=int, help="Maximum batches to process per month"
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=1000,
+    help="Number of events to process per batch.",
+)
+@click.option(
+    "--max-memory-percent",
+    type=int,
+    default=85,
+    help="Maximum memory usage percentage before stopping.",
+)
+@click.option(
+    "--delete-old-indices",
+    is_flag=True,
+    help="Delete old indices after migration (default is to keep them).",
+)
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory to store PID and status files.",
+)
+@with_appcontext
+def migrate_events_background_command(
+    event_types,
+    max_batches,
+    batch_size,
+    max_memory_percent,
+    delete_old_indices,
+    pid_dir,
+):
+    """Start event migration in the background with process management.
+
+    This command provides the same functionality as migrate-events but runs
+    in the background with full process management capabilities.
+    """
+    check_stats_enabled()
+
+    if not event_types:
+        event_types = ["view", "download"]
+
+    # Build the command to run
+    cmd = [
+        "invenio",
+        "community-stats",
+        "migrate-events",
+        "--batch-size",
+        str(batch_size),
+        "--max-memory-percent",
+        str(max_memory_percent),
+    ]
+
+    if max_batches:
+        cmd.extend(["--max-batches", str(max_batches)])
+
+    if delete_old_indices:
+        cmd.append("--delete-old-indices")
+
+    for event_type in event_types:
+        cmd.extend(["--event-types", event_type])
+
+    # Create process manager
+    from .utils.process_manager import ProcessManager
+
+    process_manager = ProcessManager(
+        "event-migration", pid_dir, package_prefix="invenio-community-stats"
+    )
+
+    try:
+        pid = process_manager.start_background_process(cmd)
+        click.echo("\n🎯 Background migration started successfully!")
+        click.echo(f"Process ID: {pid}")
+        click.echo(f"Command: {' '.join(cmd)}")
+
+        click.echo("\n📊 Monitor progress:")
+        click.echo("  invenio community-stats process-status event-migration")
+        click.echo(
+            "  invenio community-stats process-status event-migration --show-log"
+        )
+
+        click.echo("\n🛑 Cancel if needed:")
+        click.echo("  invenio community-stats cancel-process event-migration")
+
+    except RuntimeError as e:
+        click.echo(f"❌ Failed to start background migration: {e}")
+        return 1
+
+    except Exception as e:
+        click.echo(f"❌ Unexpected error: {e}")
+        return 1
