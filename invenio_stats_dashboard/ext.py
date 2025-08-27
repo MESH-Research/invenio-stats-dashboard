@@ -49,7 +49,6 @@ def _ensure_templates_registered(app: Flask) -> None:
         for result in results:
             if isinstance(result, dict):
                 for index_name, index_template in result.items():
-                    app.logger.info(f"Registered template for index: {index_name}")
                     templates[index_name] = index_template
             else:
                 app.logger.warning(
@@ -75,15 +74,7 @@ def _ensure_templates_registered(app: Flask) -> None:
                 app.logger.warning(
                     "No invenio_stats_dashboard index templates were put to OpenSearch"
                 )
-            else:
-                app.logger.info(
-                    f"Successfully put {index_template_count} index templates "
-                    f"to OpenSearch"
-                )
 
-            app.logger.info(
-                "All invenio_stats_dashboard index templates are registered"
-            )
         except Exception as e:
             app.logger.error(f"Failed to put index templates to OpenSearch: {e}")
 
@@ -170,12 +161,13 @@ class InvenioStatsDashboard:
 
         # Ensure the existing components list includes all defaults
         # This is a hack to fix component corruption during testing
-        corrected_components = self._ensure_rdm_service_components(
-            app, existing_rdm_record_components
-        )
+        if app.config.get("TESTING", False):
+            existing_rdm_record_components = self._ensure_rdm_service_components(
+                app, existing_rdm_record_components
+            )
 
         app.config["RDM_RECORDS_SERVICE_COMPONENTS"] = [
-            *corrected_components,
+            *existing_rdm_record_components,
             RecordCommunityEventComponent,
         ]
 
@@ -198,7 +190,6 @@ class InvenioStatsDashboard:
             List of components with defaults ensured
         """
         try:
-            # Check if the components list has all required defaults
             component_names = [comp.__name__ for comp in components_list]
             default_component_names = [
                 comp.__name__ for comp in DefaultRecordsComponents
@@ -212,6 +203,7 @@ class InvenioStatsDashboard:
                 app.logger.warning(
                     f"Missing default RDM components: {missing_components}"
                 )
+                app.logger.warning("Adding default RDM components to the list")
                 # Build corrected components list with defaults first
                 corrected_components = DefaultRecordsComponents.copy()
                 corrected_components.extend(components_list)

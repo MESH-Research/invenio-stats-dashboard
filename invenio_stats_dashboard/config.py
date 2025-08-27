@@ -1,5 +1,7 @@
 """Configuration for Invenio Stats Dashboard."""
 
+from typing import Any, Optional
+
 from invenio_i18n import gettext as _
 from invenio_rdm_records.resources.stats.event_builders import (
     build_record_unique_id,
@@ -567,6 +569,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_resource_types",
             "field": "resource_type.id",
+            "field_type": Optional[dict[str, Any]],
             "label_field": "resource_type.title",
             "label_source_includes": ["resource_type.title", "resource_type.id"],
             "snapshot_type": "all",
@@ -582,6 +585,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_access_statuses",
             "field": "access_status",
+            "field_type": Optional[str],
             "label_field": None,
             "snapshot_type": "all",
         },
@@ -600,6 +604,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_languages",
             "field": "languages.id",
+            "field_type": Optional[list[str]],
             "label_field": "languages.title",
             "label_source_includes": ["languages.title", "languages.id"],
             "snapshot_type": "top",
@@ -620,6 +625,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_subjects",
             "field": "subjects.id",
+            "field_type": Optional[list[str]],
             "label_field": "subjects.subject",
             "label_source_includes": ["subjects.subject", "subjects.id"],
             "snapshot_type": "top",
@@ -636,6 +642,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_rights",
             "field": "rights.id",
+            "field_type": Optional[list[str]],
             "label_field": "rights.title",
             "label_source_includes": ["rights.title", "rights.id"],
             "snapshot_type": "top",
@@ -659,6 +666,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_funders",
             "field": "funders.id",
+            "field_type": "list",
             "label_field": "funders.name",
             "combine_queries": ["funders.id", "funders.name"],
             "label_source_includes": ["funders.id", "funders.name"],
@@ -675,6 +683,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_periodicals",
             "field": "journal_title",
+            "field_type": Optional[str],
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -689,6 +698,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_publishers",
             "field": "publisher",
+            "field_type": Optional[str],
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -711,6 +721,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_affiliations",
             "field": "affiliations.id",
+            "field_type": Optional[list[str]],
             "label_field": "affiliations.name",
             "combine_queries": ["affiliations.id", "affiliations.name"],
             "label_source_includes": ["affiliations.name", "affiliations.id"],
@@ -740,6 +751,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_countries",
             "field": "country",
+            "field_type": Optional[str],
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -749,6 +761,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_referrers",
             "field": "referrer",
+            "field_type": Optional[str],
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -764,6 +777,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_file_types",
             "field": "file_types",
+            "field_type": Optional[list[str]],
             "label_field": None,
             "snapshot_type": "all",
         },

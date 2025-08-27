@@ -2,7 +2,7 @@
 
 import time
 from functools import wraps
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import arrow
 import psutil
@@ -16,6 +16,18 @@ from opensearchpy.helpers.search import Search
 
 from ..aggregations import CommunityBookmarkAPI
 from ..utils.decorators import time_operation
+from .types import (
+    HealthCheckResult,
+    ValidationResult,
+    SpotCheckResult,
+    MigrationResult,
+    ReindexingResults,
+    ReindexingProgress,
+    ProgressEstimates,
+    BatchProcessingResult,
+    MonthlyIndexBatchResult,
+    EventTypeResults,
+)
 
 
 class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
@@ -109,10 +121,19 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
         bookmark = next(iter(query_bookmark.execute()), None)
         if bookmark:
             return {
+                "task_id": bookmark.task_id,
                 "last_event_id": bookmark.last_event_id,
                 "last_event_timestamp": arrow.get(bookmark.last_event_timestamp),
             }
         return None
+
+    @_ensure_index_exists
+    def delete_bookmark(self, task_id: str):
+        """Delete a bookmark for a given task."""
+        try:
+            self.client.delete(index=self.bookmark_index, id=task_id)
+        except Exception as e:
+            current_app.logger.warning(f"Failed to delete bookmark {task_id}: {e}")
 
 
 class EventReindexingService:
@@ -160,30 +181,75 @@ class EventReindexingService:
 
     @property
     def community_events_index_exists(self):
-        """Check if the stats-community-events index exists."""
+        """Check if any stats-community-events indices exist."""
         if self._community_events_index_exists is None:
             try:
-                self.client.indices.get(index=prefix_index("stats-community-events"))
-                self._community_events_index_exists = True
-                current_app.logger.debug("stats-community-events index exists")
+                # Check for year-specific indices (e.g., stats-community-events-2024)
+                # or the alias if it exists
+                indices = self.client.indices.get(
+                    index=f"{prefix_index('stats-community-events')}*"
+                )
+                if indices:
+                    self._community_events_index_exists = True
+                    current_app.logger.debug(
+                        f"Found community events indices: {list(indices.keys())}"
+                    )
+                else:
+                    self._community_events_index_exists = False
+                    current_app.logger.info("No community events indices found")
             except Exception:
                 self._community_events_index_exists = False
                 current_app.logger.info(
-                    "stats-community-events index does not exist, "
+                    "Community events indices check failed, "
                     "will use fallback mechanism"
                 )
         return self._community_events_index_exists
 
-    def get_monthly_indices(self, event_type: str) -> List[str]:
-        """Get all monthly indices for a given event type."""
+    def get_monthly_indices(
+        self, event_type: str, month_filter: Optional[str | List[str] | tuple] = None
+    ) -> List[str]:
+        """Get monthly indices for a given event type, optionally filtered by month.
+
+        Args:
+            event_type: The type of event (view or download)
+            month_filter: Optional filter for specific months. Can be:
+                - Single month: "2024-01"
+                - Range: "2024-01:2024-03"
+                - Multiple months: ("2024-01", "2024-02", "2024-03")
+                - None: return all months
+        """
         try:
             pattern = self.index_patterns[event_type]
             indices = self.client.indices.get(index=f"{pattern}-*")
-            return sorted(indices.keys())
+            all_indices = sorted(indices.keys())
+
+            if not month_filter:
+                return all_indices
+
+            # Parse the month filter and filter indices
+            months_to_process = self._parse_month_filter(month_filter)
+            if not months_to_process:
+                return []
+
+            filtered_indices = []
+            for index in all_indices:
+                year, month = index.split("-")[-2:]
+                month_key = f"{year}-{month}"
+                if month_key in months_to_process:
+                    filtered_indices.append(index)
+
+            return filtered_indices
+
         except Exception as e:
-            current_app.logger.error(
-                f"Failed to get monthly indices for {event_type}: {e}"
-            )
+            error_msg = f"Failed to get monthly indices for {event_type}: {type(e).__name__}: {e}"
+            current_app.logger.error(error_msg)
+            if month_filter:
+                current_app.logger.info(
+                    f"No {event_type} indices match the month filter: "
+                    f"{month_filter}"
+                )
+            else:
+                current_app.logger.warning(f"No monthly indices found for {event_type}")
             return []
 
     def get_current_month(self) -> str:
@@ -195,7 +261,7 @@ class EventReindexingService:
         current_month = self.get_current_month()
         return index_name.endswith(f"-{current_month}")
 
-    def check_health_conditions(self) -> Tuple[bool, str]:
+    def check_health_conditions(self) -> HealthCheckResult:
         """Check if we should continue processing or stop gracefully.
 
         We check if the memory usage is too high, and if the OpenSearch cluster is
@@ -203,21 +269,43 @@ class EventReindexingService:
         """
         memory_usage = psutil.virtual_memory().percent
         if memory_usage > self.max_memory_percent:
-            return False, f"Memory usage too high: {memory_usage}%"
+            return HealthCheckResult(
+                is_healthy=False, reason=f"Memory usage too high: {memory_usage}%"
+            )
 
         try:
             self.client.cluster.health(timeout=5)
         except (ConnectionTimeout, ConnectionError) as e:
-            return False, f"OpenSearch not responsive: {e}"
+            return HealthCheckResult(
+                is_healthy=False, reason=f"OpenSearch not responsive: {e}"
+            )
 
-        return True, "OK"
+        return HealthCheckResult(is_healthy=True, reason="OK")
 
-    def create_enriched_index(self, event_type: str, month: str) -> str:
-        """Create a new enriched index for the given month."""
+    def create_enriched_index(
+        self, event_type: str, month: str, fresh_start: bool = False
+    ) -> str:
+        """Create a new enriched index for the given month.
+
+        Args:
+            event_type: The type of event (view or download)
+            month: The month in YYYY-MM format
+            fresh_start: If True, delete existing target index before creating new one
+        """
         try:
             target_pattern = self.index_patterns[event_type]
             # Add a differentiator to avoid naming conflicts
             new_index_name = f"{target_pattern}-{month}-v2.0.0"
+
+            # If fresh_start is enabled, clean up any existing target index
+            if fresh_start:
+                if not self._cleanup_existing_target_index(
+                    new_index_name, event_type, month
+                ):
+                    current_app.logger.warning(
+                        f"Failed to clean up existing target index {new_index_name}, "
+                        f"but continuing with creation attempt"
+                    )
 
             self.client.indices.create(index=new_index_name)
             current_app.logger.info(f"Created enriched index: {new_index_name}")
@@ -229,18 +317,151 @@ class EventReindexingService:
             )
             raise
 
-    def validate_enriched_data(self, source_index: str, target_index: str) -> bool:
-        """Validate that the enriched data matches the source data."""
+    def _cleanup_existing_target_index(
+        self, target_index: str, event_type: str, month: str
+    ) -> bool:
+        """Clean up an existing target index and its aliases for fresh start.
+
+        Args:
+            target_index: The name of the target index to clean up
+            event_type: The type of event (view or download)
+            month: The month in YYYY-MM format
+
+        Returns:
+            True if cleanup was successful, False otherwise
+        """
+        try:
+            # Check if the index exists
+            if not self.client.indices.exists(index=target_index):
+                return True  # Nothing to clean up
+
+            current_app.logger.info(
+                f"Cleaning up existing target index: {target_index}"
+            )
+
+            # Remove any aliases that might point to this index
+            try:
+                aliases = self.client.indices.get_alias(index=target_index)
+                for index_name, index_aliases in aliases.items():
+                    if index_aliases.get("aliases"):
+                        for alias_name in index_aliases["aliases"].keys():
+                            self.client.indices.delete_alias(
+                                index=index_name, name=alias_name
+                            )
+                            current_app.logger.info(
+                                f"Removed alias {alias_name} from {index_name}"
+                            )
+            except Exception as e:
+                current_app.logger.warning(
+                    f"Failed to clean up aliases for {target_index}: {e}"
+                )
+
+            # Delete the index itself
+            self.client.indices.delete(index=target_index)
+            current_app.logger.info(
+                f"Successfully deleted target index: {target_index}"
+            )
+
+            return True
+
+        except Exception as e:
+            current_app.logger.error(
+                f"Failed to clean up target index {target_index}: {e}"
+            )
+            return False
+
+    def _cleanup_existing_aliases_for_month(self, event_type: str, month: str) -> None:
+        """Clean up any existing aliases that might point to old target indices for a month.
+
+        Args:
+            event_type: The type of event (view or download)
+            month: The month in YYYY-MM format
+        """
+        try:
+            # Get the alias pattern for this event type
+            alias_pattern = self.index_patterns[event_type]
+
+            # Check if there are any existing aliases for this month
+            try:
+                aliases = self.client.indices.get_alias(name=f"{alias_pattern}-{month}")
+                for index_name, index_aliases in aliases.items():
+                    if index_aliases.get("aliases"):
+                        for alias_name in index_aliases["aliases"].keys():
+                            # Only remove aliases that point to v2.0.0 indices (our target indices)
+                            if index_name.endswith("-v2.0.0"):
+                                try:
+                                    self.client.indices.delete_alias(
+                                        index=index_name, name=alias_name
+                                    )
+                                    current_app.logger.info(
+                                        f"Removed alias {alias_name} from {index_name} "
+                                        f"for fresh start"
+                                    )
+                                except Exception as e:
+                                    current_app.logger.warning(
+                                        f"Failed to remove alias {alias_name} from {index_name}: {e}"
+                                    )
+            except Exception as e:
+                # No aliases found or other error - this is fine
+                current_app.logger.debug(
+                    f"No existing aliases found for {event_type}-{month}: {e}"
+                )
+
+        except Exception as e:
+            current_app.logger.warning(
+                f"Failed to clean up aliases for {event_type}-{month}: {e}"
+            )
+
+    def validate_enriched_data(
+        self,
+        source_index: str,
+        target_index: str,
+        last_processed_id: Optional[str] = None,
+        expected_records: Optional[int] = None,
+    ) -> ValidationResult:
+        """Validate that the enriched data matches the source data.
+
+        Returns:
+            ValidationResult with validation results including success status and
+            detailed error information.
+        """
+        validation_results: ValidationResult = {
+            "success": False,
+            "errors": [],
+            "document_counts": {},
+            "missing_community_ids": 0,
+            "spot_check": {
+                "success": False,
+                "errors": [],
+                "details": {},
+                "documents_verified": None,
+                "field_mismatches": None,
+                "document_count_mismatch": None,
+            },
+        }
+
         try:
             source_count = self.client.count(index=source_index)["count"]
             target_count = self.client.count(index=target_index)["count"]
 
-            if source_count != target_count:
-                current_app.logger.error(
-                    f"Document count mismatch: {source_index}={source_count}, "
-                    f"{target_index}={target_count}"
+            validation_results["document_counts"] = {
+                "source": source_count,
+                "target": target_count,
+            }
+
+            # Validate document counts
+            expected = expected_records or source_count
+            if target_count != expected:
+                error_msg = (
+                    f"Document count mismatch: expected {expected}, "
+                    f"found {target_count} in {target_index}"
                 )
-                return False
+                current_app.logger.error(error_msg)
+                validation_results["errors"].append(error_msg)
+            else:
+                validation_results["document_counts"]["match"] = True
+                if expected_records:
+                    validation_results["document_counts"]["expected"] = expected_records
 
             # Check that all documents have the required enriched fields
             search = Search(using=self.client, index=target_index)
@@ -252,26 +473,56 @@ class EventReindexingService:
             )
             missing_community = search.count()
 
+            validation_results["missing_community_ids"] = missing_community
+
             if missing_community > 0:
-                current_app.logger.error(
+                error_msg = (
                     f"Found {missing_community} documents without community_ids "
                     f"in {target_index}"
                 )
-                return False
+                current_app.logger.error(error_msg)
+                validation_results["errors"].append(error_msg)
+            else:
+                pass
 
-            if not self._spot_check_original_fields(source_index, target_index):
+            # Spot-check original fields (only for the portion that was migrated)
+            spot_check_results = self._spot_check_original_fields(
+                source_index, target_index, last_processed_id
+            )
+            validation_results["spot_check"] = spot_check_results
+
+            if not spot_check_results["success"]:
+                error_msg = f"Spot-check validation failed for {target_index}"
+                current_app.logger.error(error_msg)
+                validation_results["errors"].extend(spot_check_results["errors"])
+            else:
+                # Spot-check passed (success is already True)
+                pass
+
+            # Determine overall success
+            validation_results["success"] = len(validation_results["errors"]) == 0
+
+            if validation_results["success"]:
+                current_app.logger.info(f"Validation passed for {target_index}")
+            else:
                 current_app.logger.error(
-                    f"Spot-check validation failed for {target_index}"
+                    f"Validation failed for {target_index} with "
+                    f"{len(validation_results['errors'])} errors"
                 )
-                return False
 
-            current_app.logger.info(f"Validation passed for {target_index}")
-            return True
         except Exception as e:
-            current_app.logger.error(f"Validation failed for {target_index}: {e}")
-            return False
+            error_msg = f"Validation failed for {target_index}: {type(e).__name__}: {e}"
+            current_app.logger.error(error_msg)
+            validation_results["errors"].append(error_msg)
 
-    def _spot_check_original_fields(self, source_index: str, target_index: str) -> bool:
+        return validation_results
+
+    def _spot_check_original_fields(
+        self,
+        source_index: str,
+        target_index: str,
+        last_processed_id: Optional[str] = None,
+    ) -> SpotCheckResult:
         """Spot-check a sample of records to ensure original fields are unchanged.
 
         Args:
@@ -279,22 +530,44 @@ class EventReindexingService:
             target_index: The target index name
 
         Returns:
-            True if spot-check passes, False otherwise
+            SpotCheckResult with spot-check results including success status and
+            error details.
         """
-        try:
-            sample_size = min(100, self.client.count(index=source_index)["count"])
-            if sample_size == 0:
-                current_app.logger.warning("No documents to spot-check")
-                return True
+        spot_check_results: SpotCheckResult = {
+            "success": False,
+            "errors": [],
+            "details": {},
+            "documents_verified": None,
+            "field_mismatches": None,
+            "document_count_mismatch": None,
+        }
 
-            source_search = Search(using=self.client, index=source_index)
-            source_search = source_search.extra(size=sample_size)
-            source_search = source_search.sort("_score")  # Random sort for sampling
+        try:
+            if last_processed_id:
+                # Partial migration: sample from migrated portion only
+                source_search = Search(using=self.client, index=source_index)
+                source_search = source_search.filter(
+                    "range", _id={"lte": last_processed_id}
+                )
+                migrated_count = source_search.count()
+                sample_size = min(100, migrated_count)
+                source_search = source_search.extra(size=sample_size).sort("_id")
+            else:
+                # Full migration: sample from entire index
+                sample_size = min(100, self.client.count(index=source_index)["count"])
+                source_search = Search(using=self.client, index=source_index)
+                source_search = source_search.extra(size=sample_size).sort("_score")
+
+            if sample_size == 0:
+                spot_check_results["success"] = True
+                return spot_check_results
+
             source_hits = source_search.execute().hits.hits
 
             if not source_hits:
                 current_app.logger.warning("No source documents found for spot-check")
-                return True
+                spot_check_results["success"] = True
+                return spot_check_results
 
             doc_ids = [hit["_id"] for hit in source_hits]
             target_search = Search(using=self.client, index=target_index)
@@ -303,11 +576,17 @@ class EventReindexingService:
             target_hits = target_search.execute().hits.hits
 
             if len(target_hits) != len(source_hits):
-                current_app.logger.error(
+                error_msg = (
                     f"Spot-check failed: found {len(target_hits)} target docs "
                     f"but {len(source_hits)} source docs"
                 )
-                return False
+                current_app.logger.error(error_msg)
+                spot_check_results["errors"].append(error_msg)
+                spot_check_results["details"]["document_count_mismatch"] = {
+                    "source": len(source_hits),
+                    "target": len(target_hits),
+                }
+                return spot_check_results
 
             source_docs = {
                 hit["_id"]: (
@@ -367,19 +646,26 @@ class EventReindexingService:
 
             if mismatches:
                 current_app.logger.error(
-                    f"Spot-check found {len(mismatches)} mismatches: {mismatches[:5]}"
+                    f"Spot-check found {len(mismatches)} mismatches: "
+                    f"{mismatches[:5]}"
                 )
-                return False
+                spot_check_results["errors"].extend(mismatches)
+                spot_check_results["details"]["field_mismatches"] = mismatches
+                return spot_check_results
 
             current_app.logger.info(
                 f"Spot-check passed: verified {len(source_docs)} documents "
                 f"have unchanged original fields"
             )
-            return True
+            spot_check_results["success"] = True
+            spot_check_results["details"]["documents_verified"] = len(source_docs)
+            return spot_check_results
 
         except Exception as e:
-            current_app.logger.error(f"Spot-check validation failed: {e}")
-            return False
+            error_msg = f"Spot-check validation failed: {type(e).__name__}: {e}"
+            current_app.logger.error(error_msg)
+            spot_check_results["errors"].append(error_msg)
+            return spot_check_results
 
     def update_alias(
         self, event_type: str, month: str, old_index: str, new_index: str
@@ -387,27 +673,27 @@ class EventReindexingService:
         """Update the alias to point to the new enriched index for this month."""
         try:
             alias_pattern = self.index_patterns[event_type]
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Starting alias update for {event_type}-{month}: "
                 f"alias={alias_pattern}, old_index={old_index}, new_index={new_index}"
             )
 
             # First, add the alias to the new index (ensuring continuity)
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Adding alias {alias_pattern} to new index {new_index}"
             )
             self.client.indices.put_alias(index=new_index, name=alias_pattern)
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Successfully added alias {alias_pattern} to {new_index}"
             )
 
             # Then remove the alias from the old index (safe to do now)
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Removing alias {alias_pattern} from old index {old_index}"
             )
             try:
                 self.client.indices.delete_alias(index=old_index, name=alias_pattern)
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Successfully removed alias {alias_pattern} from {old_index}"
                 )
             except Exception as e:
@@ -420,7 +706,7 @@ class EventReindexingService:
                 alias_info = self.client.indices.get_alias(
                     index=new_index, name=alias_pattern
                 )
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Verification: alias {alias_pattern} exists on "
                     f"{new_index}: {alias_info}"
                 )
@@ -430,7 +716,7 @@ class EventReindexingService:
                     f"{new_index}: {e}"
                 )
 
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Successfully updated alias {alias_pattern} to include {new_index}"
             )
             return True
@@ -665,7 +951,8 @@ class EventReindexingService:
 
             # Step 4.5: Validate the enriched index integrity before deleting backup
             current_app.logger.info("Step 4.5: Validating enriched index integrity")
-            if not self.validate_enriched_data(old_index, new_index):
+            validation_results = self.validate_enriched_data(old_index, new_index)
+            if not validation_results["success"]:
                 current_app.logger.error(
                     f"Validation failed for {new_index}, keeping backup for safety"
                 )
@@ -795,9 +1082,12 @@ class EventReindexingService:
             return self._get_community_membership_fallback(metadata_by_recid)
 
         try:
-            community_search = Search(
-                using=self.client, index=prefix_index("stats-community-events")
+            # Search across all year-specific community events indices
+            search_pattern = f"{prefix_index('stats-community-events')}*"
+            current_app.logger.info(
+                f"Searching for community events using pattern: {search_pattern}"
             )
+            community_search = Search(using=self.client, index=search_pattern)
             community_search = community_search.query(
                 {"terms": {"record_id": record_ids}}
             )
@@ -816,6 +1106,29 @@ class EventReindexingService:
 
             community_results = community_search.execute()
 
+            # Debug: Log the search results
+            current_app.logger.info(
+                f"Community search returned "
+                f"{community_results.hits.total.value} total hits"
+            )
+
+            # Log the actual search results for debugging
+            if community_results.hits.total.value > 0:
+                sample_hits = [
+                    hit["_source"] for hit in community_results.hits.hits[:3]
+                ]
+                current_app.logger.info(f"Sample hits: {sample_hits}")
+
+            if hasattr(community_results, "aggregations") and hasattr(
+                community_results.aggregations, "by_record"
+            ):
+                current_app.logger.info(
+                    f"Found {len(community_results.aggregations.by_record.buckets)} "
+                    f"record buckets in aggregations"
+                )
+            else:
+                current_app.logger.warning("No aggregations found in search results")
+
             membership = {}
             for record_bucket in community_results.aggregations.by_record.buckets:
                 record_id = record_bucket.key
@@ -827,11 +1140,14 @@ class EventReindexingService:
                     if community_bucket.top_hit.hits.hits:
                         top_hit = community_bucket.top_hit.hits.hits[0]
                         event_type = top_hit["_source"]["event_type"]
-                        timestamp = top_hit["_source"]["timestamp"]
+                        event_date = top_hit["_source"]["event_date"]
 
                         # Only include if the most recent event was an "added" event
                         if event_type == "added":
-                            membership[record_id].append((community_id, timestamp))
+                            membership[record_id].append((community_id, event_date))
+
+            # Log the community membership found from events
+            current_app.logger.info(f"Community membership from events: {membership}")
 
             # Fallback for records without community event index records
             missing_records = [rid for rid in record_ids if rid not in membership]
@@ -845,11 +1161,23 @@ class EventReindexingService:
                 )
                 membership.update(fallback_membership)
 
+                current_app.logger.info(
+                    f"Final community membership after fallback: {membership}"
+                )
+
+            current_app.logger.info(
+                f"Returning final community membership: {membership}"
+            )
             return membership
         except Exception as e:
             current_app.logger.error(f"Failed to fetch community membership: {e}")
+            current_app.logger.error(f"Exception type: {type(e).__name__}")
+            current_app.logger.error(f"Exception details: {str(e)}")
             # If the main method fails, try the fallback for all records
-            return self._get_community_membership_fallback(metadata_by_recid)
+            current_app.logger.info("Using fallback for all records due to exception")
+            fallback_result = self._get_community_membership_fallback(metadata_by_recid)
+            current_app.logger.info(f"Fallback result: {fallback_result}")
+            return fallback_result
 
     def _get_community_membership_fallback(
         self, metadata_by_recid: Dict[str, Dict]
@@ -899,6 +1227,13 @@ class EventReindexingService:
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
 
+                # Debug logging for community data
+                current_app.logger.debug(
+                    f"Record {record_id}: created={record_created}, "
+                    f"communities={record_communities}, "
+                    f"communities_type={type(record_communities)}"
+                )
+
                 valid_communities = []
                 for community_id in record_communities:
                     community_created = community_creation_dates.get(community_id)
@@ -915,20 +1250,28 @@ class EventReindexingService:
                 # Return tuples of (community_id, effective_date) for later filtering
                 membership[record_id] = valid_communities
 
+                current_app.logger.debug(
+                    f"Record {record_id}: valid_communities={valid_communities}"
+                )
+
             current_app.logger.info(
                 f"Fallback community membership found for {len(membership)} records"
             )
+            current_app.logger.info(f"Final fallback membership: {membership}")
+            current_app.logger.info(f"Returning fallback membership: {membership}")
             return membership
 
         except Exception as e:
             current_app.logger.error(
                 f"Failed to get fallback community membership: {e}"
             )
+            current_app.logger.error(f"Exception type: {type(e).__name__}")
+            current_app.logger.error(f"Exception details: {str(e)}")
             return {}
 
     def _process_and_index_events_batch(
         self, hits: List[Dict], target_index: str, context: str = "events"
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> BatchProcessingResult:
         """Process a batch of events and bulk index them with error handling.
 
         Args:
@@ -940,31 +1283,13 @@ class EventReindexingService:
             Tuple of (success, error_message)
         """
         if not hits:
-            return True, None
+            return {"success": True, "error_message": None}
 
         # Process events into enriched documents
         record_ids = list(set(hit["_source"]["recid"] for hit in hits))
-        current_app.logger.error(
-            f"Extracted {len(record_ids)} unique record IDs: {record_ids[:5]}..."
-        )
-
-        # Debug: Check what records exist in the index
-        try:
-            all_records = self.client.search(
-                index=prefix_index("rdmrecords-records"),
-                body={"query": {"match_all": {}}, "size": 10},
-            )
-            existing_record_ids = [
-                hit["_source"]["id"] for hit in all_records["hits"]["hits"]
-            ]
-            current_app.logger.error(
-                f"Existing record IDs in index: {existing_record_ids}"
-            )
-        except Exception as e:
-            current_app.logger.error(f"Error checking existing records: {e}")
 
         metadata_by_recid = self.get_metadata_for_records(record_ids)
-        current_app.logger.error(f"Found metadata for {len(metadata_by_recid)} records")
+        current_app.logger.info(f"Found metadata for {len(metadata_by_recid)} records")
 
         communities_by_recid = self.get_community_membership(
             record_ids, metadata_by_recid
@@ -996,49 +1321,19 @@ class EventReindexingService:
         # Bulk index the enriched documents
         if not enriched_docs:
             current_app.logger.warning("No enriched documents to index")
-            return True, None
-
-        # Log the first enriched document structure before indexing
-        if enriched_docs:
-            first_doc = enriched_docs[0]
-            current_app.logger.error(f"First enriched doc structure: {first_doc}")
-            current_app.logger.error(f"First doc _id: {first_doc.get('_id')}")
-            current_app.logger.error(f"First doc _index: {first_doc.get('_index')}")
-            current_app.logger.error(
-                f"First doc _source keys: {list(first_doc.get('_source', {}).keys())}"
-            )
-            current_app.logger.error(
-                f"First doc _source values: {first_doc.get('_source', {})}"
-            )
+            return {"success": True, "error_message": None}
 
         current_app.logger.info(
             f"Attempting to bulk index {len(enriched_docs)} enriched documents"
         )
-        current_app.logger.error(f"Client type: {type(self.client)}")
-        current_app.logger.error(
-            f"Client bulk method: {getattr(self.client, 'bulk', 'No bulk method')}"
-        )
 
         try:
             bulk_result = bulk(self.client, enriched_docs, refresh=True)
-            current_app.logger.error(
-                f"Bulk result type: {type(bulk_result)}, value: {bulk_result}"
-            )
-
             success, failed = bulk_result
-            current_app.logger.error(
-                f"Unpacked - success type: {type(success)}, value: {success}"
-            )
-            current_app.logger.error(
-                f"Unpacked - failed type: {type(failed)}, value: {failed}"
-            )
 
             # Handle different return types from bulk function
             if isinstance(failed, list):
                 failed_count = len(failed)
-                current_app.logger.error(
-                    f"Failed is a list, converting to count: {failed_count}"
-                )
             else:
                 failed_count = failed
 
@@ -1058,27 +1353,34 @@ class EventReindexingService:
                         f"Last successful document: {last_successful_id} "
                         f"(position {success} in batch)"
                     )
-                    return (
-                        False,
-                        f"Bulk indexing failed after {success} documents. "
-                        f"Last successful: {last_successful_id}",
-                    )
+                    return {
+                        "success": False,
+                        "error_message": (
+                            f"Bulk indexing failed after {success} documents. "
+                            f"Last successful: {last_successful_id}"
+                        ),
+                    }
                 else:
-                    return False, "Bulk indexing failed - no documents were indexed"
+                    return {
+                        "success": False,
+                        "error_message": (
+                            "Bulk indexing failed - no documents were indexed"
+                        ),
+                    }
 
             current_app.logger.info(
                 f"Successfully indexed {success} enriched {context}"
             )
-            return True, None
+            return {"success": True, "error_message": None}
 
         except Exception as e:
             error_msg = f"Failed to bulk index {context}: {e}"
             current_app.logger.error(error_msg)
-            return False, error_msg
+            return {"success": False, "error_message": error_msg}
 
     def enrich_event(
         self, event: Dict | AttrDict, metadata: Dict, communities: List[Tuple[str, str]]
-    ) -> Dict:
+    ) -> dict:
         """Enrich a single event with metadata and community information.
 
         Args:
@@ -1089,27 +1391,38 @@ class EventReindexingService:
                 date on which the record was added to the community (or best guess).
 
         Returns:
-            The enriched event
+            The enriched event as a dictionary
         """
         # Convert AttrDict to regular dict if needed
-        if hasattr(event, "to_dict"):
-            enriched_event = event.to_dict().copy()
+        if hasattr(event, "to_dict") and callable(getattr(event, "to_dict", None)):
+            enriched_event = getattr(event, "to_dict")().copy()
         else:
             enriched_event = event.copy()
 
-        # Log the original event structure
-        current_app.logger.error(f"Original event keys: {list(enriched_event.keys())}")
-        current_app.logger.error(f"Original event structure: {enriched_event}")
-
         event_timestamp = event.get("timestamp")
+
+        # Debug logging to help diagnose community_ids issue
+        current_app.logger.debug(
+            f"Enriching event for record {event.get('recid', 'unknown')}: "
+            f"timestamp={event_timestamp}, communities={communities}, "
+            f"communities_type={type(communities)}"
+        )
+
         if event_timestamp and communities:
             active_communities = self._get_active_communities_for_event(
                 communities, event_timestamp, metadata
             )
             enriched_event["community_ids"] = active_communities
+            current_app.logger.debug(
+                f"Set community_ids to active_communities: {active_communities}"
+            )
         else:
+            # Fix: Always return a list, even if empty
             enriched_event["community_ids"] = (
-                [c for c, _ in communities] if communities else None
+                [c for c, _ in communities] if communities else []
+            )
+            current_app.logger.debug(
+                f"Set community_ids to fallback: {enriched_event['community_ids']}"
             )
 
         if metadata:
@@ -1179,12 +1492,6 @@ class EventReindexingService:
                 if not isinstance(enriched_event["file_types"], list):
                     enriched_event["file_types"] = [enriched_event["file_types"]]
 
-        # Log the final enriched event structure
-        current_app.logger.error(
-            f"Final enriched event keys: {list(enriched_event.keys())}"
-        )
-        current_app.logger.error(f"Final enriched event structure: {enriched_event}")
-
         return enriched_event
 
     def _get_active_communities_for_event(
@@ -1209,12 +1516,13 @@ class EventReindexingService:
         try:
             event_time = arrow.get(event_timestamp)
 
-            # Find all communities that were active at the time of the event
             active_communities = []
-            for community_id, effective_date in communities:
-                # Use the pre-calculated effective date
-                effective_time = arrow.get(effective_date)
-                if event_time >= effective_time:
+            for community_id, event_date in communities:
+                # Filter out "global" as it's not a real community
+                if community_id == "global":
+                    continue
+                community_added_time = arrow.get(event_date)
+                if event_time >= community_added_time:
                     active_communities.append(community_id)
 
             return active_communities
@@ -1233,7 +1541,8 @@ class EventReindexingService:
         target_index: str,
         month: str,
         last_processed_id: Optional[str] = None,
-    ) -> Tuple[int, Optional[str], bool]:
+        last_processed_timestamp: Optional[str] = None,
+    ) -> MonthlyIndexBatchResult:
         """
         Process a single batch of events from a monthly event index.
 
@@ -1247,6 +1556,7 @@ class EventReindexingService:
             target_index: The target enriched index name
             month: The month being migrated (YYYY-MM format)
             last_processed_id: The last processed event ID
+            last_processed_timestamp: The timestamp of the last processed event
 
         Returns:
             Tuple of (processed_count, last_event_id, should_continue)
@@ -1257,58 +1567,37 @@ class EventReindexingService:
             RequestError: If there is a request error to OpenSearch
         """
         try:
-            current_app.logger.error(
-                f"Entering process_monthly_index_batch for {event_type}-{month}"
-            )
-
             # Check health conditions
-            is_healthy, reason = self.check_health_conditions()
-            current_app.logger.error(
-                f"Health check result: {is_healthy}, reason: {reason}"
-            )
-            if not is_healthy:
-                current_app.logger.error(f"Health check failed: {reason}")
-                return 0, last_processed_id, False
+            health_check = self.check_health_conditions()
+            if not health_check["is_healthy"]:
+                current_app.logger.error(
+                    f"Health check failed: {health_check['reason']}"
+                )
+                return {
+                    "processed_count": 0,
+                    "last_event_id": last_processed_id,  # Return previous progress
+                    "last_event_timestamp": (
+                        last_processed_timestamp
+                    ),  # Return previous timestamp
+                    "should_continue": False,
+                }
 
-            # Debug: Check if source index exists and has documents
+            # Check if source index exists and has documents
             source_count = self.client.count(index=source_index)["count"]
             current_app.logger.info(
                 f"Source index {source_index} has {source_count} documents"
             )
 
-            # Debug: Check what events are in the source index
-            try:
-                sample_events = self.client.search(
-                    index=source_index, body={"query": {"match_all": {}}, "size": 5}
-                )
-                sample_recids = [
-                    hit["_source"].get("recid") for hit in sample_events["hits"]["hits"]
-                ]
-                current_app.logger.info(
-                    f"Sample recids from source index: {sample_recids}"
-                )
-            except Exception as e:
-                current_app.logger.error(f"Error checking sample events: {e}")
-
             search = Search(using=self.client, index=source_index)
             search = search.extra(size=self.batch_size)
-            search = search.sort("_id")
+            search = search.sort("timestamp")
 
-            current_app.logger.error(
-                f"Search query before search_after: {search.to_dict()}"
-            )
-
-            if last_processed_id:
-                search = search.extra(search_after=[last_processed_id])
-                current_app.logger.error(
-                    f"Using search_after with last_processed_id: {last_processed_id}"
+            if last_processed_timestamp:
+                search = search.extra(
+                    search_after=[
+                        last_processed_timestamp.format("YYYY-MM-DDTHH:mm:ss")
+                    ]
                 )
-            else:
-                current_app.logger.error(
-                    "No last_processed_id, starting from beginning"
-                )
-
-            current_app.logger.error(f"Final search query: {search.to_dict()}")
 
             response = search.execute()
             hits = response.hits.hits
@@ -1317,48 +1606,32 @@ class EventReindexingService:
                 f"Search query returned {len(hits)} hits from {source_index}"
             )
 
-            # Debug: Check if we're getting any hits at all
-            if not hits:
-                current_app.logger.error(
-                    f"No hits returned from search on {source_index}"
-                )
-                current_app.logger.error(f"Search query: {search.to_dict()}")
-            else:
-                current_app.logger.error(f"First hit ID: {hits[0]['_id']}")
-                current_app.logger.error(
-                    f"First hit source keys: "
-                    f"{list(hits[0]['_source'].to_dict().keys())}"
-                )
-
             if not hits:
                 current_app.logger.info(
                     f"No more events to process for {event_type}-{month}"
                 )
-                return 0, last_processed_id, False
+                return {
+                    "processed_count": 0,
+                    "last_event_id": last_processed_id,
+                    "last_event_timestamp": last_processed_timestamp,
+                    "should_continue": False,
+                }
 
             current_app.logger.info(
                 f"Processing {len(hits)} events for {event_type}-{month}"
             )
-
-            # Debug: Check first few hits to see what we're working with
-            if hits:
-                first_hit = hits[0]
-                current_app.logger.info(f"First hit ID: {first_hit['_id']}")
-                current_app.logger.info(
-                    f"First hit source keys: "
-                    f"{list(first_hit['_source'].to_dict().keys())}"
-                )
-                if "recid" in first_hit["_source"]:
-                    current_app.logger.info(
-                        f"First hit recid: {first_hit['_source']['recid']}"
-                    )
 
             success, error_msg = self._process_and_index_events_batch(
                 hits, target_index, "events"
             )
             if not success:
                 current_app.logger.error(f"Failed to process batch: {error_msg}")
-                return 0, last_processed_id, False
+                return {
+                    "processed_count": 0,
+                    "last_event_id": last_processed_id,
+                    "last_event_timestamp": last_processed_timestamp,
+                    "should_continue": False,
+                }
 
             last_event_id = hits[-1]["_id"]
             last_event_timestamp = hits[-1]["_source"]["timestamp"]
@@ -1370,36 +1643,70 @@ class EventReindexingService:
             # Only continue if we got a full batch AND there are more docs
             batch_was_full = len(hits) == self.batch_size
             if batch_was_full:
-                # Use count() to efficiently check if there are more docs after this batch
                 try:
-                    count_query = {"query": {"match_all": {}}}
+                    # Use a range query to check if there are more documents after the last timestamp
+                    count_query = {
+                        "query": {
+                            "range": {
+                                "timestamp": {
+                                    "gt": last_event_timestamp.format(
+                                        "YYYY-MM-DDTHH:mm:ss"
+                                    )
+                                }
+                            }
+                        }
+                    }
                     count_response = self.client.count(
-                        index=source_index,
-                        body=count_query,
-                        search_after=[last_event_id],
+                        index=source_index, body=count_query
                     )
                     has_more_docs = count_response["count"] > 0
                     current_app.logger.info(
-                        f"Batch was full ({len(hits)} docs), count after shows {count_response['count']} more docs"
+                        f"Batch was full ({len(hits)} docs), count after timestamp "
+                        f"{last_event_timestamp} shows {count_response['count']} more docs"
                     )
-                    return len(hits), last_event_id, has_more_docs
+                    return {
+                        "processed_count": len(hits),
+                        "last_event_id": last_event_id,
+                        "last_event_timestamp": last_event_timestamp,
+                        "should_continue": has_more_docs,
+                    }
                 except Exception as e:
                     current_app.logger.error(f"Error checking count for more docs: {e}")
                     # If we can't check, assume there are more to be safe
-                    return len(hits), last_event_id, True
+                    return {
+                        "processed_count": len(hits),
+                        "last_event_id": last_event_id,
+                        "last_event_timestamp": last_event_timestamp,
+                        "should_continue": True,
+                    }
             else:
                 # Partial batch means we're at the end
                 current_app.logger.info(
                     f"Partial batch ({len(hits)} docs), no more documents available"
                 )
-                return len(hits), last_event_id, False
+                return {
+                    "processed_count": len(hits),
+                    "last_event_id": last_event_id,
+                    "last_event_timestamp": last_event_timestamp,
+                    "should_continue": False,
+                }
 
         except (ConnectionTimeout, ConnectionError, RequestError) as e:
             current_app.logger.error(f"OpenSearch error during batch processing: {e}")
-            return 0, last_processed_id, False
+            return {
+                "processed_count": 0,
+                "last_event_id": last_processed_id,
+                "last_event_timestamp": last_processed_timestamp,
+                "should_continue": False,
+            }
         except Exception as e:
             current_app.logger.error(f"Unexpected error during batch processing: {e}")
-            return 0, last_processed_id, False
+            return {
+                "processed_count": 0,
+                "last_event_id": last_processed_id,
+                "last_event_timestamp": last_processed_timestamp,
+                "should_continue": False,
+            }
 
     @time_operation
     def migrate_monthly_index(
@@ -1409,7 +1716,8 @@ class EventReindexingService:
         month: str,
         max_batches: Optional[int] = None,
         delete_old_indices: bool = False,
-    ) -> Dict[str, Any]:
+        fresh_start: bool = False,
+    ) -> MigrationResult:
         """
         Migrate a single monthly index to enriched format.
 
@@ -1423,52 +1731,83 @@ class EventReindexingService:
         Returns:
             Dictionary with migration results and statistics.
         """
-        results = {
+        results: MigrationResult = {
             "month": month,
             "event_type": event_type,
             "source_index": source_index,
             "processed": 0,
             "interrupted": False,
-            "errors": 0,
-            "batches": 0,
+            "batches_succeeded": 0,
             "completed": False,
             "target_index": None,
+            "last_processed_id": None,
+            "batches_attempted": 0,
+            "validation_errors": None,
+            "operational_errors": [],
+            "start_time": arrow.utcnow().isoformat(),
+            "total_time": None,
         }
 
-        current_app.logger.error(f"Starting migration for {event_type}-{month}")
+        current_app.logger.info(f"Starting migration for {event_type}-{month}")
+
+        def add_operational_error(error_type: str, error_message: str):
+            """Helper to add operational errors to the results."""
+            results["operational_errors"].append(
+                {
+                    "type": error_type,
+                    "message": error_message,
+                    "timestamp": arrow.utcnow().isoformat(),
+                }
+            )
+
+        # Store initial bookmark for potential rollback
+        initial_bookmark = self.reindexing_bookmark_api.get_bookmark(
+            f"{event_type}-{month}-reindexing"
+        )
+        bookmark_was_set = initial_bookmark is not None
+
+        # If fresh_start is enabled, clean up existing state
+        if fresh_start:
+            task_id = f"{event_type}-{month}-reindexing"
+
+            # Delete existing bookmark
+            try:
+                self.reindexing_bookmark_api.delete_bookmark(task_id)
+                current_app.logger.info(
+                    f"Fresh start enabled - deleted existing bookmark for "
+                    f"{event_type}-{month}"
+                )
+            except Exception as e:
+                current_app.logger.warning(
+                    f"Failed to delete bookmark for {event_type}-{month}: {e}"
+                )
+
+            # Reset bookmark tracking since we're starting fresh
+            initial_bookmark = None
+            bookmark_was_set = False
+
+            # Also clean up any existing aliases that might point to old target indices
+            self._cleanup_existing_aliases_for_month(event_type, month)
 
         try:
             # Step 1: Create new enriched index
-            target_index = self.create_enriched_index(event_type, month)
+            target_index = self.create_enriched_index(event_type, month, fresh_start)
             results["target_index"] = target_index
-
-            # Debug: Check source index before migration
-            try:
-                source_count = self.client.count(index=source_index)["count"]
-                current_app.logger.error(
-                    f"Source index {source_index} has {source_count} documents"
-                )
-
-                # Check a sample of events
-                sample_events = self.client.search(
-                    index=source_index, body={"query": {"match_all": {}}, "size": 3}
-                )
-                sample_recids = [
-                    hit["_source"].get("recid") for hit in sample_events["hits"]["hits"]
-                ]
-                current_app.logger.error(
-                    f"Sample recids from {source_index}: {sample_recids}"
-                )
-            except Exception as e:
-                current_app.logger.error(f"Error checking source index: {e}")
 
             # Step 2: Migrate data
             bookmark = self.reindexing_bookmark_api.get_bookmark(
                 f"{event_type}-{month}-reindexing"
             )
             last_processed_id = str(bookmark) if bookmark else None
-            if last_processed_id:
-                current_app.logger.info(f"Resuming from bookmark: {last_processed_id}")
+            last_processed_timestamp = None
+            if last_processed_id and bookmark:
+                last_processed_timestamp = bookmark.get("last_event_timestamp")
+                if last_processed_timestamp:
+                    last_processed_timestamp = str(last_processed_timestamp)
+                current_app.logger.info(
+                    f"Resuming from bookmark: {last_processed_id} "
+                    f"at timestamp: {last_processed_timestamp}"
+                )
 
             batch_count = 0
             should_continue = True
@@ -1485,23 +1824,19 @@ class EventReindexingService:
                     f"Processing batch {batch_count + 1} for {event_type}-{month}"
                 )
 
-                # Debug: Check if we're about to process a batch
-                current_app.logger.error(
-                    f"About to call process_monthly_index_batch for "
-                    f"{event_type}-{month}"
-                )
-
                 # Process batch
-                processed_count, last_id, continue_processing = (
-                    self.process_monthly_index_batch(
-                        event_type, source_index, target_index, month, last_processed_id
-                    )
+                batch_result = self.process_monthly_index_batch(
+                    event_type,
+                    source_index,
+                    target_index,
+                    month,
+                    last_processed_id,
+                    last_processed_timestamp,
                 )
-
-                current_app.logger.error(
-                    f"Batch processing result: processed={processed_count}, "
-                    f"continue={continue_processing}"
-                )
+                processed_count = batch_result["processed_count"]
+                last_id = batch_result["last_event_id"]
+                last_timestamp = batch_result["last_event_timestamp"]
+                continue_processing = batch_result["should_continue"]
 
                 current_app.logger.info(
                     f"Batch {batch_count + 1} result: processed={processed_count}, "
@@ -1510,10 +1845,13 @@ class EventReindexingService:
 
                 if processed_count > 0:
                     results["processed"] += processed_count
-                    results["batches"] += 1
+                    results["batches_succeeded"] += 1
                     last_processed_id = last_id
+                    last_processed_timestamp = last_timestamp
                 else:
-                    results["errors"] += 1
+                    add_operational_error(
+                        "batch_failure", f"Batch {batch_count + 1} processed 0 events"
+                    )
 
                 should_continue = continue_processing and processed_count > 0
                 batch_count += 1
@@ -1521,11 +1859,18 @@ class EventReindexingService:
                 # Small delay to prevent overwhelming the system
                 time.sleep(0.1)
 
-            if should_continue:
+            # Always set batches_attempted to the actual number of batches
+            # processed
+            results["batches_attempted"] = batch_count
+
+            # Check if migration was limited by max_batches
+            # (even if should_continue is False)
+            max_batches_limit_reached = max_batches and batch_count >= max_batches
+
+            # Only mark as interrupted if we hit max_batches AND there's more data
+            if should_continue or (max_batches_limit_reached and should_continue):
                 reason = (
-                    "max_batches limit"
-                    if max_batches and batch_count >= max_batches
-                    else "incomplete"
+                    "max_batches limit" if max_batches_limit_reached else "incomplete"
                 )
 
                 current_app.logger.info(
@@ -1537,13 +1882,59 @@ class EventReindexingService:
                 results["completed"] = False
                 results["interrupted"] = True
                 results["last_processed_id"] = last_processed_id
-                results["batches_processed"] = batch_count
+
+                results["total_time"] = str(
+                    arrow.utcnow() - arrow.get(results["start_time"])
+                )
+
+                # Set bookmark for interrupted migrations so they can be resumed
+                # This ensures we can resume from the last successful batch
+                if last_processed_id and last_processed_timestamp:
+                    self.reindexing_bookmark_api.set_bookmark(
+                        f"{event_type}-{month}-reindexing",
+                        last_processed_id,
+                        last_processed_timestamp,
+                    )
+
+                current_app.logger.info(
+                    f"Migration interrupted for {event_type}-{month} after {results['total_time']}"
+                )
                 return results
 
             # Step 3: Validate the migrated data (only if migration completed)
-            if not self.validate_enriched_data(source_index, target_index):
+            # Calculate expected records based on batch processing
+            expected_records = self.batch_size * results["batches_attempted"]
+            validation_results = self.validate_enriched_data(
+                source_index, target_index, last_processed_id, expected_records
+            )
+            if not validation_results["success"]:
                 current_app.logger.error(f"Validation failed for {event_type}-{month}")
+
+                # Rollback bookmark to initial state on validation failure
+                if bookmark_was_set and initial_bookmark:
+                    last_event_id = initial_bookmark.get("last_event_id")
+                    if last_event_id:
+                        self.reindexing_bookmark_api.set_bookmark(
+                            f"{event_type}-{month}-reindexing",
+                            last_event_id,
+                            initial_bookmark.get("last_event_timestamp"),
+                        )
+                        current_app.logger.info(
+                            f"Rolled back bookmark for {event_type}-{month} to "
+                            f"{last_event_id} due to validation failure"
+                        )
+                elif not bookmark_was_set:
+                    # If no bookmark was set initially, delete any bookmark that might exist
+                    self.reindexing_bookmark_api.delete_bookmark(
+                        f"{event_type}-{month}-reindexing"
+                    )
+                    current_app.logger.info(
+                        f"Deleted bookmark for {event_type}-{month} due to "
+                        f"validation failure"
+                    )
+
                 results["completed"] = False
+                results["validation_errors"] = validation_results
                 return results
 
             # Step 4: Update alias
@@ -1551,6 +1942,24 @@ class EventReindexingService:
                 current_app.logger.error(
                     f"Failed to update alias for {event_type}-{month}"
                 )
+
+                # Rollback bookmark on alias update failure
+                if bookmark_was_set and initial_bookmark:
+                    last_event_id = initial_bookmark.get("last_event_id")
+                    if last_event_id:
+                        self.reindexing_bookmark_api.set_bookmark(
+                            f"{event_type}-{month}-reindexing",
+                            last_event_id,
+                            initial_bookmark.get("last_event_timestamp"),
+                        )
+                        current_app.logger.info(
+                            f"Rolled back bookmark for {event_type}-{month} to "
+                            f"{last_event_id} due to alias update failure"
+                        )
+                elif not bookmark_was_set:
+                    task_id = f"{event_type}-{month}-reindexing"
+                    self.reindexing_bookmark_api.delete_bookmark(task_id)
+
                 results["completed"] = False
                 return results
 
@@ -1563,6 +1972,24 @@ class EventReindexingService:
                     current_app.logger.error(
                         f"Failed to setup write alias for {event_type}-{month}"
                     )
+
+                    # Rollback bookmark on write alias setup failure
+                    if bookmark_was_set and initial_bookmark:
+                        last_event_id = initial_bookmark.get("last_event_id")
+                        if last_event_id:
+                            self.reindexing_bookmark_api.set_bookmark(
+                                f"{event_type}-{month}-reindexing",
+                                last_event_id,
+                                initial_bookmark.get("last_event_timestamp"),
+                            )
+                            current_app.logger.info(
+                                f"Rolled back bookmark for {event_type}-{month} to "
+                                f"{last_event_id} due to write alias setup failure"
+                            )
+                    elif not bookmark_was_set:
+                        task_id = f"{event_type}-{month}-reindexing"
+                        self.reindexing_bookmark_api.delete_bookmark(task_id)
+
                     results["completed"] = False
                     return results
 
@@ -1584,14 +2011,59 @@ class EventReindexingService:
                     f"(delete_old_indices=False)"
                 )
 
+            # Step 7: Set final bookmark after successful completion
+            # This ensures the bookmark points to the end of the last successful batch
+            if last_processed_id and last_processed_timestamp:
+                self.reindexing_bookmark_api.set_bookmark(
+                    f"{event_type}-{month}-reindexing",
+                    last_processed_id,
+                    last_processed_timestamp,
+                )
+                current_app.logger.info(
+                    f"Set final bookmark for {event_type}-{month} to {last_processed_id}"
+                )
+
+                # Calculate timing information
+                results["total_time"] = str(
+                    arrow.utcnow() - arrow.get(results["start_time"])
+                )
+
             results["completed"] = True
             current_app.logger.info(
-                f"Migration completed for {event_type}-{month}: {results}"
+                f"Migration completed for {event_type}-{month} in {results['total_time']}: {results}"
             )
 
         except Exception as e:
             current_app.logger.error(f"Migration failed for {event_type}-{month}: {e}")
-            results["completed"] = False
+
+            # Collect unexpected error information
+            add_operational_error("unexpected_error", f"{type(e).__name__}: {e}")
+
+            # Rollback bookmark on any unexpected error
+            if bookmark_was_set and initial_bookmark:
+                last_event_id = initial_bookmark.get("last_event_id")
+                if last_event_id:
+                    self.reindexing_bookmark_api.set_bookmark(
+                        f"{event_type}-{month}-reindexing",
+                        last_event_id,
+                        initial_bookmark.get("last_event_timestamp"),
+                    )
+                    current_app.logger.info(
+                        f"Rolled back bookmark for {event_type}-{month} to "
+                        f"{last_event_id} due to unexpected error"
+                    )
+            elif not bookmark_was_set:
+                task_id = f"{event_type}-{month}-reindexing"
+                self.reindexing_bookmark_api.delete_bookmark(task_id)
+
+                # Calculate timing for failed migrations
+                results["total_time"] = str(
+                    arrow.utcnow() - arrow.get(results["start_time"])
+                )
+
+            current_app.logger.error(
+                f"Migration failed for {event_type}-{month} after {results['total_time']}"
+            )
 
         return results
 
@@ -1724,9 +2196,11 @@ class EventReindexingService:
         event_types: Optional[List[str]] = None,
         max_batches: Optional[int] = None,
         delete_old_indices: bool = False,
-    ) -> Dict[str, Any]:
+        fresh_start: bool = False,
+        month_filter: Optional[str | List[str] | tuple] = None,
+    ) -> ReindexingResults:
         """
-        Reindex events with enriched metadata for all monthly indices.
+        Reindex events with enriched metadata for monthly indices.
 
         Begins by verifying and (if necessary) updating the enriched view/download
         event index templates before reindexing.
@@ -1735,17 +2209,27 @@ class EventReindexingService:
             event_types: List of event types to process. If None, process all.
             max_batches: Maximum number of batches to process per month. If None,
             process all.
+            month_filter: If specified, only process the specified month(s). Can be:
+                         - Single month: "2024-01"
+                         - List of specific months: ["2024-01", "2024-02", "2024-03"]
+                         - Month range: "2024-01:2024-03" (inclusive range)
+                         - Tuple of months: ("2024-01", "2024-02", "2024-03")
+                         If None, process all months.
+
+                         Note: The CLI can provide multiple --months options which
+                         get passed as a tuple, or a single --months with range syntax.
 
         Returns:
             Dictionary with reindexing results and statistics.
         """
         max_batches = max_batches or self.max_batches
-        results = {
+        results: ReindexingResults = {
             "total_processed": 0,
             "total_errors": 0,
             "event_types": {},
             "health_issues": [],
             "completed": False,
+            "error": None,
         }
 
         if not self.update_and_verify_templates():
@@ -1761,7 +2245,7 @@ class EventReindexingService:
         if event_types is None:
             event_types = ["view", "download"]
 
-        current_app.logger.error(f"Starting reindexing for event types: {event_types}")
+        current_app.logger.info(f"Starting reindexing for event types: {event_types}")
 
         for event_type in event_types:
             if event_type not in ["view", "download"]:
@@ -1770,12 +2254,15 @@ class EventReindexingService:
 
             current_app.logger.info(f"Processing {event_type} events")
 
-            monthly_indices = self.get_monthly_indices(event_type)
+            monthly_indices = self.get_monthly_indices(event_type, month_filter)
             if not monthly_indices:
-                current_app.logger.warning(f"No monthly indices found for {event_type}")
                 continue
 
-            event_results = {"processed": 0, "errors": 0, "months": {}}
+            event_results: EventTypeResults = {
+                "processed": 0,
+                "errors": 0,
+                "months": {},
+            }
 
             for source_index in monthly_indices:
                 year, month = source_index.split("-")[-2:]
@@ -1789,89 +2276,237 @@ class EventReindexingService:
                     f"{year}-{month}",
                     max_batches,
                     delete_old_indices,
+                    fresh_start,
                 )
 
                 event_results["months"][f"{year}-{month}"] = month_results
                 event_results["processed"] += month_results.get("processed", 0)
-                event_results["errors"] += month_results.get("errors", 0)
+                # Count operational and validation errors
+                op_error_count = len(month_results.get("operational_errors", []))
+                val_error_count = 1 if month_results.get("validation_errors") else 0
+                event_results["errors"] += op_error_count + val_error_count
 
                 # Always add processed count
                 results["total_processed"] += month_results.get("processed", 0)
 
-                # Track incomplete migrations (both interrupted and failed)
-                if not month_results.get("completed", False):
-                    if "interrupted_migrations" not in results:
-                        results["interrupted_migrations"] = []
-                    results["interrupted_migrations"].append(
-                        {
-                            "event_type": event_type,
-                            "month": f"{year}-{month}",
-                            "processed": month_results.get("processed", 0),
-                            "batches": month_results.get("batches_processed", 0),
-                            "last_processed_id": month_results.get("last_processed_id"),
-                            "source_index": month_results.get("source_index"),
-                            "target_index": month_results.get("target_index"),
-                            "reason": (
-                                "interrupted"
-                                if month_results.get("interrupted", False)
-                                else "failed"
-                            ),
-                        }
-                    )
+                # Note: All migration details are stored in month_results
+                # No need to duplicate them at the top level
 
             results["event_types"][event_type] = event_results
             current_app.logger.info(f"Completed {event_type}: {event_results}")
 
-        # Check if any migrations were incomplete
-        if results.get("interrupted_migrations"):
+        # Check completion status and count failures from the nested structure
+        total_failures = 0
+        total_interruptions = 0
+        failed_months = []
+
+        for event_type, event_results in results["event_types"].items():
+            for month, month_results in event_results["months"].items():
+                if not month_results.get("completed", False):
+                    if month_results.get("interrupted", False):
+                        total_interruptions += 1
+                    else:
+                        total_failures += 1
+                        failed_months.append(f"{event_type}-{month}")
+
+        if total_failures > 0:
+            results["completed"] = False
+            results["error"] = (
+                f"Migration failed for months: {', '.join(failed_months)}"
+            )
+            current_app.logger.error(
+                f"Reindexing failed for {total_failures} months: {failed_months}"
+            )
+        elif total_interruptions > 0:
             results["completed"] = False
             current_app.logger.warning(
-                f"Reindexing completed with {len(results['interrupted_migrations'])} "
-                f"incomplete migrations. Use --max-batches to limit processing "
-                f"and resume later."
+                f"Reindexing completed with {total_interruptions} interrupted migrations. "
+                "Use --max-batches to limit processing and resume later."
             )
         else:
             results["completed"] = True
-            current_app.logger.info(f"Reindexing completed successfully: {results}")
+            current_app.logger.info("Reindexing completed successfully")
+
+        total_errors = 0
+        for event_type, event_results in results["event_types"].items():
+            for month, month_results in event_results["months"].items():
+                # Count operational and validation errors
+                op_error_count = len(month_results.get("operational_errors", []))
+                val_error_count = 1 if month_results.get("validation_errors") else 0
+                total_errors += op_error_count + val_error_count
+
+        results["total_errors"] = total_errors
 
         return results
 
-    def estimate_total_events(self) -> Dict[str, int]:
-        """Estimate the total number of events to reindex across all monthly indices."""
-        estimates = {}
+    def count_total_events(self) -> ProgressEstimates:
+        """Get comprehensive migration progress information for events.
+
+        Returns:
+            ProgressEstimates with total events in old indices, already migrated
+            events in new indices, and remaining events to migrate (including
+            interrupted migrations from bookmarks).
+        """
+        estimates: ProgressEstimates = {
+            "view_old": 0,
+            "download_old": 0,
+            "view_migrated": 0,
+            "download_migrated": 0,
+            "view_remaining": 0,
+            "download_remaining": 0,
+            "old_indices": [],
+            "migrated_indices": [],
+            "migration_bookmarks": [],
+            "view_index_mapping": {},
+            "download_index_mapping": {},
+            "view_completed_migrations": [],
+            "download_completed_migrations": [],
+        }
 
         for event_type in ["view", "download"]:
-            monthly_indices = self.get_monthly_indices(event_type)
-            total_count = 0
+            all_monthly_indices = self.get_monthly_indices(event_type)
+            # Filter out the -v2.0.0 indices to get only old indices
+            old_monthly_indices = [
+                idx for idx in all_monthly_indices if not idx.endswith("-v2.0.0")
+            ]
 
-            for index in monthly_indices:
+            event_type_old_count = 0
+            event_type_migrated_count = 0
+            event_type_remaining_count = 0
+
+            for source_index in old_monthly_indices:
                 try:
-                    count = self.client.count(index=index)["count"]
-                    total_count += count
-                    msg = "Estimated %d events for %s"
-                    current_app.logger.info(
-                        msg,
-                        count,
-                        index,
+                    source_count = self.client.count(index=source_index)["count"]
+                    event_type_old_count += source_count
+
+                    # Check if there's a corresponding enriched index
+                    year, month = source_index.split("-")[-2:]
+                    enriched_index = f"{source_index}-v2.0.0"
+                    enriched_count = None
+
+                    if self.client.indices.exists(index=enriched_index):
+                        # Count events already migrated
+                        enriched_count = self.client.count(index=enriched_index)[
+                            "count"
+                        ]
+                        event_type_migrated_count += enriched_count
+
+                        # Check for interrupted migration (bookmark)
+                        bookmark = self.reindexing_bookmark_api.get_bookmark(
+                            f"{event_type}-{year}-{month}-reindexing"
+                        )
+
+                        if bookmark and bookmark.get("last_event_id"):
+                            # Migration was interrupted, count remaining events from bookmark
+                            estimates["migration_bookmarks"].append(bookmark)
+                            try:
+                                # Use count API with range query to find documents after
+                                # the bookmark ID. This is more efficient than search and
+                                # gives accurate count
+                                count_body = {
+                                    "query": {
+                                        "range": {
+                                            "_id": {"gt": bookmark["last_event_id"]}
+                                        }
+                                    }
+                                }
+                                remaining_response = self.client.count(
+                                    index=source_index, body=count_body
+                                )
+                                index_remaining = remaining_response["count"]
+                                event_type_remaining_count += index_remaining
+                            except Exception as e:
+                                current_app.logger.warning(
+                                    f"Could not count remaining events for "
+                                    f"{source_index} "
+                                    f"from bookmark {bookmark}: {e}"
+                                )
+                                # Fallback: remaining = source - migrated for this index
+                                index_remaining = max(0, source_count - enriched_count)
+                                event_type_remaining_count += index_remaining
+                        else:
+                            # Migration completed, no remaining events for this index
+                            index_remaining = 0
+                    else:
+                        # No enriched index yet, all events remain to be migrated
+                        index_remaining = source_count
+                        event_type_remaining_count += index_remaining
+
+                    # Record per-index counts
+                    estimates["old_indices"].append(
+                        {
+                            "index": source_index,
+                            "count": source_count,
+                        }
                     )
+                    if self.client.indices.exists(index=enriched_index):
+                        estimates["migrated_indices"].append(
+                            {
+                                "index": enriched_index,
+                                "old_count": source_count,
+                                "enriched_count": enriched_count or "n/a",
+                                "remaining_count": index_remaining,
+                            }
+                        )
+
                 except Exception as e:
-                    msg = "Failed to estimate events for %s: %s"
                     current_app.logger.error(
-                        msg,
-                        index,
-                        e,
+                        f"Failed to count events for {source_index}: {e}"
                     )
 
-            estimates[event_type] = total_count
+            # Create mapping from old index names to migrated index names
+            old_to_migrated_map = {}
+            for old_idx in old_monthly_indices:
+                year, month = old_idx.split("-")[-2:]
+                migrated_idx = f"{old_idx}-v2.0.0"
+                if self.client.indices.exists(index=migrated_idx):
+                    old_to_migrated_map[old_idx] = migrated_idx
+                else:
+                    old_to_migrated_map[old_idx] = None
+
+            # Find completed migrations (enriched indices without corresponding old indices)
+            completed_migrations = []
+            for enriched_idx in all_monthly_indices:
+                if enriched_idx.endswith("-v2.0.0"):
+                    old_idx = enriched_idx.replace("-v2.0.0", "")
+                    if old_idx not in old_to_migrated_map:
+                        # This enriched index has no corresponding old index
+                        # It represents a completed migration where old index was deleted
+                        completed_migrations.append(
+                            {
+                                "old_index": old_idx,
+                                "enriched_index": enriched_idx,
+                                "event_type": event_type,
+                                "year_month": old_idx.split("-")[-2:],
+                            }
+                        )
+
+            # Store the mapping and completed migrations in estimates
+            estimates[f"{event_type}_index_mapping"] = old_to_migrated_map
+            estimates[f"{event_type}_completed_migrations"] = completed_migrations
+
+            # Set the totals for this event type
+            estimates[f"{event_type}_old"] = event_type_old_count
+            estimates[f"{event_type}_migrated"] = event_type_migrated_count
+            estimates[f"{event_type}_remaining"] = event_type_remaining_count
 
         return estimates
 
-    def get_reindexing_progress(self) -> Dict[str, Any]:
-        """Get current reindexing progress across all monthly indices."""
-        progress = {
-            "estimates": self.estimate_total_events(),
-            "bookmarks": {},
-            "health": {},
+    def get_reindexing_progress(self) -> ReindexingProgress:
+        """Get current reindexing progress across all monthly indices.
+
+        Returns:
+            Dictionary with reindexing progress information based on the current
+            bookmark information and health check.
+        """
+        progress: ReindexingProgress = {
+            "estimates": self.count_total_events(),
+            "bookmarks": {"view": {}, "download": {}},
+            "health": {
+                "is_healthy": False,
+                "reason": "",
+                "memory_usage": 0.0,
+            },
         }
 
         for event_type in ["view", "download"]:
@@ -1885,10 +2520,10 @@ class EventReindexingService:
                 )
                 progress["bookmarks"][event_type][month] = bookmark
 
-        is_healthy, reason = self.check_health_conditions()
+        health_check = self.check_health_conditions()
         progress["health"] = {
-            "is_healthy": is_healthy,
-            "reason": reason,
+            "is_healthy": health_check["is_healthy"],
+            "reason": health_check["reason"],
             "memory_usage": psutil.virtual_memory().percent,
         }
 
@@ -1936,3 +2571,59 @@ class EventReindexingService:
         except Exception as e:
             current_app.logger.error(f"Failed to delete old index {index_name}: {e}")
             return False
+
+    def _parse_month_filter(
+        self, month_filter: Optional[str | List[str] | tuple]
+    ) -> List[str]:
+        """Parse month filter to handle different formats.
+
+        Args:
+            month_filter: String, list, or tuple that can be:
+                - Single month: "2024-01"
+                - Range: "2024-01:2024-03"
+                - Multiple values: ("2024-01", "2024-02", "2024-03")
+                - Already a list: ["2024-01", "2024-02"]
+
+        Returns:
+            List of month strings in YYYY-MM format
+        """
+        if not month_filter:
+            return []
+
+        if isinstance(month_filter, (list, tuple)):
+            valid_months = []
+            for month in month_filter:
+                try:
+                    arrow.get(month + "-01")
+                    valid_months.append(month)
+                except arrow.parser.ParserError:
+                    current_app.logger.warning(
+                        f"Invalid month format: {month}. Skipping."
+                    )
+            return list(valid_months)
+
+        if ":" in month_filter:
+            try:
+                start_month, end_month = month_filter.split(":")
+                months = []
+                current = arrow.get(start_month + "-01")
+                end = arrow.get(end_month + "-01")
+
+                while current <= end:
+                    months.append(current.format("YYYY-MM"))
+                    current = current.shift(months=1)
+                return months
+            except arrow.parser.ParserError:
+                current_app.logger.warning(
+                    f"Invalid month range format: {month_filter}. "
+                    "Expected format: YYYY-MM:YYYY-MM"
+                )
+                return []
+
+        else:
+            try:
+                arrow.get(month_filter + "-01")
+                return [month_filter]
+            except arrow.parser.ParserError:
+                current_app.logger.warning(f"Invalid month format: {month_filter}")
+                return []
