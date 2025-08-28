@@ -9,9 +9,10 @@ import arrow
 
 import psutil
 from flask import Flask, current_app
+from glom import glom, Spec
 from invenio_search.proxies import current_search, current_search_client
 from invenio_search.utils import prefix_index
-from opensearchpy import AttrDict, Index, Q
+from opensearchpy import Index, Q
 from opensearchpy.exceptions import ConnectionError, ConnectionTimeout, RequestError
 from opensearchpy.helpers import bulk
 from opensearchpy.helpers.search import Search
@@ -32,6 +33,116 @@ from .types import (
     MonthlyIndexBatchResult,
     EventTypeResults,
 )
+
+
+class MetadataExtractor:
+    """High-performance metadata field extractor using pre-compiled glom specs.
+
+    This class pre-compiles all extraction paths from the subcount configuration
+    for maximum performance during event enrichment. It also caches extracted
+    values by record ID to avoid repeated extraction for the same record.
+
+    Requires the glom library to be installed.
+    """
+
+    def __init__(self, subcount_configs: Dict):
+        """Initialize the enricher with pre-compiled specs.
+
+        Args:
+            subcount_configs: The COMMUNITY_STATS_SUBCOUNT_CONFIGS
+        """
+        self.subcount_configs = subcount_configs
+        self.compiled_specs = {}
+        self._compile_specs()
+
+        # Cache for extracted values by record ID
+        self._extraction_cache = {}
+        self._cache_hits = 0
+        self._cache_misses = 0
+
+    def _compile_specs(self):
+        """Pre-compile all extraction specs for maximum performance."""
+        for subcount_config in self.subcount_configs.values():
+            if (
+                "usage_events" in subcount_config
+                and subcount_config["usage_events"]
+                and subcount_config["usage_events"].get("event_field") is not None
+            ):
+                usage_config = subcount_config["usage_events"]
+                event_field = usage_config["event_field"]
+                extraction_path = usage_config.get("extraction_path_for_event")
+
+                if extraction_path is not None:
+                    # Store the compiled spec for this field
+                    if isinstance(extraction_path, str):
+                        self.compiled_specs[event_field] = Spec(extraction_path)
+                    else:
+                        # For lambda functions, store the function directly
+                        self.compiled_specs[event_field] = extraction_path
+
+    def extract_fields(self, metadata: Dict, record_id: Optional[str] = None) -> Dict:
+        """Extract all configured fields from metadata using pre-compiled specs.
+
+        Args:
+            metadata: The metadata dictionary to extract from
+            record_id: Optional record ID for caching. If provided, results are cached.
+
+        Returns:
+            Dictionary of extracted field values
+        """
+        # If we have a record ID, check the cache first
+        if record_id and record_id in self._extraction_cache:
+            self._cache_hits += 1
+            return self._extraction_cache[record_id].copy()
+
+        # Cache miss - extract the fields
+        self._cache_misses += 1
+        enrichment = {}
+
+        for event_field, spec in self.compiled_specs.items():
+            try:
+                if callable(spec):
+                    # Lambda function - call directly
+                    field_value = spec(metadata)
+                else:
+                    # Pre-compiled glom spec - use for maximum performance
+                    field_value = glom(metadata, spec)
+
+                enrichment[event_field] = field_value
+            except Exception:
+                # If extraction fails, set to None
+                enrichment[event_field] = None
+
+        # Cache the result if we have a record ID
+        if record_id:
+            self._extraction_cache[record_id] = enrichment.copy()
+
+        return enrichment
+
+    def clear_cache(self):
+        """Clear the extraction cache to free memory."""
+        self._extraction_cache.clear()
+        self._cache_hits = 0
+        self._cache_misses = 0
+
+    def get_cache_stats(self) -> Dict:
+        """Get cache performance statistics.
+
+        Returns:
+            Dictionary with cache hit rate and memory usage info
+        """
+        total_requests = self._cache_hits + self._cache_misses
+        hit_rate = (
+            (self._cache_hits / total_requests * 100) if total_requests > 0 else 0
+        )
+
+        return {
+            "cache_hits": self._cache_hits,
+            "cache_misses": self._cache_misses,
+            "hit_rate_percent": round(hit_rate, 2),
+            "cached_records": len(self._extraction_cache),
+            "total_requests": total_requests,
+        }
 
 
 class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
@@ -177,9 +288,10 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
 class EventReindexingService:
     """Service for reindexing events with enriched metadata.
 
-    This service handles the reindexing of existing events to add community_id
-    and metadata fields for faster aggregation performance. It works with monthly
-    indices and manages aliases properly to ensure zero downtime.
+    This service provides configurable event enrichment based on the
+    COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration. It will always at minimum
+    add a community_ids field. Which additional fields are added are determined
+    by the COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration.
     """
 
     def __init__(self, app: Flask):
@@ -213,11 +325,20 @@ class EventReindexingService:
         self.max_spot_check_sample_size = app.config.get(
             "STATS_DASHBOARD_REINDEXING_MAX_SPOT_CHECK_SAMPLE_SIZE", 100
         )
+        self.subcount_configs = app.config.get("COMMUNITY_STATS_SUBCOUNT_CONFIGS", {})
 
         # Lazy-load components that require application context
         self._reindexing_bookmark_api = None
         self._index_patterns = None
         self._community_events_index_exists = None
+        self._metadata_extractor = None
+
+    @property
+    def metadata_extractor(self):
+        """Lazy-load the metadata extractor with pre-compiled specs."""
+        if self._metadata_extractor is None:
+            self._metadata_extractor = MetadataExtractor(self.subcount_configs)
+        return self._metadata_extractor
 
     @property
     def reindexing_bookmark_api(self):
@@ -1504,83 +1625,6 @@ class EventReindexingService:
             current_app.logger.error(error_msg)
             return {"success": False, "error_message": error_msg}
 
-    def _precompute_enrichment_fields(
-        self, metadata: Dict, communities: List[Tuple[str, str]]
-    ) -> Dict:
-        """Pre-compute all enrichment fields for a record to avoid repeated computation.
-
-        Args:
-            metadata: The metadata for the record
-            communities: The communities that the record belongs to
-
-        Returns:
-            Dictionary with all pre-computed enrichment fields
-        """
-        enrichment = {}
-
-        if metadata:
-            metadata_dict = metadata.get("metadata", {})
-            enrichment.update(
-                {
-                    "resource_type": metadata_dict.get("resource_type", {}),
-                    "publisher": metadata_dict.get("publisher", ""),
-                    "access_status": metadata.get("access", {}).get("status", ""),
-                    "languages": metadata_dict.get("languages", []),
-                    "subjects": metadata_dict.get("subjects", []),
-                    "rights": metadata_dict.get("rights", []),
-                    "funders": [
-                        item["funder"]
-                        for item in metadata_dict.get("funding", [])
-                        if isinstance(item, dict) and "funder" in item
-                    ],
-                    "journal_title": (
-                        metadata.get("custom_fields", {})
-                        .get("journal:journal", {})
-                        .get("title", "")
-                    ),
-                    "file_types": (
-                        metadata.get("files", {}).get("types", [])
-                        or self._extract_file_types(metadata)
-                    ),
-                }
-            )
-
-            # Pre-compute affiliations
-            affiliations = []
-            for contributor_type in ["creators", "contributors"]:
-                for contributor in metadata_dict.get(contributor_type, []):
-                    if contributor.get("affiliations"):
-                        affiliations.extend(contributor["affiliations"])
-            enrichment["affiliations"] = affiliations
-
-        # Note: community_ids cannot be pre-computed as they depend on event timestamp
-        # They will be calculated individually during event enrichment
-
-        return enrichment
-
-    def _extract_file_types(self, metadata: Dict) -> List[str]:
-        """Extract file types from metadata files entries.
-
-        Args:
-            metadata: The metadata for the record
-
-        Returns:
-            List of file extensions/types
-        """
-        if "files" in metadata and metadata["files"].get("enabled"):
-            files_entries = metadata.get("files", {}).get("entries", {})
-            file_types = []
-            for file_info in files_entries.values():
-                if isinstance(file_info, dict) and "ext" in file_info:
-                    file_types.append(file_info["ext"])
-                elif isinstance(file_info, dict) and "key" in file_info:
-                    key = file_info["key"]
-                    if key and "." in key:
-                        file_types.append(key.split(".")[-1].lower())
-            return file_types
-        else:
-            return []
-
     def _bulk_enrich_events(
         self,
         hits: List[Dict],
@@ -1610,15 +1654,12 @@ class EventReindexingService:
             f"Found community membership for {len(communities_by_recid)} records"
         )
 
-        # Create pre-computed enrichment lookup dictionaries for O(1) access
         enrichment_lookup = {}
         for record_id in record_ids:
             metadata = metadata_by_recid.get(record_id, {})
-            communities = communities_by_recid.get(record_id, [])
 
-            # Pre-compute all enrichment fields for this record
-            enrichment_lookup[record_id] = self._precompute_enrichment_fields(
-                metadata, communities
+            enrichment_lookup[record_id] = self.metadata_extractor.extract_fields(
+                metadata, record_id
             )
 
         for hit in hits:
@@ -1649,112 +1690,6 @@ class EventReindexingService:
             )
 
         return enriched_docs
-
-    def enrich_event(
-        self, event: Dict | AttrDict, metadata: Dict, communities: List[Tuple[str, str]]
-    ) -> dict:
-        """Enrich a single event with metadata and community information.
-
-        Args:
-            event: The event to enrich
-            metadata: The metadata for the record
-            communities: The communities that the record belongs to. This is a list of
-                tuples of (community_id, effective_date). The effective date is the
-                date on which the record was added to the community (or best guess).
-
-        Returns:
-            The enriched event as a dictionary
-        """
-        # Convert AttrDict to regular dict if needed
-        if hasattr(event, "to_dict") and callable(getattr(event, "to_dict", None)):
-            enriched_event = getattr(event, "to_dict")().copy()
-        else:
-            enriched_event = event.copy()
-
-        event_timestamp = event.get("timestamp")
-
-        if event_timestamp and communities:
-            active_communities = self._get_active_communities_for_event(
-                communities, event_timestamp, metadata
-            )
-            enriched_event["community_ids"] = active_communities
-        else:
-            # Fix: Always return a list, even if empty
-            enriched_event["community_ids"] = (
-                [c for c, _ in communities] if communities else []
-            )
-            current_app.logger.debug(
-                f"Set community_ids to fallback: {enriched_event['community_ids']}"
-            )
-
-        if metadata:
-            metadata_dict = metadata.get("metadata", {})
-            enriched_event.update(
-                {
-                    "resource_type": metadata_dict.get("resource_type", {}),
-                    "publisher": metadata_dict.get("publisher", ""),
-                    "access_status": metadata.get("access", {}).get("status", ""),
-                    "languages": metadata_dict.get("languages", []),
-                    "subjects": metadata_dict.get("subjects", []),
-                    "rights": metadata_dict.get("rights", []),
-                    "funders": [
-                        item["funder"]
-                        for item in metadata_dict.get("funding", [])
-                        if isinstance(item, dict) and "funder" in item
-                    ],
-                    "journal_title": (
-                        metadata.get("custom_fields", {}).get(
-                            "journal:journal.title.keyword", ""
-                        )
-                    ),
-                }
-            )
-
-            affiliations = []
-            for contributor_type in ["creators", "contributors"]:
-                for contributor in metadata_dict.get(contributor_type, []):
-                    if contributor.get("affiliations"):
-                        affiliations.extend(contributor["affiliations"])
-            enriched_event["affiliations"] = affiliations
-
-            if "file_key" in enriched_event and metadata:
-                files_entries = metadata.get("files", {}).get("entries", {})
-                downloaded_file_type = None
-
-                for file_info in files_entries.values():
-                    if isinstance(file_info, dict) and "key" in file_info:
-                        if file_info["key"] == enriched_event["file_key"]:
-                            if "ext" in file_info:
-                                downloaded_file_type = file_info["ext"]
-                            else:
-                                key = file_info["key"]
-                                if key and "." in key:
-                                    downloaded_file_type = key.split(".")[-1].lower()
-                            break
-
-                enriched_event["file_types"] = (
-                    [downloaded_file_type] if downloaded_file_type else []
-                )
-
-            elif metadata and "files" in metadata:
-                files_entries = metadata.get("files", {}).get("entries", {})
-                file_types = []
-
-                for file_info in files_entries.values():
-                    if isinstance(file_info, dict) and "ext" in file_info:
-                        file_types.append(file_info["ext"])
-                    elif isinstance(file_info, dict) and "key" in file_info:
-                        key = file_info["key"]
-                        if key and "." in key:
-                            file_types.append(key.split(".")[-1].lower())
-
-                enriched_event["file_types"] = file_types
-
-            elif "file_types" in enriched_event:
-                if not isinstance(enriched_event["file_types"], list):
-                    enriched_event["file_types"] = [enriched_event["file_types"]]
-
-        return enriched_event
 
     def _get_active_communities_for_event(
         self, communities: List[Tuple[str, str]], event_timestamp: str, metadata: Dict
@@ -2715,47 +2650,12 @@ class EventReindexingService:
                         )
                         if bookmark and bookmark.get("last_event_id"):
                             try:
-                                # Debug: log what we're searching for
-                                current_app.logger.debug(
-                                    f"Searching for events after bookmark: "
-                                    f"timestamp={bookmark['last_event_timestamp']}, "
-                                    f"id={bookmark['last_event_id']}"
-                                )
-
-                                # First, let's verify the bookmark position by doing a simple search
-                                verify_search = Search(
-                                    using=self.client, index=source_index
-                                )
-                                verify_search = verify_search.query(
-                                    "term", _id=bookmark["last_event_id"]
-                                )
-                                verify_search = verify_search.extra(size=1)
-                                verify_response = verify_search.execute()
-
-                                if verify_response.hits:
-                                    bookmark_doc = verify_response.hits[0]
-                                    current_app.logger.debug(
-                                        f"Found bookmark document: timestamp={bookmark_doc.timestamp}, "
-                                        f"id={bookmark_doc.meta.id}"
-                                    )
-                                else:
-                                    current_app.logger.warning(
-                                        f"Could not find bookmark document with ID: {bookmark['last_event_id']}"
-                                    )
-
-                                # Use our method that properly counts remaining documents after bookmark
                                 bookmark_remaining = (
                                     self.count_remaining_after_bookmark(
                                         source_index,
                                         bookmark["last_event_timestamp"],
                                         bookmark["last_event_id"],
                                     )
-                                )
-
-                                # Debug: log what we found
-                                current_app.logger.debug(
-                                    f"Bookmark search found {bookmark_remaining} remaining events "
-                                    f"out of {source_count} total"
                                 )
 
                                 new_idx["remaining_count"] = bookmark_remaining
@@ -2977,38 +2877,32 @@ class EventReindexingService:
             Total number of documents remaining after the bookmark position
         """
         total_remaining = 0
+        current_id = last_id
 
-        # Convert Arrow timestamp to string if needed
         if hasattr(last_timestamp, "format"):
             current_timestamp = last_timestamp.format("YYYY-MM-DDTHH:mm:ss")
         else:
             current_timestamp = last_timestamp
 
-        current_id = last_id
-
         while True:
             search = Search(using=self.client, index=source_index)
             search = search.sort("timestamp", "_id")
             search = search.extra(
-                size=10000,  # Use max size to minimize number of requests
+                size=10000,  # OpenSearch 10k limit
                 search_after=[current_timestamp, current_id],
             )
 
             try:
                 response = search.execute()
                 hits = response.hits
-
                 if not hits:
                     break
 
                 batch_count = len(hits)
                 total_remaining += batch_count
-
                 if batch_count < 10000:
-                    # We've reached the end - got fewer than max results
                     break
 
-                # Move to the next page for the next iteration
                 last_hit = hits[-1]
                 current_timestamp = last_hit.timestamp
                 current_id = last_hit.meta.id
@@ -3017,7 +2911,4 @@ class EventReindexingService:
                 current_app.logger.error(f"Error counting remaining documents: {e}")
                 break
 
-        current_app.logger.info(
-            f"Total remaining documents after bookmark: {total_remaining}"
-        )
         return total_remaining

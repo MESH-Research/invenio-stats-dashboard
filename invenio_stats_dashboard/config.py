@@ -570,6 +570,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_resource_types",
             "field": "resource_type.id",
             "field_type": Optional[dict[str, Any]],
+            "event_field": "resource_type",
+            "extraction_path_for_event": "metadata.resource_type",
             "label_field": "resource_type.title",
             "label_source_includes": ["resource_type.title", "resource_type.id"],
             "snapshot_type": "all",
@@ -586,6 +588,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_access_statuses",
             "field": "access_status",
             "field_type": Optional[str],
+            "event_field": "access_status",
+            "extraction_path_for_event": "access.status",
             "label_field": None,
             "snapshot_type": "all",
         },
@@ -605,6 +609,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_languages",
             "field": "languages.id",
             "field_type": Optional[list[str]],
+            "event_field": "languages",
+            "extraction_path_for_event": "metadata.languages",
             "label_field": "languages.title",
             "label_source_includes": ["languages.title", "languages.id"],
             "snapshot_type": "top",
@@ -626,6 +632,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_subjects",
             "field": "subjects.id",
             "field_type": Optional[list[str]],
+            "event_field": "subjects",
+            "extraction_path_for_event": "metadata.subjects",
             "label_field": "subjects.subject",
             "label_source_includes": ["subjects.subject", "subjects.id"],
             "snapshot_type": "top",
@@ -643,6 +651,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_rights",
             "field": "rights.id",
             "field_type": Optional[list[str]],
+            "event_field": "rights",
+            "extraction_path_for_event": "metadata.rights",
             "label_field": "rights.title",
             "label_source_includes": ["rights.title", "rights.id"],
             "snapshot_type": "top",
@@ -667,6 +677,12 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_funders",
             "field": "funders.id",
             "field_type": "list",
+            "event_field": "funders",
+            "extraction_path_for_event": lambda metadata: [
+                item["funder"]
+                for item in metadata.get("funding", [])
+                if isinstance(item, dict) and "funder" in item
+            ],
             "label_field": "funders.name",
             "combine_queries": ["funders.id", "funders.name"],
             "label_source_includes": ["funders.id", "funders.name"],
@@ -684,6 +700,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_periodicals",
             "field": "journal_title",
             "field_type": Optional[str],
+            "event_field": "journal_title",
+            "extraction_path_for_event": "custom_fields.journal:journal.title.keyword",
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -699,6 +717,8 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_publishers",
             "field": "publisher",
             "field_type": Optional[str],
+            "event_field": "publisher",
+            "extraction_path_for_event": "metadata.publisher",
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -722,6 +742,13 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_affiliations",
             "field": "affiliations.id",
             "field_type": Optional[list[str]],
+            "event_field": "affiliations",
+            "extraction_path_for_event": lambda metadata: [
+                item["affiliations"]
+                for item in metadata.get("creators", [])
+                + metadata.get("contributors", [])
+                if "affiliations" in item
+            ],
             "label_field": "affiliations.name",
             "combine_queries": ["affiliations.id", "affiliations.name"],
             "label_source_includes": ["affiliations.name", "affiliations.id"],
@@ -752,6 +779,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_countries",
             "field": "country",
             "field_type": Optional[str],
+            "event_field": None,
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -762,6 +790,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_referrers",
             "field": "referrer",
             "field_type": Optional[str],
+            "event_field": None,
             "label_field": None,
             "snapshot_type": "top",
         },
@@ -778,6 +807,16 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "delta_aggregation_name": "by_file_types",
             "field": "file_types",
             "field_type": Optional[list[str]],
+            "event_field": "file_types",
+            "extraction_path_for_event": lambda metadata: (
+                metadata.get("files", {}).get("types", [])
+                if metadata.get("files", {}).get("types", [])
+                else [
+                    item["ext"]
+                    for item in metadata.get("files", {}).get("entries", [])
+                    if "ext" in item
+                ]
+            ),
             "label_field": None,
             "snapshot_type": "all",
         },

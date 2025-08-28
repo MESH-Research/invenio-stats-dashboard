@@ -1,415 +1,31 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2023-2024 Mesh Research
+# Copyright (C) 2025 Mesh Research
 #
 # invenio-stats-dashboard is free software; you can redistribute it
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
-from pprint import pprint
-
 import arrow
 import click
-from flask import current_app
 from flask.cli import with_appcontext
 from halo import Halo
-from opensearchpy.helpers.search import Search
 
-from .proxies import current_community_stats_service, current_event_reindexing_service
-from .services.usage_reindexing import EventReindexingService
-from .tasks import reindex_usage_events_with_metadata
-from .utils.process_manager import ProcessManager, ProcessMonitor
-
-
-def check_stats_enabled():
-    """Check if community stats are enabled."""
-    if not current_app.config.get("COMMUNITY_STATS_ENABLED", True):
-        raise click.ClickException(
-            "Community stats dashboard is disabled. "
-            "Set COMMUNITY_STATS_ENABLED=True to enable this command."
-        )
+from .core_cli import check_stats_enabled
+from ..proxies import current_event_reindexing_service
+from ..tasks import reindex_usage_events_with_metadata
+from ..utils.process_manager import ProcessManager
+from ..utils.usage_events import UsageEventFactory
 
 
-def check_scheduled_tasks_enabled():
-    """Check if scheduled tasks are enabled."""
-    if not current_app.config.get("COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED", True):
-        raise click.ClickException(
-            "Community stats scheduled tasks are disabled. "
-            "Set COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED=True to enable "
-            "aggregation tasks."
-        )
-
-
-def report_validation_errors(validation_errors):
-    """Report validation errors in a consistent format.
-
-    Args:
-        validation_errors: List of validation error dictionaries
-    """
-    if not validation_errors:
-        return
-
-    click.echo("\n🔍 VALIDATION FAILURES:")
-    click.echo("The following migrations failed validation and can be safely retried:")
-    for validation_error in validation_errors:
-        event_type = validation_error["event_type"]
-        month = validation_error["month"]
-        click.echo(f"  • {event_type} {month}: Validation failed")
-        click.echo(f"    Source: {validation_error['source_index']}")
-        click.echo(f"    Target: {validation_error['target_index']}")
-
-        # Show validation details
-        validation_details = validation_error["validation_details"]
-        if validation_details.get("errors"):
-            click.echo("    Validation errors:")
-            errors = validation_details["errors"]
-            for error in errors[:3]:  # Show first 3 errors
-                click.echo(f"      - {error}")
-            if len(errors) > 3:
-                remaining = len(errors) - 3
-                click.echo(f"      ... and {remaining} more errors")
-
-        if validation_details.get("document_counts"):
-            counts = validation_details["document_counts"]
-            source_count = counts.get("source", "N/A")
-            target_count = counts.get("target", "N/A")
-            click.echo(
-                f"    Document counts: source={source_count}, " f"target={target_count}"
-            )
-
-        missing_ids = validation_details.get("missing_community_ids", 0)
-        if missing_ids > 0:
-            click.echo(f"    Missing community_ids: {missing_ids}")
-
-    click.echo("\n💡 To retry validation failures:")
-    click.echo("  The bookmark has been automatically reset, so you can safely retry:")
-    for validation_error in validation_errors:
-        event_type = validation_error["event_type"]
-        month = validation_error["month"]
-        click.echo(
-            f"    invenio community-stats migrate-month "
-            f"--event-type {event_type} --month {month}"
-        )
-
-
-def report_interrupted_migrations(interrupted_migrations):
-    """Report interrupted migrations in a consistent format.
-
-    Args:
-        interrupted_migrations: List of interrupted migration dictionaries
-    """
-    if not interrupted_migrations:
-        return
-
-    click.echo("\n⚠️  INCOMPLETE MIGRATIONS:")
-
-    # Group by reason
-    interrupted = [
-        m for m in interrupted_migrations if m.get("reason") == "interrupted"
-    ]
-    failed = [m for m in interrupted_migrations if m.get("reason") == "failed"]
-
-    if interrupted:
-        click.echo("\n⏸️  INTERRUPTED (can resume):")
-        click.echo(
-            "The following migrations were interrupted due to " "max_batches limit:"
-        )
-        for migration in interrupted:
-            click.echo(
-                f"  • {migration['event_type']} {migration['month']}: "
-                f"{migration['processed']:,} events processed in "
-                f"{migration['batches']} batches"
-            )
-            click.echo(f"    Last processed ID: {migration['last_processed_id']}")
-            click.echo(f"    Source: {migration['source_index']}")
-            click.echo(f"    Target: {migration['target_index']}")
-
-    if failed:
-        click.echo("\n❌ FAILED (needs investigation):")
-        click.echo("The following migrations failed due to errors:")
-        for migration in failed:
-            click.echo(
-                f"  • {migration['event_type']} {migration['month']}: "
-                f"{migration['processed']:,} events processed in "
-                f"{migration['batches']} batches"
-            )
-            click.echo(f"    Source: {migration['source_index']}")
-            click.echo(f"    Target: {migration['target_index']}")
-
-    # Resume instructions
-    if interrupted:
-        click.echo("\n💡 To resume interrupted migrations:")
-        click.echo("  1. Use the same command with --max-batches to continue")
-        click.echo("  2. Or use 'migrate-month' command for specific months:")
-        for migration in interrupted:
-            click.echo(
-                f"     invenio community-stats migrate-month "
-                f"--event-type {migration['event_type']} "
-                f"--month {migration['month']}"
-            )
-
-    if failed:
-        click.echo("\n🔧 To retry failed migrations:")
-        click.echo("  1. Check logs for error details")
-        click.echo("  2. Fix the underlying issue")
-        click.echo("  3. Run the migration again:")
-        for migration in failed:
-            click.echo(
-                f"     invenio community-stats migrate-month "
-                f"--event-type {migration['event_type']} "
-                f"--month {migration['month']}"
-            )
-
-
-def report_migration_results(results):
-    """Report migration results in a consistent format.
-
-    Args:
-        results: Migration results dictionary with consistent structure
-    """
-
-    # Count completed, interrupted, and failed months
-    completed_count = 0
-    interrupted_count = 0
-    failed_count = 0
-
-    for event_results in results["event_types"].values():
-        for month_results in event_results["months"].values():
-            if month_results.get("completed", False):
-                completed_count += 1
-            elif month_results.get("interrupted", False):
-                interrupted_count += 1
-            else:
-                failed_count += 1
-
-    click.echo("=" * 50)
-    click.echo("\nMigration Summary:")
-
-    click.echo("\n\n")
-    if results["completed"]:
-        click.echo("All migrations completed successfully")
-    elif failed_count > 0 and interrupted_count == 0 and completed_count == 0:
-        click.echo("All migrations failed")
-    else:
-        if completed_count > 0:
-            click.echo("Some migrations were completed")
-        if interrupted_count > 0:
-            click.echo("Some migrations were interrupted")
-        if failed_count > 0:
-            click.echo("Some migrations failed")
-
-        if results.get("error"):
-            click.echo("\nTop-level error:")
-            click.echo(f"- {results['error']}")
-
-        if results.get("health_issues"):
-            click.echo("\nHealth issues:")
-            for issue in results["health_issues"]:
-                click.echo(f"  - {issue}")
-
-    click.echo(f"  Processed: {results['total_processed']} total events")
-    for event_type_name, event_results in results["event_types"].items():
-        click.echo(f"  {event_type_name} events: {event_results['processed']}")
-    click.echo(f"  Total errors: {results['total_errors']}")
-    click.echo(f"\n  Completed: {completed_count} monthly indices")
-    click.echo(f"  Interrupted: {interrupted_count} monthly indices")
-    click.echo(f"  Failed: {failed_count} monthly indices")
-    total_months = completed_count + interrupted_count + failed_count
-    click.echo(f"  Total: {total_months} monthly indices")
-
-    # Now go through each month systematically to show ALL information
-    click.echo("\nResults for each month:")
-    click.echo("=" * 50)
-
-    for event_type, event_results in results["event_types"].items():
-        click.echo(f"\n{event_type.upper()} Events")
-        for month, month_results in event_results["months"].items():
-            click.echo(f"\n{month}")
-            click.echo(f"    Source Index: {month_results.get('source_index', 'N/A')}")
-            click.echo(f"    Target Index: {month_results.get('target_index', 'N/A')}")
-            click.echo(f"    Processed: {month_results.get('processed', 0):,} events")
-            click.echo(
-                f"    Total Batches: {month_results.get('batches_succeeded', 0)}"
-            )
-            click.echo(
-                f"    Batches Attempted: {month_results.get('batches_attempted', 0)}"
-            )
-            completed = month_results.get("completed")
-            click.echo(f"    Completed: {completed}")
-            interrupted = month_results.get("interrupted")
-            click.echo(f"    Interrupted: {interrupted}")
-            click.echo(
-                f"    Last Processed ID: {month_results.get('last_processed_id', 'N/A')}"
-            )
-
-            # Show timing information if available
-            if month_results.get("total_time"):
-                click.echo(f"    Migration took: {month_results['total_time']}")
-
-            # Show validation errors if any
-            if month_results.get("validation_errors"):
-                click.echo(
-                    f"    Validation Errors: {month_results['validation_errors']}"
-                )
-
-            # Show operational errors if any
-            if month_results.get("operational_errors"):
-                click.echo("    Operational Errors:")
-                for op_error in month_results["operational_errors"]:
-                    click.echo(f"      - {op_error['type']}: " f"{op_error['message']}")
-
-            # Show status summary
-            if month_results.get("completed"):
-                click.echo("    Status: ✅ Completed successfully")
-            elif month_results.get("interrupted"):
-                click.echo("    Status: ⏸️ Interrupted (can resume)")
-            else:
-                click.echo("    Status: ❌ Failed")
-
-    # Add helpful instructions for next steps
-    click.echo("\n" + "=" * 50)
-    click.echo("NEXT STEPS:")
-
-    if interrupted_count > 0:
-        click.echo(
-            f"\n⏸️  {interrupted_count} migration(s) were interrupted or unfinished "
-            f"and can be resumed:"
-        )
-        click.echo("   • The bookmark system automatically tracks progress")
-        click.echo("   • Resume with the same command (bookmarks are preserved)")
-
-    if failed_count > 0:
-        click.echo(f"\n❌  {failed_count} migration(s) failed and need attention:")
-        click.echo("   • Check logs for detailed error information")
-        click.echo("   • Failed migrations automatically reset bookmarks for safety")
-        click.echo("   • You can safely retry with the same command and migrated ")
-        click.echo("     documents will be repaired as necessary.")
-
-        click.echo("\n🔍  View unfinished/interrupted migrations:")
-    click.echo("   invenio community-stats show-interrupted")
-
-    click.echo("\n📈  Check progress:")
-    click.echo("   invenio community-stats migration-status")
-
-    click.echo("\n🗑️  Clear bookmarks to start fresh:")
-    click.echo(
-        "   invenio community-stats clear-bookmarks [--event-type TYPE] [--month MONTH]"
-    )
-
-
-@click.group()
-def cli():
-    """Community stats dashboard CLI."""
+@click.group(name="usage-events")
+def usage_events_cli():
+    """Usage events commands."""
     pass
 
 
-@cli.command(name="generate-community-events")
-@click.option(
-    "--community-id",
-    type=str,
-    multiple=True,
-    help="The ID of the community to generate events for. "
-    "Can be specified multiple times.",
-)
-@click.option(
-    "--record-ids",
-    type=str,
-    multiple=True,
-    help="The IDs of the records to generate events for. "
-    "Can be specified multiple times.",
-)
-@with_appcontext
-def generate_community_events_command(community_id, record_ids):
-    """
-    Generate community events for all records in the instance.
-    """
-    check_stats_enabled()
-    current_community_stats_service.generate_record_community_events(
-        community_ids=list(community_id) if community_id else None,
-        recids=list(record_ids) if record_ids else None,
-    )
-
-
-@cli.command(name="generate-community-events-background")
-@click.option(
-    "--community-id",
-    type=str,
-    multiple=True,
-    help="The ID of the community to generate events for. "
-    "Can be specified multiple times.",
-)
-@click.option(
-    "--record-ids",
-    type=str,
-    multiple=True,
-    help="The IDs of the records to generate events for. "
-    "Can be specified multiple times.",
-)
-@click.option(
-    "--pid-dir",
-    type=str,
-    default="/tmp",
-    help="Directory to store PID and status files.",
-)
-@with_appcontext
-def generate_community_events_background_command(community_id, record_ids, pid_dir):
-    """Start community event generation in the background with process management.
-
-    This command provides the same functionality as generate-community-events but runs
-    in the background with full process management capabilities.
-    """
-    check_stats_enabled()
-
-    # Build the command to run
-    cmd = [
-        "invenio",
-        "community-stats",
-        "generate-community-events",
-    ]
-
-    if community_id:
-        for cid in community_id:
-            cmd.extend(["--community-id", cid])
-
-    if record_ids:
-        for rid in record_ids:
-            cmd.extend(["--record-ids", rid])
-
-    process_manager = ProcessManager(
-        "community-event-generation", pid_dir, package_prefix="invenio-community-stats"
-    )
-
-    try:
-        pid = process_manager.start_background_process(cmd)
-        click.echo("\n🎯 Background event generation started successfully!")
-        click.echo(f"Process ID: {pid}")
-        click.echo(f"Command: {' '.join(cmd)}")
-
-        click.echo("\n📊 Monitor progress:")
-        click.echo(
-            "  invenio community-stats process-status community-event-generation"
-        )
-        click.echo(
-            "  invenio community-stats process-status "
-            "community-event-generation --show-log"
-        )
-
-        click.echo("\n🛑 Cancel if needed:")
-        click.echo(
-            "  invenio community-stats cancel-process community-event-generation"
-        )
-
-    except RuntimeError as e:
-        click.echo(f"❌ Failed to start background event generation: {e}")
-        return 1
-
-    except Exception as e:
-        click.echo(f"❌ Unexpected error: {e}")
-        return 1
-
-
-@cli.command(name="generate-usage-events")
+@usage_events_cli.command(name="generate")
 @click.option(
     "--start-date",
     type=str,
@@ -470,8 +86,6 @@ def generate_usage_events_command(
     """Generate synthetic usage events (view/download) for testing purposes."""
     check_stats_enabled()
 
-    from .utils.usage_events import UsageEventFactory
-
     click.echo("🎯 Starting usage event generation...")
     click.echo(f"Events per record: {events_per_record}")
     if max_records > 0:
@@ -528,7 +142,7 @@ def generate_usage_events_command(
         raise
 
 
-@cli.command(name="generate-usage-events-background")
+@usage_events_cli.command(name="generate-background")
 @click.option(
     "--start-date",
     type=str,
@@ -645,94 +259,265 @@ def generate_usage_events_background_command(
         return 1
 
 
-@cli.command(name="aggregate-stats")
-@click.option(
-    "--community-id",
-    type=str,
-    multiple=True,
-    help="The UUID or slug of the community to aggregate stats for",
-)
-@click.option(
-    "--start-date",
-    type=str,
-    help="The start date to aggregate stats for (YYYY-MM-DD)",
-)
-@click.option(
-    "--end-date",
-    type=str,
-    help="The end date to aggregate stats for (YYYY-MM-DD)",
-)
-@click.option(
-    "--eager",
-    is_flag=True,
-    help="Run aggregation eagerly (synchronously)",
-)
-@click.option(
-    "--update-bookmark",
-    is_flag=True,
-    default=True,
-    help="Update the bookmark after aggregation",
-)
-@click.option(
-    "--ignore-bookmark",
-    is_flag=True,
-    help="Ignore the bookmark and process all records",
-)
-@with_appcontext
-def aggregate_stats_command(
-    community_id,
-    start_date,
-    end_date,
-    eager,
-    update_bookmark,
-    ignore_bookmark,
-):
-    """Aggregate community record statistics."""
-    check_stats_enabled()
-    check_scheduled_tasks_enabled()
+def _report_validation_errors(validation_errors):
+    """Report validation errors in a consistent format.
 
-    community_ids = list(community_id) if community_id else None
-    current_community_stats_service.aggregate_stats(
-        community_ids=community_ids,
-        start_date=start_date,
-        end_date=end_date,
-        eager=eager,
-        update_bookmark=update_bookmark,
-        ignore_bookmark=ignore_bookmark,
+    Args:
+        validation_errors: List of validation error dictionaries
+    """
+    if not validation_errors:
+        return
+
+    click.echo("\n🔍 VALIDATION FAILURES:")
+    click.echo("The following migrations failed validation and can be safely retried:")
+    for validation_error in validation_errors:
+        event_type = validation_error["event_type"]
+        month = validation_error["month"]
+        click.echo(f"  • {event_type} {month}: Validation failed")
+        click.echo(f"    Source: {validation_error['source_index']}")
+        click.echo(f"    Target: {validation_error['target_index']}")
+
+        # Show validation details
+        validation_details = validation_error["validation_details"]
+        if validation_details.get("errors"):
+            click.echo("    Validation errors:")
+            errors = validation_details["errors"]
+            for error in errors[:3]:  # Show first 3 errors
+                click.echo(f"      - {error}")
+            if len(errors) > 3:
+                remaining = len(errors) - 3
+                click.echo(f"      ... and {remaining} more errors")
+
+        if validation_details.get("document_counts"):
+            counts = validation_details["document_counts"]
+            source_count = counts.get("source", "N/A")
+            target_count = counts.get("target", "N/A")
+            click.echo(
+                f"    Document counts: source={source_count}, " f"target={target_count}"
+            )
+
+        missing_ids = validation_details.get("missing_community_ids", 0)
+        if missing_ids > 0:
+            click.echo(f"    Missing community_ids: {missing_ids}")
+
+    click.echo("\n💡 To retry validation failures:")
+    click.echo("  The bookmark has been automatically reset, so you can safely retry:")
+    for validation_error in validation_errors:
+        event_type = validation_error["event_type"]
+        month = validation_error["month"]
+        click.echo(
+            f"    invenio community-stats migrate-month "
+            f"--event-type {event_type} --month {month}"
+        )
+
+
+def _report_interrupted_migrations(interrupted_migrations):
+    """Report interrupted migrations in a consistent format.
+
+    Args:
+        interrupted_migrations: List of interrupted migration dictionaries
+    """
+    if not interrupted_migrations:
+        return
+
+    click.echo("\n⚠️  INCOMPLETE MIGRATIONS:")
+
+    # Group by reason
+    interrupted = [
+        m for m in interrupted_migrations if m.get("reason") == "interrupted"
+    ]
+    failed = [m for m in interrupted_migrations if m.get("reason") == "failed"]
+
+    if interrupted:
+        click.echo("\n⏸️  INTERRUPTED (can resume):")
+        click.echo(
+            "The following migrations were interrupted due to " "max_batches limit:"
+        )
+        for migration in interrupted:
+            click.echo(
+                f"  • {migration['event_type']} {migration['month']}: "
+                f"{migration['processed']:,} events processed in "
+                f"{migration['batches']} batches"
+            )
+            click.echo(f"    Last processed ID: {migration['last_processed_id']}")
+            click.echo(f"    Source: {migration['source_index']}")
+            click.echo(f"    Target: {migration['target_index']}")
+
+    if failed:
+        click.echo("\n❌ FAILED (needs investigation):")
+        click.echo("The following migrations failed due to errors:")
+        for migration in failed:
+            click.echo(
+                f"  • {migration['event_type']} {migration['month']}: "
+                f"{migration['processed']:,} events processed in "
+                f"{migration['batches']} batches"
+            )
+            click.echo(f"    Source: {migration['source_index']}")
+            click.echo(f"    Target: {migration['target_index']}")
+
+    # Resume instructions
+    if interrupted:
+        click.echo("\n💡 To resume interrupted migrations:")
+        click.echo("  1. Use the same command with --max-batches to continue")
+        click.echo("  2. Or use 'migrate-month' command for specific months:")
+        for migration in interrupted:
+            click.echo(
+                f"     invenio community-stats migrate-month "
+                f"--event-type {migration['event_type']} "
+                f"--month {migration['month']}"
+            )
+
+    if failed:
+        click.echo("\n🔧 To retry failed migrations:")
+        click.echo("  1. Check logs for error details")
+        click.echo("  2. Fix the underlying issue")
+        click.echo("  3. Run the migration again:")
+        for migration in failed:
+            click.echo(
+                f"     invenio community-stats migrate-month "
+                f"--event-type {migration['event_type']} "
+                f"--month {migration['month']}"
+            )
+
+
+def _report_migration_results(results):
+    """Report migration results in a consistent format.
+
+    Args:
+        results: Migration results dictionary with consistent structure
+    """
+
+    # Count completed, interrupted, and failed months
+    completed_count = 0
+    interrupted_count = 0
+    failed_count = 0
+
+    for event_results in results["event_types"].values():
+        for month_results in event_results["months"].values():
+            if month_results.get("completed", False):
+                completed_count += 1
+            elif month_results.get("interrupted", False):
+                interrupted_count += 1
+            else:
+                failed_count += 1
+
+    click.echo("=" * 50)
+    click.echo("\nMigration Summary:")
+
+    click.echo("\n\n")
+    if results["completed"]:
+        click.echo("All migrations completed successfully")
+    elif failed_count > 0 and interrupted_count == 0 and completed_count == 0:
+        click.echo("All migrations failed")
+    else:
+        if completed_count > 0:
+            click.echo("Some migrations were completed")
+        if interrupted_count > 0:
+            click.echo("Some migrations were interrupted")
+        if failed_count > 0:
+            click.echo("Some migrations failed")
+
+        if results.get("error"):
+            click.echo("\nTop-level error:")
+            click.echo(f"- {results['error']}")
+
+        if results.get("health_issues"):
+            click.echo("\nHealth issues:")
+            for issue in results["health_issues"]:
+                click.echo(f"  - {issue}")
+
+    click.echo(f"  Processed: {results['total_processed']} total events")
+    for event_type_name, event_results in results["event_types"].items():
+        click.echo(f"  {event_type_name} events: {event_results['processed']}")
+    click.echo(f"  Total errors: {results['total_errors']}")
+    click.echo(f"\n  Completed: {completed_count} monthly indices")
+    click.echo(f"  Interrupted: {interrupted_count} monthly indices")
+    click.echo(f"  Failed: {failed_count} monthly indices")
+    total_months = completed_count + interrupted_count + failed_count
+    click.echo(f"  Total: {total_months} monthly indices")
+
+    # Now go through each month systematically to show ALL information
+    click.echo("\nResults for each month:")
+    click.echo("=" * 50)
+
+    for event_type, event_results in results["event_types"].items():
+        click.echo(f"\n{event_type.upper()} Events")
+        for month, month_results in event_results["months"].items():
+            click.echo(f"\n{month}")
+            click.echo(f"    Source Index: {month_results.get('source_index', 'N/A')}")
+            click.echo(f"    Target Index: {month_results.get('target_index', 'N/A')}")
+            click.echo(f"    Processed: {month_results.get('processed', 0):,} events")
+            click.echo(
+                f"    Total Batches: {month_results.get('batches_succeeded', 0)}"
+            )
+            click.echo(
+                f"    Batches Attempted: {month_results.get('batches_attempted', 0)}"
+            )
+            completed = month_results.get("completed")
+            click.echo(f"    Completed: {completed}")
+            interrupted = month_results.get("interrupted")
+            click.echo(f"    Interrupted: {interrupted}")
+            click.echo(
+                f"    Last Processed ID: "
+                f"{month_results.get('last_processed_id', 'N/A')}"
+            )
+
+            # Show timing information if available
+            if month_results.get("total_time"):
+                click.echo(f"    Migration took: {month_results['total_time']}")
+
+            # Show validation errors if any
+            if month_results.get("validation_errors"):
+                click.echo(
+                    f"    Validation Errors: {month_results['validation_errors']}"
+                )
+
+            # Show operational errors if any
+            if month_results.get("operational_errors"):
+                click.echo("    Operational Errors:")
+                for op_error in month_results["operational_errors"]:
+                    click.echo(f"      - {op_error['type']}: " f"{op_error['message']}")
+
+            # Show status summary
+            if month_results.get("completed"):
+                click.echo("    Status: ✅ Completed successfully")
+            elif month_results.get("interrupted"):
+                click.echo("    Status: ⏸️ Interrupted (can resume)")
+            else:
+                click.echo("    Status: ❌ Failed")
+
+    # Add helpful instructions for next steps
+    click.echo("\n" + "=" * 50)
+    click.echo("NEXT STEPS:")
+
+    if interrupted_count > 0:
+        click.echo(
+            f"\n⏸️  {interrupted_count} migration(s) were interrupted or unfinished "
+            f"and can be resumed:"
+        )
+        click.echo("   • The bookmark system automatically tracks progress")
+        click.echo("   • Resume with the same command (bookmarks are preserved)")
+
+    if failed_count > 0:
+        click.echo(f"\n❌  {failed_count} migration(s) failed and need attention:")
+        click.echo("   • Check logs for detailed error information")
+        click.echo("   • Failed migrations automatically reset bookmarks for safety")
+        click.echo("   • You can safely retry with the same command and migrated ")
+        click.echo("     documents will be repaired as necessary.")
+
+        click.echo("\n🔍  View unfinished/interrupted migrations:")
+    click.echo("   invenio community-stats show-interrupted")
+
+    click.echo("\n📈  Check progress:")
+    click.echo("   invenio community-stats migration-status")
+
+    click.echo("\n🗑️  Clear bookmarks to start fresh:")
+    click.echo(
+        "   invenio community-stats clear-bookmarks [--event-type TYPE] [--month MONTH]"
     )
 
 
-@cli.command(name="read-stats")
-@click.option(
-    "--community-id",
-    type=str,
-    default="global",
-    help="The ID of the community to read stats for.",
-)
-@click.option(
-    "--start-date",
-    type=str,
-    default=arrow.get().shift(days=-1).isoformat(),
-    help="The start date to read stats for.",
-)
-@click.option(
-    "--end-date",
-    type=str,
-    default=arrow.get().isoformat(),
-    help="The end date to read stats for.",
-)
-@with_appcontext
-def read_stats_command(community_id, start_date, end_date):
-    """Read stats for a community."""
-    check_stats_enabled()
-    print(f"Reading stats for community {community_id} from {start_date} to {end_date}")
-    stats = current_community_stats_service.read_stats(
-        community_id, start_date=start_date, end_date=end_date
-    )
-    pprint(stats)
-
-
-@cli.command(name="migrate-events")
+@usage_events_cli.command(name="migrate")
 @click.option(
     "--event-types",
     "-e",
@@ -804,7 +589,7 @@ def migrate_events_command(
     if not event_types:
         event_types = ["view", "download"]
 
-    service = EventReindexingService(current_app)
+    service = current_event_reindexing_service
     service.batch_size = batch_size
     service.max_memory_percent = max_memory_percent
 
@@ -861,18 +646,18 @@ def migrate_events_command(
                 )
 
             # Use the consolidated reporting function
-            report_migration_results(results)
+            _report_migration_results(results)
 
             # Show incomplete migrations details
             if results.get("interrupted_migrations"):
-                report_interrupted_migrations(results["interrupted_migrations"])
+                _report_interrupted_migrations(results["interrupted_migrations"])
 
         except Exception as e:
             click.echo(f"❌ Migration failed with error: {e}")
             raise
 
 
-@cli.command(name="migration-status")
+@usage_events_cli.command(name="status")
 @click.option(
     "--show-bookmarks",
     is_flag=True,
@@ -883,21 +668,44 @@ def migrate_events_command(
     is_flag=True,
     help="Show the individual monthly indices.",
 )
+@click.option(
+    "--show-incomplete",
+    is_flag=True,
+    help="Show the details of incomplete migrations.",
+)
+@click.option(
+    "--show-completed",
+    is_flag=True,
+    help="Show the details of completed migrations.",
+)
+@click.option(
+    "--show-not-started",
+    is_flag=True,
+    help="Show the details of migrations that have not yet begun.",
+)
 @with_appcontext
-def migration_status_command(show_bookmarks, show_indices):
+def migration_status_command(
+    show_bookmarks,
+    show_indices,
+    show_incomplete,
+    show_completed,
+    show_not_started,
+):
     """Show the current migration status and progress."""
     check_stats_enabled()
 
-    service = EventReindexingService(current_app)
+    service = current_event_reindexing_service
 
-    estimates = service.count_total_events()
+    progress = service.get_reindexing_progress()
+    counts = progress["counts"]
+    health = progress["health"]
 
-    click.echo("Migration Status")
+    click.echo("\nMigration Status")
     click.echo("===============")
 
     # Completed migrations (where old indices were deleted)
-    completed_view = estimates.get("view_completed_migrations", [])
-    completed_download = estimates.get("download_completed_migrations", [])
+    completed_view = counts.get("view_completed_migrations", [])
+    completed_download = counts.get("download_completed_migrations", [])
 
     if completed_view or completed_download:
         click.echo("\n✅ COMPLETED MIGRATIONS (Old indices deleted):")
@@ -917,52 +725,79 @@ def migration_status_command(show_bookmarks, show_indices):
                 )
 
     # Health status
-    health = service.get_reindexing_progress()["health"]
     status_icon = "✅" if health["is_healthy"] else "❌"
     click.echo(f"System Health: {status_icon} {health['reason']}")
     click.echo(f"Memory Usage: {health['memory_usage']:.1f}%")
 
-    # Event estimates
-    click.echo("\nEvent Counts:")
-    total_old_events = estimates.get("view_old", 0) + estimates.get("download_old", 0)
-    total_migrated_events = estimates.get("view_migrated", 0) + estimates.get(
+    # Event counts
+    click.echo("-" * 50)
+    click.echo("Event Counts:")
+    total_old_events = counts.get("view_old", 0) + counts.get("download_old", 0)
+    total_migrated_events = counts.get("view_migrated", 0) + counts.get(
         "download_migrated", 0
     )
-    total_remaining_events = estimates.get("view_remaining", 0) + estimates.get(
+    total_remaining_events = counts.get("view_remaining", 0) + counts.get(
         "download_remaining", 0
     )
     click.echo(f"  Total old events: {total_old_events:,} events")
-    click.echo(f"     view: {estimates.get('view_old', 0)}")
-    click.echo(f"     download: {estimates.get('download_old', 0)}")
+    click.echo(f"     view: {counts.get('view_old', 0)}")
+    click.echo(f"     download: {counts.get('download_old', 0)}")
     click.echo(f"  Total migrated events: {total_migrated_events:,} events")
-    click.echo(f"     view: {estimates.get('view_migrated', 0)}")
-    click.echo(f"     download: {estimates.get('download_migrated', 0)}")
+    click.echo(f"     view: {counts.get('view_migrated', 0)}")
+    click.echo(f"     download: {counts.get('download_migrated', 0)}")
     click.echo(f"  Total remaining events: {total_remaining_events:,} events")
-    click.echo(f"     view: " f"{estimates.get('view_remaining', 0)}")
-    click.echo(f"     download: " f"{estimates.get('download_remaining', 0)}")
+    click.echo(f"     view: " f"{counts.get('view_remaining', 0)}")
+    click.echo(f"     download: " f"{counts.get('download_remaining', 0)}")
 
     # Monthly indices
-    click.echo("\nMonthly Indices:")
+    click.echo("-" * 50)
+    click.echo("Monthly Indices:")
     if show_indices:
-        _format_monthly_indices(estimates)
+        _format_monthly_indices(counts)
     else:
         click.echo("  Not showing indices (use --show-indices to show)")
 
     # Bookmarks
-    click.echo("\nMigration Bookmarks:")
+    click.echo("-" * 50)
+    click.echo("Migration Bookmarks:")
     if show_bookmarks:
         # Show bookmarks from enriched_indices
-        for enriched_idx in estimates["enriched_indices"]:
+        for enriched_idx in counts["enriched_indices"]:
             if enriched_idx["bookmark"]:
                 bookmark = enriched_idx["bookmark"]
                 timestamp = arrow.get(bookmark["last_event_timestamp"])
                 click.echo(f"  {enriched_idx['source_index']}:")
                 click.echo(f"    Last event ID: {bookmark['last_event_id']}")
                 click.echo(
-                    f"    Last event timestamp: {timestamp.format('YYYY-MM-DD HH:mm:ss')}"
+                    f"    Last event timestamp: "
+                    f"{timestamp.format('YYYY-MM-DD HH:mm:ss')}"
                 )
     else:
         click.echo("  Not showing bookmarks (use --show-bookmarks to show)")
+
+    # Incomplete migrations
+    click.echo("-" * 50)
+    click.echo("Incomplete Migrations:")
+    if not show_incomplete:
+        click.echo("  (use --show-incomplete to show details of each)")
+    _format_interrupted_migrations(
+        progress, show_resume_commands=True, show_details=show_incomplete
+    )
+
+    # Completed migrations
+    click.echo("-" * 50)
+    click.echo("Completed Migrations:")
+    if not show_completed:
+        click.echo("  (use --show-completed to show details of each)")
+    _format_completed_migrations(progress, show_details=show_completed)
+
+    # Not started migrations
+    click.echo("-" * 50)
+    click.echo("Migration Yet to Begin:")
+    if not show_not_started:
+        click.echo("  (use --show-not-started to show details of each)")
+    _format_not_started_migrations(progress, show_details=show_not_started)
+    click.echo("\n")
 
 
 def _format_monthly_indices(estimates):
@@ -1033,31 +868,43 @@ def _format_index_mapping(enriched_idx):
     )
 
 
-@cli.command(name="show-interrupted")
-@with_appcontext
-def show_interrupted_command():
-    """Show details about interrupted migrations."""
-    check_stats_enabled()
+def _format_interrupted_migrations(
+    progress, show_resume_commands=True, show_details=True
+):
+    """Format and display interrupted migrations.
 
-    service = EventReindexingService(current_app)
-    progress = service.get_reindexing_progress()
-
-    click.echo("\nInterrupted Usage Event Index Migrations")
-    click.echo("===========================================")
-
-    interrupted_found = False
-    interrupted_count = 0
-
-    # Use the data already calculated by the service
+    Args:
+        progress: The reindexing progress data from the service
+        show_resume_commands: Whether to show resume commands (default: True)
+        show_details: Whether to show the details of interrupted migrations
+            (default: True). If False, only show the month and source index.
+    """
     counts = progress["counts"]
+    interrupted_count = len(
+        [
+            idx
+            for idx in counts["enriched_indices"]
+            if idx["interrupted"] and not idx["completed"]
+        ]
+    )
 
-    # Directly iterate through enriched_indices to find interrupted migrations
+    if not interrupted_count:
+        click.echo("\n  No interrupted migrations found.")
+        click.echo("  All migrations that have begun appear to be complete.")
+    else:
+        click.echo(
+            f"\n  Found {interrupted_count} interrupted or unfinished index migrations."
+        )
+        if show_resume_commands:
+            click.echo(
+                "\n  Use the resume commands below to continue the individual index "
+                "migration, \n  or simply run the migrate-events command again to "
+                "resume all incomplete migrations."
+            )
+
     for enriched_idx in counts["enriched_indices"]:
         if enriched_idx["interrupted"]:
-            interrupted_found = True
-            interrupted_count += 1
 
-            # Extract month from the source index name
             month = (
                 enriched_idx["source_index"].split("-")[-2]
                 + "-"
@@ -1067,57 +914,150 @@ def show_interrupted_command():
                 "view" if "view" in enriched_idx["source_index"] else "download"
             )
 
-            click.echo(f"\n{event_type.upper()} {month}:")
+            click.echo(f"\n  {event_type.upper()} {month}:")
             click.echo(f"  Source index: {enriched_idx['source_index']}")
             if enriched_idx["index"]:
                 click.echo(f"  Enriched index: {enriched_idx['index']}")
-            click.echo(f"  Original count: {enriched_idx['old_count']}")
-            click.echo(f"  Migrated count: {enriched_idx['migrated_count'] or 0}")
+            if show_details:
+                click.echo(f"  Original count: {enriched_idx['old_count']}")
+                click.echo(f"  Migrated count: {enriched_idx['migrated_count'] or 0}")
             click.echo(f"  Remaining events: {enriched_idx['remaining_count'] or 0}")
-            click.echo(
-                f"  Status: "
-                f"{'Completed' if enriched_idx['completed'] else 'In Progress'}"
-            )
-            click.echo(
-                f"  Interrupted: {'Yes' if enriched_idx['interrupted'] else 'No'}"
-            )
+            if show_details:
+                click.echo(
+                    f"  Status: "
+                    f"{'Completed' if enriched_idx['completed'] else 'In Progress'}"
+                )
+                click.echo(
+                    f"  Interrupted: {'Yes' if enriched_idx['interrupted'] else 'No'}"
+                )
+                if enriched_idx["bookmark"]:
+                    bookmark = enriched_idx["bookmark"]
+                    click.echo("  Bookmark details:")
+                    if bookmark.get("last_event_id"):
+                        click.echo(
+                            f"    Last processed ID: {bookmark['last_event_id']}"
+                        )
+                    if bookmark.get("last_event_timestamp"):
+                        click.echo(
+                            f"    Last processed timestamp: "
+                            f"{bookmark['last_event_timestamp']}"
+                        )
+                    if bookmark.get("task_id"):
+                        click.echo(f"    Task ID: {bookmark['task_id']}")
 
-            if enriched_idx["bookmark"]:
-                bookmark = enriched_idx["bookmark"]
-                click.echo("  Bookmark details:")
-                if bookmark.get("last_event_id"):
-                    click.echo(f"    Last processed ID: {bookmark['last_event_id']}")
-                if bookmark.get("last_event_timestamp"):
-                    click.echo(
-                        f"    Last processed timestamp: "
-                        f"{bookmark['last_event_timestamp']}"
-                    )
-                if bookmark.get("task_id"):
-                    click.echo(f"    Task ID: {bookmark['task_id']}")
+            if show_resume_commands:
+                click.echo("  Resume command:")
+                click.echo(
+                    f"    invenio community-stats migrate-month "
+                    f"--event_type {event_type} "
+                    f"--month {month}"
+                )
 
-            click.echo("  Resume command:")
-            click.echo(
-                f"    invenio community-stats migrate-month "
-                f"--event_type {event_type} --month {month}"
-            )
 
-    click.echo("\n")
-    if not interrupted_found:
-        click.echo("No interrupted migrations found.")
-        click.echo("All migrations appear to be complete or not started.")
+def _format_completed_migrations(progress, show_details=True):
+    """Format and display completed migrations.
+
+    Args:
+        progress: The reindexing progress data from the service
+        show_details: Whether to show the details of completed migrations
+            (default: True). If False, only show the count.
+    """
+    counts = progress["counts"]
+    completed_found = False
+    completed_count = 0
+    deleted_count = 0
+
+    # Count completed migrations
+    for enriched_idx in counts["enriched_indices"]:
+        if enriched_idx["completed"] and not enriched_idx["interrupted"]:
+            completed_found = True
+            completed_count += 1
+            if "deleted" in enriched_idx["source_index"]:
+                deleted_count += 1
+
+    if not completed_found:
+        click.echo("  No completed migrations found.")
+        click.echo("  All migrations are either in progress or not started.")
     else:
+        click.echo(f"  Found {completed_count} completed index migrations.")
+        click.echo(f"  Found {deleted_count} deleted old indices.")
         click.echo(
-            f"Found {interrupted_count} interrupted or unfinished index migrations.\n"
+            "\n  To delete old indices for completed migrations, run the "
+            "migrate-events\n  command again with the --delete-old-indices flag."
         )
-        click.echo(
-            "Use the resume command above to continue the individual index migration, "
-            "or simply run the migrate-events command again to resume all interrupted "
-            "migrations."
-        )
-    click.echo("\n")
+
+        if show_details:
+            for enriched_idx in counts["enriched_indices"]:
+                if enriched_idx["completed"] and not enriched_idx["interrupted"]:
+                    click.echo("\n")
+                    month = (
+                        enriched_idx["source_index"].split("-")[-2]
+                        + "-"
+                        + enriched_idx["source_index"].split("-")[-1]
+                    )
+                    event_type = (
+                        "view" if "view" in enriched_idx["source_index"] else "download"
+                    )
+
+                    click.echo(f"    {event_type.upper()} {month}:")
+                    click.echo(f"      Source index: {enriched_idx['source_index']}")
+                    if enriched_idx["index"]:
+                        click.echo(f"      Enriched index: {enriched_idx['index']}")
+                    click.echo(f"      Original count: {enriched_idx['old_count']}")
+                    click.echo(
+                        f"      Migrated count: {enriched_idx['migrated_count'] or 0}"
+                    )
+                    click.echo(
+                        f"      Remaining events: "
+                        f"{enriched_idx['remaining_count'] or 0}"
+                    )
+                    if "deleted" in enriched_idx["source_index"]:
+                        click.echo("      Old index deleted: Yes")
+                    else:
+                        click.echo("      Old index deleted: No")
 
 
-@cli.command(name="migrate-month")
+def _format_not_started_migrations(progress, show_details=True):
+    """Format and display not-started migrations.
+
+    Args:
+        progress: The reindexing progress data from the service
+        show_details: Whether to show the details of not-started migrations
+            (default: True). If False, only show the count.
+    """
+    counts = progress["counts"]
+    not_started_found = False
+    not_started_count = 0
+
+    for enriched_idx in counts["enriched_indices"]:
+        if not enriched_idx["completed"] and not enriched_idx["interrupted"]:
+            not_started_found = True
+            not_started_count += 1
+
+    if not not_started_found:
+        click.echo("  All migrations have either been completed or are in progress.")
+    else:
+        click.echo(f"  Found {not_started_count} not-started index migrations.")
+
+        if show_details:
+            for enriched_idx in counts["enriched_indices"]:
+                if not enriched_idx["completed"] and not enriched_idx["interrupted"]:
+                    month = (
+                        enriched_idx["source_index"].split("-")[-2]
+                        + "-"
+                        + enriched_idx["source_index"].split("-")[-1]
+                    )
+                    event_type = (
+                        "view" if "view" in enriched_idx["source_index"] else "download"
+                    )
+
+                    click.echo(f"    {event_type.upper()} {month}:")
+                    click.echo(f"      Source index: {enriched_idx['source_index']}")
+                    click.echo(f"      Original count: {enriched_idx['old_count']}")
+                    click.echo("      Status: Not started")
+
+
+@usage_events_cli.command(name="migrate-month")
 @click.option("--event-type", "-e", required=True, help="Event type (view or download)")
 @click.option("--month", "-m", required=True, help="Month to migrate (YYYY-MM)")
 @click.option("--max-batches", "-b", type=int, help="Maximum batches to process")
@@ -1164,7 +1104,7 @@ def migrate_month_command(
         click.echo("❌ Event type must be 'view' or 'download'")
         return
 
-    service = EventReindexingService(current_app)
+    service = current_event_reindexing_service
     service.batch_size = batch_size
     service.max_memory_percent = max_memory_percent
 
@@ -1197,14 +1137,14 @@ def migrate_month_command(
                 month_filter=month,
             )
 
-            report_migration_results(results)
+            _report_migration_results(results)
 
     except Exception as e:
         click.echo(f"❌ Migration failed with error: {e}")
         raise
 
 
-@cli.command(name="estimate-migration")
+@usage_events_cli.command(name="estimate")
 @with_appcontext
 def estimate_migration_command():
     """Estimate the total number of events to migrate."""
@@ -1232,57 +1172,7 @@ def estimate_migration_command():
         )
 
 
-@cli.command(name="process-status")
-@click.argument("process_name", default="event-migration")
-@click.option(
-    "--show-log",
-    is_flag=True,
-    help="Show recent log output from the process.",
-)
-@click.option(
-    "--log-lines",
-    type=int,
-    default=20,
-    help="Number of log lines to show (default: 20).",
-)
-@click.option(
-    "--pid-dir",
-    type=str,
-    default="/tmp",
-    help="Directory containing PID and status files.",
-)
-def process_status_command(process_name, show_log, log_lines, pid_dir):
-    """Show the status of a background process."""
-    monitor = ProcessMonitor(process_name, pid_dir)
-    monitor.show_status(show_log=show_log, log_lines=log_lines)
-
-
-@cli.command(name="cancel-process")
-@click.argument("process_name", default="event-migration")
-@click.option(
-    "--timeout",
-    type=int,
-    default=30,
-    help="Seconds to wait for graceful shutdown before force kill.",
-)
-@click.option(
-    "--pid-dir",
-    type=str,
-    default="/tmp",
-    help="Directory containing PID and status files.",
-)
-def cancel_process_command(process_name, timeout, pid_dir):
-    """Cancel a running background process."""
-    process_manager = ProcessManager(process_name, pid_dir)
-
-    if process_manager.cancel_process(timeout=timeout):
-        click.echo(f"✅ Process '{process_name}' cancelled successfully")
-    else:
-        click.echo(f"❌ Failed to cancel process '{process_name}'")
-        return 1
-
-
-@cli.command(name="clear-bookmarks")
+@usage_events_cli.command(name="clear-bookmarks")
 @click.option(
     "--event-type",
     "-e",
@@ -1325,7 +1215,7 @@ def clear_bookmarks_command(event_type, month, confirm):
             click.echo("❌ Month must be in YYYY-MM format")
             return
 
-    service = EventReindexingService(current_app)
+    service = current_event_reindexing_service
     cleared_count = 0
 
     for event_type in event_types:
@@ -1382,58 +1272,7 @@ def clear_bookmarks_command(event_type, month, confirm):
         click.echo("📭 No bookmarks were cleared")
 
 
-@cli.command(name="list-processes")
-@click.option(
-    "--pid-dir",
-    type=str,
-    default="/tmp",
-    help="Directory containing PID files.",
-)
-@click.option(
-    "--package-only",
-    is_flag=True,
-    help="Only show processes managed by invenio-stats-dashboard.",
-)
-def list_processes_command(pid_dir, package_only):
-    """List running background processes."""
-    from .utils.process_manager import list_running_processes
-
-    # Filter to only show invenio-stats-dashboard processes if requested
-    package_prefix = "invenio-community-stats" if package_only else None
-    running_processes = list_running_processes(pid_dir, package_prefix)
-
-    if not running_processes:
-        if package_only:
-            click.echo(
-                "📭 No invenio-stats-dashboard background processes "
-                "are currently running"
-            )
-        else:
-            click.echo("📭 No background processes are currently running")
-        return
-
-    # Show header for running processes
-    if package_only:
-        click.echo("🔄 Running invenio-stats-dashboard Background Processes:")
-    else:
-        click.echo("🔄 Running Background Processes:")
-    click.echo("=" * 40)
-
-    for process_name in running_processes:
-        click.echo(f"• {process_name}")
-
-    click.echo(f"\nTotal: {len(running_processes)} process(es)")
-    click.echo(
-        "\n💡 Use 'invenio community-stats process-status <process_name>' "
-        "to check status"
-    )
-    click.echo(
-        "🛑 Use 'invenio community-stats cancel-process <process_name>' "
-        "to stop a process"
-    )
-
-
-@cli.command(name="migrate-events-background")
+@usage_events_cli.command(name="migrate-background")
 @click.option(
     "--event-types",
     "-e",
