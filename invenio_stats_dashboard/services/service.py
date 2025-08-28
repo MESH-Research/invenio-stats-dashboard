@@ -55,6 +55,134 @@ class CommunityStatsService:
 
         return results
 
+    def count_records_needing_events(
+        self,
+        recids: list[str] | None = None,
+        community_ids: list[str] | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict:
+        """Count records that need community events created.
+
+        This method analyzes records to determine how many need "added" events
+        created for their communities and for the "global" community.
+
+        Args:
+            recids: The record IDs to check. If not provided, all records will be
+                checked.
+            community_ids: The community IDs to check. If not provided, all
+                communities will be checked.
+            start_date: The start date for filtering records. If not provided, the
+                start date will be the first record creation date in the instance.
+            end_date: The end date for filtering records. If not provided, the end
+                date will be the current date.
+
+        Returns:
+            Dictionary with counts and details about records needing events.
+        """
+        start_date_str = (
+            (arrow.get(start_date).floor("day").format("YYYY-MM-DDTHH:mm:ss"))
+            if start_date
+            else None
+        )
+        end_date_str = (
+            (arrow.get(end_date).ceil("day").format("YYYY-MM-DDTHH:mm:ss"))
+            if end_date
+            else None
+        )
+
+        record_search = Search(
+            using=self.client, index=prefix_index("rdmrecords-records")
+        )
+        terms = []
+        if recids:
+            terms.append({"terms": {"id": recids}})
+        if start_date_str:
+            terms.append({"range": {"created": {"gte": start_date_str}}})
+        if end_date_str:
+            terms.append({"range": {"created": {"lte": end_date_str}}})
+
+        if len(terms) > 0:
+            record_search = record_search.query({"bool": {"must": terms}})
+        else:
+            record_search = record_search.query({"match_all": {}})
+
+        if not community_ids:
+            communities = current_communities.service.read_all(system_identity, [])
+            community_ids = [c["id"] for c in communities]
+
+        total_records = 0
+        records_needing_events = 0
+        total_events_needed = 0
+        community_breakdown = {}
+
+        for result in record_search.scan():
+            record_id = result["id"]
+            record_data = result.to_dict()
+            total_records += 1
+
+            try:
+                record_communities = (
+                    record_data.get("parent", {}).get("communities", {}).get("ids", [])
+                )
+
+                communities_to_check = ["global"] + community_ids
+                events_needed_for_record = 0
+
+                for community_id in communities_to_check:
+                    if community_id == "global" or community_id in record_communities:
+                        # Check if event already exists
+                        try:
+                            existing_event_search = Search(
+                                using=self.client,
+                                index=prefix_index("stats-community-events"),
+                            )
+                            query_dict = {
+                                "bool": {
+                                    "must": [
+                                        {"term": {"record_id": record_id}},
+                                        {"term": {"community_id": community_id}},
+                                        {"term": {"event_type": "added"}},
+                                    ]
+                                }
+                            }
+                            existing_event_search = existing_event_search.query(
+                                query_dict
+                            )
+                            existing_events = list(existing_event_search.execute())
+
+                            if not existing_events:
+                                events_needed_for_record += 1
+                                if community_id not in community_breakdown:
+                                    community_breakdown[community_id] = 0
+                                community_breakdown[community_id] += 1
+
+                        except Exception as e:
+                            current_app.logger.warning(
+                                f"Could not search stats-community-events index for "
+                                f"record {record_id}, community {community_id}: "
+                                f"{e}. Assuming event needed."
+                            )
+                            events_needed_for_record += 1
+                            if community_id not in community_breakdown:
+                                community_breakdown[community_id] = 0
+                            community_breakdown[community_id] += 1
+
+                if events_needed_for_record > 0:
+                    records_needing_events += 1
+                    total_events_needed += events_needed_for_record
+
+            except Exception as e:
+                current_app.logger.warning(f"Error processing record {record_id}: {e}")
+
+        return {
+            "total_records": total_records,
+            "records_needing_events": records_needing_events,
+            "total_events_needed": total_events_needed,
+            "community_breakdown": community_breakdown,
+            "communities_checked": community_ids,
+        }
+
     def generate_record_community_events(
         self,
         recids: list[str] | None = None,

@@ -13,6 +13,7 @@ import arrow
 import click
 from flask import current_app
 from flask.cli import with_appcontext
+from halo import Halo
 
 from ..proxies import current_community_stats_service
 
@@ -83,14 +84,15 @@ def aggregate_stats_command(
     check_scheduled_tasks_enabled()
 
     community_ids = list(community_id) if community_id else None
-    current_community_stats_service.aggregate_stats(
-        community_ids=community_ids,
-        start_date=start_date,
-        end_date=end_date,
-        eager=eager,
-        update_bookmark=update_bookmark,
-        ignore_bookmark=ignore_bookmark,
-    )
+    with Halo(text="Aggregating stats...", spinner="dots"):
+        current_community_stats_service.aggregate_stats(
+            community_ids=community_ids,
+            start_date=start_date,
+            end_date=end_date,
+            eager=eager,
+            update_bookmark=update_bookmark,
+            ignore_bookmark=ignore_bookmark,
+        )
 
 
 @click.command(name="read")
@@ -117,7 +119,8 @@ def read_stats_command(community_id, start_date, end_date):
     """Read stats for a community."""
     check_stats_enabled()
     print(f"Reading stats for community {community_id} from {start_date} to {end_date}")
-    stats = current_community_stats_service.read_stats(
-        community_id, start_date=start_date, end_date=end_date
-    )
+    with Halo(text="Reading stats...", spinner="dots"):
+        stats = current_community_stats_service.read_stats(
+            community_id, start_date=start_date, end_date=end_date
+        )
     pprint(stats)

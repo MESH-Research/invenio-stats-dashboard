@@ -72,6 +72,11 @@ def usage_events_cli():
     is_flag=True,
     help="Generate events but don't index them.",
 )
+@click.option(
+    "--yes-i-know",
+    is_flag=True,
+    help="Skip confirmation prompt.",
+)
 @with_appcontext
 def generate_usage_events_command(
     start_date,
@@ -82,24 +87,43 @@ def generate_usage_events_command(
     max_records,
     enrich_events,
     dry_run,
+    yes_i_know,
 ):
     """Generate synthetic usage events (view/download) for testing purposes."""
     check_stats_enabled()
 
-    click.echo("🎯 Starting usage event generation...")
-    click.echo(f"Events per record: {events_per_record}")
+    # Show configuration and ask for confirmation
+    click.echo("Configuration for usage event generation:")
+    click.echo(f"  • Events per record: {events_per_record}")
     if max_records > 0:
-        click.echo(f"Max records to process: {max_records}")
+        click.echo(f"  • Max records to process: {max_records}")
+    else:
+        click.echo("  • Max records to process: ALL records")
     if start_date:
-        click.echo(f"Record creation start date: {start_date}")
+        click.echo(f"  • Record creation start date: {start_date}")
     if end_date:
-        click.echo(f"Record creation end date: {end_date}")
+        click.echo(f"  • Record creation end date: {end_date}")
     if event_start_date:
-        click.echo(f"Event timestamp start date: {event_start_date}")
+        click.echo(f"  • Event timestamp start date: {event_start_date}")
     if event_end_date:
-        click.echo(f"Event timestamp end date: {event_end_date}")
-    click.echo(f"Enrich events: {enrich_events}")
-    click.echo(f"Dry run: {dry_run}")
+        click.echo(f"  • Event timestamp end date: {event_end_date}")
+    click.echo(f"  • Enrich events: {'Yes' if enrich_events else 'No'}")
+    click.echo(f"  • Dry run mode: {'Yes' if dry_run else 'No'}")
+
+    # Ask for confirmation unless --yes-i-know is specified
+    if not yes_i_know:
+        if not click.confirm(
+            "\nWARNING: This will generate synthetic usage events in "
+            "your search indices for view and download events. It is "
+            "intended for testing purposes only. YOU WILL NOT BE ABLE TO "
+            "REMOVE THEM WITHOUT DELETING THE INDICES AND LOSING ANY "
+            "GENUINE USAGE EVENTS."
+            "Are you sure you want to continue?"
+        ):
+            click.echo("Operation cancelled by user.")
+            return
+
+    click.echo("\nStarting usage event generation...")
 
     try:
         factory = UsageEventFactory()
@@ -190,6 +214,11 @@ def generate_usage_events_command(
     default="/tmp",
     help="Directory to store PID and status files.",
 )
+@click.option(
+    "--yes-i-know",
+    is_flag=True,
+    help="Skip confirmation prompt.",
+)
 @with_appcontext
 def generate_usage_events_background_command(
     start_date,
@@ -200,13 +229,26 @@ def generate_usage_events_background_command(
     max_records,
     enrich_events,
     pid_dir,
+    yes_i_know,
 ):
     """Start usage event generation in the background with process management.
 
-    This command provides the same functionality as generate-usage-events but runs
+    This command provides the same functionality as `usage-events generate` but runs
     in the background with full process management capabilities.
     """
     check_stats_enabled()
+
+    if not yes_i_know:
+        if not click.confirm(
+            "\nWARNING: This will generate synthetic usage events in "
+            "your search indices for view and download events. It is "
+            "intended for testing purposes only. YOU WILL NOT BE ABLE TO "
+            "REMOVE THEM WITHOUT DELETING THE INDICES AND LOSING ANY "
+            "GENUINE USAGE EVENTS. "
+            "Are you sure you want to continue?"
+        ):
+            click.echo("Operation cancelled by user.")
+            return
 
     # Build the command to run
     cmd = [
@@ -215,6 +257,7 @@ def generate_usage_events_background_command(
         "generate-usage-events",
         "--events-per-record",
         str(events_per_record),
+        "--yes-i-know",
     ]
 
     if start_date:
@@ -306,8 +349,8 @@ def _report_validation_errors(validation_errors):
         event_type = validation_error["event_type"]
         month = validation_error["month"]
         click.echo(
-            f"    invenio community-stats migrate-month "
-            f"--event-type {event_type} --month {month}"
+            f"    invenio community-stats usage-events migrate "
+            f"--event-types {event_type} --months {month}"
         )
 
 
@@ -355,16 +398,16 @@ def _report_interrupted_migrations(interrupted_migrations):
             click.echo(f"    Source: {migration['source_index']}")
             click.echo(f"    Target: {migration['target_index']}")
 
-    # Resume instructions
     if interrupted:
         click.echo("\n💡 To resume interrupted migrations:")
         click.echo("  1. Use the same command with --max-batches to continue")
-        click.echo("  2. Or use 'migrate-month' command for specific months:")
+        click.echo("  2. Or use 'migrate' command with the --months flag for ")
+        click.echo("     specific months:")
         for migration in interrupted:
             click.echo(
-                f"     invenio community-stats migrate-month "
-                f"--event-type {migration['event_type']} "
-                f"--month {migration['month']}"
+                f"     invenio community-stats usage-events migrate "
+                f"--event-types {migration['event_type']} "
+                f"--months {migration['month']}"
             )
 
     if failed:
@@ -374,9 +417,9 @@ def _report_interrupted_migrations(interrupted_migrations):
         click.echo("  3. Run the migration again:")
         for migration in failed:
             click.echo(
-                f"     invenio community-stats migrate-month "
-                f"--event-type {migration['event_type']} "
-                f"--month {migration['month']}"
+                f"     invenio community-stats usage-events migrate "
+                f"--event-types {migration['event_type']} "
+                f"--months {migration['month']}"
             )
 
 
@@ -426,17 +469,16 @@ def _report_migration_results(results):
             for issue in results["health_issues"]:
                 click.echo(f"  - {issue}")
 
-    click.echo(f"  Processed: {results['total_processed']} total events")
+    click.echo(f"  Processed: {results['total_processed']:,} total events")
     for event_type_name, event_results in results["event_types"].items():
-        click.echo(f"  {event_type_name} events: {event_results['processed']}")
-    click.echo(f"  Total errors: {results['total_errors']}")
-    click.echo(f"\n  Completed: {completed_count} monthly indices")
-    click.echo(f"  Interrupted: {interrupted_count} monthly indices")
-    click.echo(f"  Failed: {failed_count} monthly indices")
+        click.echo(f"  {event_type_name} events: {event_results['processed']:,}")
+    click.echo(f"  Total errors: {results['total_errors']:,}")
+    click.echo(f"\n  Completed: {completed_count:,} monthly indices")
+    click.echo(f"  Interrupted: {interrupted_count:,} monthly indices")
+    click.echo(f"  Failed: {failed_count:,} monthly indices")
     total_months = completed_count + interrupted_count + failed_count
-    click.echo(f"  Total: {total_months} monthly indices")
+    click.echo(f"  Total: {total_months:,} monthly indices")
 
-    # Now go through each month systematically to show ALL information
     click.echo("\nResults for each month:")
     click.echo("=" * 50)
 
@@ -448,37 +490,35 @@ def _report_migration_results(results):
             click.echo(f"    Target Index: {month_results.get('target_index', 'N/A')}")
             click.echo(f"    Processed: {month_results.get('processed', 0):,} events")
             click.echo(
-                f"    Total Batches: {month_results.get('batches_succeeded', 0)}"
+                f"    Total Batches: {month_results.get('batches_succeeded', 0):,}"
             )
             click.echo(
-                f"    Batches Attempted: {month_results.get('batches_attempted', 0)}"
+                f"    Batches Attempted: {month_results.get('batches_attempted', 0):,}"
             )
             completed = month_results.get("completed")
-            click.echo(f"    Completed: {completed}")
+            click.echo(f"    Completed: {completed:,}")
             interrupted = month_results.get("interrupted")
-            click.echo(f"    Interrupted: {interrupted}")
+            click.echo(f"    Interrupted: {interrupted:,}")
             click.echo(
                 f"    Last Processed ID: "
                 f"{month_results.get('last_processed_id', 'N/A')}"
             )
 
-            # Show timing information if available
             if month_results.get("total_time"):
-                click.echo(f"    Migration took: {month_results['total_time']}")
+                click.echo(f"    Migration took: {month_results['total_time']:,}")
 
-            # Show validation errors if any
             if month_results.get("validation_errors"):
                 click.echo(
-                    f"    Validation Errors: {month_results['validation_errors']}"
+                    f"    Validation Errors: {month_results['validation_errors']:,}"
                 )
 
-            # Show operational errors if any
             if month_results.get("operational_errors"):
-                click.echo("    Operational Errors:")
+                click.echo(
+                    f"    Operational Errors: {month_results['operational_errors']:,}"
+                )
                 for op_error in month_results["operational_errors"]:
                     click.echo(f"      - {op_error['type']}: " f"{op_error['message']}")
 
-            # Show status summary
             if month_results.get("completed"):
                 click.echo("    Status: ✅ Completed successfully")
             elif month_results.get("interrupted"):
@@ -486,35 +526,41 @@ def _report_migration_results(results):
             else:
                 click.echo("    Status: ❌ Failed")
 
-    # Add helpful instructions for next steps
+    if interrupted_count > 0 or failed_count > 0:
+        click.echo("\n" + "=" * 50)
+        click.echo("MIGRATIONS NEEDING ATTENTION:")
+
+        if interrupted_count > 0:
+            click.echo(
+                f"\n⏸️  {interrupted_count:,} migration(s) were interrupted or unfinished "
+                f"and can be resumed:"
+            )
+            click.echo("   • The bookmark system automatically tracks progress")
+            click.echo("   • Resume with the same command (bookmarks are preserved)")
+
+        if failed_count > 0:
+            click.echo(
+                f"\n❌  {failed_count:,} migration(s) failed and need attention:"
+            )
+            click.echo("   • Check logs for detailed error information")
+            click.echo(
+                "   • Failed migrations automatically reset bookmarks for safety"
+            )
+            click.echo("   • You can safely retry with the same command and migrated ")
+            click.echo("     documents will be repaired as necessary.")
+
     click.echo("\n" + "=" * 50)
     click.echo("NEXT STEPS:")
 
-    if interrupted_count > 0:
-        click.echo(
-            f"\n⏸️  {interrupted_count} migration(s) were interrupted or unfinished "
-            f"and can be resumed:"
-        )
-        click.echo("   • The bookmark system automatically tracks progress")
-        click.echo("   • Resume with the same command (bookmarks are preserved)")
-
-    if failed_count > 0:
-        click.echo(f"\n❌  {failed_count} migration(s) failed and need attention:")
-        click.echo("   • Check logs for detailed error information")
-        click.echo("   • Failed migrations automatically reset bookmarks for safety")
-        click.echo("   • You can safely retry with the same command and migrated ")
-        click.echo("     documents will be repaired as necessary.")
-
-        click.echo("\n🔍  View unfinished/interrupted migrations:")
-    click.echo("   invenio community-stats show-interrupted")
-
-    click.echo("\n📈  Check progress:")
+    click.echo("\n📈  Check progress of event migrations:")
     click.echo("   invenio community-stats migration-status")
 
     click.echo("\n🗑️  Clear bookmarks to start fresh:")
     click.echo(
-        "   invenio community-stats clear-bookmarks [--event-type TYPE] [--month MONTH]"
+        "   invenio community-stats clear-bookmarks "
+        "[--event-type TYPE] [--month MONTH]"
     )
+    click.echo("\n")
 
 
 @usage_events_cli.command(name="migrate")
@@ -898,7 +944,7 @@ def _format_interrupted_migrations(
         if show_resume_commands:
             click.echo(
                 "\n  Use the resume commands below to continue the individual index "
-                "migration, \n  or simply run the migrate-events command again to "
+                "migration, \n  or simply run the migrate command again to "
                 "resume all incomplete migrations."
             )
 
@@ -948,9 +994,9 @@ def _format_interrupted_migrations(
             if show_resume_commands:
                 click.echo("  Resume command:")
                 click.echo(
-                    f"    invenio community-stats migrate-month "
-                    f"--event_type {event_type} "
-                    f"--month {month}"
+                    f"    invenio community-stats usage-events migrate "
+                    f"--event-types {event_type} "
+                    f"--months {month}"
                 )
 
 
@@ -983,7 +1029,7 @@ def _format_completed_migrations(progress, show_details=True):
         click.echo(f"  Found {deleted_count} deleted old indices.")
         click.echo(
             "\n  To delete old indices for completed migrations, run the "
-            "migrate-events\n  command again with the --delete-old-indices flag."
+            "migrate\n  command again with the --delete-old-indices flag."
         )
 
         if show_details:
@@ -1055,121 +1101,6 @@ def _format_not_started_migrations(progress, show_details=True):
                     click.echo(f"      Source index: {enriched_idx['source_index']}")
                     click.echo(f"      Original count: {enriched_idx['old_count']}")
                     click.echo("      Status: Not started")
-
-
-@usage_events_cli.command(name="migrate-month")
-@click.option("--event-type", "-e", required=True, help="Event type (view or download)")
-@click.option("--month", "-m", required=True, help="Month to migrate (YYYY-MM)")
-@click.option("--max-batches", "-b", type=int, help="Maximum batches to process")
-@click.option(
-    "--batch-size",
-    type=int,
-    default=1000,
-    help="Number of events to process per batch (max 10,000).",
-)
-@click.option(
-    "--max-memory-percent",
-    type=int,
-    default=85,
-    help="Maximum memory usage percentage before stopping.",
-)
-@click.option(
-    "--delete-old-indices",
-    is_flag=True,
-    help="Delete old indices after migration (default is to keep them).",
-)
-@click.option(
-    "--fresh-start",
-    is_flag=True,
-    help="Delete existing bookmark and start fresh for this month.",
-)
-@with_appcontext
-def migrate_month_command(
-    event_type,
-    month,
-    max_batches,
-    batch_size,
-    max_memory_percent,
-    delete_old_indices,
-    fresh_start,
-):
-    """Migrate a specific monthly index.
-
-    The --fresh-start flag will delete any existing bookmark for this month
-    and start the migration from the beginning, ignoring any previous progress.
-    """
-    check_stats_enabled()
-
-    if event_type not in ["view", "download"]:
-        click.echo("❌ Event type must be 'view' or 'download'")
-        return
-
-    service = current_event_reindexing_service
-    service.batch_size = batch_size
-    service.max_memory_percent = max_memory_percent
-
-    # Find the source index for this month
-    indices = service.get_monthly_indices(event_type)
-    source_index = None
-    for index in indices:
-        if index.endswith(f"-{month}"):
-            source_index = index
-            break
-
-    if not source_index:
-        click.echo(f"❌ No {event_type} index found for month {month}")
-        click.echo(f"Available indices: {indices}")
-        return
-
-    click.echo(f"Starting migration for {event_type} events in {month}")
-    click.echo(f"Source index: {source_index}")
-    click.echo(f"Batch size: {batch_size}")
-    click.echo(f"Max memory: {max_memory_percent}%")
-    click.echo(f"Delete old indices after validated migrations: {delete_old_indices}")
-
-    try:
-        with Halo(text="Migrating monthly index...", spinner="dots"):
-            results = service.reindex_events(
-                event_types=[event_type],
-                max_batches=max_batches,
-                delete_old_indices=delete_old_indices,
-                fresh_start=fresh_start,
-                month_filter=month,
-            )
-
-            _report_migration_results(results)
-
-    except Exception as e:
-        click.echo(f"❌ Migration failed with error: {e}")
-        raise
-
-
-@usage_events_cli.command(name="estimate")
-@with_appcontext
-def estimate_migration_command():
-    """Estimate the total number of events to migrate."""
-    check_stats_enabled()
-
-    estimates = current_event_reindexing_service.estimate_total_events()
-
-    total_events = sum(estimates.values())
-
-    click.echo("Event Migration Estimates:")
-    click.echo("=" * 40)
-    for event_type, count in estimates.items():
-        click.echo(f"{event_type:>10}: {count:>10,} events")
-    click.echo("-" * 40)
-    click.echo(f"{'TOTAL':>10}: {total_events:>10,} events")
-
-    # Rough time estimate (very conservative)
-    if total_events > 0:
-        batches_needed = total_events / 1000  # Assuming 1000 events per batch
-        hours_estimate = batches_needed * 0.1  # Assuming 6 seconds per batch
-        click.echo(f"\nRough time estimate: {hours_estimate:.1f} hours")
-        click.echo(
-            "(This is a very conservative estimate - actual time may vary "
-            "significantly)"
-        )
 
 
 @usage_events_cli.command(name="clear-bookmarks")
@@ -1295,6 +1226,9 @@ def clear_bookmarks_command(event_type, month, confirm):
     help="Maximum memory usage percentage before stopping.",
 )
 @click.option(
+    "--dry-run", is_flag=True, help="Show what would be migrated without doing it"
+)
+@click.option(
     "--delete-old-indices",
     is_flag=True,
     help="Delete old indices after migration (default is to keep them).",
@@ -1303,6 +1237,15 @@ def clear_bookmarks_command(event_type, month, confirm):
     "--fresh-start",
     is_flag=True,
     help="Delete existing bookmarks and start fresh for each month.",
+)
+@click.option(
+    "--months",
+    "-m",
+    multiple=True,
+    help=(
+        "Specific months to migrate (YYYY-MM) or range (YYYY-MM:YYYY-MM). "
+        "Use multiple times for multiple months that are not contiguous."
+    ),
 )
 @click.option(
     "--pid-dir",
@@ -1316,13 +1259,15 @@ def migrate_events_background_command(
     max_batches,
     batch_size,
     max_memory_percent,
+    dry_run,
     delete_old_indices,
     fresh_start,
+    months,
     pid_dir,
 ):
     """Start event migration in the background with process management.
 
-    This command provides the same functionality as migrate-events but runs
+    This command provides the same functionality as the migrate command but runs
     in the background with full process management capabilities.
     """
     check_stats_enabled()
@@ -1334,26 +1279,34 @@ def migrate_events_background_command(
     cmd = [
         "invenio",
         "community-stats",
-        "migrate-events",
-        "--batch-size",
-        str(batch_size),
-        "--max-memory-percent",
-        str(max_memory_percent),
+        "usage-events",
+        "migrate",
     ]
 
-    if max_batches:
-        cmd.extend(["--max-batches", str(max_batches)])
+    # Define option mappings for cleaner command building
+    option_mappings = [
+        ("--batch-size", str(batch_size)),
+        ("--max-memory-percent", str(max_memory_percent)),
+        ("--max-batches", max_batches),
+        ("--dry-run", dry_run),
+        ("--delete-old-indices", delete_old_indices),
+        ("--fresh-start", fresh_start),
+    ]
 
-    if delete_old_indices:
-        cmd.append("--delete-old-indices")
+    # Add single-value options
+    for option, value in option_mappings:
+        if value:
+            cmd.extend([option, str(value)] if option != "--dry-run" else [option])
 
-    if fresh_start:
-        cmd.append("--fresh-start")
+    # Add multi-value options
+    if months:
+        for month in months:
+            cmd.extend(["--months", month])
 
-    for event_type in event_types:
-        cmd.extend(["--event-types", event_type])
+    if event_types:
+        for event_type in event_types:
+            cmd.extend(["--event-types", event_type])
 
-    # Create process manager
     process_manager = ProcessManager(
         "event-migration", pid_dir, package_prefix="invenio-community-stats"
     )
