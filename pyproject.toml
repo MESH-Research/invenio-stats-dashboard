@@ -32,7 +32,6 @@ classifiers = [
 dependencies = [
     "invenio-base>=1.2.3",
     "invenio-assets>=1.2.0",
-    "pandas>=2.2.0",
     "psutil>=6.0.0",
     "glom>=23.0.0",
 ]
