@@ -236,9 +236,9 @@ def report_migration_results(results):
                 f"    Batches Attempted: {month_results.get('batches_attempted', 0)}"
             )
             completed = month_results.get("completed")
-            click.echo(f"    Completed: {'✅' if completed else '❌'}")
+            click.echo(f"    Completed: {completed}")
             interrupted = month_results.get("interrupted")
-            click.echo(f"    Interrupted: {'⏸️' if interrupted else 'No'}")
+            click.echo(f"    Interrupted: {interrupted}")
             click.echo(
                 f"    Last Processed ID: {month_results.get('last_processed_id', 'N/A')}"
             )
@@ -266,6 +266,36 @@ def report_migration_results(results):
                 click.echo("    Status: ⏸️ Interrupted (can resume)")
             else:
                 click.echo("    Status: ❌ Failed")
+
+    # Add helpful instructions for next steps
+    click.echo("\n" + "=" * 50)
+    click.echo("NEXT STEPS:")
+
+    if interrupted_count > 0:
+        click.echo(
+            f"\n⏸️  {interrupted_count} migration(s) were interrupted or unfinished "
+            f"and can be resumed:"
+        )
+        click.echo("   • The bookmark system automatically tracks progress")
+        click.echo("   • Resume with the same command (bookmarks are preserved)")
+
+    if failed_count > 0:
+        click.echo(f"\n❌  {failed_count} migration(s) failed and need attention:")
+        click.echo("   • Check logs for detailed error information")
+        click.echo("   • Failed migrations automatically reset bookmarks for safety")
+        click.echo("   • You can safely retry with the same command and migrated ")
+        click.echo("     documents will be repaired as necessary.")
+
+        click.echo("\n🔍  View unfinished/interrupted migrations:")
+    click.echo("   invenio community-stats show-interrupted")
+
+    click.echo("\n📈  Check progress:")
+    click.echo("   invenio community-stats migration-status")
+
+    click.echo("\n🗑️  Clear bookmarks to start fresh:")
+    click.echo(
+        "   invenio community-stats clear-bookmarks [--event-type TYPE] [--month MONTH]"
+    )
 
 
 @click.group()
@@ -716,7 +746,7 @@ def read_stats_command(community_id, start_date, end_date):
     "--batch-size",
     type=int,
     default=1000,
-    help="Number of events to process per batch.",
+    help="Number of events to process per batch (max 10,000).",
 )
 @click.option(
     "--max-memory-percent",
@@ -745,6 +775,7 @@ def read_stats_command(community_id, start_date, end_date):
 )
 @click.option(
     "--months",
+    "-m",
     multiple=True,
     help=(
         "Specific months to migrate (YYYY-MM) or range (YYYY-MM:YYYY-MM). "
@@ -920,13 +951,16 @@ def migration_status_command(show_bookmarks, show_indices):
     # Bookmarks
     click.echo("\nMigration Bookmarks:")
     if show_bookmarks:
-        for bookmark in estimates["migration_bookmarks"]:
-            timestamp = arrow.get(bookmark["last_event_timestamp"])
-            click.echo(f"  {bookmark['task_id']}:")
-            click.echo(f"    Last event ID: {bookmark['last_event_id']}")
-            click.echo(
-                f"    Last event timestamp: {timestamp.format('YYYY-MM-DD HH:mm:ss')}"
-            )
+        # Show bookmarks from enriched_indices
+        for enriched_idx in estimates["enriched_indices"]:
+            if enriched_idx["bookmark"]:
+                bookmark = enriched_idx["bookmark"]
+                timestamp = arrow.get(bookmark["last_event_timestamp"])
+                click.echo(f"  {enriched_idx['source_index']}:")
+                click.echo(f"    Last event ID: {bookmark['last_event_id']}")
+                click.echo(
+                    f"    Last event timestamp: {timestamp.format('YYYY-MM-DD HH:mm:ss')}"
+                )
     else:
         click.echo("  Not showing bookmarks (use --show-bookmarks to show)")
 
@@ -934,69 +968,69 @@ def migration_status_command(show_bookmarks, show_indices):
 def _format_monthly_indices(estimates):
     """Format and display monthly indices with counts."""
     # View events
-    if estimates.get("view_index_mapping"):
+    view_indices = [
+        idx for idx in estimates["enriched_indices"] if "view" in idx["source_index"]
+    ]
+    if view_indices:
         click.echo("  View Events:")
-        for old_index, enriched_index in estimates["view_index_mapping"].items():
-            _format_index_mapping(estimates, old_index, enriched_index)
+        for enriched_idx in view_indices:
+            _format_index_mapping(enriched_idx)
 
         # Add completed migrations (deleted old indices)
-        completed_view = estimates.get("view_completed_migrations", [])
+        completed_view = [
+            idx
+            for idx in estimates["completed_indices"]
+            if "view" in idx["source_index"]
+        ]
         for migration in completed_view:
             click.echo(
-                f"    {migration['old_index']} → {migration['enriched_index']} "
+                f"    {migration['source_index']} → {migration['index']} "
                 f"(completed)"
             )
             click.echo(
-                f"      [{migration['enriched_index'][:-9]}](deleted) → "
-                f"{migration.get('count', 0):,}, Remaining: 0"
+                f"      [{migration['index'][:-9]}](deleted) → "
+                f"{migration.get('migrated_count', 0):,}, Remaining: 0"
             )
 
     # Download events
-    if estimates.get("download_index_mapping"):
+    download_indices = [
+        idx
+        for idx in estimates["enriched_indices"]
+        if "download" in idx["source_index"]
+    ]
+    if download_indices:
         click.echo("  Download Events:")
-        for old_index, enriched_index in estimates["download_index_mapping"].items():
-            _format_index_mapping(estimates, old_index, enriched_index)
+        for enriched_idx in download_indices:
+            _format_index_mapping(enriched_idx)
 
         # Add completed migrations (deleted old indices)
-        completed_download = estimates.get("download_completed_migrations", [])
+        completed_download = [
+            idx
+            for idx in estimates["completed_indices"]
+            if "download" in idx["source_index"]
+        ]
         for migration in completed_download:
             click.echo(
-                f"    {migration['old_index']} → {migration['enriched_index']} "
+                f"    {migration['source_index']} → {migration['index']} "
                 f"(completed)"
             )
             click.echo(
-                f"      [{migration['enriched_index'][:-9]}](deleted) → "
-                f"{migration.get('count', 0):,}, Remaining: 0"
+                f"      [{migration['index'][:-9]}](deleted) → "
+                f"{migration.get('migrated_count', 0):,}, Remaining: 0"
             )
 
 
-def _format_index_mapping(estimates, old_index, enriched_index):
+def _format_index_mapping(enriched_idx):
     """Format a single index mapping with counts."""
-    old_item = next(
-        (item for item in estimates["old_indices"] if item["index"] == old_index), None
+    old_count = enriched_idx["old_count"]
+    migrated_count = enriched_idx["migrated_count"] or 0
+    remaining_count = enriched_idx["remaining_count"] or 0
+
+    click.echo(f"    {enriched_idx['source_index']} → {enriched_idx['index']}")
+    click.echo(
+        f"      Old: {old_count:,}, Migrated: {migrated_count:,}, "
+        f"Remaining: {remaining_count:,}"
     )
-    old_count = old_item["count"] if old_item else 0
-
-    if enriched_index:
-        migrated_item = next(
-            (
-                item
-                for item in estimates["migrated_indices"]
-                if item["index"] == enriched_index
-            ),
-            None,
-        )
-        migrated_count = migrated_item["enriched_count"] if migrated_item else 0
-        remaining_count = migrated_item["remaining_count"] if migrated_item else 0
-
-        click.echo(f"    {old_index} → {enriched_index}")
-        click.echo(
-            f"      Old: {old_count:,}, Migrated: {migrated_count:,}, "
-            f"Remaining: {remaining_count:,}"
-        )
-    else:
-        click.echo(f"    {old_index} → (not migrated)")
-        click.echo(f"      Old: {old_count:,}, Migrated: 0, Remaining: {old_count:,}")
 
 
 @cli.command(name="show-interrupted")
@@ -1008,62 +1042,79 @@ def show_interrupted_command():
     service = EventReindexingService(current_app)
     progress = service.get_reindexing_progress()
 
-    click.echo("Interrupted Migrations")
-    click.echo("=====================")
+    click.echo("\nInterrupted Usage Event Index Migrations")
+    click.echo("===========================================")
 
     interrupted_found = False
-    for event_type in ["view", "download"]:
-        bookmarks = progress["bookmarks"][event_type]
-        for month, bookmark in bookmarks.items():
-            if bookmark:
-                # Check if there are more records to process
-                indices = service.get_monthly_indices(event_type)
-                source_index = None
-                for index in indices:
-                    if index.endswith(f"-{month}"):
-                        source_index = index
-                        break
+    interrupted_count = 0
 
-                if source_index:
-                    try:
-                        bookmark_data = service.reindexing_bookmark_api.get_bookmark(
-                            f"{event_type}-{month}-reindexing"
-                        )
+    # Use the data already calculated by the service
+    counts = progress["counts"]
 
-                        if bookmark_data and bookmark_data.get("last_event_timestamp"):
-                            timestamp = bookmark_data["last_event_timestamp"].format(
-                                "YYYY-MM-DD HH:mm:ss"
-                            )
-                            count_query = {
-                                "query": {"range": {"timestamp": {"gt": timestamp}}}
-                            }
-                            count_response = service.client.count(
-                                index=source_index, body=count_query
-                            )
-                            has_more = count_response["count"] > 0
-                        else:
-                            # No timestamp info, just check if index has documents
-                            has_more = (
-                                service.client.count(index=source_index)["count"] > 0
-                            )
+    # Directly iterate through enriched_indices to find interrupted migrations
+    for enriched_idx in counts["enriched_indices"]:
+        if enriched_idx["interrupted"]:
+            interrupted_found = True
+            interrupted_count += 1
 
-                        if has_more:
-                            interrupted_found = True
-                            click.echo(f"\n⏸️  {event_type.upper()} {month}:")
-                            click.echo(f"  Source index: {source_index}")
-                            click.echo(f"  Last processed ID: {bookmark}")
-                            click.echo("  More records available: Yes")
-                            click.echo("  Resume command:")
-                            click.echo(
-                                f"    invenio community-stats migrate-month "
-                                f"--event-type {event_type} --month {month}"
-                            )
-                    except Exception as e:
-                        click.echo(f"  Error checking {event_type} {month}: {e}")
+            # Extract month from the source index name
+            month = (
+                enriched_idx["source_index"].split("-")[-2]
+                + "-"
+                + enriched_idx["source_index"].split("-")[-1]
+            )
+            event_type = (
+                "view" if "view" in enriched_idx["source_index"] else "download"
+            )
 
+            click.echo(f"\n{event_type.upper()} {month}:")
+            click.echo(f"  Source index: {enriched_idx['source_index']}")
+            if enriched_idx["index"]:
+                click.echo(f"  Enriched index: {enriched_idx['index']}")
+            click.echo(f"  Original count: {enriched_idx['old_count']}")
+            click.echo(f"  Migrated count: {enriched_idx['migrated_count'] or 0}")
+            click.echo(f"  Remaining events: {enriched_idx['remaining_count'] or 0}")
+            click.echo(
+                f"  Status: "
+                f"{'Completed' if enriched_idx['completed'] else 'In Progress'}"
+            )
+            click.echo(
+                f"  Interrupted: {'Yes' if enriched_idx['interrupted'] else 'No'}"
+            )
+
+            if enriched_idx["bookmark"]:
+                bookmark = enriched_idx["bookmark"]
+                click.echo("  Bookmark details:")
+                if bookmark.get("last_event_id"):
+                    click.echo(f"    Last processed ID: {bookmark['last_event_id']}")
+                if bookmark.get("last_event_timestamp"):
+                    click.echo(
+                        f"    Last processed timestamp: "
+                        f"{bookmark['last_event_timestamp']}"
+                    )
+                if bookmark.get("task_id"):
+                    click.echo(f"    Task ID: {bookmark['task_id']}")
+
+            click.echo("  Resume command:")
+            click.echo(
+                f"    invenio community-stats migrate-month "
+                f"--event_type {event_type} --month {month}"
+            )
+
+    click.echo("\n")
     if not interrupted_found:
         click.echo("No interrupted migrations found.")
         click.echo("All migrations appear to be complete or not started.")
+    else:
+        click.echo(
+            f"Found {interrupted_count} interrupted or unfinished index migrations.\n"
+        )
+        click.echo(
+            "Use the resume command above to continue the individual index migration, "
+            "or simply run the migrate-events command again to resume all interrupted "
+            "migrations."
+        )
+    click.echo("\n")
 
 
 @cli.command(name="migrate-month")
@@ -1074,7 +1125,7 @@ def show_interrupted_command():
     "--batch-size",
     type=int,
     default=1000,
-    help="Number of events to process per batch.",
+    help="Number of events to process per batch (max 10,000).",
 )
 @click.option(
     "--max-memory-percent",
@@ -1235,12 +1286,18 @@ def cancel_process_command(process_name, timeout, pid_dir):
 @click.option(
     "--event-type",
     "-e",
-    help="Event type to clear bookmarks for (view, download). If not specified, clears for both.",
+    help=(
+        "Event type to clear bookmarks for (view, download). "
+        "If not specified, clears for both."
+    ),
 )
 @click.option(
     "--month",
     "-m",
-    help="Month to clear bookmarks for (YYYY-MM). If not specified, clears for all months.",
+    help=(
+        "Month to clear bookmarks for (YYYY-MM). "
+        "If not specified, clears for all months."
+    ),
 )
 @click.option(
     "--confirm",
@@ -1390,7 +1447,7 @@ def list_processes_command(pid_dir, package_only):
     "--batch-size",
     type=int,
     default=1000,
-    help="Number of events to process per batch.",
+    help="Number of events to process per batch (max 10,000).",
 )
 @click.option(
     "--max-memory-percent",

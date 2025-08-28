@@ -847,7 +847,13 @@ TODO: set up check and automatic migration in aggregator tasks
 
 #### Preventing overload of OpenSearch or memory
 
-The reindexing service is configured to run in batches, to avoid overwhelming the OpenSearch domain with too many concurrent requests. The batch size and maximum number of batches can be configured via the `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` and `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` configuration variables. The service will also check the memory usage of the OpenSearch domain on starting each batch and exit if the memory usage exceeds the `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` configuration variable. The service will also check the health of the OpenSearch domain on starting each batch and exit if the health is not good.
+The reindexing service is configured to run in batches, to avoid overwhelming the OpenSearch domain with too many concurrent requests. The batch size and maximum number of batches can be configured via the `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` and `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` configuration variables.
+
+```{important}
+OpenSearch has a hard limit of 10,000 documents for search results. This means `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` cannot exceed 10,000, and any attempt to count documents after a search_after position will be limited to 10,000 results maximum.
+```
+
+The service will also check the memory usage of the OpenSearch domain on starting each batch and exit if the memory usage exceeds the `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` configuration variable. The service will also check the health of the OpenSearch domain on starting each batch and exit if the health is not good.
 
 #### Handling failures
 
@@ -1166,7 +1172,7 @@ The following table provides a complete reference of all available configuration
 | `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
 | `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
 | `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
-| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `1000` | Events per batch for migration |
+| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `1000` | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
 | `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `75` | Maximum memory usage for migration |
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
@@ -1241,7 +1247,7 @@ invenio community-stats migrate-events [OPTIONS]
 **Options:**
 - `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
 - `--max-batches, -b`: Maximum batches to process per month (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`)
-- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`)
+- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`; max 10,000)
 - `--max-memory-percent`: Maximum memory usage percentage before stopping (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`)
 - `--dry-run`: Show what would be migrated without doing it
 - `--async`: Run reindexing asynchronously using Celery
@@ -1316,7 +1322,7 @@ invenio community-stats migrate-month [OPTIONS]
 - `--event-type, -e`: Event type (view or download) [required]
 - `--month, -m`: Month to migrate (YYYY-MM) [required]
 - `--max-batches, -b`: Maximum batches to process (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`)
-- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`)
+- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`; max 10,000)
 - `--max-memory-percent`: Maximum memory usage percentage (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`)
 - `--delete-old-indices`: Delete old indices after migration
 

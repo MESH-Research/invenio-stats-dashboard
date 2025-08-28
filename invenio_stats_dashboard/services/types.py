@@ -46,6 +46,7 @@ class MonthlyIndexBatchResult(TypedDict):
     last_event_id: Optional[str]
     last_event_timestamp: Optional[str]
     should_continue: bool
+    batch_document_ids: list[str]
 
 
 class MigrationResult(TypedDict):
@@ -65,6 +66,7 @@ class MigrationResult(TypedDict):
     operational_errors: list[dict[str, str]]
     start_time: str
     total_time: Optional[str]
+    all_sample_document_ids: list[str]
 
 
 class EventTypeResults(TypedDict):
@@ -86,7 +88,28 @@ class ReindexingResults(TypedDict):
     error: Optional[str]
 
 
-class ProgressEstimates(TypedDict):
+class OldMonthCounts(TypedDict):
+    """Information about an old monthly index."""
+
+    index: str
+    count: int
+    enriched_index: Optional[str]
+
+
+class MigratedMonthCounts(TypedDict):
+    """Information about a migrated monthly index."""
+
+    source_index: str
+    index: Optional[str]  # enriched index name
+    old_count: int
+    migrated_count: Optional[int]
+    remaining_count: Optional[int]
+    completed: bool
+    interrupted: bool
+    bookmark: Optional[dict[str, Any]]
+
+
+class ProgressCounts(TypedDict):
     """Comprehensive migration progress information for events."""
 
     # Total events in old (source) indices
@@ -101,25 +124,10 @@ class ProgressEstimates(TypedDict):
     view_remaining: int
     download_remaining: int
 
-    old_indices: list[dict[str, str | int]]
-    migrated_indices: list[dict[str, str | int]]
-
-    migration_bookmarks: list[dict[str, Optional[dict[str, str]]]]
-
-    # Mapping from old index names to migrated index names
-    view_index_mapping: dict[str, Optional[str]]
-    download_index_mapping: dict[str, Optional[str]]
-
-    # Completed migrations where old indices were deleted
-    view_completed_migrations: list[dict[str, str]]
-    download_completed_migrations: list[dict[str, str]]
-
-
-class ProgressBookmarks(TypedDict):
-    """Bookmark information for tracking progress."""
-
-    view: dict[str, Optional[dict[str, str]]]
-    download: dict[str, Optional[dict[str, str]]]
+    # Detailed index information
+    old_indices: list[OldMonthCounts]
+    enriched_indices: list[MigratedMonthCounts]
+    completed_indices: list[MigratedMonthCounts]
 
 
 class ProgressHealth(TypedDict):
@@ -133,8 +141,7 @@ class ProgressHealth(TypedDict):
 class ReindexingProgress(TypedDict):
     """Current reindexing progress information."""
 
-    estimates: ProgressEstimates
-    bookmarks: ProgressBookmarks
+    counts: ProgressCounts
     health: ProgressHealth
 
 
