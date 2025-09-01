@@ -608,7 +608,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
 
   const subcountTypes = {
     'all_resource_types': 'resourceTypes',
-    'all_access_status': 'accessStatus',
+    'all_access_statuses': 'accessStatus',
     'top_languages': 'languages',
     'top_affiliations_creator': 'affiliations',
     'top_affiliations_contributor': 'affiliations',
@@ -1202,7 +1202,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
   };
 
   const subcountTypes = {
-    'all_access_status': 'byAccessStatuses',
+    'all_access_statuses': 'byAccessStatuses',
     'all_file_types': 'byFileTypes',
     'top_languages': 'byLanguages',
     'all_resource_types': 'byResourceTypes',

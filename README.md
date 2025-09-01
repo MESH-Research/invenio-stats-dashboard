@@ -303,7 +303,7 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
 - `total_files` (object): Total file counts and data volume
 - `total_uploaders` (integer): Total number of unique uploaders
 - `subcounts` (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes.
-  - `all_access_status` (array[object]): Total number of records by access status
+  - `all_access_statuses` (array[object]): Total number of records by access status
   - `all_file_types` (array[object]): Total number of records by file type
   - `all_rights` (array[object]): Total number of records by rights
   - `all_resource_types` (array[object]): Total number of records by resource type
@@ -315,7 +315,7 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
   - `top_publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
   - `top_subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
 
-The subcount properties are named slightly differently from the delta aggregations, with the `by_` prefix removed from the property names. Instead, some the subcount properties will be prefixed with either `all_` or `top_`. The `all_` prefix indicates that the subcount includes all values for the metadata field that have been used in the community/instance to-date. For example, the `all_access_status` subcount will provide a number for all access status values that appear in any record. The `top_` prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the `top_affiliations_contributor` subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
+The subcount properties are named slightly differently from the delta aggregations, with the `by_` prefix removed from the property names. Instead, some the subcount properties will be prefixed with either `all_` or `top_`. The `all_` prefix indicates that the subcount includes all values for the metadata field that have been used in the community/instance to-date. For example, the `all_access_statuses` subcount will provide a number for all access status values that appear in any record. The `top_` prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the `top_affiliations_contributor` subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 
 Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.
 
@@ -354,7 +354,7 @@ Each document is shaped like this (the documents for the three different record 
     },
     "total_uploaders": 100,
     "subcounts": {
-        "all_access_status": [
+        "all_access_statuses": [
           {
             "id": "open",
             "label": "Open",
@@ -543,7 +543,7 @@ document includes:
     - `unique_records` (integer): Total number of unique records downloaded
     - `unique_visitors` (integer): Total number of unique visitors
 - `subcounts` (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes
-  - `all_access_status` (array[object]): Total number of records by access status
+  - `all_access_statuses` (array[object]): Total number of records by access status
   - `all_file_types` (array[object]): Total number of records by file type
   - `all_rights` (array[object]): Total number of records by rights type
   - `all_resource_types` (array[object]): Total number of records by resource type
@@ -600,7 +600,7 @@ Each document is shaped like this:
         }
     },
     "subcounts": {
-        "all_access_status": [
+        "all_access_statuses": [
           {
             "id": "open",
             "label": "Open",

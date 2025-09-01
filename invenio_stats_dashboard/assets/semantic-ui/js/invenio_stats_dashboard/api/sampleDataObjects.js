@@ -324,7 +324,7 @@ const sampleUsageSnapshot = {
   community_id: "b6f92bbc-a4af-4240-8135-292d47563339",
   snapshot_date: "2025-06-11T23:59:59",
   subcounts: {
-    all_access_status: [
+    all_access_statuses: [
       {
         download: {
           total_events: 60,

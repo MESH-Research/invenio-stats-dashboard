@@ -723,7 +723,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "snapshot_type": "top",
         },
     },
-    "by_affiliations": {
+    "by_affiliations_creator": {
         "records": {
             "delta_aggregation_name": "by_affiliations_creator",
             "field": "metadata.creators.affiliations.id",
@@ -739,7 +739,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             ],
         },
         "usage_events": {
-            "delta_aggregation_name": "by_affiliations",
+            "delta_aggregation_name": "by_affiliations_creator",
             "field": "affiliations.id",
             "field_type": Optional[list[str]],
             "event_field": "affiliations",
@@ -769,9 +769,21 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
                 "metadata.contributors.affiliations.id",
                 "metadata.contributors.affiliations.name.keyword",
             ],
-            "merge_aggregation_with": "by_affiliations_creator",
         },
-        "usage_events": {},
+        "usage_events": {
+            "delta_aggregation_name": "by_affiliations_contributor",
+            "field": "affiliations.id",
+            "field_type": Optional[list[str]],
+            "event_field": "affiliations",
+            "extraction_path_for_event": lambda metadata: [
+                item["affiliations"]
+                for item in metadata.get("contributors", [])
+                if "affiliations" in item
+            ],
+            "label_field": "affiliations.name",
+            "label_source_includes": ["affiliations.name", "affiliations.id"],
+            "snapshot_type": "top",
+        },
     },
     "by_countries": {
         "records": {},

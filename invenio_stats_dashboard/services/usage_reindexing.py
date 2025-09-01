@@ -902,7 +902,7 @@ class EventReindexingService:
                 return source_count
         else:
             if last_processed_id and last_processed_timestamp:
-                # Count remaining documents after bookmark using multiple search_after calls
+                # Count remaining documents after bookmark using multiple search_after
                 current_app.logger.debug(
                     f"Counting remaining documents after bookmark: "
                     f"timestamp={last_processed_timestamp}, id={last_processed_id}"
@@ -1097,7 +1097,7 @@ class EventReindexingService:
 
     def _recover_missing_events(
         self, backup_index: str, new_index: str
-    ) -> Dict[str, Optional[str]]:
+    ) -> Dict[str, bool | str | None]:
         """Step 4 of current month switchover: Recover events from backup.
 
         This method runs AFTER the alias swap. It finds any events in the backup
@@ -1148,7 +1148,7 @@ class EventReindexingService:
                             current_app.logger.error(error_msg)
                             return {"success": False, "error_message": error_msg}
 
-                        # Return success if we successfully enriched and indexed all events
+                        # Return success if we successfully indexed all events
                         return {"success": True, "error_message": None}
                     else:
                         error_msg = (

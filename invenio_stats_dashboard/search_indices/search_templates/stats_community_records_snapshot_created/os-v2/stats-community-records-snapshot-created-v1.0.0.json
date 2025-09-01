@@ -70,7 +70,8 @@
                   "type": "keyword"
                 },
                 "label": {
-                  "type": "keyword"
+                  "type": "object",
+                  "dynamic": true
                 },
                 "records": {
                   "type": "object",
@@ -118,7 +119,7 @@
                 }
               }
             },
-            "all_access_status": {
+            "all_access_statuses": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -162,14 +163,15 @@
                 }
               }
             },
-            "all_rights": {
+            "top_rights": {
               "type": "nested",
               "properties": {
                 "id": {
                   "type": "keyword"
                 },
                 "label": {
-                  "type": "keyword"
+                  "type": "object",
+                  "dynamic": true
                 },
                 "records": {
                   "type": "object",
@@ -213,7 +215,8 @@
                   "type": "keyword"
                 },
                 "label": {
-                  "type": "keyword"
+                  "type": "object",
+                  "dynamic": true
                 },
                 "records": {
                   "type": "object",
@@ -514,7 +517,7 @@
                 }
               }
             },
-            "top_keywords": {
+            "all_file_types": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -555,29 +558,6 @@
                       "type": "long"
                     }
                   }
-                }
-              }
-            },
-            "all_file_types": {
-              "type": "nested",
-              "properties": {
-                "id": {
-                  "type": "keyword"
-                },
-                "label": {
-                  "type": "keyword"
-                },
-                "records": {
-                  "type": "integer"
-                },
-                "parents": {
-                  "type": "integer"
-                },
-                "file_count": {
-                  "type": "integer"
-                },
-                "data_volume": {
-                  "type": "long"
                 }
               }
             }
