@@ -51,7 +51,12 @@ class CommunityStatsService:
                 ignore_bookmark=ignore_bookmark,
                 community_ids=community_ids,  # Pass community_ids
             )
+            # Store task ID for CLI display
+            task_id = task_run.id
             results = task_run.get()
+            # Add task ID to results for CLI access
+            if isinstance(results, dict):
+                results["task_id"] = task_id
 
         return results
 

@@ -16,6 +16,7 @@ from flask.cli import with_appcontext
 from halo import Halo
 
 from ..proxies import current_community_stats_service
+from ..tasks import format_agg_startup_message
 
 
 def check_stats_enabled():
@@ -70,6 +71,11 @@ def check_scheduled_tasks_enabled():
     is_flag=True,
     help="Ignore the bookmark and process all records",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Show detailed timing information for each aggregator",
+)
 @with_appcontext
 def aggregate_stats_command(
     community_id,
@@ -78,21 +84,50 @@ def aggregate_stats_command(
     eager,
     update_bookmark,
     ignore_bookmark,
+    verbose,
 ):
     """Aggregate community record statistics."""
     check_stats_enabled()
     check_scheduled_tasks_enabled()
 
     community_ids = list(community_id) if community_id else None
+
+    # Display startup configuration using centralized function
+    startup_message = format_agg_startup_message(
+        community_ids=community_ids,
+        start_date=start_date,
+        end_date=end_date,
+        eager=eager,
+        update_bookmark=update_bookmark,
+        ignore_bookmark=ignore_bookmark,
+        verbose=verbose,
+    )
+    click.echo(startup_message)
+
     with Halo(text="Aggregating stats...", spinner="dots"):
-        current_community_stats_service.aggregate_stats(
+        result = current_community_stats_service.aggregate_stats(
             community_ids=community_ids,
             start_date=start_date,
             end_date=end_date,
             eager=eager,
             update_bookmark=update_bookmark,
             ignore_bookmark=ignore_bookmark,
+            verbose=verbose,
         )
+
+    # Display results
+    if isinstance(result, dict) and "timing" in result:
+        # Display task ID if available (async mode)
+        if "task_id" in result:
+            click.echo(f"\nCelery Task ID: {result['task_id']}")
+
+        # Display the pre-formatted report from the task
+        if verbose and "formatted_report_verbose" in result:
+            click.echo(f"\n{result['formatted_report_verbose']}")
+        elif "formatted_report" in result:
+            click.echo(f"\n{result['formatted_report']}")
+    else:
+        click.echo("Aggregation completed successfully.")
 
 
 @click.command(name="read")
