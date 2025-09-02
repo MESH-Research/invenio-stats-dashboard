@@ -402,8 +402,10 @@ class EventReindexingService:
             indices = self.client.indices.get(index=f"{pattern}-*")
             all_indices = sorted(indices.keys())
 
+            old_indices = [idx for idx in all_indices if not idx.endswith("-v2.0.0")]
+
             if not month_filter:
-                return all_indices
+                return old_indices
 
             # Parse the month filter and filter indices
             months_to_process = self._parse_month_filter(month_filter)
@@ -411,7 +413,7 @@ class EventReindexingService:
                 return []
 
             filtered_indices = []
-            for index in all_indices:
+            for index in old_indices:
                 year, month = index.split("-")[-2:]
                 month_key = f"{year}-{month}"
                 if month_key in months_to_process:
@@ -2672,8 +2674,8 @@ class EventReindexingService:
                                 )
                         else:
                             new_idx["migrated_count"] = enriched_count
-                            new_idx["remaining_count"] = (
-                                source_count if (enriched_count < source_count) else 0
+                            new_idx["remaining_count"] = max(
+                                0, source_count - enriched_count
                             )
                         new_idx["completed"] = (
                             new_idx["migrated_count"] == new_idx["old_count"]

@@ -272,10 +272,18 @@ class UsageEventFactory:
 
     @staticmethod
     def _validate_date_range(
-        start_date: arrow.Arrow, end_date: arrow.Arrow, record_created: arrow.Arrow
+        start_date: Optional[arrow.Arrow],
+        end_date: arrow.Arrow,
+        record_created: arrow.Arrow,
     ) -> tuple[arrow.Arrow, arrow.Arrow]:
-        """Ensure date range doesn't start before record creation."""
-        if start_date < record_created:
+        """Ensure date range doesn't start before record creation.
+
+        If start_date is None or invalid, defaults to record creation date.
+        """
+        # If start_date is None or invalid, use record creation date
+        if start_date is None:
+            start_date = record_created
+        elif start_date < record_created:
             start_date = record_created
 
         if end_date < start_date:
@@ -286,7 +294,7 @@ class UsageEventFactory:
     @staticmethod
     def _generate_events_for_records(
         records: list,
-        start_date: arrow.Arrow,
+        start_date: Optional[arrow.Arrow],
         end_date: arrow.Arrow,
         events_per_record: int,
         enrich_events: bool = False,
@@ -432,9 +440,9 @@ class UsageEventFactory:
             enrich_events: Whether to enrich events with additional data
                 matching the invenio-stats-dashboard extended fields.
             event_start_date: Start date in YYYY-MM-DD format for event timestamps.
-                If an empty string, uses start_date.
+                If an empty string, uses record creation date for each record.
             event_end_date: End date in YYYY-MM-DD format for event timestamps.
-                If an empty string, uses end_date.
+                If an empty string, uses current date.
 
         Returns:
             List of (event, event_id) tuples.
@@ -462,14 +470,17 @@ class UsageEventFactory:
             except (IndexError, KeyError):
                 start_date = arrow.utcnow().format("YYYY-MM-DD")
 
-        # Use event dates if provided, otherwise fall back to record creation dates
+        # Use event dates if provided, otherwise use record creation to present
         if event_start_date == "":
-            event_start_date = start_date
-        if event_end_date == "":
-            event_end_date = end_date
+            # Don't set a default here - let _validate_date_range handle it per record
+            event_start_arrow = None
+        else:
+            event_start_arrow = arrow.get(event_start_date)
 
-        event_start_arrow = arrow.get(event_start_date)
-        event_end_arrow = arrow.get(event_end_date)
+        if event_end_date == "":
+            event_end_arrow = arrow.utcnow()
+        else:
+            event_end_arrow = arrow.get(event_end_date)
 
         records = UsageEventFactory._get_records_for_date_range(
             start_date, end_date, max_records
@@ -506,9 +517,9 @@ class UsageEventFactory:
             max_records: Maximum number of records to process.
             enrich_events: Whether to enrich events with additional data.
             event_start_date: Start date in YYYY-MM-DD format for event timestamps.
-                If an empty string, uses start_date.
+                If an empty string, uses record creation date for each record.
             event_end_date: End date in YYYY-MM-DD format for event timestamps.
-                If an empty string, uses end_date.
+                If an empty string, uses current date.
 
         Returns:
             Dictionary with indexing results.

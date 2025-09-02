@@ -252,7 +252,7 @@ class CommunityStatsService:
         for result in record_search.scan():
             record_id = result["id"]
             record_data = result.to_dict()
-            current_app.logger.error(f"Generating events for record: {record_id}")
+            current_app.logger.info(f"Generating events for record: {record_id}")
 
             try:
                 record_created_date = record_data.get("created")
@@ -263,7 +263,7 @@ class CommunityStatsService:
                 record_communities = (
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Record {record_id} belongs to communities: "
                     f"{record_communities}"
                 )
@@ -273,27 +273,13 @@ class CommunityStatsService:
                     if community_id in record_communities:
                         communities_to_process.append(community_id)
 
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Processing communities for record {record_id}: "
                     f"{communities_to_process}"
                 )
 
                 existing_events = []
                 try:
-                    # Debug: Check the values being used in the query
-                    msg = "DEBUG: record_id='%s' (type: %s)"
-                    current_app.logger.error(
-                        msg,
-                        record_id,
-                        type(record_id),
-                    )
-                    msg2 = "DEBUG: communities_to_process=%s (type: %s)"
-                    current_app.logger.error(
-                        msg2,
-                        communities_to_process,
-                        type(communities_to_process),
-                    )
-
                     existing_events_search = Search(
                         using=self.client, index=prefix_index("stats-community-events")
                     )
@@ -310,9 +296,6 @@ class CommunityStatsService:
                     }
 
                     existing_events_search = existing_events_search.query(query_dict)
-                    current_app.logger.error(
-                        f"Existing events search: {existing_events_search.to_dict()}"
-                    )
                     existing_events = list(existing_events_search.execute())
                     old_events_found += len(existing_events)
                 except Exception as e:
@@ -325,12 +308,9 @@ class CommunityStatsService:
                     event["community_id"] for event in existing_events
                 }
 
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Found {len(existing_events)} existing events for "
                     f"record {record_id}"
-                )
-                current_app.logger.error(
-                    f"Existing events: {[e.to_dict() for e in existing_events]}"
                 )
 
                 communities_to_add = [
@@ -339,7 +319,7 @@ class CommunityStatsService:
                     if community_id not in existing_community_ids
                 ]
 
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Will create events for communities: {communities_to_add}"
                 )
 
@@ -353,7 +333,7 @@ class CommunityStatsService:
                         record_published_date=record_published_date,
                         client=self.client,
                     )
-                    current_app.logger.error(
+                    current_app.logger.info(
                         f"Created {len(communities_to_add)} events for "
                         f"record {record_id}"
                     )
@@ -368,7 +348,7 @@ class CommunityStatsService:
                             f"Error refreshing community events index: {e}"
                         )
                 else:
-                    current_app.logger.error(
+                    current_app.logger.info(
                         f"No new events needed for record {record_id}"
                     )
 
@@ -377,7 +357,7 @@ class CommunityStatsService:
             except Exception as e:
                 current_app.logger.error(f"Error processing record {record_id}: {e}")
 
-        current_app.logger.error(f"Total records processed: {records_processed}")
+        current_app.logger.info(f"Total records processed: {records_processed}")
         return records_processed, new_events_created, old_events_found
 
     def read_stats(self, community_id: str, start_date: str, end_date: str) -> dict:
