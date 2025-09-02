@@ -137,15 +137,13 @@ def generate_community_events_command(
 
         if new_events_created > 0:
             click.echo(
-                f"\n✅ Successfully created {new_events_created:,} new community events!"
+                f"\nSuccessfully created {new_events_created:,} new community events!"
             )
         else:
-            click.echo("\nℹ️  No new events were created (all events already existed)")
+            click.echo("\nNo new events were created (all events already existed)")
 
         if old_events_found > 0:
-            click.echo(
-                f"ℹ️  Found {old_events_found:,} existing events that were skipped"
-            )
+            click.echo(f"Found {old_events_found:,} existing events that were skipped")
 
     click.echo("\nNext steps:")
     click.echo("  • Check the stats-community-events index for the new events")
@@ -343,28 +341,28 @@ def generate_community_events_background_command(
 
     try:
         pid = process_manager.start_background_process(cmd)
-        click.echo("\n🎯 Background event generation started successfully!")
+        click.echo("\nBackground event generation started successfully!")
         click.echo(f"Process ID: {pid}")
         click.echo(f"Command: {' '.join(cmd)}")
 
-        click.echo("\n📊 Monitor progress:")
+        click.echo("\nMonitor progress:")
         click.echo(
-            "  invenio community-stats process-status community-event-generation"
+            "  invenio community-stats processes status community-event-generation"
         )
         click.echo(
-            "  invenio community-stats process-status "
+            "  invenio community-stats processes status "
             "community-event-generation --show-log"
         )
 
-        click.echo("\n🛑 Cancel if needed:")
+        click.echo("\nCancel if needed:")
         click.echo(
-            "  invenio community-stats cancel-process community-event-generation"
+            "  invenio community-stats processes cancel community-event-generation"
         )
 
     except RuntimeError as e:
-        click.echo(f"❌ Failed to start background event generation: {e}")
+        click.echo(f"Failed to start background event generation: {e}")
         return 1
 
     except Exception as e:
-        click.echo(f"❌ Unexpected error: {e}")
+        click.echo(f"Unexpected error: {e}")
         return 1

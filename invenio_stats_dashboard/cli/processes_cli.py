@@ -93,17 +93,17 @@ def list_processes_command(pid_dir, package_only):
     if not running_processes:
         if package_only:
             click.echo(
-                "📭 No invenio-stats-dashboard background processes "
+                "No invenio-stats-dashboard background processes "
                 "are currently running"
             )
         else:
-            click.echo("📭 No background processes are currently running")
+            click.echo("No background processes are currently running")
         return
 
     if package_only:
-        click.echo("🔄 Running invenio-stats-dashboard Background Processes:")
+        click.echo("Running invenio-stats-dashboard Background Processes:")
     else:
-        click.echo("🔄 Running Background Processes:")
+        click.echo("Running Background Processes:")
     click.echo("=" * 40)
 
     for process_name in running_processes:
@@ -111,10 +111,10 @@ def list_processes_command(pid_dir, package_only):
 
     click.echo(f"\nTotal: {len(running_processes)} process(es)")
     click.echo(
-        "\n💡 Use 'invenio community-stats process-status <process_name>' "
+        "\nUse 'invenio community-stats processes status <process_name>' "
         "to check status"
     )
     click.echo(
-        "🛑 Use 'invenio community-stats cancel-process <process_name>' "
+        "Use 'invenio community-stats processes cancel <process_name>' "
         "to stop a process"
     )

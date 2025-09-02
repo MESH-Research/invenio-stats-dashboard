@@ -254,7 +254,8 @@ def generate_usage_events_background_command(
     cmd = [
         "invenio",
         "community-stats",
-        "generate-usage-events",
+        "usage-events",
+        "generate",
         "--events-per-record",
         str(events_per_record),
         "--yes-i-know",
@@ -280,25 +281,25 @@ def generate_usage_events_background_command(
 
     try:
         pid = process_manager.start_background_process(cmd)
-        click.echo("\n🎯 Background usage event generation started successfully!")
+        click.echo("\nBackground usage event generation started successfully!")
         click.echo(f"Process ID: {pid}")
         click.echo(f"Command: {' '.join(cmd)}")
 
-        click.echo("\n📊 Monitor progress:")
-        click.echo("  invenio community-stats process-status usage-event-generation")
+        click.echo("\nMonitor progress:")
+        click.echo("  invenio community-stats processes status usage-event-generation")
         click.echo(
-            "  invenio community-stats process-status usage-event-generation --show-log"
+            "  invenio community-stats processes status usage-event-generation --show-log"
         )
 
-        click.echo("\n🛑 Cancel if needed:")
-        click.echo("  invenio community-stats cancel-process usage-event-generation")
+        click.echo("\nCancel if needed:")
+        click.echo("  invenio community-stats processes cancel usage-event-generation")
 
     except RuntimeError as e:
-        click.echo(f"❌ Failed to start background usage event generation: {e}")
+        click.echo(f"Failed to start background usage event generation: {e}")
         return 1
 
     except Exception as e:
-        click.echo(f"❌ Unexpected error: {e}")
+        click.echo(f"Unexpected error: {e}")
         return 1
 
 
@@ -505,16 +506,16 @@ def _report_migration_results(results):
             )
 
             if month_results.get("total_time"):
-                click.echo(f"    Migration took: {month_results['total_time']:,}")
+                click.echo(f"    Migration took: {month_results['total_time']}")
 
             if month_results.get("validation_errors"):
                 click.echo(
-                    f"    Validation Errors: {month_results['validation_errors']:,}"
+                    f"    Validation Errors: {month_results['validation_errors']}"
                 )
 
             if month_results.get("operational_errors"):
                 click.echo(
-                    f"    Operational Errors: {month_results['operational_errors']:,}"
+                    f"    Operational Errors: {month_results['operational_errors']}"
                 )
                 for op_error in month_results["operational_errors"]:
                     click.echo(f"      - {op_error['type']}: " f"{op_error['message']}")
@@ -868,8 +869,11 @@ def _format_monthly_indices(estimates):
                 f"    {migration['source_index']} → {migration['index']} "
                 f"(completed)"
             )
+            # Extract the original source index name by removing -v2.0.0 suffix
+            # Note: The enriched index name should already have the -v2.0.0 suffix from the template
+            original_source = migration["index"].replace("-v2.0.0", "")
             click.echo(
-                f"      [{migration['index'][:-9]}](deleted) → "
+                f"      [{original_source}](deleted) → "
                 f"{migration.get('migrated_count', 0):,}, Remaining: 0"
             )
 
@@ -895,8 +899,11 @@ def _format_monthly_indices(estimates):
                 f"    {migration['source_index']} → {migration['index']} "
                 f"(completed)"
             )
+            # Extract the original source index name by removing -v2.0.0 suffix
+            # Note: The enriched index name should already have the -v2.0.0 suffix from the template
+            original_source = migration["index"].replace("-v2.0.0", "")
             click.echo(
-                f"      [{migration['index'][:-9]}](deleted) → "
+                f"      [{original_source}](deleted) → "
                 f"{migration.get('migrated_count', 0):,}, Remaining: 0"
             )
 
@@ -1313,23 +1320,23 @@ def migrate_events_background_command(
 
     try:
         pid = process_manager.start_background_process(cmd)
-        click.echo("\n🎯 Background migration started successfully!")
+        click.echo("\nBackground migration started successfully!")
         click.echo(f"Process ID: {pid}")
         click.echo(f"Command: {' '.join(cmd)}")
 
-        click.echo("\n📊 Monitor progress:")
-        click.echo("  invenio community-stats process-status event-migration")
+        click.echo("\nMonitor progress:")
+        click.echo("  invenio community-stats processes status event-migration")
         click.echo(
-            "  invenio community-stats process-status event-migration --show-log"
+            "  invenio community-stats processes status event-migration --show-log"
         )
 
-        click.echo("\n🛑 Cancel if needed:")
-        click.echo("  invenio community-stats cancel-process event-migration")
+        click.echo("\nCancel if needed:")
+        click.echo("  invenio community-stats processes cancel event-migration")
 
     except RuntimeError as e:
-        click.echo(f"❌ Failed to start background migration: {e}")
+        click.echo(f"Failed to start background migration: {e}")
         return 1
 
     except Exception as e:
-        click.echo(f"❌ Unexpected error: {e}")
+        click.echo(f"Unexpected error: {e}")
         return 1
