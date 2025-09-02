@@ -345,7 +345,7 @@ def list_running_processes(
 
     Args:
         pid_dir: Directory containing PID files
-        package_prefix: Optional prefix to filter processes (e.g., 'event-migration')
+        package_prefix: Optional prefix to filter processes (e.g., 'invenio-community-stats')
 
     Returns:
         List of running process names
@@ -357,15 +357,24 @@ def list_running_processes(
         return running_processes
 
     for pid_file in pid_path.glob("*.pid"):
-        process_name = pid_file.stem
+        full_process_name = pid_file.stem
 
         # Filter by package prefix if specified
-        if package_prefix and not process_name.startswith(package_prefix):
+        if package_prefix and not full_process_name.startswith(package_prefix):
             continue
 
-        monitor = ProcessMonitor(process_name, pid_dir)
+        # Extract the short process name by removing the package prefix
+        if package_prefix and full_process_name.startswith(package_prefix + "-"):
+            short_process_name = full_process_name[
+                len(package_prefix) + 1 :
+            ]  # +1 for the dash
+        else:
+            # If no package prefix specified, use the full name
+            short_process_name = full_process_name
+
+        monitor = ProcessMonitor(short_process_name, pid_dir, package_prefix)
 
         if monitor._is_process_running():
-            running_processes.append(process_name)
+            running_processes.append(full_process_name)
 
     return running_processes
