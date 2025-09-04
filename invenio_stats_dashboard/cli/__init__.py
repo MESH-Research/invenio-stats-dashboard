@@ -9,10 +9,10 @@
 
 import click
 
-from .core_cli import aggregate_stats_command, read_stats_command
-from .usage_events_cli import usage_events_cli
 from .community_events_cli import community_events_cli
+from .core_cli import aggregate_stats_command, read_stats_command
 from .processes_cli import processes_cli
+from .usage_events_cli import usage_events_cli
 
 
 @click.group()

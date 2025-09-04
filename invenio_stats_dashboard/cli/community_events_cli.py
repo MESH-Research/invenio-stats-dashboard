@@ -11,9 +11,9 @@ import click
 from flask.cli import with_appcontext
 from halo import Halo
 
-from .core_cli import check_stats_enabled
 from ..proxies import current_community_stats_service
 from ..utils.process_manager import ProcessManager
+from .core_cli import check_stats_enabled
 
 
 @click.group(name="community-events")

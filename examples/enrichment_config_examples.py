@@ -4,7 +4,7 @@ This file demonstrates different ways to configure the event enrichment system
 by modifying the existing COMMUNITY_STATS_SUBCOUNT_CONFIGS.
 """
 
-from typing import Optional, Any
+from typing import Any, Optional
 
 # Example 1: Enable all enrichment fields (default configuration)
 SUBCOUNT_CONFIG_ALL_ENABLED = {

@@ -4,9 +4,9 @@ from flask import Flask
 from flask_menu import current_menu
 from invenio_i18n import LazyString
 from invenio_i18n import lazy_gettext as _
-from invenio_theme.proxies import current_theme_icons
 from invenio_rdm_records.services.components import DefaultRecordsComponents
 from invenio_search.proxies import current_search, current_search_client
+from invenio_theme.proxies import current_theme_icons
 
 from . import config
 from .services.components import (
