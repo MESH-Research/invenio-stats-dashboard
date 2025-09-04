@@ -2,7 +2,9 @@
 
 from flask import Flask
 from flask_menu import current_menu
+from invenio_i18n import LazyString
 from invenio_i18n import lazy_gettext as _
+from invenio_theme.proxies import current_theme_icons
 from invenio_rdm_records.services.components import DefaultRecordsComponents
 from invenio_search.proxies import current_search, current_search_client
 
@@ -256,6 +258,14 @@ def _register_default_menu(app):
             "STATS_DASHBOARD_MENU_ENDPOINT",
             "invenio_stats_dashboard.global_stats_dashboard",
         ),
-        text=app.config.get("STATS_DASHBOARD_MENU_TEXT", _("Stats")),
+        text=app.config.get(
+            "STATS_DASHBOARD_MENU_TEXT",
+            _(
+                "%(icon)s Insights",
+                icon=LazyString(
+                    lambda: f'<i class="{current_theme_icons.chart_line}"></i>'
+                ),
+            ),
+        ),
         order=app.config.get("STATS_DASHBOARD_MENU_ORDER", 1),
     )
