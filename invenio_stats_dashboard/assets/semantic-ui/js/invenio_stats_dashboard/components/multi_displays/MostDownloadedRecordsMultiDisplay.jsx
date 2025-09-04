@@ -29,7 +29,7 @@ const MostDownloadedRecordsMultiDisplay = ({
   const { stats, isLoading } = useStatsDashboard();
 
   // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.mostDownloadedRecords?.slice(0, pageSize).map((record, index) => ({
+  const transformedData = stats?.mostDownloadedRecords?.slice(0, pageSize).map((record, index) => ({
     name: record.title,
     value: record.downloads,
     percentage: record.percentage,
@@ -39,7 +39,7 @@ const MostDownloadedRecordsMultiDisplay = ({
     }
   })) || [];
 
-  const remainingItems = stats.mostDownloadedRecords?.slice(pageSize) || [];
+  const remainingItems = stats?.mostDownloadedRecords?.slice(pageSize) || [];
   const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, record) => {
     acc.value += record.downloads;
     acc.percentage += record.percentage;

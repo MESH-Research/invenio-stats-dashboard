@@ -15,7 +15,7 @@ const MostViewedRecordsMultiDisplay = ({
   const { stats, dateRange, isLoading } = useStatsDashboard();
 
   // Transform the data into the format expected by StatsMultiDisplay
-  const transformedData = stats.mostViewedRecords?.slice(0, pageSize).map((record, index) => ({
+  const transformedData = stats?.mostViewedRecords?.slice(0, pageSize).map((record, index) => ({
     name: record.title,
     value: record.views,
     percentage: record.percentage,
@@ -25,7 +25,7 @@ const MostViewedRecordsMultiDisplay = ({
     }
   })) || [];
 
-  const remainingItems = stats.mostViewedRecords?.slice(pageSize) || [];
+  const remainingItems = stats?.mostViewedRecords?.slice(pageSize) || [];
   const otherData = remainingItems.length > 0 ? remainingItems.reduce((acc, record) => {
     acc.value += record.views;
     acc.percentage += record.percentage;

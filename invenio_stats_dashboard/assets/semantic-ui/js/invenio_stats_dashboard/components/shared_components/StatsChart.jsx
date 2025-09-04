@@ -300,8 +300,20 @@ const SEPARATE_CHART_CONFIG = {
   }
 };
 
-const FilterSelector = ({ data, displaySeparately, setDisplaySeparately }) => {
-  const breakdownOptions = data ? Object.keys(data).filter(k => k !== 'global') : [];
+const FilterSelector = ({ data, displaySeparately, setDisplaySeparately, display_subcounts, global_subcounts }) => {
+  // Get available breakdown options from data
+  const availableBreakdowns = data ? Object.keys(data).filter(k => k !== 'global') : [];
+
+  // Determine which subcounts to display based on component-specific config or global config
+  const allowedSubcounts = display_subcounts || global_subcounts || {};
+
+  const breakdownOptions = availableBreakdowns.filter(key => {
+    // If no subcounts config is provided, show all available breakdowns
+    if (!allowedSubcounts || Object.keys(allowedSubcounts).length === 0) {
+      return true;
+    }
+    return allowedSubcounts.hasOwnProperty(key);
+  });
 
   return (
     <Popup
@@ -607,8 +619,9 @@ const StatsChart = ({
   gridConfig,
   tooltipConfig,
   chartType = undefined, // Optional prop to override chart type consistently
+  display_subcounts = undefined, // Optional prop to override global subcounts config
 }) => {
-  const { dateRange, granularity, isLoading } = useStatsDashboard();
+  const { dateRange, granularity, isLoading, ui_subcounts } = useStatsDashboard();
   const [selectedMetric, setSelectedMetric] = useState(seriesSelectorOptions?.[0]?.value);
   const [displaySeparately, setDisplaySeparately] = useState(null);
 
@@ -722,7 +735,14 @@ const StatsChart = ({
 
   return (
     <Container fluid>
-      <FilterSelector data={data} aggregatedData={aggregatedData} displaySeparately={displaySeparately} setDisplaySeparately={setDisplaySeparately} />
+      <FilterSelector
+        data={data}
+        aggregatedData={aggregatedData}
+        displaySeparately={displaySeparately}
+        setDisplaySeparately={setDisplaySeparately}
+        display_subcounts={display_subcounts}
+        global_subcounts={ui_subcounts}
+      />
       {title && (
         <Header as="h3" attached="top" fluid textAlign="center" className="rel-mt-1">
           <Header.Content>
@@ -906,6 +926,7 @@ StatsChart.propTypes = {
     })
   ),
   chartType: PropTypes.oneOf(['bar', 'line']),
+  display_subcounts: PropTypes.object,
 };
 
 export { StatsChart };

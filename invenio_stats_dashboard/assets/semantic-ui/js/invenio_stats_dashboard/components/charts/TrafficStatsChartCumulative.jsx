@@ -32,7 +32,7 @@ const TrafficStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
     <StatsChart
       title={title || i18next.t('Cumulative Usage')}
       chartType={chartType}
-      data={stats.usageSnapshotData}
+      data={stats?.usageSnapshotData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
       {...otherProps}

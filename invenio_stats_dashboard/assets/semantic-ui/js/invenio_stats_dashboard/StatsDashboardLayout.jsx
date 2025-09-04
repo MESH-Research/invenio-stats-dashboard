@@ -103,7 +103,7 @@ const StatsDashboardLayout = ({
     return () => {
       isMounted = false;
     };
-  }, [initialStats, selectedTab, dateRange, community, dashboardType, getStatsParams]);
+  }, [selectedTab, dateRange, community, dashboardType, getStatsParams]);
 
   const contextValue = {
     binary_sizes,
@@ -122,6 +122,7 @@ const StatsDashboardLayout = ({
     isUpdating,
     error,
     lastUpdated,
+    ui_subcounts: dashboardConfig?.ui_subcounts,
   };
 
   return (

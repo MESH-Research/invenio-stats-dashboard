@@ -27,9 +27,9 @@ const ContentStatsChart = ({ title = undefined, height = 300, chartType = "line"
   const { stats, recordStartBasis } = useStatsDashboard();
 
   const seriesCategoryMap = {
-    [RECORD_START_BASES.ADDED]: stats.recordDeltaDataAdded,
-    [RECORD_START_BASES.CREATED]: stats.recordDeltaDataCreated,
-    [RECORD_START_BASES.PUBLISHED]: stats.recordDeltaDataPublished,
+    [RECORD_START_BASES.ADDED]: stats?.recordDeltaDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordDeltaDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordDeltaDataPublished,
   };
 
   const seriesSelectorOptions = {

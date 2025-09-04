@@ -31,6 +31,7 @@ def global_stats_dashboard():
             "use_test_data": current_app.config.get(
                 "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
+            "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -62,6 +63,7 @@ def community_stats_dashboard(pid_value, community, community_ui):
             "use_test_data": current_app.config.get(
                 "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
+            "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
         },
         community=community_ui,

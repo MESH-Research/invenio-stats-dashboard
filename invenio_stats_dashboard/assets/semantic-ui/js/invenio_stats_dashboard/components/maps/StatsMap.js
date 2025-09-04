@@ -27,13 +27,13 @@ const StatsMap = ({
     setIsMapRegistered(true);
   }, []);
 
-  const mapData = extractCountryMapData(stats, metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
+  const mapData = extractCountryMapData(stats || {}, metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
 
   // Debug logging for extracted map data
   console.log('StatsMap - extracted mapData:', mapData);
   console.log('StatsMap - mapData length:', mapData.length);
   console.log('StatsMap - stats structure:', {
-    hasUsageSnapshotData: !!stats.usageSnapshotData,
+    hasUsageSnapshotData: !!stats?.usageSnapshotData,
     hasTopCountriesByView: !!stats.usageSnapshotData?.topCountriesByView,
     hasTopCountriesByDownload: !!stats.usageSnapshotData?.topCountriesByDownload,
     hasByCountries: !!stats.usageSnapshotData?.byCountries,

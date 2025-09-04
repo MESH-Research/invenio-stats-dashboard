@@ -34,7 +34,10 @@ const AffiliationsMultiDisplay = ({
     'metadata.affiliations.affiliation',
     CHART_COLORS.secondary
   );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);nn  // Check if there's any data to displayn  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const getChartOptions = () => {
     const options = {

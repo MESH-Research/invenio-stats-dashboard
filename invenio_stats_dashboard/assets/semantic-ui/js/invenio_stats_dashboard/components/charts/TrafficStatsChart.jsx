@@ -31,7 +31,7 @@ const TrafficStatsChart = ({ title = undefined, height = 300, chartType = "line"
   return (
     <StatsChart
       title={title}
-      data={stats.usageDeltaData}
+      data={stats?.usageDeltaData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
       chartType={chartType}

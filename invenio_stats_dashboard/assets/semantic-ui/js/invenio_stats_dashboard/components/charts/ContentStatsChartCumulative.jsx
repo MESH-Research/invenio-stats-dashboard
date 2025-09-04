@@ -24,9 +24,9 @@ const ContentStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
   const { stats, recordStartBasis } = useStatsDashboard();
 
   const seriesCategoryMap = {
-    [RECORD_START_BASES.ADDED]: stats.recordSnapshotDataAdded,
-    [RECORD_START_BASES.CREATED]: stats.recordSnapshotDataCreated,
-    [RECORD_START_BASES.PUBLISHED]: stats.recordSnapshotDataPublished,
+    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
+    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
+    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
   };
 
   const seriesSelectorOptions = {
