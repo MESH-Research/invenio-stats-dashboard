@@ -174,7 +174,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
-                                "component": "AccessStatusMultiDisplay",
+                                "component": "AccessStatusesMultiDisplay",
                                 "width": 8,
                                 "props": {
                                     "title": "Top Access Statuses",
