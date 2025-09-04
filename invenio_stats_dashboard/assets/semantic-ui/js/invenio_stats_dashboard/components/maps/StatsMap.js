@@ -6,7 +6,7 @@ import worldJson from './data/world2.json';
 import { COUNTRY_NAME_MAP } from './data/country_mappings';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Header, Segment } from 'semantic-ui-react';
+import { Header, Segment, Loader, Message } from 'semantic-ui-react';
 import { extractCountryMapData } from '../../utils/mapHelpers';
 
 const StatsMap = ({
@@ -19,7 +19,7 @@ const StatsMap = ({
   useSnapshot = true
 }) => {
   const [isMapRegistered, setIsMapRegistered] = useState(false);
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, isLoading } = useStatsDashboard();
 
   useEffect(() => {
     // Register the world map
@@ -46,6 +46,9 @@ const StatsMap = ({
   const finalMapData = mapData;
 
   const maxValue = Math.max(...mapData.map(item => item.value), 1);
+
+  // Check if there's any data to display
+  const hasData = !isLoading && mapData.length > 0 && mapData.some(item => item.value > 0);
 
   // Debug logging for max value
   console.log('StatsMap - maxValue:', maxValue);
@@ -118,7 +121,20 @@ const StatsMap = ({
     <>
       <Header as="h3" attached="top">{title}</Header>
       <Segment fluid attached="bottom" className="stats-map pb-0 pt-0 pr-0 pl-0">
-        {isMapRegistered ? (
+      {isLoading ? (
+          <div className="stats-map-loading-container" style={{ height: height, minHeight: minHeight }}>
+            <Loader active size="large">
+              {i18next.t("Loading map data...")}
+            </Loader>
+          </div>
+        ) : !hasData ? (
+          <div className="stats-map-no-data-container" style={{ height: height, minHeight: minHeight }}>
+            <Message info>
+              <Message.Header>{i18next.t("No Data Available")}</Message.Header>
+              <p>{i18next.t("No geographic data is available for the selected time period.")}</p>
+            </Message>
+          </div>
+        ) : isMapRegistered ? (
           <ReactECharts
             option={option}
             notMerge={true}
@@ -126,7 +142,11 @@ const StatsMap = ({
             className="stats-map"
           />
         ) : (
-          <div>Loading map...</div>
+          <div className="stats-map-loading-container" style={{ height: height, minHeight: minHeight }}>
+            <Loader active size="large">
+              {i18next.t("Loading map...")}
+            </Loader>
+          </div>
         )}
       </Segment>
     </>

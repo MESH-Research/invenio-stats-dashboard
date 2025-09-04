@@ -1,5 +1,8 @@
 import { http } from "react-invenio-forms";
 import { DASHBOARD_TYPES } from "../constants";
+import { getCachedStats, setCachedStats } from "../utils/statsCache";
+import { transformApiData } from "./dataTransformer";
+import { testStatsData } from "../components/test_data";
 
 /**
  * API client for requesting stats to populate a stats dashboard.
@@ -43,4 +46,222 @@ const statsApiClient = {
   }
 };
 
-export { statsApiClient };
+/**
+ * Get cached stats data
+ *
+ * @param {Object} params - Parameters for getting cached stats
+ * @param {string} params.communityId - The community ID (or 'global')
+ * @param {string} params.dashboardType - The dashboard type
+ * @param {string} [params.startDate] - Start date (optional)
+ * @param {string} [params.endDate] - End date (optional)
+ * @param {Function} [params.getStatsParams] - Custom function to get stats parameters
+ * @param {Object} [params.community] - Community object (for custom params)
+ *
+ * @returns {Object|null} Cached stats data if available, null otherwise
+ */
+const getCachedStatsData = ({
+  communityId,
+  dashboardType,
+  startDate = null,
+  endDate = null,
+  getStatsParams = null,
+  community = null
+}) => {
+  // Get community ID for caching
+  const cacheCommunityId = communityId || community?.id || 'global';
+
+  // Use custom getStatsParams if provided, otherwise use default behavior
+  const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType, startDate, endDate];
+  const [dashboardTypeParam, paramStartDate, paramEndDate] = params;
+
+  // Try to get cached data
+  return getCachedStats(cacheCommunityId, dashboardTypeParam, paramStartDate, paramEndDate);
+};
+
+/**
+ * Fetch fresh stats data and cache it
+ *
+ * @param {Object} params - Parameters for fetching stats
+ * @param {string} params.communityId - The community ID (or 'global')
+ * @param {string} params.dashboardType - The dashboard type
+ * @param {string} [params.startDate] - Start date (optional)
+ * @param {string} [params.endDate] - End date (optional)
+ * @param {Function} [params.getStatsParams] - Custom function to get stats parameters
+ * @param {Object} [params.community] - Community object (for custom params)
+ * @param {boolean} [params.useTestData] - Whether to use test data instead of API
+ *
+ * @returns {Promise<Object>} Object containing:
+ *   - freshStats: Fresh data from API (transformed)
+ *   - lastUpdated: Timestamp of fresh data fetch
+ *   - error: Error object if fetch failed
+ */
+const fetchFreshStatsWithCache = async ({
+  communityId,
+  dashboardType,
+  startDate = null,
+  endDate = null,
+  getStatsParams = null,
+  community = null,
+  useTestData = false
+}) => {
+  try {
+    // Get community ID for caching
+    const cacheCommunityId = communityId || community?.id || 'global';
+
+    // Use custom getStatsParams if provided, otherwise use default behavior
+    const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType, startDate, endDate];
+    const [dashboardTypeParam, paramStartDate, paramEndDate] = params;
+
+        let rawStats;
+    let transformedStats;
+
+    if (useTestData) {
+      // Use test data directly (already transformed)
+      console.log('Using test data for stats generation');
+      transformedStats = testStatsData;
+    } else {
+      // Fetch fresh data from API
+      rawStats = await statsApiClient.getStats(...params);
+      // Transform the raw data using the dataTransformer
+      transformedStats = transformApiData(rawStats);
+    }
+
+    // Cache the transformed data
+    setCachedStats(cacheCommunityId, dashboardTypeParam, transformedStats, paramStartDate, paramEndDate);
+
+    return {
+      freshStats: transformedStats,
+      lastUpdated: Date.now(),
+      error: null
+    };
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    return {
+      freshStats: null,
+      lastUpdated: null,
+      error
+    };
+  }
+};
+
+/**
+ * Fetch stats with complete caching and state management
+ *
+ * This is the main function that handles the complete flow:
+ * 1. Check for cached data and return it immediately if available
+ * 2. Always fetch fresh data in the background
+ * 3. Transform and cache the fresh data
+ * 4. Return both cached and fresh data with status information
+ *
+ * @param {Object} params - Parameters for fetching stats
+ * @param {string} params.communityId - The community ID (or 'global')
+ * @param {string} params.dashboardType - The dashboard type
+ * @param {string} [params.startDate] - Start date (optional)
+ * @param {string} [params.endDate] - End date (optional)
+ * @param {Function} [params.getStatsParams] - Custom function to get stats parameters
+ * @param {Object} [params.community] - Community object (for custom params)
+ * @param {Function} [params.onStateChange] - Callback for state changes
+ * @param {Function} [params.isMounted] - Function to check if component is still mounted
+ * @param {boolean} [params.useTestData] - Whether to use test data instead of API
+ *
+ * @returns {Promise<Object>} Object containing:
+ *   - cachedStats: Cached data if available, null otherwise
+ *   - freshStats: Fresh data from API (transformed)
+ *   - lastUpdated: Timestamp of fresh data fetch
+ *   - error: Error object if fetch failed
+ */
+const fetchStats = async ({
+  communityId,
+  dashboardType,
+  startDate = null,
+  endDate = null,
+  getStatsParams = null,
+  community = null,
+  onStateChange = null,
+  isMounted = null,
+  useTestData = false
+}) => {
+  const fetchParams = {
+    communityId,
+    dashboardType,
+    startDate,
+    endDate,
+    getStatsParams,
+    community
+  };
+
+  try {
+    // Check for cached data first
+    const cachedStats = getCachedStatsData(fetchParams);
+
+    if (cachedStats) {
+      // Notify about cached data
+      if (onStateChange && (!isMounted || isMounted())) {
+        onStateChange({
+          type: 'cached_data_loaded',
+          stats: cachedStats,
+          isLoading: false,
+          isUpdating: true,
+          error: null
+        });
+      }
+    } else {
+      // No cached data, notify about loading state
+      if (onStateChange && (!isMounted || isMounted())) {
+        onStateChange({
+          type: 'loading_started',
+          stats: null,
+          isLoading: true,
+          isUpdating: false,
+          error: null
+        });
+      }
+    }
+
+    // Always fetch fresh data in the background
+    const result = await fetchFreshStatsWithCache({
+      ...fetchParams,
+      useTestData
+    });
+
+    // Notify about fresh data
+    if (onStateChange && (!isMounted || isMounted())) {
+      onStateChange({
+        type: 'fresh_data_loaded',
+        stats: result.freshStats,
+        isLoading: false,
+        isUpdating: false,
+        lastUpdated: result.lastUpdated,
+        error: result.error
+      });
+    }
+
+    return {
+      cachedStats,
+      freshStats: result.freshStats,
+      lastUpdated: result.lastUpdated,
+      error: result.error
+    };
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+
+    if (onStateChange && (!isMounted || isMounted())) {
+      onStateChange({
+        type: 'error',
+        stats: null,
+        isLoading: false,
+        isUpdating: false,
+        error
+      });
+    }
+
+    return {
+      cachedStats: null,
+      freshStats: null,
+      lastUpdated: null,
+      error
+    };
+  }
+};
+
+export { statsApiClient, getCachedStatsData, fetchFreshStatsWithCache, fetchStats };

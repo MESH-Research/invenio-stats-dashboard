@@ -1,6 +1,6 @@
 export * from "./ResourceTypesMultiDisplay";
 export * from "./SubjectsMultiDisplay";
-export * from "./AccessStatusMultiDisplay";
+export * from "./AccessStatusesMultiDisplay";
 export * from "./RightsMultiDisplay";
 export * from "./AffiliationsMultiDisplay";
 export * from "./FundersMultiDisplay";

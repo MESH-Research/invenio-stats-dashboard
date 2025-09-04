@@ -17,7 +17,7 @@ const RightsMultiDisplay = ({
   available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
 
   const seriesCategoryMap = {
     [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
@@ -35,6 +35,9 @@ const RightsMultiDisplay = ({
     CHART_COLORS.secondary
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const getChartOptions = () => {
     const options = {
@@ -158,6 +161,8 @@ const RightsMultiDisplay = ({
       chartOptions={chartOptions}
       rows={rowsWithLinks}
       label={"rights"}
+      isLoading={isLoading}
+      hasData={hasData}
       {...otherProps}
     />
   );

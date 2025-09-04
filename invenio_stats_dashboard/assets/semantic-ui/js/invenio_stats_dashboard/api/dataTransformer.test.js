@@ -58,7 +58,7 @@ describe('transformApiData', () => {
       // Check subcount categories
       expect(deltaData).toHaveProperty('resourceTypes');
       expect(deltaData).toHaveProperty('languages');
-      expect(deltaData).toHaveProperty('accessStatus');
+      expect(deltaData).toHaveProperty('accessStatuses');
       expect(deltaData).toHaveProperty('affiliations');
       expect(deltaData).toHaveProperty('funders');
       expect(deltaData).toHaveProperty('subjects');
@@ -317,7 +317,7 @@ describe('transformApiData', () => {
       expect(result.recordDeltaDataCreated).toHaveProperty('global');
       expect(result.recordDeltaDataCreated).toHaveProperty('byFilePresence');
       expect(result.recordDeltaDataCreated).toHaveProperty('resourceTypes');
-      expect(result.recordDeltaDataCreated).toHaveProperty('accessStatus');
+      expect(result.recordDeltaDataCreated).toHaveProperty('accessStatuses');
       expect(result.recordDeltaDataCreated).toHaveProperty('languages');
       expect(result.recordDeltaDataCreated).toHaveProperty('affiliations');
       expect(result.recordDeltaDataCreated).toHaveProperty('subjects');
@@ -337,7 +337,7 @@ describe('transformApiData', () => {
 
       expect(result.recordSnapshotDataCreated).toHaveProperty('global');
       expect(result.recordSnapshotDataCreated).toHaveProperty('byFilePresence');
-      expect(result.recordSnapshotDataCreated).toHaveProperty('accessStatus');
+      expect(result.recordSnapshotDataCreated).toHaveProperty('accessStatuses');
     });
 
     test('should handle sampleUsageSnapshot correctly', () => {
@@ -484,7 +484,7 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       // Should not crash and should return empty arrays for subcounts
-      expect(result.recordDeltaDataCreated.accessStatus.records).toEqual([]);
+      expect(result.recordDeltaDataCreated.accessStatuses.records).toEqual([]);
       expect(result.recordDeltaDataCreated.affiliations.records).toEqual([]);
       expect(result.recordDeltaDataCreated.fileTypes.records).toEqual([]);
     });
@@ -500,7 +500,7 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       // Should handle both nested structure (by_access_statuses) and direct structure (by_file_types)
-      expect(result.recordDeltaDataCreated.accessStatus.records.length).toBeGreaterThan(0);
+      expect(result.recordDeltaDataCreated.accessStatuses.records.length).toBeGreaterThan(0);
       expect(result.recordDeltaDataCreated.fileTypes.records.length).toBeGreaterThan(0);
     });
 

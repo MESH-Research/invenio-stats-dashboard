@@ -8,7 +8,7 @@ import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
 import { filterSeriesArrayByDate } from "../../utils";
 import { transformMultiDisplayData, assembleMultiDisplayRows } from "../../utils/multiDisplayHelpers";
 
-const AccessStatusMultiDisplay = ({
+const AccessStatusesMultiDisplay = ({
   title = i18next.t("Access Rights"),
   icon: labelIcon = "lock",
   headers = [i18next.t("Access Right"), i18next.t("Works")],
@@ -17,7 +17,7 @@ const AccessStatusMultiDisplay = ({
   available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
 
   const seriesCategoryMap = {
     [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
@@ -25,16 +25,19 @@ const AccessStatusMultiDisplay = ({
     [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
   };
 
-  const accessStatusData = seriesCategoryMap[recordStartBasis]?.accessStatus?.records;
-  const rawAccessStatus = filterSeriesArrayByDate(accessStatusData, dateRange, true);
+  const accessStatusesData = seriesCategoryMap[recordStartBasis]?.accessStatuses?.records;
+  const rawAccessStatuses = filterSeriesArrayByDate(accessStatusesData, dateRange, true);
 
   const { transformedData, otherData, totalCount } = transformMultiDisplayData(
-    rawAccessStatus,
+    rawAccessStatuses,
     pageSize,
     'metadata.access_status.id',
     CHART_COLORS.secondary
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const getChartOptions = () => {
     const options = {
@@ -152,6 +155,8 @@ const AccessStatusMultiDisplay = ({
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      isLoading={isLoading}
+      hasData={hasData}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
@@ -164,7 +169,7 @@ const AccessStatusMultiDisplay = ({
   );
 };
 
-AccessStatusMultiDisplay.propTypes = {
+AccessStatusesMultiDisplay.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
@@ -173,4 +178,4 @@ AccessStatusMultiDisplay.propTypes = {
   available_views: PropTypes.arrayOf(PropTypes.string),
 };
 
-export { AccessStatusMultiDisplay };
+export { AccessStatusesMultiDisplay };

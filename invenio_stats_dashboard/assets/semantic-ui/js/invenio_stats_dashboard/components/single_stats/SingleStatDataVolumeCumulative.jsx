@@ -7,7 +7,7 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { extractRecordSnapshotValue } from '../../utils/singleStatHelpers';
 
 const SingleStatDataVolumeCumulative = ({ title = i18next.t("Cumulative Data Volume"), icon = "database", compactThreshold = 1_000_000 }) => {
-  const { stats, dateRange, recordStartBasis, binary_sizes } = useStatsDashboard();
+  const { stats, dateRange, recordStartBasis, binary_sizes, isLoading } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
@@ -30,6 +30,7 @@ const SingleStatDataVolumeCumulative = ({ title = i18next.t("Cumulative Data Vol
       title={title}
       value={formatNumber(value, 'filesize', { binary: binary_sizes, compactThreshold })}
       icon={icon}
+      isLoading={isLoading}
       {...(description && { description })}
     />
   );

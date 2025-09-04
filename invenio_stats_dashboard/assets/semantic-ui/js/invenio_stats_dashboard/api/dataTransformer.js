@@ -243,7 +243,7 @@ const transformRecordDeltaData = (deltaDocs) => {
       records: [],
       parents: []
     },
-    accessStatus: {
+    accessStatuses: {
       records: [],
       parents: [],
       uploaders: [],
@@ -318,7 +318,7 @@ const transformRecordDeltaData = (deltaDocs) => {
 
   const subcountTypes = {
     'by_resource_types': 'resourceTypes',
-    'by_access_statuses': 'accessStatus',
+    'by_access_statuses': 'accessStatuses',
     'by_languages': 'languages',
     'by_affiliations_creators': 'affiliations',
     'by_affiliations_contributors': 'affiliations',
@@ -534,7 +534,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       records: [],
       parents: []
     },
-    accessStatus: {
+    accessStatuses: {
       records: [],
       parents: [],
       uploaders: [],
@@ -608,7 +608,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
 
   const subcountTypes = {
     'all_resource_types': 'resourceTypes',
-    'all_access_statuses': 'accessStatus',
+    'all_access_statuses': 'accessStatuses',
     'top_languages': 'languages',
     'top_affiliations_creator': 'affiliations',
     'top_affiliations_contributor': 'affiliations',

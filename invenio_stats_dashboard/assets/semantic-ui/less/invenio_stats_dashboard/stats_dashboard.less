@@ -42,7 +42,7 @@
     }
   }
 
-  .communities-detail-body {
+  .stats-dashboard-body {
     .stats-dashboard-date-range-label {
       font-size: 1rem;
       display: block;
@@ -110,14 +110,16 @@
       box-shadow: none;
       border: none;
       .item {
-        // background-color: transparent;
-        // border-left: 2px solid #547d7d;
-        // color: rgba(0, 0, 0, 0.87) !important;
-        // border-radius: 0;
-        // &.active {
-        //   background-color: #547d7d !important;
-        //   color: #fff !important;
-        // }
+        background-color: transparent;
+        border-left: 2px solid #deeaea;
+        color: rgba(0, 0, 0, 0.87) !important;
+        border-radius: 0;
+        &.active {
+          border-left: 2px solid #547d7d;
+        }
+        &:hover {
+          background-color: #eff6f4 !important;
+        }
         .icon {
           float: right;
         }
@@ -174,6 +176,55 @@
     }
   }
 
+  // Loading and no-data state containers
+  .stats-loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    min-height: 200px;
+  }
+
+  .stats-chart-loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    min-height: 200px;
+  }
+
+  .stats-map-loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 500px;
+    min-height: 400px;
+  }
+
+  .stats-no-data-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    min-height: 200px;
+  }
+
+  .stats-chart-no-data-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    min-height: 200px;
+  }
+
+  .stats-map-no-data-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 500px;
+    min-height: 400px;
+  }
+
 }
 
 
@@ -190,6 +241,33 @@
       .ui.radio.checkbox {
         margin-left: -1rem;
       }
+    }
+  }
+}
+
+// Update status message styles
+.stats-update-status {
+  margin-top: 1rem !important;
+
+  .stats-updating-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .stats-updating-text {
+      font-size: 0.9em;
+      color: #666;
+    }
+  }
+
+  .stats-last-updated-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .stats-last-updated-text {
+      font-size: 0.9em;
+      color: #666;
     }
   }
 }

@@ -17,7 +17,7 @@ const SubjectsMultiDisplay = ({
   available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, isLoading } = useStatsDashboard();
 
   // Extract subjects data from the stats structure
   const subjectsData = stats?.recordSnapshotDataAdded?.subjects?.records;
@@ -30,6 +30,9 @@ const SubjectsMultiDisplay = ({
     CHART_COLORS.secondary
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const getChartOptions = () => {
     const options = {
@@ -147,6 +150,8 @@ const SubjectsMultiDisplay = ({
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      isLoading={isLoading}
+      hasData={hasData}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

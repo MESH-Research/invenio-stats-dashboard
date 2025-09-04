@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Button, Container, Header, Segment, Popup, Icon, Form, Checkbox } from 'semantic-ui-react';
+import { Button, Container, Header, Segment, Popup, Icon, Form, Checkbox, Loader, Message } from 'semantic-ui-react';
 import ReactECharts from "echarts-for-react";
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { CHART_COLORS } from '../../constants';
@@ -24,7 +24,7 @@ const SERIES_Y_AXIS_LABELS = {
 const BREAKDOWN_NAMES = {
   'resourceTypes': 'Work Types',
   'subjects': 'Subjects',
-  'accessStatus': 'Access Status',
+  'accessStatuses': 'Access Statuses',
   'rights': 'Rights',
   'affiliations': 'Affiliations',
   'funders': 'Funders',
@@ -608,7 +608,7 @@ const StatsChart = ({
   tooltipConfig,
   chartType = undefined, // Optional prop to override chart type consistently
 }) => {
-  const { dateRange, granularity } = useStatsDashboard();
+  const { dateRange, granularity, isLoading } = useStatsDashboard();
   const [selectedMetric, setSelectedMetric] = useState(seriesSelectorOptions?.[0]?.value);
   const [displaySeparately, setDisplaySeparately] = useState(null);
 
@@ -628,6 +628,14 @@ const StatsChart = ({
 
     return seriesToProcess;
   }, [data, selectedMetric, displaySeparately]);
+
+  // Check if there's any data to display
+  const hasData = useMemo(() => {
+    if (isLoading) return true; // Don't show no-data state while loading
+    return seriesArray.length > 0 && seriesArray.some(series =>
+      series.data && series.data.length > 0
+    );
+  }, [seriesArray, isLoading]);
 
     useEffect(() => {
     const filteredData = filterSeriesArrayByDate(seriesArray, dateRange);
@@ -720,7 +728,7 @@ const StatsChart = ({
           <Header.Content>
             {title}
           </Header.Content>
-          {dateRange && (
+          {dateRange && !isLoading && (
             <Header.Subheader>
               {formatDateRange({start: dateRange.start, "end": dateRange.end}, 'day', true)}
             </Header.Subheader>
@@ -728,7 +736,7 @@ const StatsChart = ({
         </Header>
       )}
       <Segment className={`stats-chart ${classnames} rel-mb-1 rel-mt-0`} attached="bottom" fluid role="region" aria-label={title || "Statistics Chart"} aria-description={`Chart showing ${selectedMetric} over time`}>
-          {showControls && (
+          {showControls && !isLoading && (
             <div className="stats-chart-controls" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
               {showSeriesControls && (
                 <Button.Group className="stats-chart-series-controls separated">
@@ -750,15 +758,30 @@ const StatsChart = ({
               )}
             </div>
           )}
-          <div className="stats-chart-container">
-            <ReactECharts
-              key={`${selectedMetric}-${displaySeparately}-${granularity}`}
-              option={chartOptions}
-              notMerge={true}
-              style={{ height }}
-              aria-label={title || "Statistics Chart"}
-              aria-description={`Chart showing ${selectedMetric} over time`}
-            />
+          <div className="stats-chart-container" style={{ position: 'relative' }}>
+          {isLoading ? (
+              <div className="stats-chart-loading-container" style={{ height: height }}>
+                <Loader active size="large">
+                  {i18next.t("Loading chart data...")}
+                </Loader>
+              </div>
+            ) : !hasData ? (
+              <div className="stats-chart-no-data-container" style={{ height: height }}>
+                <Message info>
+                  <Message.Header>{i18next.t("No Data Available")}</Message.Header>
+                  <p>{i18next.t("No data is available for the selected time period.")}</p>
+                </Message>
+              </div>
+            ) : (
+              <ReactECharts
+                key={`${selectedMetric}-${displaySeparately}-${granularity}`}
+                option={chartOptions}
+                notMerge={true}
+                style={{ height }}
+                aria-label={title || "Statistics Chart"}
+                aria-description={`Chart showing ${selectedMetric} over time`}
+              />
+            )}
           </div>
       </Segment>
     </Container>

@@ -7,7 +7,7 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { extractUsageDeltaValue } from '../../utils/singleStatHelpers';
 
 const SingleStatDownloads = ({ title = i18next.t("Downloads"), icon = "download", compactThreshold = 1_000_000 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, isLoading } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
@@ -29,6 +29,7 @@ const SingleStatDownloads = ({ title = i18next.t("Downloads"), icon = "download"
       title={title}
       value={formatNumber(value, 'compact', { compactThreshold })}
       icon={icon}
+      isLoading={isLoading}
       {...(description && { description })}
     />
   );

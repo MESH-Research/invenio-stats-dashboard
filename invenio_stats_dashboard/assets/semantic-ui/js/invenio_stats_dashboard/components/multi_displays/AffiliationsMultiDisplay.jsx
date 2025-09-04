@@ -17,7 +17,7 @@ const AffiliationsMultiDisplay = ({
   available_views = ["list", "pie", "bar"],
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
 
   const seriesCategoryMap = {
     [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
@@ -34,7 +34,7 @@ const AffiliationsMultiDisplay = ({
     'metadata.affiliations.affiliation',
     CHART_COLORS.secondary
   );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);nn  // Check if there's any data to displayn  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const getChartOptions = () => {
     const options = {
@@ -154,6 +154,8 @@ const AffiliationsMultiDisplay = ({
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view || available_views[0]}
+      isLoading={isLoading}
+      hasData={hasData}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

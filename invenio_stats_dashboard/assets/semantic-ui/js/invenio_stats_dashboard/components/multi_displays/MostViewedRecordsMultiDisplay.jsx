@@ -12,7 +12,7 @@ const MostViewedRecordsMultiDisplay = ({
   available_views = ["list"],
   default_view = "list",
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, isLoading } = useStatsDashboard();
 
   // Transform the data into the format expected by StatsMultiDisplay
   const transformedData = stats.mostViewedRecords?.slice(0, pageSize).map((record, index) => ({
@@ -168,6 +168,7 @@ const MostViewedRecordsMultiDisplay = ({
       chartOptions={getChartOptions()}
       defaultViewMode={default_view || available_views[0]}
       pageSize={pageSize}
+      isLoading={isLoading}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

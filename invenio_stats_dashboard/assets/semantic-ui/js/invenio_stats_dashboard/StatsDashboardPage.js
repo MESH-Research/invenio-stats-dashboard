@@ -17,11 +17,11 @@ import { formatDate, formatDateRange } from './utils/dates';
  * @param {Object} community - The community object if the dashboard is for a community
  * @param {string} variant - The variant (one of "content", "traffic")
  */
-const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, variant, ...otherProps }) => {
+const StatsDashboardPage = ({ dashboardConfig, stats: initialStats, community = undefined, variant, ...otherProps }) => {
   const layout = dashboardConfig.layout;
   const pageDateRangePhrase = layout?.tabs?.find(tab => tab.name === variant)?.date_range_phrase;
   const [displayDateRange, setDisplayDateRange] = useState(null);
-  const { dateRange, isLoading, error } = useStatsDashboard();
+  const { dateRange, isLoading, error, stats } = useStatsDashboard();
 
   useEffect(() => {
     if (dateRange) {
@@ -36,11 +36,17 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
       return null;
     }
 
+    // Pass loading state to components that support it
+    const componentProps = {
+      ...componentConfig.props,
+      isLoading: isLoading && !stats, // Only show loading when no cached data
+    };
+
     return (
       <Grid.Column computer={componentConfig.width} tablet={16} mobile={16} key={componentConfig.component}
         className={`${componentConfig.component.startsWith('SingleStat') ? 'centered' : ''}`}
       >
-        <Component {...componentConfig.props} />
+        <Component {...componentProps} />
       </Grid.Column>
     );
   };
@@ -52,39 +58,43 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
     return null;
   }
 
-  // Handle loading state
-  if (isLoading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
+  // Handle error state - show error message but still render components
+  const errorMessage = error ? (
+    <Grid.Row>
+      <Grid.Column width={16}>
+        <Message negative>
+          <Message.Header>{i18next.t("Error Loading Statistics")}</Message.Header>
+          <p>{i18next.t("There was an error loading the statistics. Please try again later.")}</p>
+          {process.env.NODE_ENV === 'development' && (
+            <p><strong>Debug:</strong> {error.message}</p>
+          )}
+        </Message>
+      </Grid.Column>
+    </Grid.Row>
+  ) : null;
+
+  // Handle no data state - show message when loading is complete but no stats are available
+  const noDataMessage = !isLoading && !error && !stats ? (
+    <Grid.Row>
+      <Grid.Column width={16}>
+        <Message info>
+          <Message.Header>{i18next.t("No Data Available")}</Message.Header>
+          <p>{i18next.t("No statistics data is available for the selected time period.")}</p>
+        </Message>
+      </Grid.Column>
+    </Grid.Row>
+  ) : null;
+
+  // Show loading state only when there's no cached data and we're loading
+  const loadingMessage = isLoading && !stats ? (
+    <Grid.Row>
+      <Grid.Column width={16}>
         <Loader active size="large">
           {i18next.t("Loading statistics...")}
         </Loader>
-      </div>
-    );
-  }
-
-  // Handle error state
-  if (error) {
-    return (
-      <Message negative>
-        <Message.Header>{i18next.t("Error Loading Statistics")}</Message.Header>
-        <p>{i18next.t("There was an error loading the statistics. Please try again later.")}</p>
-        {process.env.NODE_ENV === 'development' && (
-          <p><strong>Debug:</strong> {error.message}</p>
-        )}
-      </Message>
-    );
-  }
-
-  // Handle no data state
-  if (!stats) {
-    return (
-      <Message info>
-        <Message.Header>{i18next.t("No Data Available")}</Message.Header>
-        <p>{i18next.t("No statistics data is available for the selected time period.")}</p>
-      </Message>
-    );
-  }
+      </Grid.Column>
+    </Grid.Row>
+  ) : null;
 
   const defaultTitle = dashboardConfig?.dashboard_type === "global" ? i18next.t("Global Statistics Dashboard") : `${community.metadata.title} ${i18next.t("Statistics Dashboard")}`;
 
@@ -95,6 +105,9 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
           <Label className="stats-dashboard-date-range-label" pointing="below">{pageDateRangePhrase} {displayDateRange}</Label>
         </Grid.Column>
       </Grid.Row>
+      {errorMessage}
+      {loadingMessage}
+      {noDataMessage}
       {currentTab.rows.map((row, index) => (
         <Grid.Row key={row.name} className="stats-dashboard-row pb-0 pt-0">
           {row.components.map(componentConfig => renderComponent(componentConfig))}
@@ -106,44 +119,7 @@ const StatsDashboardPage = ({ dashboardConfig, stats, community = undefined, var
 
 StatsDashboardPage.propTypes = {
   dashboardConfig: PropTypes.object.isRequired,
-  stats: PropTypes.shape({
-    views: PropTypes.arrayOf(
-      PropTypes.shape({
-        date: PropTypes.string.isRequired,
-        value: PropTypes.number.isRequired,
-      })
-    ),
-    downloads: PropTypes.arrayOf(
-      PropTypes.shape({
-        date: PropTypes.string.isRequired,
-        value: PropTypes.number.isRequired,
-      })
-    ),
-    dataVolume: PropTypes.arrayOf(
-      PropTypes.shape({
-        date: PropTypes.string.isRequired,
-        value: PropTypes.number.isRequired,
-      })
-    ),
-    traffic: PropTypes.arrayOf(
-      PropTypes.shape({
-        date: PropTypes.string.isRequired,
-        value: PropTypes.number.isRequired,
-      })
-    ),
-    uploaders: PropTypes.arrayOf(
-      PropTypes.shape({
-        date: PropTypes.string.isRequired,
-        value: PropTypes.number.isRequired,
-      })
-    ),
-    recordCount: PropTypes.arrayOf(
-      PropTypes.shape({
-        date: PropTypes.string.isRequired,
-        value: PropTypes.number.isRequired,
-      })
-    ),
-  }).isRequired,
+  stats: PropTypes.object,
   community: PropTypes.object,
   variant: PropTypes.string.isRequired,
 };

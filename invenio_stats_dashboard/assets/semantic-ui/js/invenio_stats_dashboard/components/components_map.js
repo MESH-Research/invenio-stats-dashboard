@@ -37,7 +37,7 @@ import {
   // Multi Displays
   ResourceTypesMultiDisplay,
   SubjectsMultiDisplay,
-  AccessStatusMultiDisplay,
+  AccessStatusesMultiDisplay,
   RightsMultiDisplay,
   AffiliationsMultiDisplay,
   FundersMultiDisplay,
@@ -90,7 +90,7 @@ export const componentsMap = {
   // Multi Displays
   'ResourceTypesMultiDisplay': ResourceTypesMultiDisplay,
   'SubjectsMultiDisplay': SubjectsMultiDisplay,
-  'AccessStatusMultiDisplay': AccessStatusMultiDisplay,
+  'AccessStatusesMultiDisplay': AccessStatusesMultiDisplay,
   'RightsMultiDisplay': RightsMultiDisplay,
   'AffiliationsMultiDisplay': AffiliationsMultiDisplay,
   'FundersMultiDisplay': FundersMultiDisplay,

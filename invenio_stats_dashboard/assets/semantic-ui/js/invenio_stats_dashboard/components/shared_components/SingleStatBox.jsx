@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Statistic, Icon } from "semantic-ui-react";
+import { Statistic, Icon, Loader, Message } from "semantic-ui-react";
 import { PropTypes } from "prop-types";
 
-const SingleStatBox = ({ title, value, icon = undefined, description }) => {
+const SingleStatBox = ({ title, value, icon = undefined, description, isLoading = false, hasData = true }) => {
   const descriptionId = description ? `${title.toLowerCase().replace(/\s+/g, '-')}-description` : null;
   const valueRef = useRef(null);
 
@@ -29,6 +29,18 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
     return () => window.removeEventListener('resize', adjustFontSize);
   }, [value]);
 
+  // If no data and not loading, show a no-data message instead of the statistic
+  if (!isLoading && !hasData) {
+    return (
+      <div className="stats-single-stat-container centered rel-mb-2 rel-mt-2">
+        <Message info size="small">
+          <Message.Header>{i18next.t("No Data")}</Message.Header>
+          <p>{i18next.t("No data available")}</p>
+        </Message>
+      </div>
+    );
+  }
+
   return (
     <Statistic
       className="stats-single-stat-container centered rel-mb-2 rel-mt-2"
@@ -39,15 +51,19 @@ const SingleStatBox = ({ title, value, icon = undefined, description }) => {
       <Statistic.Value
         ref={valueRef}
         className="stats-single-stat-value"
-        aria-label={`${value} ${title}`}
+        aria-label={isLoading ? i18next.t("Loading...") : `${value} ${title}`}
       >
-        {value}
+        {isLoading ? (
+          <Loader active size="small" inline />
+        ) : (
+          value
+        )}
       </Statistic.Value>
       <Statistic.Label className="stats-single-stat-header mt-5">
         {icon && <Icon name={icon} aria-hidden="true" className="mr-10" />}
         {title}
       </Statistic.Label>
-      {description && (
+      {description && !isLoading && (
         <Statistic.Label
           id={descriptionId}
           className="stats-single-stat-description mt-5"
@@ -65,6 +81,8 @@ SingleStatBox.propTypes = {
   value: PropTypes.string.isRequired,
   icon: PropTypes.string,
   description: PropTypes.string,
+  isLoading: PropTypes.bool,
+  hasData: PropTypes.bool,
 };
 
 export { SingleStatBox };

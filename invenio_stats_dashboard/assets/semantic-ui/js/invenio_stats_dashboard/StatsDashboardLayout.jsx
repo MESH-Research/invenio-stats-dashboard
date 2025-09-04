@@ -20,9 +20,9 @@ import { DateRangeSelector } from "./components/controls/DateRangeSelector";
 import { GranularitySelector } from "./components/controls/GranularitySelector";
 import { ReportSelector } from "./components/controls/ReportSelector";
 import { StatsDashboardProvider } from "./context/StatsDashboardContext";
-import { statsApiClient } from "./api/api";
-import { transformApiData } from "./api/dataTransformer";
+import { fetchStats } from "./api/api";
 import { DASHBOARD_TYPES } from "./constants";
+import { UpdateStatusMessage } from "./components/shared_components/UpdateStatusMessage";
 import PropTypes from "prop-types";
 
 /**
@@ -40,8 +40,7 @@ const StatsDashboardLayout = ({
   containerClassNames,
   sidebarClassNames,
   bodyClassNames,
-  getStatsParams = null,
-  stats: initialStats = null
+  getStatsParams = null
 }) => {
   const availableTabs = dashboardConfig?.layout?.tabs?.map(tab => ({
     name: tab.name,
@@ -67,49 +66,38 @@ const StatsDashboardLayout = ({
   const [displaySeparately, setDisplaySeparately] = useState(null);
   const [stats, setStats] = useState(initialStats);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
   };
 
   useEffect(() => {
-    // If initialStats is provided, use it and don't fetch from API
-    if (initialStats) {
-      setStats(initialStats);
-      return;
-    }
-
     let isMounted = true;
 
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    const useTestData = dashboardConfig?.use_test_data !== false;
 
-        // Use custom getStatsParams if provided, otherwise use default behavior
-        const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType];
-        const rawStats = await statsApiClient.getStats(...params);
+    fetchStats({
+      communityId: community?.id,
+      dashboardType,
+      getStatsParams,
+      community,
+      isMounted: () => isMounted,
+      useTestData,
+      onStateChange: (state) => {
+        setStats(state.stats);
+        setIsLoading(state.isLoading);
+        setIsUpdating(state.isUpdating);
+        setError(state.error);
 
-        // Only update state if component is still mounted
-        if (isMounted) {
-          // Transform the raw API data using the dataTransformer
-          const transformedStats = transformApiData(rawStats);
-          setStats(transformedStats);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Error fetching stats:', err);
-          setError(err);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
+        // Only set lastUpdated if it's provided
+        if (state.lastUpdated !== undefined) {
+          setLastUpdated(state.lastUpdated);
         }
       }
-    };
-
-    fetchStats();
+    });
 
     // Cleanup function to prevent state updates on unmounted component
     return () => {
@@ -131,7 +119,9 @@ const StatsDashboardLayout = ({
     setGranularity,
     stats,
     isLoading,
+    isUpdating,
     error,
+    lastUpdated,
   };
 
   return (
@@ -193,6 +183,11 @@ const StatsDashboardLayout = ({
                 setGranularity={setGranularity}
               />
               <ReportSelector />
+              <UpdateStatusMessage
+                isUpdating={isUpdating}
+                lastUpdated={lastUpdated}
+                className="rel-mt-2"
+              />
             </Grid.Column>
             <Grid.Column
               computer={13}

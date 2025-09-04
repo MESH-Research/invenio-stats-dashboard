@@ -7,7 +7,7 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { extractUsageDeltaValue } from '../../utils/singleStatHelpers';
 
 const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", compactThreshold = 1_000_000 }) => {
-  const { stats, binary_sizes, dateRange } = useStatsDashboard();
+  const { stats, binary_sizes, dateRange, isLoading } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
@@ -29,6 +29,7 @@ const SingleStatTraffic = ({ title = i18next.t("Traffic"), icon = "chart line", 
       title={title}
       value={formatNumber(value, 'filesize', { binary: binary_sizes, compactThreshold })}
       icon={icon}
+      isLoading={isLoading}
       {...(description && { description })}
     />
   );

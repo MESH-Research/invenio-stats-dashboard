@@ -29,14 +29,10 @@ if (domContainer) {
       DashboardComponent = StatsDashboardLayout;
   }
 
-  // Determine whether to use test data or real API data
-  const useTestData = config.use_test_data !== false; // Default to true
-
   ReactDOM.render(
     <DashboardComponent
       {...(community && { community })}
       dashboardConfig={config}
-      {...(useTestData && { stats: testStatsData })}
     />,
     domContainer
   );

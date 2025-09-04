@@ -26,7 +26,7 @@ const MostDownloadedRecordsMultiDisplay = ({
   available_views = ["list", "pie", "bar"],
   ...otherProps
 }) => {
-  const { stats } = useStatsDashboard();
+  const { stats, isLoading } = useStatsDashboard();
 
   // Transform the data into the format expected by StatsMultiDisplay
   const transformedData = stats.mostDownloadedRecords?.slice(0, pageSize).map((record, index) => ({
@@ -177,6 +177,7 @@ const MostDownloadedRecordsMultiDisplay = ({
       chartOptions={getChartOptions()}
       defaultViewMode={default_view || available_views[0]}
       pageSize={pageSize}
+      isLoading={isLoading}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
