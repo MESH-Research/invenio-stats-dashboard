@@ -38,6 +38,23 @@ COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
 
 COMMUNITY_STATS_CATCHUP_INTERVAL = 365
 
+STATS_DASHBOARD_UI_SUBCOUNTS = {
+    "by_resource_types": {},
+    "by_subjects": {},
+    "by_languages": {},
+    "by_rights": {},
+    "by_funders": {},
+    "by_periodicals": {},
+    "by_publishers": {},
+    "by_affiliations": {
+        "combine": ["by_affiliations_creator", "by_affiliations_contributor"]
+    },
+    "by_countries": {},
+    "by_referrers": {},
+    "by_file_types": {},
+    "by_access_statuses": {},
+}
+
 # Distributed lock configuration for aggregation tasks
 STATS_DASHBOARD_LOCK_CONFIG = {
     "enabled": True,  # Enable/disable distributed locking
