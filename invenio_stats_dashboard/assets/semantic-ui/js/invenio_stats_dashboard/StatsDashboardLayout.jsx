@@ -64,7 +64,7 @@ const StatsDashboardLayout = ({
     dashboardConfig?.default_record_start_basis || "added"
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
-  const [stats, setStats] = useState(initialStats);
+  const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
