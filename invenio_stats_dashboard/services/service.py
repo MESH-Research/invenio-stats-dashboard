@@ -131,7 +131,9 @@ class CommunityStatsService:
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
 
-                communities_to_check = ["global"] + community_ids
+                communities_to_check = ["global"] + list(
+                    set(record_communities + community_ids)
+                )
                 events_needed_for_record = 0
 
                 for community_id in communities_to_check:
@@ -268,10 +270,9 @@ class CommunityStatsService:
                     f"{record_communities}"
                 )
 
-                communities_to_process = ["global"]
-                for community_id in community_ids:
-                    if community_id in record_communities:
-                        communities_to_process.append(community_id)
+                communities_to_process = ["global"] + list(
+                    set(record_communities + community_ids)
+                )
 
                 current_app.logger.info(
                     f"Processing communities for record {record_id}: "

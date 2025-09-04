@@ -1,15 +1,14 @@
 """Service for reindexing events with enriched metadata."""
 
+import random
 import time
 from functools import wraps
 from typing import Dict, List, Optional, Tuple
-import random
 
 import arrow
-
 import psutil
 from flask import Flask, current_app
-from glom import glom, Spec
+from glom import Spec, glom
 from invenio_search.proxies import current_search, current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy import Index, Q
@@ -20,18 +19,18 @@ from opensearchpy.helpers.search import Search
 from ..aggregations import CommunityBookmarkAPI
 from ..utils.decorators import time_operation
 from .types import (
-    HealthCheckResult,
-    ValidationResult,
-    SpotCheckResult,
-    MigrationResult,
-    ReindexingResults,
-    ReindexingProgress,
-    ProgressCounts,
-    OldMonthCounts,
-    MigratedMonthCounts,
     BatchProcessingResult,
-    MonthlyIndexBatchResult,
     EventTypeResults,
+    HealthCheckResult,
+    MigratedMonthCounts,
+    MigrationResult,
+    MonthlyIndexBatchResult,
+    OldMonthCounts,
+    ProgressCounts,
+    ReindexingProgress,
+    ReindexingResults,
+    SpotCheckResult,
+    ValidationResult,
 )
 
 
@@ -2092,8 +2091,11 @@ class EventReindexingService:
                     samples_per_batch = max(
                         1, self.max_spot_check_sample_size // total_batches
                     )
+                    # Ensure we don't try to sample more documents than are available
+                    # in this batch
+                    actual_samples = min(samples_per_batch, len(batch_document_ids))
                     results["all_sample_document_ids"] += random.sample(
-                        batch_document_ids, samples_per_batch
+                        batch_document_ids, actual_samples
                     )
                 else:
                     # Only treat as error if we're not at the end of the data
@@ -2661,7 +2663,9 @@ class EventReindexingService:
                                 )
 
                                 new_idx["remaining_count"] = bookmark_remaining
-                                new_idx["migrated_count"] = enriched_count
+                                new_idx["migrated_count"] = (
+                                    source_count - bookmark_remaining
+                                )
                             except Exception as e:
                                 current_app.logger.warning(
                                     f"Could not count remaining events for "
