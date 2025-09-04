@@ -268,7 +268,7 @@
         "file_types": {
           "type": "keyword"
         },
-        "update_timestamp": {
+        "updated_timestamp": {
           "type": "date"
         }
       }
