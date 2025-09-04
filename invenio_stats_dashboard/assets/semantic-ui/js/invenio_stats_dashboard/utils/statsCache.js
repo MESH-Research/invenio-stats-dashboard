@@ -167,3 +167,21 @@ export const formatCacheTimestamp = (timestamp) => {
   const date = new Date(timestamp);
   return date.toLocaleString();
 };
+
+/**
+ * Clear all cached stats data (useful for testing)
+ */
+export const clearAllCachedStats = () => {
+  try {
+    const keys = Object.keys(localStorage);
+    const statsKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+
+    statsKeys.forEach(key => {
+      localStorage.removeItem(key);
+    });
+
+    console.log(`Cleared ${statsKeys.length} cached stats entries`);
+  } catch (error) {
+    console.warn('Failed to clear cached stats data:', error);
+  }
+};

@@ -1,8 +1,8 @@
 import { http } from "react-invenio-forms";
 import { DASHBOARD_TYPES } from "../constants";
-import { getCachedStats, setCachedStats } from "../utils/statsCache";
+import { getCachedStats, setCachedStats, clearAllCachedStats } from "../utils/statsCache";
 import { transformApiData } from "./dataTransformer";
-import { testStatsData } from "../components/test_data";
+import { generateTestStatsData } from "../components/test_data";
 
 /**
  * API client for requesting stats to populate a stats dashboard.
@@ -118,7 +118,7 @@ const fetchFreshStatsWithCache = async ({
     if (useTestData) {
       // Use test data directly (already transformed)
       console.log('Using test data for stats generation');
-      transformedStats = testStatsData;
+      transformedStats = await generateTestStatsData();
     } else {
       // Fetch fresh data from API
       rawStats = await statsApiClient.getStats(...params);
@@ -193,9 +193,11 @@ const fetchStats = async ({
   try {
     // Check for cached data first
     const cachedStats = getCachedStatsData(fetchParams);
+    console.log('Cache check result:', !!cachedStats);
 
     if (cachedStats) {
-      // Notify about cached data
+      // State (c): done loading + cached + fetch in process
+      console.log('Found cached data, displaying immediately');
       if (onStateChange && (!isMounted || isMounted())) {
         onStateChange({
           type: 'cached_data_loaded',
@@ -206,7 +208,8 @@ const fetchStats = async ({
         });
       }
     } else {
-      // No cached data, notify about loading state
+      // State (a): loading + no cached + fetch in process
+      console.log('No cached data, starting loading state');
       if (onStateChange && (!isMounted || isMounted())) {
         onStateChange({
           type: 'loading_started',
@@ -224,16 +227,33 @@ const fetchStats = async ({
       useTestData
     });
 
-    // Notify about fresh data
-    if (onStateChange && (!isMounted || isMounted())) {
-      onStateChange({
-        type: 'fresh_data_loaded',
-        stats: result.freshStats,
-        isLoading: false,
-        isUpdating: false,
-        lastUpdated: result.lastUpdated,
-        error: result.error
-      });
+    // Determine final state based on result
+    if (result.freshStats) {
+      // State (d): done loading + live data + fetch finished
+      console.log('Fresh data loaded successfully');
+      if (onStateChange && (!isMounted || isMounted())) {
+        onStateChange({
+          type: 'fresh_data_loaded',
+          stats: result.freshStats,
+          isLoading: false,
+          isUpdating: false,
+          lastUpdated: result.lastUpdated,
+          error: null
+        });
+      }
+    } else {
+      // State (e): done loading + fetch finished + stats are still null
+      console.log('Fetch finished but no data available');
+      if (onStateChange && (!isMounted || isMounted())) {
+        onStateChange({
+          type: 'no_data_available',
+          stats: null,
+          isLoading: false,
+          isUpdating: false,
+          lastUpdated: result.lastUpdated,
+          error: result.error
+        });
+      }
     }
 
     return {

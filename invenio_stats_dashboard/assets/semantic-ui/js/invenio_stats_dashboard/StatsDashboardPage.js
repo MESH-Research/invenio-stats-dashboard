@@ -21,7 +21,7 @@ const StatsDashboardPage = ({ dashboardConfig, stats: initialStats, community = 
   const layout = dashboardConfig.layout;
   const pageDateRangePhrase = layout?.tabs?.find(tab => tab.name === variant)?.date_range_phrase;
   const [displayDateRange, setDisplayDateRange] = useState(null);
-  const { dateRange, isLoading, error, stats } = useStatsDashboard();
+  const { dateRange, isLoading, isUpdating, error, stats } = useStatsDashboard();
 
   useEffect(() => {
     if (dateRange) {
@@ -73,25 +73,34 @@ const StatsDashboardPage = ({ dashboardConfig, stats: initialStats, community = 
     </Grid.Row>
   ) : null;
 
-  // Handle no data state - show message when loading is complete but no stats are available
-  const noDataMessage = !isLoading && !error && !stats ? (
-    <Grid.Row>
+  // 5 expected possible states:
+  // (a) loading + no cached + fetch in process
+  // (b) loading + cached + fetch in process
+  // (c) done loading + cached + fetch in process
+  // (d) done loading + live data + fetch finished
+  // (e) done loading + fetch finished + stats are still null
+
+  console.log('StatsDashboardPage render - isLoading:', isLoading, 'isUpdating:', isUpdating, 'stats:', !!stats);
+
+  // State (a): loading + no cached + fetch in process
+  const loadingMessage = isLoading && !stats ? (
+    <Grid.Row className="rel-mt-2">
+      <Grid.Column width={16} className="text-center">
+        <Loader active size="large">
+          {i18next.t("Loading statistics...")}
+        </Loader>
+      </Grid.Column>
+    </Grid.Row>
+  ) : null;
+
+  // State (e): done loading + fetch finished + stats are still null
+  const noDataMessage = !isLoading && !isUpdating && !error && !stats ? (
+    <Grid.Row className="rel-mt-2">
       <Grid.Column width={16}>
         <Message info>
           <Message.Header>{i18next.t("No Data Available")}</Message.Header>
           <p>{i18next.t("No statistics data is available for the selected time period.")}</p>
         </Message>
-      </Grid.Column>
-    </Grid.Row>
-  ) : null;
-
-  // Show loading state only when there's no cached data and we're loading
-  const loadingMessage = isLoading && !stats ? (
-    <Grid.Row>
-      <Grid.Column width={16}>
-        <Loader active size="large">
-          {i18next.t("Loading statistics...")}
-        </Loader>
       </Grid.Column>
     </Grid.Row>
   ) : null;

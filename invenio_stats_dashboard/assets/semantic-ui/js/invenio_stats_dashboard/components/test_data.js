@@ -581,7 +581,7 @@ const sampleRecords = [
 ];
 
 // Create the test data structure that matches the dataTransformer output
-const testStatsData = {
+const generateTestStatsData = async () => ({
   // Record Delta Data
   recordDeltaDataCreated: (() => {
     const globalMetrics = createRecordMetrics(false);
@@ -752,6 +752,6 @@ const testStatsData = {
     percentage: Math.round((record.downloads / 918517) * 100), // Total of all downloads
     id: record.id,
   }))
-};
+});
 
-export { testStatsData, createDataPoint, createDataSeries, createGlobalSeries, sampleRecords };
+export { createDataPoint, createDataSeries, createGlobalSeries, sampleRecords, generateTestStatsData };

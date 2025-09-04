@@ -65,7 +65,7 @@ const StatsDashboardLayout = ({
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
   const [stats, setStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -79,31 +79,47 @@ const StatsDashboardLayout = ({
 
     const useTestData = dashboardConfig?.use_test_data !== false;
 
-    fetchStats({
-      communityId: community?.id,
-      dashboardType,
-      getStatsParams,
-      community,
-      isMounted: () => isMounted,
-      useTestData,
-      onStateChange: (state) => {
-        setStats(state.stats);
-        setIsLoading(state.isLoading);
-        setIsUpdating(state.isUpdating);
-        setError(state.error);
+    const loadStats = async () => {
+      try {
+        await fetchStats({
+          communityId: community?.id,
+          dashboardType,
+          getStatsParams,
+          community,
+          isMounted: () => isMounted,
+          useTestData,
+          onStateChange: (state) => {
+            if (isMounted) {
+              console.log('State change received:', state);
+              setStats(state.stats);
+              setIsLoading(state.isLoading);
+              setIsUpdating(state.isUpdating);
+              setError(state.error);
 
-        // Only set lastUpdated if it's provided
-        if (state.lastUpdated !== undefined) {
-          setLastUpdated(state.lastUpdated);
+              // Only set lastUpdated if it's provided
+              if (state.lastUpdated !== undefined) {
+                setLastUpdated(state.lastUpdated);
+              }
+            }
+          }
+        });
+      } catch (error) {
+        if (isMounted) {
+          console.error('Error in loadStats:', error);
+          setError(error);
+          setIsLoading(false);
+          setIsUpdating(false);
         }
       }
-    });
+    };
+
+    loadStats();
 
     // Cleanup function to prevent state updates on unmounted component
     return () => {
       isMounted = false;
     };
-  }, [selectedTab, dateRange, community, dashboardType, getStatsParams]);
+  }, [selectedTab, dateRange, community, dashboardType, getStatsParams, dashboardConfig?.use_test_data]);
 
   const contextValue = {
     binary_sizes,
