@@ -120,15 +120,13 @@ const StatsMap = ({
   return (
     <>
       <Header as="h3" attached="top">{title}</Header>
-      <Segment fluid attached="bottom" className="stats-map pb-0 pt-0 pr-0 pl-0">
+      <Segment fluid attached="bottom" className="stats-map pb-0 pt-0 pr-0 pl-0" style={{ height: height, minHeight: minHeight }}>
       {isLoading ? (
-          <div className="stats-map-loading-container" style={{ height: height, minHeight: minHeight }}>
-            <Loader active size="large">
-              {i18next.t("Loading map data...")}
-            </Loader>
+          <div className="stats-map-loading-container">
+            <Loader active size="large" />
           </div>
         ) : !hasData ? (
-          <div className="stats-map-no-data-container" style={{ height: height, minHeight: minHeight }}>
+          <div className="stats-map-no-data-container">
             <Message info>
               <Message.Header>{i18next.t("No Data Available")}</Message.Header>
               <p>{i18next.t("No geographic data is available for the selected time period.")}</p>
@@ -142,10 +140,8 @@ const StatsMap = ({
             className="stats-map"
           />
         ) : (
-          <div className="stats-map-loading-container" style={{ height: height, minHeight: minHeight }}>
-            <Loader active size="large">
-              {i18next.t("Loading map...")}
-            </Loader>
+          <div className="stats-map-loading-container">
+            <Loader active size="large" />
           </div>
         )}
       </Segment>

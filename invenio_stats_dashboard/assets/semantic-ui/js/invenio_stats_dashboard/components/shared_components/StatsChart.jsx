@@ -4,7 +4,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Button, Container, Header, Segment, Popup, Icon, Form, Checkbox, Loader, Message } from 'semantic-ui-react';
 import ReactECharts from "echarts-for-react";
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS, getSubcountKeyMapping } from '../../constants';
 import { formatNumber, filterSeriesArrayByDate } from '../../utils';
 import { formatDateRange, readableGranularDate } from '../../utils/dates';
 
@@ -302,18 +302,35 @@ const SEPARATE_CHART_CONFIG = {
 
 const FilterSelector = ({ data, displaySeparately, setDisplaySeparately, display_subcounts, global_subcounts }) => {
   // Get available breakdown options from data
+  console.log('data', data);
   const availableBreakdowns = data ? Object.keys(data).filter(k => k !== 'global') : [];
+  console.log('availableBreakdowns', availableBreakdowns);
 
-  // Determine which subcounts to display based on component-specific config or global config
   const allowedSubcounts = display_subcounts || global_subcounts || {};
+  console.log('allowedSubcounts', allowedSubcounts);
+  const allowedSubcountsArray = Array.isArray(allowedSubcounts) ? allowedSubcounts : Object.keys(allowedSubcounts);
+  const globalSubcountsArray = Object.keys(global_subcounts || {});
+  const subcountMapping = availableBreakdowns ? getSubcountKeyMapping(availableBreakdowns, globalSubcountsArray) : {};
+  console.log('subcountMapping', subcountMapping);
 
-  const breakdownOptions = availableBreakdowns.filter(key => {
+  const breakdownOptions = !availableBreakdowns ? [] : availableBreakdowns.filter(key => {
     // If no subcounts config is provided, show all available breakdowns
-    if (!allowedSubcounts || Object.keys(allowedSubcounts).length === 0) {
+    if (!allowedSubcountsArray || allowedSubcountsArray.length === 0) {
       return true;
     }
-    return allowedSubcounts.hasOwnProperty(key);
+
+    const backendKey = subcountMapping[key];
+    console.log('backendKey', backendKey);
+
+    return allowedSubcountsArray.includes(backendKey);
   });
+
+  console.log('breakdownOptions', breakdownOptions);
+
+  // Don't render filter if no data available
+  if (!data) {
+    return null;
+  }
 
   return (
     <Popup
@@ -778,15 +795,13 @@ const StatsChart = ({
               )}
             </div>
           )}
-          <div className="stats-chart-container" style={{ position: 'relative' }}>
+          <div className="stats-chart-container" style={{ height: height }}>
           {isLoading ? (
-              <div className="stats-chart-loading-container" style={{ height: height }}>
-                <Loader active size="large">
-                  {i18next.t("Loading chart data...")}
-                </Loader>
+              <div className="stats-chart-loading-container">
+                <Loader active size="large" />
               </div>
             ) : !hasData ? (
-              <div className="stats-chart-no-data-container" style={{ height: height }}>
+              <div className="stats-chart-no-data-container">
                 <Message info>
                   <Message.Header>{i18next.t("No Data Available")}</Message.Header>
                   <p>{i18next.t("No data is available for the selected time period.")}</p>
@@ -926,7 +941,7 @@ StatsChart.propTypes = {
     })
   ),
   chartType: PropTypes.oneOf(['bar', 'line']),
-  display_subcounts: PropTypes.object,
+  display_subcounts: PropTypes.array,
 };
 
 export { StatsChart };

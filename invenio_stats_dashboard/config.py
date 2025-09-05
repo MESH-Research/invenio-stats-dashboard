@@ -164,6 +164,12 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "height": 300,
                                     "title": "Cumulative Content Totals",
+                                    "display_subcounts": [
+                                        "by_resource_types",
+                                        "by_subjects",
+                                        "by_languages",
+                                        "by_rights",
+                                    ],
                                 },
                             },
                         ],

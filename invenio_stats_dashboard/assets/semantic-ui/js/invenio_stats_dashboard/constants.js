@@ -76,6 +76,45 @@ export const DATE_RANGE = {
   maxHistoryYears: 15,
 };
 
+// Cached subcount key mapping
+let _subcountKeyMapping = null;
+
+// Generate subcount key mapping from frontend to backend dynamically
+export const getSubcountKeyMapping = (frontendKeys, allowedSubcounts = {}) => {
+  if (_subcountKeyMapping && Object.keys(_subcountKeyMapping).length > 0) {
+    return _subcountKeyMapping;
+  }
+
+  const mapping = {};
+
+  console.log('allowedSubcounts:', allowedSubcounts);
+  console.log('frontendKeys:', frontendKeys);
+
+  allowedSubcounts.forEach(backendKey => {
+    // Remove "by_" prefix first, then convert snake_case to camelCase
+    let frontendKey = backendKey.replace(/^by_/, '').replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+    console.log(`Converting ${backendKey} -> ${frontendKey}`);
+
+    // Handle special case for byFilePresence
+    if (backendKey === 'by_file_presence') {
+      frontendKey = 'byFilePresence';
+    }
+
+    // Check if this frontend key exists in availableBreakdowns
+    if (frontendKeys.includes(frontendKey)) {
+      console.log(`MATCH: ${frontendKey} -> ${backendKey}`);
+      mapping[frontendKey] = backendKey;
+    } else {
+      console.log(`NO MATCH: ${frontendKey} not found in frontendKeys`);
+    }
+  });
+
+  console.log('Final mapping:', mapping);
+
+  _subcountKeyMapping = mapping;
+  return mapping;
+};
+
 // Export all constants as a single object
 export default {
   CHART_COLORS,

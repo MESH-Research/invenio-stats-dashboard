@@ -292,6 +292,87 @@ const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) 
   }
 };
 
+/**
+ * Format a timestamp as a concise relative date
+ * - Same day: "9:56 AM" (time only)
+ * - Same week: "Mon 9:56 AM" (day + time)
+ * - Same year: "Jan 5, 9:56 AM" (month + day + time)
+ * - Different year: "Jan 5, 2024, 9:56 AM" (full date + time)
+ * @param {number} timestamp - Timestamp in milliseconds
+ * @returns {string} Concise relative date string
+ */
+const formatRelativeTimestamp = (timestamp) => {
+  if (!timestamp) {
+    return 'Unknown';
+  }
+
+  const date = new Date(timestamp);
+  const now = new Date();
+
+  // Get UTC dates for comparison
+  const dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+
+  // Check if same day
+  const isSameDay = dateUTC.getUTCDate() === nowUTC.getUTCDate() &&
+                   dateUTC.getUTCMonth() === nowUTC.getUTCMonth() &&
+                   dateUTC.getUTCFullYear() === nowUTC.getUTCFullYear();
+
+  // Check if same week (Monday to Sunday)
+  const getWeekStart = (d) => {
+    const day = d.getUTCDay();
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(d.setUTCDate(diff));
+  };
+
+  const dateWeekStart = getWeekStart(new Date(dateUTC));
+  const nowWeekStart = getWeekStart(new Date(nowUTC));
+  const isSameWeek = dateWeekStart.getTime() === nowWeekStart.getTime();
+
+  // Check if same year
+  const isSameYear = dateUTC.getUTCFullYear() === nowUTC.getUTCFullYear();
+
+  if (isSameDay) {
+    // Same day: show time only
+    return new Intl.DateTimeFormat(i18next.language, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC'
+    }).format(date);
+  } else if (isSameWeek) {
+    // Same week: show day + time
+    return new Intl.DateTimeFormat(i18next.language, {
+      weekday: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC'
+    }).format(date);
+  } else if (isSameYear) {
+    // Same year: show month + day + time
+    return new Intl.DateTimeFormat(i18next.language, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC'
+    }).format(date);
+  } else {
+    // Different year: show full date + time
+    return new Intl.DateTimeFormat(i18next.language, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC'
+    }).format(date);
+  }
+};
+
 // Exports
 export {
   createUTCDate,
@@ -303,5 +384,6 @@ export {
   setDateParts,
   readableGranularDate,
   formatDate,
-  formatDateRange
+  formatDateRange,
+  formatRelativeTimestamp
 };

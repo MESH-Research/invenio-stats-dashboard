@@ -57,6 +57,7 @@ const StatsDashboardLayout = ({
   const maxHistoryYears = dashboardConfig?.max_history_years || 15;
   const binary_sizes = dashboardConfig?.display_binary_sizes || false;
   const [dateRange, setDateRange] = useState();
+  const [dataFetchRange, setDataFetchRange] = useState();
   const [granularity, setGranularity] = useState(
     dashboardConfig?.default_granularity || "day"
   );
@@ -75,6 +76,19 @@ const StatsDashboardLayout = ({
   };
 
   useEffect(() => {
+    console.log('StatsDashboardLayout useEffect triggered by:', {
+      dataFetchRange: dataFetchRange?.start?.toISOString?.() + ' to ' + dataFetchRange?.end?.toISOString?.(),
+      community: community?.id,
+      dashboardType,
+      getStatsParams: !!getStatsParams
+    });
+
+    // Don't fetch data if we don't have valid dates
+    if (!dataFetchRange?.start || !dataFetchRange?.end) {
+      console.log('Skipping data fetch - no valid dates');
+      return;
+    }
+
     let isMounted = true;
 
     const useTestData = dashboardConfig?.use_test_data !== false;
@@ -84,6 +98,8 @@ const StatsDashboardLayout = ({
         await fetchStats({
           communityId: community?.id,
           dashboardType,
+          startDate: dataFetchRange?.start,
+          endDate: dataFetchRange?.end,
           getStatsParams,
           community,
           isMounted: () => isMounted,
@@ -119,18 +135,20 @@ const StatsDashboardLayout = ({
     return () => {
       isMounted = false;
     };
-  }, [selectedTab, dateRange, community, dashboardType, getStatsParams, dashboardConfig?.use_test_data]);
+  }, [dataFetchRange, community, dashboardType, getStatsParams]);
 
   const contextValue = {
     binary_sizes,
     community,
     dateRange,
+    dataFetchRange,
     displaySeparately,
     granularity,
     maxHistoryYears,
     recordStartBasis,
     setRecordStartBasis,
     setDateRange,
+    setDataFetchRange,
     setDisplaySeparately,
     setGranularity,
     stats,
@@ -189,10 +207,12 @@ const StatsDashboardLayout = ({
               )}
               <DateRangeSelector
                 dateRange={dateRange}
+                dataFetchRange={dataFetchRange}
                 defaultRangeOptions={dashboardConfig?.default_range_options}
                 granularity={granularity}
                 maxHistoryYears={maxHistoryYears}
                 setDateRange={setDateRange}
+                setDataFetchRange={setDataFetchRange}
               />
               <GranularitySelector
                 defaultGranularity={dashboardConfig?.default_granularity}

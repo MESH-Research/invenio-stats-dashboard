@@ -17,6 +17,7 @@ theme = WebpackThemeBundle(
             dependencies={
                 "echarts": "^5.4.2",
                 "echarts-for-react": "^3.0.2",
+                "pako": "^2.1.0",
             },
             aliases={
                 "@js/invenio_stats_dashboard": "js/invenio_stats_dashboard",

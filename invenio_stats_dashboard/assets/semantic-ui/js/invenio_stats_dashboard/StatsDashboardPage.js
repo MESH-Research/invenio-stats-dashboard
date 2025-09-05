@@ -84,8 +84,8 @@ const StatsDashboardPage = ({ dashboardConfig, stats: initialStats, community = 
 
   // State (a): loading + no cached + fetch in process
   const loadingMessage = isLoading && !stats ? (
-    <Grid.Row className="rel-mt-2">
-      <Grid.Column width={16} className="text-center">
+    <Grid.Row className="rel-mt-3 rel-mb-2">
+      <Grid.Column width={16} className="text-center stats-dashboard-loading-message">
         <Loader active size="large">
           {i18next.t("Loading statistics...")}
         </Loader>

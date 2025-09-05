@@ -4,7 +4,6 @@ import { StatsDashboardPage } from "./StatsDashboardPage";
 import { StatsDashboardLayout } from "./StatsDashboardLayout";
 import { CommunityStatsDashboardLayout } from "./CommunityStatsDashboardLayout";
 import { GlobalStatsDashboardLayout } from "./GlobalStatsDashboardLayout";
-import { testStatsData } from "./components/test_data";
 
 // Initialize the dashboard if the container exists
 const domContainer = document.getElementById("stats-dashboard");
@@ -48,5 +47,4 @@ export {
   GlobalStatsDashboardLayout,
   StatsDashboardPage,
   StatsDashboardLayout,
-  testStatsData,
 };

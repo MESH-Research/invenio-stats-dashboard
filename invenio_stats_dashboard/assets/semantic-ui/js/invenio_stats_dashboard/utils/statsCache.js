@@ -6,32 +6,58 @@
  * it under the terms of the MIT License; see LICENSE file for more details.
  */
 
+import pako from 'pako';
+import { formatRelativeTimestamp } from './dates';
+
 /**
- * Utility for caching stats data in localStorage
+ * Utility for caching stats data in IndexedDB
  * Distinguishes between requests by community ID and request date
  */
 
-const CACHE_PREFIX = 'invenio_stats_dashboard_';
-const CACHE_VERSION = '1.0';
+const DB_NAME = 'invenio_stats_dashboard';
+const DB_VERSION = 1;
+const STORE_NAME = 'stats_cache';
 const CACHE_EXPIRY_DAYS = 7; // Cache expires after 7 days
 
 /**
- * Generate a cache key based on community ID and request parameters
- * @param {string} communityId - The community ID (or 'global')
+ * Get IndexedDB database connection
+ * @returns {Promise<IDBDatabase>} Database instance
+ */
+const getDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+        store.createIndex('communityId', 'communityId', { unique: false });
+      }
+    };
+  });
+};
+
+/**
+ * Generate cache key for stats data
+ * @param {string} communityId - Community ID
  * @param {string} dashboardType - The dashboard type
  * @param {string} startDate - Start date (optional)
  * @param {string} endDate - End date (optional)
  * @returns {string} Cache key
  */
 const generateCacheKey = (communityId, dashboardType, startDate = null, endDate = null) => {
-  const params = {
-    communityId: communityId || 'global',
-    dashboardType,
-    startDate: startDate || 'default',
-    endDate: endDate || 'default'
-  };
+  const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
+  const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
+  const endDateShort = endDate ? endDate.substring(0, 10) : 'default';
 
-  return `${CACHE_PREFIX}${CACHE_VERSION}_${JSON.stringify(params)}`;
+  const key = `isd_${communityIdShort}_${dashboardType}_${startDateShort}_${endDateShort}`;
+  console.log('generateCacheKey input:', { communityId, dashboardType, startDate, endDate });
+  console.log('generateCacheKey output:', key);
+  return key;
 };
 
 /**
@@ -44,63 +70,133 @@ const isCacheValid = (cachedData) => {
     return false;
   }
 
-  const cacheAge = Date.now() - cachedData.timestamp;
+  const now = Date.now();
+  const cacheAge = now - cachedData.timestamp;
   const maxAge = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000; // Convert days to milliseconds
 
   return cacheAge < maxAge;
 };
 
 /**
- * Store transformed stats data in localStorage
- * @param {string} communityId - The community ID (or 'global')
- * @param {string} dashboardType - The dashboard type
- * @param {Object} transformedData - The transformed data from dataTransformer
+ * Format cache timestamp for display
+ * @param {number} timestamp - Timestamp in milliseconds
+ * @returns {string} Formatted timestamp string
+ */
+export const formatCacheTimestamp = (timestamp) => {
+  if (!timestamp) {
+    return 'Unknown';
+  }
+
+  return formatRelativeTimestamp(timestamp);
+};
+
+/**
+ * Store stats data in cache
+ * @param {string} communityId - Community ID
+ * @param {string} dashboardType - Dashboard type
+ * @param {Object} transformedData - Transformed stats data
  * @param {string} startDate - Start date (optional)
  * @param {string} endDate - End date (optional)
  */
-export const setCachedStats = (communityId, dashboardType, transformedData, startDate = null, endDate = null) => {
+export const setCachedStats = async (communityId, dashboardType, transformedData, startDate = null, endDate = null) => {
   try {
     const cacheKey = generateCacheKey(communityId, dashboardType, startDate, endDate);
-    const cacheData = {
-      data: transformedData,
-      timestamp: Date.now(),
-      version: CACHE_VERSION
+    const timestamp = Date.now();
+
+    console.log('setCachedStats called with:', { communityId, dashboardType, startDate, endDate });
+    console.log('Generated cache key:', cacheKey);
+
+    // Compress the data
+    const jsonString = JSON.stringify(transformedData);
+    const compressedData = pako.gzip(jsonString);
+    const blob = new Blob([compressedData], { type: 'application/gzip' });
+
+    console.log(`Compression: ${jsonString.length} bytes -> ${compressedData.length} bytes (${(compressedData.length / jsonString.length * 100).toFixed(1)}%)`);
+
+    // Store in IndexedDB
+    const db = await getDB();
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+
+    const cacheRecord = {
+      key: cacheKey,
+      data: blob,
+      timestamp,
+      communityId,
+      dashboardType,
+      startDate,
+      endDate,
+      compressed: true,
+      originalSize: jsonString.length,
+      compressedSize: compressedData.length,
+      version: '1.0'
     };
 
-    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-    console.log(`Stats cached for key: ${cacheKey}`);
+    await new Promise((resolve, reject) => {
+      const request = store.put(cacheRecord);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+
+    console.log(`Successfully cached stats data: ${cacheKey}`);
   } catch (error) {
     console.warn('Failed to cache stats data:', error);
   }
 };
 
 /**
- * Retrieve cached stats data from localStorage
- * @param {string} communityId - The community ID (or 'global')
- * @param {string} dashboardType - The dashboard type
+ * Retrieve stats data from cache
+ * @param {string} communityId - Community ID
+ * @param {string} dashboardType - Dashboard type
  * @param {string} startDate - Start date (optional)
  * @param {string} endDate - End date (optional)
- * @returns {Object|null} Cached data if valid, null otherwise
+ * @returns {Object|null} Cached stats data or null if not found/expired
  */
-export const getCachedStats = (communityId, dashboardType, startDate = null, endDate = null) => {
+export const getCachedStats = async (communityId, dashboardType, startDate = null, endDate = null) => {
   try {
     const cacheKey = generateCacheKey(communityId, dashboardType, startDate, endDate);
-    const cachedString = localStorage.getItem(cacheKey);
 
-    if (!cachedString) {
+    console.log('getCachedStats called with:', { communityId, dashboardType, startDate, endDate });
+    console.log('Generated cache key:', cacheKey);
+
+    // Retrieve from IndexedDB
+    const db = await getDB();
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+
+    const record = await new Promise((resolve, reject) => {
+      const request = store.get(cacheKey);
+      request.onsuccess = () => {
+        console.log('IndexedDB get request successful, result:', request.result);
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        console.error('IndexedDB get request failed:', request.error);
+        reject(request.error);
+      };
+    });
+
+    if (!record) {
+      console.log('No cached data found for key:', cacheKey);
       return null;
     }
 
-    const cachedData = JSON.parse(cachedString);
+    console.log('Found cached record:', record);
 
-    if (!isCacheValid(cachedData)) {
-      // Remove expired cache
-      localStorage.removeItem(cacheKey);
+    // Check if cache is still valid
+    if (!isCacheValid(record)) {
+      console.log('Cached data expired, removing...');
+      await clearCachedStatsForKey(cacheKey);
       return null;
     }
 
-    console.log(`Stats retrieved from cache for key: ${cacheKey}`);
-    return cachedData.data;
+    // Decompress the data
+    const arrayBuffer = await record.data.arrayBuffer();
+    const compressedData = new Uint8Array(arrayBuffer);
+    const decompressedData = JSON.parse(pako.ungzip(compressedData, { to: 'string' }));
+
+    console.log(`Retrieved and decompressed cached data: ${cacheKey}`);
+    return decompressedData;
   } catch (error) {
     console.warn('Failed to retrieve cached stats data:', error);
     return null;
@@ -110,78 +206,46 @@ export const getCachedStats = (communityId, dashboardType, startDate = null, end
 /**
  * Clear all cached stats data
  */
-export const clearCachedStats = () => {
+export const clearAllCachedStats = async () => {
   try {
-    const keys = Object.keys(localStorage);
-    const statsKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+    console.log('clearAllCachedStats called');
 
-    statsKeys.forEach(key => {
-      localStorage.removeItem(key);
+    const db = await getDB();
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+
+    await new Promise((resolve, reject) => {
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
 
-    console.log(`Cleared ${statsKeys.length} cached stats entries`);
+    console.log('Successfully cleared all cached stats data');
   } catch (error) {
-    console.warn('Failed to clear cached stats data:', error);
+    console.warn('Failed to clear all cached stats data:', error);
   }
 };
 
 /**
- * Get cache info for debugging
- * @returns {Object} Cache information
+ * Clear cached stats for a specific key
+ * @param {string} baseCacheKey - Base cache key
  */
-export const getCacheInfo = () => {
+export const clearCachedStatsForKey = async (baseCacheKey) => {
   try {
-    const keys = Object.keys(localStorage);
-    const statsKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+    console.log('clearCachedStatsForKey called for:', baseCacheKey);
 
-    const cacheInfo = statsKeys.map(key => {
-      try {
-        const cachedString = localStorage.getItem(key);
-        const cachedData = JSON.parse(cachedString);
-        return {
-          key,
-          timestamp: cachedData.timestamp,
-          isValid: isCacheValid(cachedData),
-          age: Date.now() - cachedData.timestamp
-        };
-      } catch (error) {
-        return { key, error: error.message };
-      }
+    const db = await getDB();
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+
+    await new Promise((resolve, reject) => {
+      const request = store.delete(baseCacheKey);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
 
-    return {
-      totalEntries: statsKeys.length,
-      entries: cacheInfo
-    };
+    console.log(`Successfully cleared cached stats data for key: ${baseCacheKey}`);
   } catch (error) {
-    return { error: error.message };
-  }
-};
-
-/**
- * Format timestamp for display
- * @param {number} timestamp - Unix timestamp
- * @returns {string} Formatted date string
- */
-export const formatCacheTimestamp = (timestamp) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString();
-};
-
-/**
- * Clear all cached stats data (useful for testing)
- */
-export const clearAllCachedStats = () => {
-  try {
-    const keys = Object.keys(localStorage);
-    const statsKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
-
-    statsKeys.forEach(key => {
-      localStorage.removeItem(key);
-    });
-
-    console.log(`Cleared ${statsKeys.length} cached stats entries`);
-  } catch (error) {
-    console.warn('Failed to clear cached stats data:', error);
+    console.warn('Failed to clear cached stats data for key:', baseCacheKey, error);
   }
 };

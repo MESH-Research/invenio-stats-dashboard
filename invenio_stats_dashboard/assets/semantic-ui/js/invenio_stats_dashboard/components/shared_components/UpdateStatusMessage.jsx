@@ -27,8 +27,7 @@ const UpdateStatusMessage = ({
   }
 
   return (
-    <Message
-      size={size}
+    <div
       className={`stats-update-status ${className}`}
       data-testid="update-status-message"
     >
@@ -49,7 +48,7 @@ const UpdateStatusMessage = ({
           </span>
         </div>
       )}
-    </Message>
+    </div>
   );
 };
 

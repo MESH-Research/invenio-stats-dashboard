@@ -42,37 +42,41 @@ const SingleStatBox = ({ title, value, icon = undefined, description, isLoading 
   }
 
   return (
-    <Statistic
+    <div
       className="stats-single-stat-container centered rel-mb-2 rel-mt-2"
       role="region"
       aria-label={title}
       aria-describedby={descriptionId}
     >
-      <Statistic.Value
-        ref={valueRef}
-        className="stats-single-stat-value"
-        aria-label={isLoading ? i18next.t("Loading...") : `${value} ${title}`}
-      >
-        {isLoading ? (
-          <Loader active size="small" inline />
-        ) : (
-          value
-        )}
-      </Statistic.Value>
-      <Statistic.Label className="stats-single-stat-header mt-5">
-        {icon && <Icon name={icon} aria-hidden="true" className="mr-10" />}
-        {title}
-      </Statistic.Label>
-      {description && !isLoading && (
-        <Statistic.Label
-          id={descriptionId}
-          className="stats-single-stat-description mt-5"
-          aria-label={description}
-        >
-          {description}
-        </Statistic.Label>
+      {isLoading ? (
+        <div className="stats-single-stat-loading-container">
+          <Loader active size="large" />
+        </div>
+      ) : (
+        <Statistic>
+          <Statistic.Value
+            ref={valueRef}
+            className="stats-single-stat-value"
+            aria-label={`${value} ${title}`}
+          >
+            {value}
+          </Statistic.Value>
+          <Statistic.Label className="stats-single-stat-header mt-5">
+            {icon && <Icon name={icon} aria-hidden="true" className="mr-10" />}
+            {title}
+          </Statistic.Label>
+          {description && (
+            <Statistic.Label
+              id={descriptionId}
+              className="stats-single-stat-description mt-5"
+              aria-label={description}
+            >
+              {description}
+            </Statistic.Label>
+          )}
+        </Statistic>
       )}
-    </Statistic>
+    </div>
   );
 };
 

@@ -9,161 +9,83 @@
 import {
   setCachedStats,
   getCachedStats,
-  clearCachedStats,
-  getCacheInfo,
-  formatCacheTimestamp
+  clearAllCachedStats,
+  clearCachedStatsForKey
 } from './statsCache';
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  key: jest.fn(),
-  length: 0
-};
+// Mock console.log to test logging
+const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock
-});
-
-describe('statsCache', () => {
+describe('StatsCache', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    localStorageMock.getItem.mockReturnValue(null);
+    consoleSpy.mockClear();
+  });
+
+  afterAll(() => {
+    consoleSpy.mockRestore();
   });
 
   describe('setCachedStats', () => {
-    it('should store data in localStorage with correct key format', () => {
-      const mockData = { test: 'data' };
+    it('should log cache attempt with correct parameters', () => {
       const communityId = 'test-community';
       const dashboardType = 'community';
+      const transformedData = { test: 'data' };
+      const startDate = '2024-01-01';
+      const endDate = '2024-01-31';
 
-      setCachedStats(communityId, dashboardType, mockData);
+      setCachedStats(communityId, dashboardType, transformedData, startDate, endDate);
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        expect.stringContaining('invenio_stats_dashboard_1.0_'),
-        expect.stringContaining('"data":{"test":"data"}')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('setCachedStats called - IndexedDB implementation pending');
+      expect(consoleSpy).toHaveBeenCalledWith('Would cache:', {
+        communityId,
+        dashboardType,
+        startDate,
+        endDate
+      });
     });
 
-    it('should handle global dashboard type', () => {
-      const mockData = { test: 'data' };
-      const dashboardType = 'global';
+    it('should handle null dates', () => {
+      setCachedStats('test-community', 'community', { test: 'data' }, null, null);
 
-      setCachedStats(null, dashboardType, mockData);
-
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        expect.stringContaining('"communityId":"global"'),
-        expect.any(String)
-      );
-    });
-
-    it('should include date parameters in cache key', () => {
-      const mockData = { test: 'data' };
-      const communityId = 'test-community';
-      const dashboardType = 'community';
-      const startDate = '2023-01-01';
-      const endDate = '2023-12-31';
-
-      setCachedStats(communityId, dashboardType, mockData, startDate, endDate);
-
-      const setItemCall = localStorageMock.setItem.mock.calls[0];
-      const cacheKey = setItemCall[0];
-      const cacheData = JSON.parse(setItemCall[1]);
-
-      expect(cacheKey).toContain('"startDate":"2023-01-01"');
-      expect(cacheKey).toContain('"endDate":"2023-12-31"');
-      expect(cacheData.timestamp).toBeDefined();
-      expect(cacheData.version).toBe('1.0');
+      expect(consoleSpy).toHaveBeenCalledWith('Would cache:', {
+        communityId: 'test-community',
+        dashboardType: 'community',
+        startDate: null,
+        endDate: null
+      });
     });
   });
 
   describe('getCachedStats', () => {
-    it('should return cached data when valid', () => {
-      const mockData = { test: 'data' };
-      const cacheData = {
-        data: mockData,
-        timestamp: Date.now(),
-        version: '1.0'
-      };
+    it('should log retrieval attempt and return null', () => {
+      const result = getCachedStats('test-community', 'community', '2024-01-01', '2024-01-31');
 
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(cacheData));
-
-      const result = getCachedStats('test-community', 'community');
-
-      expect(result).toEqual(mockData);
-    });
-
-    it('should return null when no cached data exists', () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = getCachedStats('test-community', 'community');
-
+      expect(consoleSpy).toHaveBeenCalledWith('getCachedStats called - IndexedDB implementation pending');
+      expect(consoleSpy).toHaveBeenCalledWith('Would retrieve:', {
+        communityId: 'test-community',
+        dashboardType: 'community',
+        startDate: '2024-01-01',
+        endDate: '2024-01-31'
+      });
       expect(result).toBeNull();
     });
+  });
 
-    it('should return null and remove expired cache', () => {
-      const expiredCacheData = {
-        data: { test: 'data' },
-        timestamp: Date.now() - (8 * 24 * 60 * 60 * 1000), // 8 days ago
-        version: '1.0'
-      };
+  describe('clearAllCachedStats', () => {
+    it('should log clear all attempt', () => {
+      clearAllCachedStats();
 
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(expiredCacheData));
-
-      const result = getCachedStats('test-community', 'community');
-
-      expect(result).toBeNull();
-      expect(localStorageMock.removeItem).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith('clearAllCachedStats called - IndexedDB implementation pending');
     });
   });
 
-  describe('clearCachedStats', () => {
-    it('should remove all stats cache entries', () => {
-      // Mock localStorage keys
-      Object.defineProperty(localStorageMock, 'length', { value: 3 });
-      localStorageMock.key
-        .mockReturnValueOnce('invenio_stats_dashboard_1.0_test1')
-        .mockReturnValueOnce('other_key')
-        .mockReturnValueOnce('invenio_stats_dashboard_1.0_test2');
+  describe('clearCachedStatsForKey', () => {
+    it('should log clear specific key attempt', () => {
+      const baseCacheKey = 'test-key';
+      clearCachedStatsForKey(baseCacheKey);
 
-      clearCachedStats();
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('invenio_stats_dashboard_1.0_test1');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('invenio_stats_dashboard_1.0_test2');
-      expect(localStorageMock.removeItem).not.toHaveBeenCalledWith('other_key');
-    });
-  });
-
-  describe('formatCacheTimestamp', () => {
-    it('should format timestamp correctly', () => {
-      const timestamp = 1640995200000; // 2022-01-01 00:00:00 UTC
-      const result = formatCacheTimestamp(timestamp);
-
-      expect(result).toMatch(/2022/);
-      expect(result).toMatch(/Jan/);
-    });
-  });
-
-  describe('getCacheInfo', () => {
-    it('should return cache information', () => {
-      Object.defineProperty(localStorageMock, 'length', { value: 1 });
-      localStorageMock.key.mockReturnValue('invenio_stats_dashboard_1.0_test');
-
-      const cacheData = {
-        data: { test: 'data' },
-        timestamp: Date.now(),
-        version: '1.0'
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(cacheData));
-
-      const result = getCacheInfo();
-
-      expect(result.totalEntries).toBe(1);
-      expect(result.entries).toHaveLength(1);
-      expect(result.entries[0].isValid).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith('clearCachedStatsForKey called - IndexedDB implementation pending');
+      expect(consoleSpy).toHaveBeenCalledWith('Would clear key:', baseCacheKey);
     });
   });
 });

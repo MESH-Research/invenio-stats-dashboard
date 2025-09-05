@@ -52,14 +52,14 @@ const statsApiClient = {
  * @param {Object} params - Parameters for getting cached stats
  * @param {string} params.communityId - The community ID (or 'global')
  * @param {string} params.dashboardType - The dashboard type
- * @param {string} [params.startDate] - Start date (optional)
- * @param {string} [params.endDate] - End date (optional)
+ * @param {Date} [params.startDate] - Start date (optional)
+ * @param {Date} [params.endDate] - End date (optional)
  * @param {Function} [params.getStatsParams] - Custom function to get stats parameters
  * @param {Object} [params.community] - Community object (for custom params)
  *
- * @returns {Object|null} Cached stats data if available, null otherwise
+ * @returns {Promise<Object|null>} Cached stats data if available, null otherwise
  */
-const getCachedStatsData = ({
+const getCachedStatsData = async ({
   communityId,
   dashboardType,
   startDate = null,
@@ -75,7 +75,7 @@ const getCachedStatsData = ({
   const [dashboardTypeParam, paramStartDate, paramEndDate] = params;
 
   // Try to get cached data
-  return getCachedStats(cacheCommunityId, dashboardTypeParam, paramStartDate, paramEndDate);
+  return await getCachedStats(cacheCommunityId, dashboardTypeParam, paramStartDate, paramEndDate);
 };
 
 /**
@@ -84,8 +84,8 @@ const getCachedStatsData = ({
  * @param {Object} params - Parameters for fetching stats
  * @param {string} params.communityId - The community ID (or 'global')
  * @param {string} params.dashboardType - The dashboard type
- * @param {string} [params.startDate] - Start date (optional)
- * @param {string} [params.endDate] - End date (optional)
+ * @param {Date} [params.startDate] - Start date (optional)
+ * @param {Date} [params.endDate] - End date (optional)
  * @param {Function} [params.getStatsParams] - Custom function to get stats parameters
  * @param {Object} [params.community] - Community object (for custom params)
  * @param {boolean} [params.useTestData] - Whether to use test data instead of API
@@ -105,29 +105,40 @@ const fetchFreshStatsWithCache = async ({
   useTestData = false
 }) => {
   try {
-    // Get community ID for caching
     const cacheCommunityId = communityId || community?.id || 'global';
-
-    // Use custom getStatsParams if provided, otherwise use default behavior
-    const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType, startDate, endDate];
-    const [dashboardTypeParam, paramStartDate, paramEndDate] = params;
-
-        let rawStats;
+    let rawStats;
     let transformedStats;
 
     if (useTestData) {
-      // Use test data directly (already transformed)
-      console.log('Using test data for stats generation');
-      transformedStats = await generateTestStatsData();
+      transformedStats = await generateTestStatsData(startDate, endDate);
     } else {
-      // Fetch fresh data from API
-      rawStats = await statsApiClient.getStats(...params);
-      // Transform the raw data using the dataTransformer
+      rawStats = await statsApiClient.getStats(communityId, dashboardType, startDate, endDate);
       transformedStats = transformApiData(rawStats);
     }
 
-    // Cache the transformed data
-    setCachedStats(cacheCommunityId, dashboardTypeParam, transformedStats, paramStartDate, paramEndDate);
+    console.log('Fresh data fetched and transformed:', {
+      communityId: cacheCommunityId,
+      dashboardType: dashboardType,
+      startDate: startDate?.toISOString?.() || startDate,
+      endDate: endDate?.toISOString?.() || endDate,
+      dataSize: JSON.stringify(transformedStats).length,
+      dataKeys: Object.keys(transformedStats || {})
+    });
+
+    // Only cache if we have valid dates (not for test data with null dates)
+    if (startDate && endDate) {
+      console.log('Caching fresh data...');
+      await setCachedStats(
+        cacheCommunityId,
+        dashboardType,
+        transformedStats,
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
+      console.log('Fresh data cached successfully');
+    } else {
+      console.log('Skipping cache - no valid dates provided');
+    }
 
     return {
       freshStats: transformedStats,
@@ -156,8 +167,8 @@ const fetchFreshStatsWithCache = async ({
  * @param {Object} params - Parameters for fetching stats
  * @param {string} params.communityId - The community ID (or 'global')
  * @param {string} params.dashboardType - The dashboard type
- * @param {string} [params.startDate] - Start date (optional)
- * @param {string} [params.endDate] - End date (optional)
+ * @param {Date} [params.startDate] - Start date (optional)
+ * @param {Date} [params.endDate] - End date (optional)
  * @param {Function} [params.getStatsParams] - Custom function to get stats parameters
  * @param {Object} [params.community] - Community object (for custom params)
  * @param {Function} [params.onStateChange] - Callback for state changes
@@ -192,7 +203,7 @@ const fetchStats = async ({
 
   try {
     // Check for cached data first
-    const cachedStats = getCachedStatsData(fetchParams);
+    const cachedStats = await getCachedStatsData(fetchParams);
     console.log('Cache check result:', !!cachedStats);
 
     if (cachedStats) {
@@ -226,6 +237,8 @@ const fetchStats = async ({
       ...fetchParams,
       useTestData
     });
+
+    // Caching is now handled in fetchFreshStatsWithCache
 
     // Determine final state based on result
     if (result.freshStats) {

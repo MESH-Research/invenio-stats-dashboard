@@ -53,6 +53,7 @@ const ContentStatsChart = ({ title = undefined, height = 300, chartType = "line"
   const data = seriesCategoryMap[recordStartBasis];
   const options = seriesSelectorOptions[recordStartBasis];
 
+
   return (
     <StatsChart
       title={title}

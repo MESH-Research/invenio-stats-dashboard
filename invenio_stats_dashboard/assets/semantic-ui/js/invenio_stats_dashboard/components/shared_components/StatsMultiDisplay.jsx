@@ -102,12 +102,10 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
           {title}
         </Header>
       )}
-            <Segment attached>
+            <Segment attached className="stats-multi-display-segment">
       {isLoading ? (
           <div className="stats-loading-container">
-            <Loader active size="large">
-              {i18next.t("Loading data...")}
-            </Loader>
+            <Loader active size="large" />
           </div>
         ) : !hasData ? (
           <div className="stats-no-data-container">

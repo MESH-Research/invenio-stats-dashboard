@@ -293,10 +293,12 @@ const periodOptions = {
 
 const DateRangeSelector = ({
   dateRange,
+  dataFetchRange,
   defaultRangeOptions,
   granularity,
   maxHistoryYears = 15,
   setDateRange,
+  setDataFetchRange,
 }) => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -310,6 +312,7 @@ const DateRangeSelector = ({
       const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
       const initialDateRange = getDateRange(todayDate, defaultPeriod, maxHistoryYears);
       setDateRange(initialDateRange);
+      setDataFetchRange(initialDateRange); // Also set initial data fetch range
       setCurrentSelectedOption(defaultPeriod);
     }
   }, []);
@@ -325,6 +328,14 @@ const DateRangeSelector = ({
     setCurrentSelectedOption(value);
     const newDateRange = getDateRange(todayDate, value, maxHistoryYears);
     setDateRange(newDateRange);
+
+    // Only update dataFetchRange if the new range extends beyond current dataFetchRange
+    if (!dataFetchRange ||
+        newDateRange.start < dataFetchRange.start ||
+        newDateRange.end > dataFetchRange.end) {
+      setDataFetchRange(newDateRange);
+    }
+
     setIsOpen(false);
   };
 
