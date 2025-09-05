@@ -1672,10 +1672,16 @@ class EventReindexingService:
 
             # Calculate community_ids based on event timestamp
             event_timestamp = event.get("timestamp")
+            # Get the start of the event day to include communities added on same day
+            event_date = arrow.get(event_timestamp)
+            start_of_event_day = event_date.floor("day").format(
+                "YYYY-MM-DDTHH:mm:ss.SSS"
+            )
+
             effective_communities = [
                 c
                 for c, effective_date in communities_by_recid.get(record_id, [])
-                if effective_date <= event_timestamp
+                if effective_date <= start_of_event_day
             ]
             enrichment_data["community_ids"] = effective_communities
 
