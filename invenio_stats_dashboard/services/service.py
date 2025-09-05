@@ -131,9 +131,9 @@ class CommunityStatsService:
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
 
-                communities_to_check = ["global"] + list(
-                    set(record_communities + community_ids)
-                )
+                # Always check global community, plus communities the record
+                # actually belongs to
+                communities_to_check = ["global"] + record_communities
                 events_needed_for_record = 0
 
                 for community_id in communities_to_check:
@@ -254,7 +254,6 @@ class CommunityStatsService:
         for result in record_search.scan():
             record_id = result["id"]
             record_data = result.to_dict()
-            current_app.logger.info(f"Generating events for record: {record_id}")
 
             try:
                 record_created_date = record_data.get("created")
@@ -265,14 +264,16 @@ class CommunityStatsService:
                 record_communities = (
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
+
+                current_app.logger.info(f"Generating events for record: {record_id}")
                 current_app.logger.info(
                     f"Record {record_id} belongs to communities: "
                     f"{record_communities}"
                 )
 
-                communities_to_process = ["global"] + list(
-                    set(record_communities + community_ids)
-                )
+                # Always process global community, plus communities the record
+                # actually belongs to
+                communities_to_process = ["global"] + record_communities
 
                 current_app.logger.info(
                     f"Processing communities for record {record_id}: "
