@@ -908,7 +908,7 @@ class CommunityRecordDeltaQuery:
                             f"Creating aggregation '{agg_name}' for field '{field}'"
                         )
                         sub_aggs[agg_name] = {
-                            "terms": {"field": field},
+                            "terms": {"field": field, "size": 1000},
                             "aggs": {
                                 "with_files": {
                                     "filter": {"term": {"files.enabled": True}},
@@ -957,7 +957,7 @@ class CommunityRecordDeltaQuery:
                 else:
                     # Standard single field aggregation
                     sub_aggs[subcount_key] = {
-                        "terms": {"field": records_config["field"]},
+                        "terms": {"field": records_config["field"], "size": 1000},
                         "aggs": {
                             "with_files": {
                                 "filter": {"term": {"files.enabled": True}},
