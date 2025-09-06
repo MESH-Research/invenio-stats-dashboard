@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 import click
 import psutil
+from flask import current_app
 
 
 class ProcessManager:
@@ -70,8 +71,13 @@ class ProcessManager:
         pid = process.pid
 
         # Write PID file
-        with open(self.pid_file, "w") as f:
-            f.write(str(pid))
+        try:
+            with open(self.pid_file, "w") as f:
+                f.write(str(pid))
+        except Exception as e:
+            current_app.logger.error(f"Failed to create PID file {self.pid_file}: {e}")
+            click.echo(f"Warning: Failed to create PID file: {e}")
+            # Don't fail the entire operation, but warn the user
 
         # Write initial status
         self.update_status(
@@ -85,16 +91,16 @@ class ProcessManager:
             }
         )
 
-        click.echo(f"✅ Started {self.process_name} in background (PID: {pid})")
-        click.echo(f"📁 PID file: {self.pid_file}")
-        click.echo(f"📝 Log file: {self.log_file}")
-        click.echo(f"📊 Status file: {self.status_file}")
+        click.echo(f"Started {self.process_name} in background (PID: {pid})")
+        click.echo(f"PID file: {self.pid_file}")
+        click.echo(f"Log file: {self.log_file}")
+        click.echo(f"Status file: {self.status_file}")
         click.echo(
-            f"💡 Use 'invenio community-stats process-status {self.process_name}' "
+            f"Use 'invenio community-stats process-status {self.process_name}' "
             "to monitor progress"
         )
         click.echo(
-            f"🛑 Use 'invenio community-stats cancel-process {self.process_name}' "
+            f"Use 'invenio community-stats cancel-process {self.process_name}' "
             "to stop the process"
         )
 
