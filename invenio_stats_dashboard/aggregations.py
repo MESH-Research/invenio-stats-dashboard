@@ -5,8 +5,6 @@ import time
 from collections.abc import Generator
 from functools import wraps
 from pprint import pformat
-
-
 from typing import Any, Callable
 
 import arrow
@@ -286,9 +284,7 @@ class CommunityAggregatorBase(StatAggregator):
         latest_date = None
 
         if isinstance(self.first_event_index, str):
-            # Single index case
 
-            # Check if the required index exists
             if not self.client.indices.exists(index=self.first_event_index):
                 raise ValueError(
                     f"Required index {self.first_event_index} does not exist. "
@@ -297,7 +293,6 @@ class CommunityAggregatorBase(StatAggregator):
 
             earliest_date, latest_date = self._first_event_date_query(community_id)
         elif isinstance(self.record_index, list):
-            # Multiple indices case (e.g., for usage aggregators)
             for _, index in self.record_index:
                 early_date, late_date = self._first_event_date_query(community_id)
                 if not earliest_date or early_date < earliest_date:
@@ -353,7 +348,6 @@ class CommunityAggregatorBase(StatAggregator):
                         f"after {max_retries} attempts: {e}"
                     ) from e
 
-                # Exponential backoff
                 delay = base_delay * (2**attempt)
                 time.sleep(delay)
 
@@ -383,7 +377,6 @@ class CommunityAggregatorBase(StatAggregator):
 
         indexing_end_date = min(upper_limit, last_index_event_date.ceil("day"))
 
-        # Try to use bookmark first, fall back to query if not available
         indexing_start_date = None
 
         bookmark_date = event_bookmark_api.get_bookmark(community_id)
@@ -501,12 +494,11 @@ class CommunityAggregatorBase(StatAggregator):
             # Ensure we don't aggregate more than self.catchup_interval days
             upper_limit = self._get_end_date(lower_limit, end_date)
 
-            # Check that community add/remove events have been indexed for the desired
-            # period and if not, index them first. Do this even if we're ignoring the
-            # bookmark since otherwise we don't have accurate data in the aggregations.
             first_event_date_safe = first_event_date or arrow.utcnow()
             last_event_date_safe = last_event_date or arrow.utcnow()
 
+            # Check that community add/remove events have been indexed for the desired
+            # period and if not, index them first.
             try:
                 upper_limit = self._index_missing_community_events_with_retry(
                     community_id,
@@ -522,7 +514,6 @@ class CommunityAggregatorBase(StatAggregator):
                     f"aggregations without the community events: {e}"
                 )
                 continue
-            # FIXME: We need to periodically check for gaps in the community events
 
             # upper_limit could legitimately be < lower_limit if we spent this iteration
             # indexing prior community add/remove events. If so, skip this community
@@ -830,22 +821,21 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
         ]
 
         for config in top_configs:
-            category_name = config["delta_aggregation_name"]
+            # Use the mapped field name since delta documents have been processed
+            # by _map_delta_to_snapshot_subcounts
+            subcount_base = config["delta_aggregation_name"][3:]
+            top_subcount_name = f"top_{subcount_base}"
+            category_name = top_subcount_name
 
             if category_name not in exhaustive_counts_cache:
-                # First time: build exhaustive cache from all delta documents
                 exhaustive_counts_cache[category_name] = self._build_exhaustive_cache(
                     deltas, category_name
                 )
             else:
-                # Update existing cache with only the latest delta document
                 self._update_exhaustive_cache(
                     category_name, latest_delta, exhaustive_counts_cache
                 )
 
-            # Select top N from cached exhaustive list
-            subcount_base = config["delta_aggregation_name"][3:]
-            top_subcount_name = f"top_{subcount_base}"
             new_dict["subcounts"][top_subcount_name] = self._select_top_n_from_cache(
                 exhaustive_counts_cache[category_name]
             )
@@ -975,88 +965,71 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             Updated subcounts with latest delta added
         """
-        # Convert previous subcounts to dict for easy lookup
+
+        def calculate_net_value(delta_item, category, field):
+            """Calculate net value (added - removed) for a field."""
+            return (
+                delta_item[category]["added"][field]
+                - delta_item[category]["removed"][field]
+            )
+
+        def update_or_create_item(item_id, delta_item, previous_dict):
+            """Update existing item or create new one with net values."""
+            if item_id in previous_dict:
+                prev_item = previous_dict[item_id]
+                for category in ["records", "parents", "files"]:
+                    if category == "files":
+                        for field in ["file_count", "data_volume"]:
+                            prev_item[category][field] += calculate_net_value(
+                                delta_item, category, field
+                            )
+                    else:
+                        for field in ["metadata_only", "with_files"]:
+                            prev_item[category][field] += calculate_net_value(
+                                delta_item, category, field
+                            )
+            else:
+                previous_dict[item_id] = {
+                    "id": item_id,
+                    "label": delta_item.get("label", ""),
+                    "records": {
+                        "metadata_only": calculate_net_value(
+                            delta_item, "records", "metadata_only"
+                        ),
+                        "with_files": calculate_net_value(
+                            delta_item, "records", "with_files"
+                        ),
+                    },
+                    "parents": {
+                        "metadata_only": calculate_net_value(
+                            delta_item, "parents", "metadata_only"
+                        ),
+                        "with_files": calculate_net_value(
+                            delta_item, "parents", "with_files"
+                        ),
+                    },
+                    "files": {
+                        "file_count": calculate_net_value(
+                            delta_item, "files", "file_count"
+                        ),
+                        "data_volume": calculate_net_value(
+                            delta_item, "files", "data_volume"
+                        ),
+                    },
+                }
+
         previous_dict = {}
         for item in previous_subcounts:
             previous_dict[item["id"]] = item.copy()
 
-        # Process latest delta
         if "subcounts" in latest_delta and category_name in latest_delta["subcounts"]:
             for delta_item in latest_delta["subcounts"][category_name]:
-                item_id = delta_item["id"]
+                update_or_create_item(delta_item["id"], delta_item, previous_dict)
 
-                if item_id in previous_dict:
-                    # Update existing item
-                    prev_item = previous_dict[item_id]
-                    prev_item["records"]["metadata_only"] += (
-                        delta_item["records"]["added"]["metadata_only"]
-                        - delta_item["records"]["removed"]["metadata_only"]
-                    )
-                    prev_item["records"]["with_files"] += (
-                        delta_item["records"]["added"]["with_files"]
-                        - delta_item["records"]["removed"]["with_files"]
-                    )
-                    prev_item["parents"]["metadata_only"] += (
-                        delta_item["parents"]["added"]["metadata_only"]
-                        - delta_item["parents"]["removed"]["metadata_only"]
-                    )
-                    prev_item["parents"]["with_files"] += (
-                        delta_item["parents"]["added"]["with_files"]
-                        - delta_item["parents"]["removed"]["with_files"]
-                    )
-                    prev_item["files"]["file_count"] += (
-                        delta_item["files"]["added"]["file_count"]
-                        - delta_item["files"]["removed"]["file_count"]
-                    )
-                    prev_item["files"]["data_volume"] += (
-                        delta_item["files"]["added"]["data_volume"]
-                        - delta_item["files"]["removed"]["data_volume"]
-                    )
-                else:
-                    # Add new item
-                    new_item = {
-                        "id": item_id,
-                        "label": delta_item.get("label", ""),
-                        "records": {
-                            "metadata_only": (
-                                delta_item["records"]["added"]["metadata_only"]
-                                - delta_item["records"]["removed"]["metadata_only"]
-                            ),
-                            "with_files": (
-                                delta_item["records"]["added"]["with_files"]
-                                - delta_item["records"]["removed"]["with_files"]
-                            ),
-                        },
-                        "parents": {
-                            "metadata_only": (
-                                delta_item["parents"]["added"]["metadata_only"]
-                                - delta_item["parents"]["removed"]["metadata_only"]
-                            ),
-                            "with_files": (
-                                delta_item["parents"]["added"]["with_files"]
-                                - delta_item["parents"]["removed"]["with_files"]
-                            ),
-                        },
-                        "files": {
-                            "file_count": (
-                                delta_item["files"]["added"]["file_count"]
-                                - delta_item["files"]["removed"]["file_count"]
-                            ),
-                            "data_volume": (
-                                delta_item["files"]["added"]["data_volume"]
-                                - delta_item["files"]["removed"]["data_volume"]
-                            ),
-                        },
-                    }
-                    previous_dict[item_id] = new_item
-
-        # Convert back to list
         return list(previous_dict.values())
 
     def _update_cumulative_totals(self, new_dict: dict, delta_doc: dict) -> dict:
         """Update cumulative totals with values from a daily delta document."""
-
-        # Add top-level stats
         new_dict["total_records"]["metadata_only"] = max(
             0,
             (
@@ -1122,17 +1095,17 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                 snap_subcount_base = config["delta_aggregation_name"][3:]
                 snap_subcount_name = f"{config['snapshot_type']}_{snap_subcount_base}"
 
-                # Get previous subcounts
                 previous_subcounts = new_dict.get("subcounts", {}).get(
                     snap_subcount_name, []
                 )
 
-                # Add latest delta onto previous subcounts
+                # Use the mapped field name since delta_doc has been processed
+                # by _map_delta_to_snapshot_subcounts
                 new_dict["subcounts"][snap_subcount_name] = (
                     self._add_delta_to_subcounts(
                         previous_subcounts,
                         delta_doc,
-                        config["delta_aggregation_name"],
+                        snap_subcount_name,
                     )
                 )
 
@@ -1269,10 +1242,8 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             A new snapshot document with updated dates but same cumulative data
         """
-        # Create a copy of the previous snapshot
         new_snapshot = previous_snapshot.copy()
 
-        # Update only the date fields
         new_snapshot["snapshot_date"] = current_date.format("YYYY-MM-DD")
         new_snapshot["timestamp"] = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss")
         new_snapshot["updated_timestamp"] = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss")
@@ -1458,8 +1429,6 @@ class CommunityRecordsSnapshotAggregatorBase(CommunityAggregatorBase):
                 f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
             )
 
-            # Check if an aggregation already exists for this date
-            # If it does, delete it (we'll re-create it below)
             if self.client.exists(index=index_name, id=document_id):
                 self.delete_aggregation(index_name, document_id)
 
@@ -1972,7 +1941,11 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
         ]
 
         for config in top_configs:
-            category_name = config["delta_aggregation_name"]
+            # Use the mapped field name since delta documents have been processed
+            # by _map_delta_to_snapshot_subcounts
+            subcount_base = config["delta_aggregation_name"][3:]
+            top_subcount_name = f"top_{subcount_base}"
+            category_name = top_subcount_name  # Use the mapped field name
 
             if category_name not in exhaustive_counts_cache:
                 # First time: build exhaustive cache from all delta documents
@@ -1986,8 +1959,6 @@ class CommunityUsageSnapshotAggregator(CommunityAggregatorBase):
                 )
 
             # Select top N from cached exhaustive list
-            subcount_base = config["delta_aggregation_name"][3:]
-            top_subcount_name = f"top_{subcount_base}"
             top_by_view = self._select_top_n_from_cache(
                 exhaustive_counts_cache[category_name], "view"
             )
@@ -3554,12 +3525,14 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                     "files": {
                         "added": {
                             "file_count": added.get("file_count", {}).get("value", 0),
-                            "data_volume": added.get("total_bytes", {}).get("value", 0),
+                            "data_volume": (
+                                added.get("total_bytes", {}).get("value", 0.0)
+                            ),
                         },
                         "removed": {
                             "file_count": removed.get("file_count", {}).get("value", 0),
                             "data_volume": (
-                                removed.get("total_bytes", {}).get("value", 0)
+                                removed.get("total_bytes", {}).get("value", 0.0)
                             ),
                         },
                     },
@@ -3626,11 +3599,13 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             "files": {
                 "added": {
                     "file_count": aggs_added.get("file_count", {}).get("value", 0),
-                    "data_volume": aggs_added.get("total_bytes", {}).get("value", 0),
+                    "data_volume": aggs_added.get("total_bytes", {}).get("value", 0.0),
                 },
                 "removed": {
                     "file_count": aggs_removed.get("file_count", {}).get("value", 0),
-                    "data_volume": aggs_removed.get("total_bytes", {}).get("value", 0),
+                    "data_volume": (
+                        aggs_removed.get("total_bytes", {}).get("value", 0.0)
+                    ),
                 },
             },
             "uploaders": aggs_added.get("uploaders", {}).get("value", 0),
