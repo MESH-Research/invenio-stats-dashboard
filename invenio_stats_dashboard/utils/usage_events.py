@@ -361,8 +361,23 @@ class UsageEventFactory:
         return events
 
     @staticmethod
-    def index_usage_events(events: list) -> dict:
-        """Index usage events into the appropriate monthly indices."""
+    def _check_migrated_index_exists(index_pattern: str, month: str) -> bool:
+        """Check if a migrated index with -v2.0.0 suffix exists."""
+        migrated_index = f"{index_pattern}-{month}-v2.0.0"
+        try:
+            return current_search_client.indices.exists(index=migrated_index)
+        except Exception:
+            return False
+
+    @staticmethod
+    def index_usage_events(events: list, use_migrated_indices: bool = False) -> dict:
+        """Index usage events into the appropriate monthly indices.
+
+        Args:
+            events: List of (event, event_id) tuples to index
+            use_migrated_indices: If True, use migrated indices with -v2.0.0 suffix
+                when they exist
+        """
         if not events:
             return {"indexed": 0, "errors": 0}
 
@@ -391,7 +406,16 @@ class UsageEventFactory:
                 else:
                     index_pattern = prefix_index("events-stats-file-download")
 
-                monthly_index = f"{index_pattern}-{month}"
+                # Check if we should use migrated index
+                if (
+                    use_migrated_indices
+                    and UsageEventFactory._check_migrated_index_exists(
+                        index_pattern, month
+                    )
+                ):
+                    monthly_index = f"{index_pattern}-{month}-v2.0.0"
+                else:
+                    monthly_index = f"{index_pattern}-{month}"
 
                 docs = []
                 for event, event_id in type_event_list:
@@ -505,6 +529,7 @@ class UsageEventFactory:
         enrich_events: bool = False,
         event_start_date: str = "",
         event_end_date: str = "",
+        use_migrated_indices: bool = False,
     ) -> dict:
         """Generate and index events for records within a date range.
 
@@ -520,6 +545,8 @@ class UsageEventFactory:
                 If an empty string, uses record creation date for each record.
             event_end_date: End date in YYYY-MM-DD format for event timestamps.
                 If an empty string, uses current date.
+            use_migrated_indices: If True, use migrated indices with -v2.0.0 suffix
+                when they exist.
 
         Returns:
             Dictionary with indexing results.
@@ -534,6 +561,6 @@ class UsageEventFactory:
             event_end_date,
         )
 
-        result = UsageEventFactory.index_usage_events(events)
+        result = UsageEventFactory.index_usage_events(events, use_migrated_indices)
 
         return result
