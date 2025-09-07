@@ -1,5 +1,12 @@
 # Invenio Stats Dashboard
 
+## Current Known Issues
+
+- the `-background` versions of CLI commands are working but not creating the correct PID files, so the `status` and `cancel` sub-commands are not working correctly. We need to manage the background processes manually for now. But the process logs are still being captured correctly in the /tmp folder.
+- the record delta aggregator is not working properly when using the publication date as the basis for the aggregation. It is missing records published before the first record was created. This also throws off the record snapshot aggregator when using the publication date as the basis for the aggregation.
+
+## Overview
+
 Invenio module that provides global and community statistics overviews for an InvenioRDM instance. This provides a responsive, configurable dashboard for viewing and analyzing statistics for the instance and its communities. It exposes time-series data for each community and the instance as a whole, including:
 - running cumulative totals and delta changes for a given date range
 - covering
@@ -818,26 +825,60 @@ The usage of these endpoints is described in the [Usage](#usage) section below.
 
 ## Setup and Migration
 
-Setup of the `invenio-stats-dashboard` involves simply installing the python package and restarting the InvenioRDM instance. After installation, the extension may still be disabled by manually setting the `COMMUNITY_STATS_ENABLED` configuration variable to `False`. Otherwise, a number of setup tasks will be performed automatically.
+In future the plan is that setup of `invenio-stats-dashboard` will involve simply installing the python package and restarting the InvenioRDM instance. For now, however, two initial setup tasks are required **only for existing InvenioRDM instances** that already have records and view/download statistics:
+
+- index community addition events for all existing records
+- migrate the existing view and download events to the new index templates and enrich them with community and record metadata
+
+These tasks can be performed manually via CLI commands detailed below. They require zero downtime and can be performed in the background on a running InvenioRDM instance.
+
+After these tasks are completed, the extension will be ready to use as normal. The catch-up aggregation of historical statistics will then be performed automatically as part of the scheduled aggregation tasks. Since this can, however, be a long process, especially for large instances, a utility CLI command to perform the catch-up aggregation manually is also provided.
+
+So the full setup process is currently:
+
+1. Install the python package
+2. Set config variables for the setup period:
+- `COMMUNITY_STATS_ENABLED` = `True`
+- `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` = `False`
+- `STATS_DASHBOARD_MENU_ENABLED` = `False`
+3. Restart the InvenioRDM instance
+4. Index community addition events for all existing records (via CLI command)
+5. Migrate and enrich the existing view and download events (via CLI command)
+6. OPTIONAL: Manually run the catch-up aggregation (via CLI command)
+7. Set config variables for normal operation:
+- `COMMUNITY_STATS_ENABLED` = `True`
+- `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` = `True`
+- `STATS_DASHBOARD_MENU_ENABLED` = `True`
+8. Set up other configuration and community page templates as desired
+9. Restart the InvenioRDM instance
 
 ### Search index template registration
 
 If the `invenio-stats-dashboard` extension is installed on a new InvenioRDM instance, the `invenio-stats` module will automatically register the extension's search index templates with the OpenSearch domain. But `invenio-stats` does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the `invenio-stats-dashboard` extension will check at application startup to ensure that the extension's search index templates are registered with the OpenSearch domain. If they are not, it registers them with the `invenio-search` module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.
 
+### Initial indexing of community addition events
+
+The `invenio-stats-dashboard` requires a dedicated search index to store data about when each record was added to or removed from a community. The `CommunityStatsService.generate_record_community_events` method will create community add/remove events for all records in the instance that do not already have events. This method can be run manually via the `invenio community-stats generate-community-events` CLI command. For details, see the [CLI commands](#cli-commands) section below.
+
 ### Initial migration of existing view/download events
 
-The `invenio-stats` search index templates for view and download events must then be updated to provide mappings for the additional fields used by `invenio-stats-dashboard`. If the InvenioRDM instance has existing legacy view and download events, these will also need to be migrated to the new index templates. The `EventReindexingService` class in the `service.py` performs both of these tasks and must be run before the first scheduled aggregation task can be performed.
+The `invenio-stats-dashboard` extension also depends on an expanded field schema for the view and download events, adding to the core `invenio-stats` schema additional fields for community and for any configured record metadata that are to be made available as subcount breakdowns in statistics.
 
-Where no legacy view or download events exist, the `EventReindexingService.reindex_events` method will simply register the new index templates and usage events can be indexed normally. If usage events have already been indexed, however, the `reindex_events` method will perform the following steps:
+A dedicated CLI command is provided to (a) register the new index templates and (b) migrate and enrich any existing view and download events. For details, see the [CLI commands](#cli-commands) section below.
 
-1. Verify that the new index templates are registered with the OpenSearch domain
+The migration and enrichment process are handled by the `EventReindexingService`. If there are no existing view or download events, the service's `reindex_events` method will simply register the new index templates and usage events can be indexed normally. If there are existing view or download events, the `reindex_events` method will perform the following steps:
+
+1. Verify that the new index templates are registered with the OpenSearch domain and register them if they are not.
 2. Create new monthly view and download indices for each legacy monthly index, adding the suffix `.v2.0.0` to the index names.
 3. Copy the events from the legacy monthly indices to the new monthly indices, adding the community and record metadata fields to the events.
-4. Confirm that the events have all been copied over.
-5. Update the read aliases to point to the new monthly indices.
-6. Delete the legacy monthly indices for months prior to the current month.
-7. Create an alias from the old current-month index to the new current-month index, so that new usage events during the current month are indexed in the new index.
-8. After the month is complete, delete the current month's legacy index.
+4. Confirm that the events have all been copied over accurately.
+5. Update the read aliases (`events-stats-record-view` and `events-stats-file-download`) to point to the new monthly indices.
+6. Delete the legacy monthly indices for months prior to the current month (if desired).
+7. Switch new event writes from the old current-month index to the new current-month index by:
+    - creating a temporary backup copy of the old current-month index
+    - quickly deleting the old current-month index and creating a write alias to the new current-month index
+    - recovering any events that arrived since the original enriched index creation from the backup index to the new enriched index
+    - validating the enriched index integrity before (optionally) deleting the temporary backup index
 
 ```{warning}
 Currently, the `EventReindexingService.reindex_events` method must be run manually to perform the migration. It can be run via the `invenio community-stats migrate-events` CLI command and its associated helper commands. In future, the migration will be integrated automatically as part of the scheduled aggregation tasks, to be completed in the background over a series of scheduled runs before the first aggregations are actually performed.
@@ -865,9 +906,7 @@ If the service hits the maximum number of batches before a monthly index is comp
 
 ### Initial aggregation of historical data
 
-- `CommunityStatsService.generate_record_community_events` creates community add/remove events for all records in the instance that do not already have events
-    - can be run manually via the `invenio community-stats generate-community-events` CLI command
-- At the start of each aggregator's `run` method, the class checks that the `stats-community-events` index is up-to-date with the latest records in the community/instance. If it is not, the class will call `CommunityStatsService.generate_record_community_events` to create the missing events before proceeding with the aggregation.
+The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually is also provided. This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the [CLI commands](#cli-commands) section below.
 
 ## Usage
 
@@ -1015,7 +1054,7 @@ STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
 
 ### Menu configuration
 
-The following configuration variables control the menu integration:
+The following configuration variables control the menu integration for the global dashboard:
 
 ```python
 STATS_DASHBOARD_MENU_ENABLED = True
