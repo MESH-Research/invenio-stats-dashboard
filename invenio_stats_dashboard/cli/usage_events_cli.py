@@ -77,6 +77,11 @@ def usage_events_cli():
     is_flag=True,
     help="Skip confirmation prompt.",
 )
+@click.option(
+    "--use-migrated-indices",
+    is_flag=True,
+    help="Use migrated indices with -v2.0.0 suffix when they exist.",
+)
 @with_appcontext
 def generate_usage_events_command(
     start_date,
@@ -88,6 +93,7 @@ def generate_usage_events_command(
     enrich_events,
     dry_run,
     yes_i_know,
+    use_migrated_indices,
 ):
     """Generate synthetic usage events (view/download) for testing purposes."""
     check_stats_enabled()
@@ -108,6 +114,7 @@ def generate_usage_events_command(
     if event_end_date:
         click.echo(f"  • Event timestamp end date: {event_end_date}")
     click.echo(f"  • Enrich events: {'Yes' if enrich_events else 'No'}")
+    click.echo(f"  • Use migrated indices: {'Yes' if use_migrated_indices else 'No'}")
     click.echo(f"  • Dry run mode: {'Yes' if dry_run else 'No'}")
 
     # Ask for confirmation unless --yes-i-know is specified
@@ -154,6 +161,7 @@ def generate_usage_events_command(
                 enrich_events=enrich_events,
                 event_start_date=event_start_date or "",
                 event_end_date=event_end_date or "",
+                use_migrated_indices=use_migrated_indices,
             )
 
             click.echo("✅ Usage event generation completed successfully!")
