@@ -286,7 +286,7 @@ STATS_DASHBOARD_LAYOUT = {
             },
             {
                 "name": "traffic",
-                "label": _("Traffic"),
+                "label": _("Cumulative Traffic"),
                 "date_range_phrase": _("Cumulative totals as of"),
                 "icon": "world",
                 "rows": [
@@ -374,7 +374,7 @@ STATS_DASHBOARD_LAYOUT = {
             },
             {
                 "name": "usage",
-                "label": _("Usage"),
+                "label": _("Usage Rates"),
                 "icon": "download",
                 "date_range_phrase": _("Activity during"),
                 "rows": [
@@ -571,8 +571,8 @@ STATS_EVENTS = {
 }
 
 STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000
-STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000
-STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 75
+STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 5000
+STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 85
 
 # Number of top records to collect for "top" type subcounts
 COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
@@ -762,7 +762,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             ],
         },
         "usage_events": {
-            "delta_aggregation_name": "by_affiliations_creator",
+            "delta_aggregation_name": "by_affiliations",
             "field": "affiliations.id",
             "field_type": Optional[list[str]],
             "event_field": "affiliations",
@@ -793,20 +793,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
                 "metadata.contributors.affiliations.name.keyword",
             ],
         },
-        "usage_events": {
-            "delta_aggregation_name": "by_affiliations_contributor",
-            "field": "affiliations.id",
-            "field_type": Optional[list[str]],
-            "event_field": "affiliations",
-            "extraction_path_for_event": lambda metadata: [
-                item["affiliations"]
-                for item in metadata.get("contributors", [])
-                if "affiliations" in item
-            ],
-            "label_field": "affiliations.name",
-            "label_source_includes": ["affiliations.name", "affiliations.id"],
-            "snapshot_type": "top",
-        },
+        "usage_events": {},
     },
     "by_countries": {
         "records": {},
