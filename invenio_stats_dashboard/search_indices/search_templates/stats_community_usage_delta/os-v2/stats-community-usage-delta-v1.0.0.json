@@ -281,34 +281,7 @@
                                 }
                             }
                         },
-                        "by_affiliations_creator": {
-                            "type": "nested",
-                            "properties": {
-                                "id": { "type": "keyword" },
-                                "label": { "type": "keyword" },
-                                "view": {
-                                    "type": "object",
-                                    "properties": {
-                                        "total_events": { "type": "integer" },
-                                        "unique_visitors": { "type": "integer" },
-                                        "unique_records": { "type": "integer" },
-                                        "unique_parents": { "type": "integer" }
-                                    }
-                                },
-                                "download": {
-                                    "type": "object",
-                                    "properties": {
-                                        "total_events": { "type": "integer" },
-                                        "unique_visitors": { "type": "integer" },
-                                        "unique_records": { "type": "integer" },
-                                        "unique_parents": { "type": "integer" },
-                                        "unique_files": { "type": "integer" },
-                                        "total_volume": { "type": "long" }
-                                    }
-                                }
-                            }
-                        },
-                        "by_affiliations_contributor": {
+                        "by_affiliations": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
