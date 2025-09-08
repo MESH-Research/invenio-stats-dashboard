@@ -1,39 +1,49 @@
 # Invenio Stats Dashboard
 
+**Pre-alpha version. Not ready for production use. Some things currently don't work!**
+
+Copyright 2025, MESH Research
+
+Licensed under the MIT License. See LICENSE file for details.
+
 ## Current Known Issues
 
 - the `-background` versions of CLI commands are working but not creating the correct PID files, so the `status` and `cancel` sub-commands are not working correctly. We need to manage the background processes manually for now. But the process logs are still being captured correctly in the /tmp folder.
 - the record delta aggregator is not working properly when using the publication date as the basis for the aggregation. It is missing records published before the first record was created. This also throws off the record snapshot aggregator when using the publication date as the basis for the aggregation.
+- Not a problem, but need to clarify that the "affiliations" subcounts count the *number of creators/contributors* to records with the affiliation (i.e., the number of "contributions"), not the *number of records* with the affiliation.
 
 ## Overview
 
-Invenio module that provides global and community statistics overviews for an InvenioRDM instance. This provides a responsive, configurable dashboard for viewing and analyzing statistics for the instance and its communities. It exposes time-series data for each community and the instance as a whole, including:
+The `invenio-stats-dashboard` extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides a highly configurable dashboard for viewing and analyzing statistics for the instance and each of its communities. The extension makes available time-series data for each community and the instance as a whole, including:
+
 - running cumulative totals and delta changes for a given date range
-- covering
-  - number of records and files
-  - file data volume
-  - number of unique uploaders
-  - number of unique views and downloads
-- subcounts for each metric broken down by
-  - resource type
-  - access status (open, restricted, etc.)
-  - language
-  - creator/contributor affiliation
-  - funding organization
-  - subject heading
-  - publisher name
-  - periodical title
-  - file type
+    - number of records and files
+    - file data volume
+    - number of unique uploaders
+    - number of unique views and downloads
+- subcounts for each metric broken down by a configurable list of metadata fields like
+    - resource type
+    - access status (open, restricted, etc.)
+    - language
+    - creator/contributor affiliation
+    - funding organization
+    - subject heading
+    - publisher name
+    - periodical title
+    - file type
 - subcounts for view/download metrics broken down by
-  - referrer domain
-  - visitor country
+    - referrer domain
+    - visitor country
 
 The extension provides:
-- data-layer storage of pre-aggregated statistics (daily cumulative snapshots and deltas) for each community and for the instance as a whole
-- service-layer aggregation of the community and global statistics on a regular schedule, along with service components to record community add/remove events
-- API access to the aggregated daily statistics via the `/api/stats` endpoint
-- Jinja2 templates and macros to display React-based global and community statistics dashboards
-- menu configuration to add the global statistics dashboard to site-wide navigation
+
+| Layer | Component |
+|-------|-----------|
+| data-layer | storage of pre-aggregated statistics (daily cumulative snapshots and deltas) for each community and for the instance as a whole |
+| service-layer | aggregation of the community and global statistics on a regular schedule, along with service components to record community add/remove events |
+| presentation-layer | API access to the aggregated daily statistics via the `/api/stats` endpoint |
+| | Jinja2 templates to display React-based global and community statistics dashboards |
+| | menu configuration options to add the global statistics dashboard to site-wide navigation |
 
 Most initial setup of the statistics infrastructure is handled automatically when the module is installed. In existing InvenioRDM instances, this includes not only setup of the necessary search indices, but also:
 - migration of historical indexed usage events to the expanded mappings with added community and record metadata
@@ -45,31 +55,40 @@ The module also provides a set of utility classes and functions, along with cli 
 
 ## TODOs
 
+- [ ] decide whether to rename the package `invenio-community-stats`
 - [x] add config flag to switch UI between test data and production data
 - [ ] testing
-  - [ ] move all tests into this package
+  - [ ] move all tests from centralized KCWorks test suite into this package
   - [ ] fix failing tests
   - [ ] expand test coverage
+- [ ] search indexing
+  - [ ] add dynamic creation of index templates based on subcount configurations
+  - [ ] make view and download event factories use the subcounts configuration
 - [ ] aggregation
-  - [ ] refactor CommunityUsageSnapshotAggregator for the enriched event document structure
-  - [ ] ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)
+  - [x] refactor CommunityUsageSnapshotAggregator for the enriched event document structure
+  - [x] ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)
+  - [x] get tests for aggregator classes working
   - [ ] get tests for queries working with refactored code
-  - [ ] get tests for aggregator classes working
   - [ ] set up a check in aggregator classes to ensure that view/download event migration has been completed before running the aggregator tasks
+  - [ ] set up automatic triggering of the startup tasks (index community events, migrate usage events) when the aggregators first run
   - [ ] add opensearch health and memory usage checks to the aggregator classes (as in the reindexing service) and quit out gracefully if necessary
+  - [ ] evaluate the viability of the "published" record aggregators (currently not working because of inherent issue of published dates being retroactive)
 - [ ] UI components
-  - [ ] add proper loading states to the dashboard components
-  - [ ] add an updated timestamp to the dashboard views
+  - [x] add proper loading states to the dashboard components
+  - [x] add an updated timestamp to the dashboard views
+  - [x] fix state problems with chart views
   - [ ] add custom date range picker to the dashboard views
-  - [ ] fix state problems with chart views
   - [ ] add ReactOverridable support for each of the React components
   - [ ] add mechanism for adding custom React components to the dashboard views (entry point providing file paths and component labels, to be imported in components_map.js?)
   - [ ] evaluate whether additional default components are needed
+  - [ ] add `invenio-communities` custom field to provide per-community configuration of the dashboard layout
 - [ ] client-side data handling
-  - [ ] add client-side caching of the stats data to display while new data is loading
+  - [ ] add client-side caching of the stats data to display while new data is loading (current implementation with IndexedDB is not working)
+  - [ ] update client-side data transformer to use the configurable subcounts
 - [ ] UI theming
-  - [ ] move default CSS into this package and harmonize it with InvenioRDM defaults
-  - [ ] finish theming of the global dashboard view
+  - [x] move default CSS into this package
+  - [x] finish basic theming of the global dashboard view
+  - [ ] harmonize default CSS with InvenioRDM defaults
   - [ ] improve mobile responsiveness of the dashboard views
 - [ ] API requests
   - [ ] implement security policy for API queries
@@ -95,11 +114,15 @@ Wherever possible, this module uses the infrastructure provided by the `invenio-
 
 ### Data layer
 
-This package provides the following data layer components:
+This package provides infrastructure to pre-calculate and store daily aggregated delta and snapshot statistics for each community and the instance as a whole, with subcounts broken down by a configurable list of metadata fields. The data layer includes:
+
 - search indices to store pre-aggregated statistics for communities and the instance as a whole
 - search index to store events for community membership changes
 - expanded usage event (view and download) search index mappings to include community and record metadata fields
 - utility service to migrate existing usage events to the expanded mappings
+- configuration to control which additional metadata fields are added to usage events to allow subcount aggregation by those fields
+- configuration to control which metadata fields are used to provide pre-calculated subcounts in all aggregated statistics
+- scheduled background tasks for hourly aggregation of the statistics
 
 #### Community membership events
 
@@ -124,14 +147,41 @@ The `stats-community-events` index is configured by the index template at `searc
 }
 ```
 
+There is one index for each year, suffixed like this: `stats-community-events-2021`. The indices are collectively aliased to `stats-community-events`.
+
 #### Enriched record usage events
 
-In order to efficiently aggregate usage statistics by community, and in order to provide subcounts based on record metadata fields, the `invenio-stats-dashboard` module enriches the standard `invenio-stats` usage events with community and record metadata fields. This is done by overriding the default `invenio-stats` index templates for the `stats-events-record-view` and `stats-events-file-download` indices. The new index templates are identical to the default templates, but add the following fields to the index mappings:
-- ????
+In order to efficiently aggregate usage statistics by community, and in order to provide subcounts based on record metadata fields, the `invenio-stats-dashboard` module enriches the standard `invenio-stats` usage events with community and record metadata fields. This is done by overriding the default `invenio-stats` index templates for the `stats-events-record-view` and `stats-events-file-download` indices.
+
+The new index templates are identical to the default templates, but add:
+
+- a "community_ids" field with a list of the record's communities at the time of the event.
+- a set of additional configurable fields containing record metadata to be used for subcount aggregations
+
+By default, the following metadata fields are added to the enriched events:
+- "resource_type"
+- "access_status"
+- "languages"
+- "subjects"
+- "publisher"
+- "journal_title"
+- "rights"
+- "funders"
+- "affiliations"
+- "file_types"
+- "periodical"
+
+```{note}
+The addition of these metadata fields does increase the size of the view and download search indices. Addition of the full set of metadata fields for each record will increase the size of the indices by approximately 100-150%.
+```
 
 The extension also overrides the default `invenio-stats` event builder classes for view and download events, adding logic to record community and select metadata information to each event document.
 
 These two changes are sufficient to provide the enriched data for all future usage events. If the InvenioRDM instance has existing legacy view and download events, the extension provides a utility service to migrate the existing indices to the new index template and add the missing community and record metadata fields to the existing events. For more details, see [Setup and Migration](#setup-and-migration).
+
+```{note}
+The default search index templates provided by the `invenio-rdm-records` package do not specify the number of shards to be used per index. On platforms like AWS, this can result in creation of 5 shard indices per month, which can be problematic for performance and cost. The `invenio-stats-dashboard` module overrides the default templates to specify a single shard per index by default.
+```
 
 #### Aggregated statistics
 
@@ -142,9 +192,23 @@ The `invenio-stats-dashboard` module provides pre-aggregated daily statistics fo
 3. **Usage deltas**: Daily counts for the number of views and downloads for records and files in the community/instance. These are based on the indexed usage events.
 4. **Usage snapshots**: Daily cumulative total counts of views and downloads for records and files in the community/instance as of a given date.
 
-Each aggregation document includes a breakdown of subcounts based on a variety of metadata fields.
+Each aggregation document includes a breakdown of subcounts based on a configurable list of metadata fields. By default, the following metadata fields are used:
 
-Each aggregation is stored in a separate set of indices, one index per year, with a common alias to facilitate easy searching across all years. Each index includes both over-arching numbers for the community/instance and broken-down subcounts based on record metadata fields such as resource type, access right, language, affiliation, funder, subject, publisher, and periodical.
+- "metadata.resource_type"
+- "access.status"
+- "metadata.languages"
+- "metadata.subjects"
+- "metadata.publisher"
+- "custom_fields.journal:journal.title"
+- "metadata.rights"
+- "metadata.funding.funder"
+- "metadata.creators.affiliations"
+- "metadata.contributors.affiliations"
+- "files.entries.ext"
+
+This allows on-the-fly display and reporting of any aggregated metrics broken down by any of these metadata fields.
+
+Each aggregation is stored in a separate set of indices, one index per year, with a common alias to facilitate easy searching across all years. Each index includes daily documents with over-arching numbers for the InvenioRDM instance, as well as daily documents for each community. Each daily document includes broken-down subcounts based on record metadata fields such as resource type, access right, language, affiliation, funder, subject, publisher, and periodical.
 
 With record deltas and record snapshots, there is an additional question about what to consider the "start" of a record's
 lifetime for the sake of the aggregation. In some cases it may be most useful to consider when records are actually added to a community/instance. But we
@@ -160,19 +224,16 @@ So we aggregate and store three different versions of the record deltas and reco
 - `stats-community-usage-delta-YYYY`
 - `stats-community-usage-snapshot-YYYY`
 
-```{note}
-The labels included for each item in a subcount are the English values available in the record metadata. It
-is most efficient to include these readable labels in the aggregated documents, rather than looking up the
-labels from the record metadata after the aggregation is complete. It was deemed impractical, though, to
-include these labels for every available language. Instead, the labels can be translated on the client side
-as needed.
+```{warning}
+The "published" record delta aggregators are not currently working. These require significant extra logic to handle (a) the aggregation of past delta documents prior to the InvenioRDM instance's first published record and (b) the updating of past snapshot documents when new records are added with a prior publication date.
 ```
 
 #### Daily record deltas
 
 The record delta aggregations track daily changes in the number of records and files in the community/instance. These aggregations are based on the metadata records in the `rdm-records-records` index and the community membership events in the `stats-community-events` index.
 
-Each daily record delta document includes:
+Each daily record delta document includes these fields:
+
 - `timestamp` (date): When the aggregation was created
 - `community_id` (string): The community identifier (or "global" for the instance as a whole)
 - `files` (object): the number of files and data volume added/removed for the day
@@ -180,35 +241,32 @@ Each daily record delta document includes:
 - `records` (object): the number of records added/removed for the day, with subcounts for metadata-only records and records with files
 - `period_start` and `period_end` (date): The date range for this delta
 - `uploaders` (integer): Number of unique users who uploaded records
-- `subcounts` (object): Detailed breakdowns by various metadata fields including:
-  - `by_resource_types` (array[object]): Breakdown by resource type (journal articles, datasets, etc.)
-  - `by_access_statuses` (array[object]): Breakdown by access status (open, restricted, etc.)
-  - `by_languages` (array[object]): Breakdown by deposit language (English, French, etc.)
-  - `by_affiliations` (array[object]): Breakdown by creator/contributor affiliations
-  - `by_funders` (array[object]): Breakdown by funding organizations
-  - `by_subjects` (array[object]): Breakdown by subject classifications
-  - `by_publishers` (array[object]): Breakdown by publisher
-  - `by_periodicals` (array[object]): Breakdown by journal/periodical
-  - `by_file_types` (array[object]): Breakdown by file types (PDF, CSV, etc.)
+- `subcounts` (object): breakdowns by configurable metadata fields, by default including:
+  - `by_resource_types` (array[object]): breakdown by resource type (journal articles, datasets, etc.)
+  - `by_access_statuses` (array[object]): breakdown by access status (open, restricted, etc.)
+  - `by_languages` (array[object]): breakdown by deposit language (English, French, etc.)
+  - `by_affiliations_contributor` (array[object]): breakdown by contributor affiliations
+  - `by_affiliations_creator` (array[object]): breakdown by creator affiliations
+  - `by_funders` (array[object]): breakdown by funding organizations
+  - `by_subjects` (array[object]): breakdown by subject classifications
+  - `by_publishers` (array[object]): breakdown by publisher
+  - `by_periodicals` (array[object]): breakdown by journal/periodical
+  - `by_file_types` (array[object]): breakdown by file types (PDF, CSV, etc.)
 
-Each of the subcounts is an array of objects. With the exception of the `by_file_types` subcount, each sujcount object in an array has the following fields:
+Each of the subcounts is an array of objects with the following fields:
+
 - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
-- `label` (string): The readable label for the subcount if one is available (e.g., "open", "English", etc.)
+- `label` (string or object): The readable label for the subcount if one is available (e.g., "open", {"en": "English", "fr": "French"}, etc.). The type of this field value depends on the type of the readable field provided in the record metadata schema.
 - `files` (object): The number of added/removed files and data volume for records with the subcount item, structured as in the top-level `files` object
 - `parents` (object): The number of added/removed parent records with the subcount item, structured as in the top-level `parents` object
 - `records` (object): The number of added/removed records with the subcount item, structured as in the top-level `records` object
-
-Since it does not make sense to count metadata-only records in the subcount by file type, the `by_file_types` subcount array objects have a slightly different shape. They have the following fields:
-- `id` (string): The identifier for the subcount (e.g., "pdf", "csv", etc.)
-- `label` (string): The readable label for the subcount if one is available (e.g., "PDF", "CSV", etc.)
-- `added` (object): The number of added files and data volume for records with the subcount item, structured as in the top-level `files.added` object
-- `removed` (object): The number of removed files and data volume for records with the subcount item, structured as in the top-level `files.removed` object
 
 ```{note}
 Each subcount array will include objects for only those subcount values that appear in that day's added or removed records. For example, if there are no records with the "open" access status on a given day, the `by_access_statuses` subcount array will not include an object for "open".
 ```
 
-These aggregation documents are stored in the indices:
+These aggregation documents are stored in a set of annual indices:
+
 - `stats-community-records-delta-created-YYYY`
   - alias: `stats-community-records-delta-created`
   - index template: `search_indices/stats_community_records_delta_created/os-v2/stats-community-records-delta-created-v1.0.0.json`
@@ -306,23 +364,23 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
 - `snapshot_date` (date): The date of this snapshot
 - `timestamp` (date): When the aggregation was created
 - `total_records` (object): Total record counts (metadata-only vs with files)
-- `total_parents` (object): Total parent record counts
+- `total_parents` (object): Total parent record counts (metadata-only vs with files)
 - `total_files` (object): Total file counts and data volume
 - `total_uploaders` (integer): Total number of unique uploaders
-- `subcounts` (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes.
-  - `all_access_statuses` (array[object]): Total number of records by access status
-  - `all_file_types` (array[object]): Total number of records by file type
-  - `all_rights` (array[object]): Total number of records by rights
-  - `all_resource_types` (array[object]): Total number of records by resource type
-  - `top_languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_affiliations_contributor` (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_affiliations_creator` (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+- `subcounts` (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes. By default these include:
+    - `all_access_statuses` (array[object]): Total number of records by access status
+    - `all_file_types` (array[object]): Total number of records by file type
+    - `all_rights` (array[object]): Total number of records by rights
+    - `all_resource_types` (array[object]): Total number of records by resource type
+    - `top_languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `top_affiliations_contributor` (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `top_affiliations_creator` (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `top_funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `top_periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `top_publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `top_subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
 
-The subcount properties are named slightly differently from the delta aggregations, with the `by_` prefix removed from the property names. Instead, some the subcount properties will be prefixed with either `all_` or `top_`. The `all_` prefix indicates that the subcount includes all values for the metadata field that have been used in the community/instance to-date. For example, the `all_access_statuses` subcount will provide a number for all access status values that appear in any record. The `top_` prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the `top_affiliations_contributor` subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
+The subcount properties are named slightly differently from the delta aggregations. Instead of the `by_` prefix, the subcount properties will be prefixed with either `all_` or `top_`. The `all_` prefix indicates that the subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the `all_access_statuses` subcount will provide a number for all access status values that appear in any record. The `top_` prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the `top_affiliations_contributor` subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 
 Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.
 
@@ -409,53 +467,54 @@ Each document is shaped like this (the documents for the three different record 
 ```
 
 ```{note}
-The `top_` subcounts will in practice never be empty after the first few snapshots, since the top N values to-date will always be included (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
+The subcounts will in practice never be empty after the first few snapshots, since even the "top_" subcounts will include the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 ```
 
 #### Usage deltas
 
-The usage delta aggregations track daily view and download counts for the community/instance as a whole. These aggregations are based on the `record-view` and `file-download` events indexed by the `invenio-stats` module, which are enriched beforehand with community membership information and selected record metadata. Each usage delta document includes:
+The usage delta aggregations track daily view and download counts for the community/instance as a whole. These aggregations are based on the `record-view` and `file-download` events indexed by the `invenio-stats` module, which are enriched beforehand with community membership information and selected record metadata. Each usage delta document includes these fields:
 
 - `community_id` (string): The community identifier
 - `period_start` and `period_end` (date): The date range for this delta
 - `timestamp` (date): When the aggregation was created
 - `totals` (object): Overall usage metrics for the day:
-  - `view` (object): View event statistics
-    - `total_events` (integer): Total number of views
-    - `unique_parents` (integer): Total number of unique parent records viewed
-    - `unique_records` (integer): Total number of unique records viewed
-    - `unique_visitors` (integer): Total number of unique visitors who viewed the records
-  - `download` (object): Download event statistics with data volume
-    - `total_events` (integer): Total number of downloads
-    - `total_volume` (float): Total data volume of downloads
-    - `unique_files` (integer): Total number of unique files downloaded
-    - `unique_parents` (integer): Total number of unique parent records downloaded
-    - `unique_records` (integer): Total number of unique records downloaded
-    - `unique_visitors` (integer): Total number of unique visitors
-- `subcounts` (object): Detailed breakdowns by:
-  - `by_access_statuses` (array[object]): Usage by access status
-  - `by_resource_types` (array[object]): Usage by resource type
-  - `by_rights` (array[object]): Usage by rights type
-  - `by_funders` (array[object]): Usage by funding organization
-  - `by_periodicals` (array[object]): Usage by journal/periodical
-  - `by_languages` (array[object]): Usage by language
-  - `by_subjects` (array[object]): Usage by subject classification
-  - `by_publishers` (array[object]): Usage by publisher
-  - `by_affiliations` (array[object]): Usage by creator/contributor affiliations
-  - `by_file_types` (array[object]): Usage by file type
-  - `by_countries` (array[object]): Usage by visitor country
-  - `by_referrers` (array[object]): Usage by referrer
+    - `view` (object): View event statistics
+        - `total_events` (integer): Total number of views
+        - `unique_parents` (integer): Total number of unique parent records viewed
+        - `unique_records` (integer): Total number of unique records viewed
+        - `unique_visitors` (integer): Total number of unique visitors who viewed the records
+    - `download` (object): Download event statistics with data volume
+        - `total_events` (integer): Total number of downloads
+        - `total_volume` (float): Total data volume of downloads
+        - `unique_files` (integer): Total number of unique files downloaded
+        - `unique_parents` (integer): Total number of unique parent records downloaded
+        - `unique_records` (integer): Total number of unique records downloaded
+        - `unique_visitors` (integer): Total number of unique visitors
+  - `subcounts` (object): Detailed breakdowns by configurable metadata fields, by default including:
+      - `by_access_statuses` (array[object]): Usage by access status
+      - `by_resource_types` (array[object]): Usage by resource type
+      - `by_rights` (array[object]): Usage by rights type
+      - `by_funders` (array[object]): Usage by funding organization
+      - `by_periodicals` (array[object]): Usage by journal/periodical
+      - `by_languages` (array[object]): Usage by language
+      - `by_subjects` (array[object]): Usage by subject classification
+      - `by_publishers` (array[object]): Usage by publisher
+      - `by_affiliations` (array[object]): Usage by creator/contributor affiliations
+      - `by_file_types` (array[object]): Usage by file type
+      - `by_countries` (array[object]): Usage by visitor country
+      - `by_referrers` (array[object]): Usage by referrer
 
 Each of the subcount arrays will include objects for only those subcount values that appear in that day's view or download events. For example, if no records with the "open" access status are viewed or downloaded on a given day, the `by_access_statuses` subcount array will not include an object for "open".
 
 Each object in the subcount arrays will have the following fields:
+
 - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
 - `label` (string): The label for the subcount (e.g., "Open", "English", etc.)
 - `view` (object): The number of views for records with the subcount item, structured as in the top-level `view` object
 - `download` (object): The number of downloads for records with the subcount item, structured as in the top-level `download` object
 
 ```{note}
-In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations also include the following subcounts for visitor country and referrer domain.
+In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations by default also include subcounts for visitor country and referrer domain. These too are configurable via the COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration.
 ```
 
 ```{note}
@@ -463,6 +522,7 @@ The counts for unique visitors, unique views, and unique downloads depend on the
 ```
 
 These aggregation documents are stored in the indices:
+
 - `stats-community-usage-delta-YYYY`
   - alias: `stats-community-usage-delta`
   - index template: `search_indices/stats_community_usage_delta/os-v2/stats-community-usage-delta-v1.0.0.json`
@@ -526,7 +586,6 @@ Each document is shaped like this:
 }
 ```
 
-
 #### Usage snapshots
 
 The usage snapshot aggregations provide cumulative view and download totals for each community/instance at the end of each day. These aggregations are based
@@ -537,49 +596,61 @@ document includes:
 - `snapshot_date` (date): The date of this snapshot
 - `timestamp` (date): When the aggregation was created
 - `totals` (object): Cumulative usage metrics (similar structure to deltas but cumulative)
-  - `view` (object): View event statistics
-    - `total_events` (integer): Total number of views
-    - `unique_parents` (integer): Total number of unique parent records viewed
-    - `unique_records` (integer): Total number of unique records viewed
-    - `unique_visitors` (integer): Total number of unique visitors who viewed the records
-  - `download` (object): Download event statistics with data volume
-    - `total_events` (integer): Total number of downloads
-    - `total_volume` (float): Total data volume of downloads
-    - `unique_files` (integer): Total number of unique files downloaded
-    - `unique_parents` (integer): Total number of unique parent records downloaded
-    - `unique_records` (integer): Total number of unique records downloaded
-    - `unique_visitors` (integer): Total number of unique visitors
-- `subcounts` (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes
-  - `all_access_statuses` (array[object]): Total number of records by access status
-  - `all_file_types` (array[object]): Total number of records by file type
-  - `all_rights` (array[object]): Total number of records by rights type
-  - `all_resource_types` (array[object]): Total number of records by resource type
-  - `top_languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_affiliations` (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_countries` (array[object]): Top N countries by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-  - `top_referrers` (array[object]): Top N referrers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `view` (object): View event statistics
+        - `total_events` (integer): Total number of views
+        - `unique_parents` (integer): Total number of unique parent records viewed
+        - `unique_records` (integer): Total number of unique records viewed
+        - `unique_visitors` (integer): Total number of unique visitors who viewed the records
+    - `download` (object): Download event statistics with data volume
+        - `total_events` (integer): Total number of downloads
+        - `total_volume` (float): Total data volume of downloads
+        - `unique_files` (integer): Total number of unique files downloaded
+        - `unique_parents` (integer): Total number of unique parent records downloaded
+        - `unique_records` (integer): Total number of unique records downloaded
+        - `unique_visitors` (integer): Total number of unique visitors
+  - `subcounts` (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes, by default including:
+      - `all_access_statuses` (array[object]): Total number of records by access status
+      - `all_file_types` (array[object]): Total number of records by file type
+      - `all_rights` (array[object]): Total number of records by rights type
+      - `all_resource_types` (array[object]): Total number of records by resource type
+      - `top_languages` (array[object]): Top N languages, calculated both by number of views and number of downloads
+      - `top_affiliations` (array[object]): Top N contributor affiliations, calculated both by number of views and number of downloads
+      - `top_funders` (array[object]): Top N funders, calculated both by number of views and number of downloads
+      - `top_periodicals` (array[object]): Top N journals/periodicals, calculated both by number of views and number of downloads
+      - `top_publishers` (array[object]): Top N publishers, calculated both by number of views and number of downloads
+      - `top_subjects` (array[object]): Top N subjects, calculated both by number of views and number of downloads
+      - `top_countries` (array[object]): Top N countries, calculated both by number of views and number of downloads
+      - `top_referrers` (array[object]): Top N referrers, calculated both by number of views and number of downloads
 
 ```{note}
 Each of the `top_` subcount arrays will include objects for the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT), even if they do not appear in the records added on the snapshot date.
 ```
 
 Each object in the `all_` subcount arrays will have the following fields:
+
 - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
 - `label` (string): The label for the subcount (e.g., "Open", "English", etc.)
 - `view` (object): The number of views for records with the subcount item, structured as in the top-level `view` object
 - `download` (object): The number of downloads for records with the subcount item, structured as in the top-level `download` object
 
-Each object in the `top_` subcount arrays will have the following fields is further broken down into a `by_view` and `by_download` object. Separate arrays are provided for the most-viewed and most-downloaded metadata values. Each object in these `by_view` and `by_download` objects will have the same fields as the `all_` subcount objects.
+Each object in the `top_` subcount arrays will have the following fields:
+- `by_view` (array[object]): The top N views for the subcount item, each with the fields:
+  - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
+  - `label` (string): The label for the subcount (e.g., "Open", "English", etc.)
+  - `view` (object): The number of views for records with the subcount item, structured as in the top-level `view` object
+  - `download` (object): The number of downloads for records with the subcount item, structured as in the top-level `download` object
+- `by_download` (array[object]): The top N downloads for the subcount item, each with the fields:
+  - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
+  - `label` (string): The label for the subcount (e.g., "Open", "English", etc.)
+  - `view` (object): The number of views for records with the subcount item, structured as in the top-level `view` object
+  - `download` (object): The number of downloads for records with the subcount item, structured as in the top-level `download` object
 
 ```{note}
 The counts for unique visitors, unique views, and unique downloads depend on the deduplication logic in the `invenio-stats` module, implemented when the `record-view` and `file-download` events are indexed.
 ```
 
 These aggregation documents are stored in the indices:
+
 - `stats-community-usage-snapshot-YYYY`
   - alias: `stats-community-usage-snapshot`
   - index template: `search_indices/stats_community_usage_snapshot/os-v2/stats-community-usage-snapshot-v1.0.0.json`
@@ -693,11 +764,12 @@ For more information about the index configuration and creation process, see [Se
 ### Service layer
 
 At the service layer, this module provides:
+
 - celery tasks to aggregate community and global instance statistics on an hourly schedule
 - service components to record community and global add/remove events
-- a service class to facilitate programmatic access to the statistics data (accessed via the `current_community_stats_service` proxy)
-- a second service class to facilitate migration of the usage event indices (accessed via the `current_event_reindexing_service` proxy)
-- a helper class to generate synthetic usage events for testing
+- a `CommunityStatsService` class to facilitate programmatic access to the statistics data (accessed via the `current_community_stats_service` proxy) and handle community event record operations
+- a second `EventReindexingService` class to facilitate migration of the usage event indices (accessed via the `current_event_reindexing_service` proxy)
+- a helper `UsageEventFactory` class to generate synthetic usage events for testing
 
 The celery tasks are also responsible for ensuring that historical data is progressively aggregated and indexed when the extension is first installed. For more information, see [Setup and Migration](#setup-and-migration) below.
 
@@ -764,18 +836,22 @@ multiple possible methods.
 
 The module includes a CommunityStatsService class that provides a programmatic interface to the statistics data, accessed via the `current_community_stats_service` proxy. The class exposes the following public methods:
 
-- `generate_record_community_events`: Creates community add/remove events for all records in the instance that do not already have events. Can be run via the `invenio community-stats generate-community-events` CLI command.
-- `aggregate_stats`: Manually triggers the aggregation of statistics for a community or instance. Can be run via the `invenio community-stats aggregate-stats` CLI command.
-- `read_stats`: Reads the statistics data for a community or instance. Can be run via the `invenio community-stats read-stats` CLI command.
+- `generate_record_community_events`: Creates community add/remove events for all records in the instance that do not already have events. Can be run via the `invenio community-stats community-events generate` CLI command.
+- `aggregate_stats`: Manually triggers the aggregation of statistics for a community or instance. Can be run via the `invenio community-stats aggregate` CLI command.
+- `read_stats`: Reads the statistics data for a community or instance. Can be run via the `invenio community-stats read` CLI command.
 
 #### Helper class for usage event index migration
 
-The module includes an EventReindexingService class that can be used to migrate existing usage events to the new index templates, accessed via the `current_event_reindexing_service` proxy. This class can also be used via the `invenio community-stats migrate-events` CLI command and its associated helper commands.
+The module includes an `EventReindexingService` class that can be used to migrate existing usage events to the new index templates, accessed via the `current_event_reindexing_service` proxy. This class can also be used via the `invenio community-stats usage-events migrate` CLI command and its associated helper commands.
 
 #### Utilities for generating testing data
 
-The module includes a helper class (utils.usage_events.UsageEventFactory) that can be used to generate synthetic view and download events for testing.
-This class creates usage events *without* the enriched metadata fields that are added to the events by the `invenio-stats-dashboard` module, to facilitate testing of the index migration process for those usage events.
+The module includes a helper class (`UsageEventFactory`) that can be used to generate synthetic view and download events for testing.
+This class can create usage events with or without the enriched metadata fields that are added to the events by the `invenio-stats-dashboard` module, to facilitate testing of the index migration process for those usage events. This class can also be used via the `invenio community-stats usage-events generate` CLI command and its associated helper commands.
+
+```{warning}
+Generated usage events cannot easily be removed without deleting the indices and losing any genuine usage events. It is therefore important not to generate these synthetic events in a production environment.
+```
 
 ### Presentation layer
 
@@ -787,6 +863,7 @@ At the presentation layer, this module provides:
 #### Dashboard templates
 
 Two templates are provided, one for the global dashboard and one for the community dashboard:
+
 - `templates/semantic-ui/invenio_stats_dashboard/stats_dashboard.html` - the global dashboard template
 - `templates/semantic-ui/invenio_stats_dashboard/community_stats_dashboard.html` - the community dashboard template
 
@@ -796,7 +873,7 @@ The templates themselves may be overridden by providing a custom template in the
 
 #### Views and routes
 
-The `invenio_stats_dashboard` (in views/views.py) registers two view functions for the global and community dashboards:
+The `invenio_stats_dashboard` (in `views/views.py`) registers two view functions for the global and community dashboards:
 - the global dashboard view, using the `invenio_stats_dashboard/stats_dashboard.html` template
 - the community dashboard view, using the `invenio_stats_dashboard/community_stats_dashboard.html` template
 
@@ -817,11 +894,22 @@ Ten different queries are configured for this endpoint. Eight of these retrieve 
 - `community-usage-delta`
 - `community-usage-snapshot`
 
-The ninth and tenth queries, `global-stats` and `community-stats`, are composite queries that retrieve the results of the other eight queries and combines them into a single response. Both of these queries use the `CommunityStatsResultsQuery` class. The `global-stats` query calls the `CommunityStatsResultsQuery` class with the `global` community ID and passes along optional `start_date` and `end_date` parameters. The `community-stats` query calls the `CommunityStatsResultsQuery` class with a required `community_id` parameter (the UUID of the community for which the stats are being retrieved) as well as the optional `start_date` and `end_date` parameters.
+The ninth and tenth queries, `global-stats` and `community-stats`, are composite queries that retrieve the results of the other eight queries and combines them into a single response. Both of these queries use the `CommunityStatsResultsQuery` class:
+
+- `global-stats`: calls the `CommunityStatsResultsQuery` class with the `global` community ID and passes along optional `start_date` and `end_date` parameters.
+- `community-stats`: calls the `CommunityStatsResultsQuery` class with a required `community_id` parameter (the UUID of the community for which the stats are being retrieved) as well as the optional `start_date` and `end_date` parameters.
+
+The following parameters are available for all of these queries:
+
+| Parameter | Required | Description |
+|-----------|------|-------------|
+| `start_date` | No | The start date of the period for the desired statistics. Should be formatted as `YYYY-MM-DD`. |
+| `end_date` | No | The end date of the period for the desired statistics. Should be formatted as `YYYY-MM-DD`. |
+| `community_id` | Yes except for the `global-stats` query, which does not allow it | The UUID of the community whose stats are being retrieved. |
 
 These queries can be customized by configuring the `COMMUNITY_STATS_QUERIES` configuration variable.
 
-The usage of these endpoints is described in the [Usage](#usage) section below.
+The use of these endpoints is described in the [Usage](#usage) section below.
 
 ## Setup and Migration
 
@@ -848,13 +936,19 @@ So the full setup process is currently:
 7. Set config variables for normal operation:
 - `COMMUNITY_STATS_ENABLED` = `True`
 - `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` = `True`
-- `STATS_DASHBOARD_MENU_ENABLED` = `True`
+- `STATS_DASHBOARD_MENU_ENABLED` = `True` (if desired)
 8. Set up other configuration and community page templates as desired
 9. Restart the InvenioRDM instance
 
 ### Search index template registration
 
 If the `invenio-stats-dashboard` extension is installed on a new InvenioRDM instance, the `invenio-stats` module will automatically register the extension's search index templates with the OpenSearch domain. But `invenio-stats` does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the `invenio-stats-dashboard` extension will check at application startup to ensure that the extension's search index templates are registered with the OpenSearch domain. If they are not, it registers them with the `invenio-search` module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.
+
+Registration of the expanded index templates for view and download events happens automatically as part of the usage event migration process.
+
+```{note}
+Since the included search index tamplates all use the new-style index templates, you must ensure that STATS_REGISTER_INDEX_TEMPLATES is set to True. This is currently *not* the default for InvenioRDM instances, but it should not interfere with any other packages. The only other index templates currently registered are those from the `invenio-stats` module, which are overridden by the `invenio-stats-dashboard` extension.
+```
 
 ### Initial indexing of community addition events
 
@@ -898,11 +992,17 @@ The service will also check the memory usage of the OpenSearch domain on startin
 
 #### Handling failures
 
-If the reindexing of a particular month fails, the service will leave the original index in place and continue with the next month. It will log a warning and report the failure in the service's output report. The service will try to reindex the month again on the next run.
+If the reindexing of a particular month fails, the service will leave the original index in place and continue with the next month. It will log a warning and report the failure in the service's output report. The service will reset that index's bookmark to the beginning and try to reindex the month again on the next run. Alternately, you may manually retry the migration of a particular month by running the `invenio community-stats usage-events migrate` CLI command with its `--months` option set to the month in question and its `--event-types` option set to the event type in question.
+
+For more information about failed migrations and how to retry them, you can use the `invenio community-stats usage-events status` CLI command.
 
 #### Handling progress across migration runs
 
 If the service hits the maximum number of batches before a monthly index is completely migrated, it will log a warning and report the progress in the service's output report. The service will set a bookmark to record the last processed event id, so that the next reindexing service run can continue from that point. These bookmarks are stored in the `stats-community-events-reindexing` index and are set independently for each monthly index.
+
+If you wish to clear the bookmarks for a particular month, you can use the `invenio community-stats usage-events clear-bookmarks` CLI command with its `--months` option set to the month in question, and its `--event-types` option set to the event type in question, and the `--fresh-start` flag.
+
+To clear the bookmarks for all months, you can use the `invenio community-stats usage-events clear-bookmarks` CLI command.
 
 ### Initial aggregation of historical data
 
@@ -923,33 +1023,375 @@ These default routes are set via the `STATS_DASHBOARD_ROUTES` configuration vari
 
 ### Jinja2 templates
 
-#### Template macro
+### Enabling the global dashboard template
 
-a Jinja2 template macro that can be included in other templates to display an embedded dashboard view:
+A Jinja2 template for the global dashboard, registered as a top-level page template at the global stats dashboard route (`/stats` by default). A top-level menu item is registered for this template by default, but can be disabled by setting the `STATS_DASHBOARD_MENU_ENABLED` configuration variable to `False`. The text and position of the menu item can be configured via config variables. Alternately, a custom function can be provided to register the menu item (See [Configuration](#configuration) below for more information.)
+
+### Enabling the community dashboard template
+
+A Jinja2 template for the community dashboard page content, intended to be used as a sub-page of the community details page. This is registered with the community stats dashboard route (`/communities/<community_id>/stats` by default).
+
+To implement this in your community details page, you can add a menu tab to the community details page template linking to this template route.
+
+### Customizing the layout of your dashboard
+
+The layout and pagination of the stats dashboards is intended to be highly customizable via
+the `STATS_DASHBOARD_LAYOUT` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community` are available) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section.
+
+- Tabs can be specified to group dashboard pages, navigated between using a menu at the side
+- Rows can be specified to group components together, and component widths can be specified with a "width" key.
+- Individual components of the layout are React components that are configurable via the `props` key.
+    - specify, e.g., the title, number of items to display in the view, etc.
+
+```{note}
+The plan is to provide a way to register additional React components via an entry point, so that they can be used in the layout configuration.
+```
+
+```{note}
+We will also be using ReactOverridable to allow overriding of the default React components. This will include the overall dashboard frame layout (with menu, sidebar, and main content areas) as well as individual metrics components.
+```
+
+#### Layout Configuration Structure
+
+The `STATS_DASHBOARD_LAYOUT` configuration follows this structure:
+
+```python
+STATS_DASHBOARD_LAYOUT = {
+    "global": {
+        "tabs": [
+            {
+                "name": "tab_identifier",
+                "label": "Tab Display Name",
+                "icon": "semantic-ui-icon-name",
+                "date_range_phrase": "Date range description",
+                "rows": [
+                    {
+                        "name": "row_identifier",
+                        "components": [
+                            {
+                                "component": "ComponentName",
+                                "width": 16,  # Grid width (1-16)
+                                "props": {
+                                    "title": "Component Title",
+                                    "height": 300,
+                                    "pageSize": 10,
+                                    # ... other component-specific props
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+#### Available Components
+
+The dashboard supports several categories of components:
+
+**Single Statistics Components:**
+
+These are single numerical metrics much like the ones provided at the top of the default record stats display for view and download counts.
+
+Several built-in single-statistic components give numerical counts for some metric during a given period of time. The time period is dictated by the dashboard global date range selector.
+
+- `SingleStatRecordCount` - Number of records added during a period
+- `SingleStatUploaders` - Number of active uploaders during a period
+- `SingleStatDataVolume` - Volume of downloaded data during a period
+- `SingleStatViews` - Number of unique views during a period
+- `SingleStatDownloads` - Number of unique downloads during a period
+- `SingleStatTraffic` - Volume of data downloaded during a period
+
+The other category of built-in single-statistic components give cumulative totals for some metric by a given date. The date is the end point of the range selected in the dashboard global date range selector.
+
+- `SingleStatRecordCountCumulative` - Cumulative total number of records added by a given date
+- `SingleStatUploadersCumulative` - Cumulative total number of unique uploaders by a date
+- `SingleStatDataVolumeCumulative` - Cumulative total volume of downloaded data by a given date
+- `SingleStatViewsCumulative` - Cumulative total number of unique views by a given date
+- `SingleStatDownloadsCumulative` - Cumulative total number of unique downloads by a given date
+- `SingleStatTrafficCumulative` - Cumulative total volume of data downloaded by a given date
+
+Both categories of single-statistic components all inherit from the abstract `SingleStatBox` component, which can be used to construct other single-statistic components.
+
+**Chart Components:**
+
+These are bar or line charts (rendered by Apache ECharts) that show time series data. The time period is dictated by the dashboard global date range selector. The granularity of the data points displayed (day, week, month, quarter, year) is dictated by the dashboard global granularity selector.
+
+The default charts visualize the four different types of aggregation series:
+
+- `ContentStatsChart` - Daily record deltas (additional records, files, uploaders, and data volume during each period)
+- `ContentStatsChartCumulative` - Daily record snapshots (cumulative totals of records, files, uploaders, and data volume as of each date)
+- `TrafficStatsChart` - Usage deltas (additional views, downloads, and data volume each period)
+- `TrafficStatsChartCumulative` - Usage snapshots (cumulative totals of views, downloads, and data volume as of each date)
+
+The "display separately" filter in each one can be configured to allow dynamic display of any breakdown configured for the extension. We could allow only breakdowns by resource type, file type, and funder, for example:
+
+```python
+{
+    "component": "ContentStatsChart",
+    "width": 16,
+    "props": {
+        "height": 300,
+        "title": "Cumulative Content Totals",
+        "display_subcounts": ["by_resource_types", "by_file_types", "by_funders"],
+    },
+}
+```
+
+These all inherit from the abstract `StatsChart` component, which can be used to construct other chart components.
+
+**Multi-Display Components:**
+
+The multi-display components show a single metric broken down by one of the configured subcount types (e.g., top resource types by cumulative record count, top subjects by views during a period, etc.). They display as a box with a title, icon, and controls to switch the visualization type on the fly. The available visualization types are:
+
+- text table
+- pie chart
+- bar chart
+
+The default visualization type, as well as which visualization types are available, can be configured separately for each multi-display component via component props. For example, I could specify in my layout that I want to display the top resource types by cumulative record count, with:
+
+- the pie chart as the default visualization type
+- only the table as an alternate available visualization type (hiding the bar chart option)
+- displaying only the top 10 items
+
+```python
+{
+    "component": "ResourceTypesMultiDisplay",
+    "width": 8,
+    "props": {
+        "title": "Top Resource Types",
+        "pageSize": 10,
+        "available_views": ["bar", "list"],
+        "default_view": "pie",
+    },
+}
+```
+
+If I wish to display just one visualization type, with no selection controls, I can set the `available_views` prop to an array containing only the desired visualization type.
+
+Currently, all of the build-in multi-display components provide counts *for the period selected in the dashboard global date range selector*. We plan to add multi-display components that provide cumulative totals *as of the end of the range selected in the dashboard global date range selector*.
+
+Several of the built-in multi-display components are offer record counts broken down by a metadata field:
+
+- `ResourceTypesMultiDisplay` - Record counts by resource type
+- `SubjectsMultiDisplay` - Record counts by subject
+- `AccessStatusesMultiDisplay` - Record counts by access status
+- `RightsMultiDisplay` - Record counts by rights/licenses
+- `AffiliationsMultiDisplay` - Record counts by affiliation
+- `FundersMultiDisplay` - Record counts by funder
+- `PeriodicalsMultiDisplay` - Record counts by periodical
+- `PublishersMultiDisplay` - Record counts by publisher
+- `TopLanguagesMultiDisplay` - Record counts by language
+- `FileTypesMultiDisplay` - Record counts by file type
+
+Other built-in multi-display components offer top lists of values broken down by view or download event data:
+
+- `TopCountriesMultiDisplay` - Top countries by visits
+- `TopReferrersMultiDisplay` - Top referrer domains
+- `MostDownloadedRecordsMultiDisplay` - Most downloaded records
+- `MostViewedRecordsMultiDisplay` - Most viewed records
+
+**Map Components:**
+
+A map component is also available to display the geographic distribution of record viewers:
+
+- `StatsMap` - Interactive world map showing geographic distribution
+
+This can be added to the layout like this:
+
+```python
+{
+    "component": "StatsMap",
+    "width": 16,
+    "props": {
+        "title": "Top Countries by Visits",
+        "height": 400,
+        "minHeight": 400,
+        "zoom": 1.3,
+        "center": [0, 20],
+    },
+}
+```
+
+The plan is to add an additional map component to display the geographic distribution of downloaders.
+
+#### Component Properties
+
+Each component accepts various properties through the `props` dictionary:
+
+**Common Properties:**
+- `title` - Display title for the component
+- `height` - Component height in pixels
+- `pageSize` - Number of items to display per page (for tables/lists)
+
+**Chart-Specific Properties:**
+- `display_subcounts` - Array of subcount types to display (e.g., `["by_resource_types", "by_subjects"]`)
+
+**Multi-Display Properties:**
+- `available_views` - Array of available view types: `["pie", "bar", "list"]`
+- `default_view` - Default view type to display
+
+**Map-Specific Properties:**
+- `minHeight` - Minimum height for the map
+- `zoom` - Initial zoom level
+- `center` - Map center coordinates `[latitude, longitude]`
+
+### Global UI Configuration
+
+The `STATS_DASHBOARD_UI_CONFIG` variable controls dashboard-wide settings:
+
+```python
+STATS_DASHBOARD_UI_CONFIG = {
+    "global": {
+        "title": "Statistics",
+        "description": "Dashboard description",
+        "maxHistoryYears": 15,
+        "default_granularity": "month",
+        "show_title": True,
+        "show_description": False,
+    },
+    "community": {
+        "title": "Community Statistics",
+        "description": "Community dashboard description",
+        "maxHistoryYears": 15,
+        "default_granularity": "month",
+        "show_title": True,
+        "show_description": False,
+    }
+}
+```
+
+**UI Configuration Parameters:**
+- `title` - Dashboard title
+- `description` - Dashboard description text
+- `maxHistoryYears` - Maximum number of years of historical data that can be selected for view
+- `default_granularity` - Default time granularity (`"day"`, `"week"`, `"month"`) to display in the date range selector when the dashboard is first loaded
+- `show_title` - Whether to display the dashboard title
+- `show_description` - Whether to display the dashboard description
+
+#### Customization Examples
+
+**Example 1: Custom Global Dashboard Layout**
+
+```python
+STATS_DASHBOARD_LAYOUT = {
+    "global": {
+        "tabs": [
+            {
+                "name": "overview",
+                "label": "Overview",
+                "icon": "chart bar",
+                "date_range_phrase": "Data as of",
+                "rows": [
+                    {
+                        "name": "key-metrics",
+                        "components": [
+                            {
+                                "component": "SingleStatRecordCountCumulative",
+                                "width": 8,
+                                "props": {"title": "Total Records", "icon": "file"}
+                            },
+                            {
+                                "component": "SingleStatViewsCumulative",
+                                "width": 8,
+                                "props": {"title": "Total Views", "icon": "eye"}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "content-breakdown",
+                        "components": [
+                            {
+                                "component": "ResourceTypesMultiDisplay",
+                                "width": 16,
+                                "props": {
+                                    "title": "Content by Type",
+                                    "pageSize": 15,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "pie"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+**Example 2: Community Dashboard Layout**
+
+```python
+STATS_DASHBOARD_LAYOUT = {
+    "community": {
+        "tabs": [
+            {
+                "name": "community-stats",
+                "label": "Community Statistics",
+                "icon": "users",
+                "date_range_phrase": "Community activity during",
+                "rows": [
+                    {
+                        "name": "metrics",
+                        "components": [
+                            {
+                                "component": "SingleStatRecordCount",
+                                "width": 16,
+                                "props": {"title": "Records Added", "icon": "plus"}
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+**Example 3: Customizing Component Widths**
+
+Components use a 16-column grid system. You can control layout by adjusting widths:
+
+```python
+"components": [
+    {
+        "component": "SingleStatRecordCount",
+        "width": 4,  # Takes 1/4 of the row
+        "props": {"title": "Records"}
+    },
+    {
+        "component": "SingleStatViews",
+        "width": 8,  # Takes 1/2 of the row
+        "props": {"title": "Views"}
+    },
+    {
+        "component": "SingleStatDownloads",
+        "width": 4,  # Takes 1/4 of the row
+        "props": {"title": "Downloads"}
+    }
+]
+```
+
+### Adding dashboard views to other pages
+
+The default global and community dashboard templates are based on a Jinja2 template macro that can also be included in other templates to display an embedded dashboard view:
 
 ```html
 {%- extends "invenio_theme/page.html" %}
 {%- import "invenio_stats_dashboard/stats_dashboard.html" as stats_dashboard %}
 
 {%- block page_body %}
-  {{ stats_dashboard.stats_dashboard() }}
+  {{ stats_dashboard.stats_dashboard(dashboard_config, community=community) }}
 {%- endblock %}
 ```
 
 The macro takes the following parameters:
 
-- `dashboard_config`: The configuration for the dashboard.
-- `community`: The community to display the dashboard for (if `dashboard_type` is `community`). [Optional. Defaults to `None`].
-
-#### Global dashboard template
-
-A Jinja2 template for the global dashboard, registered as a top-level page template at the global stats dashboard route (`/stats` by default). A top-level menu item is registered for this template by default, but can be disabled by setting the `STATS_DASHBOARD_MENU_ENABLED` configuration variable to `False`. The text and position of the menu item can be configured via config variables. Alternately, a custom function can be provided to register the menu item (See [Configuration](#configuration) below for more information.)
-
-#### Community dashboard template
-
-A Jinja2 template for the community dashboard page content, intended to be used as a sub-page of the community details page. This is registered with the community stats dashboard route (`/communities/<community_id>/stats` by default).
-
-To implement this in your community details page, you can add a menu tab to the community details page template linking to this template route.
+- `dashboard_config`: The configuration for the dashboard. This is a dictionary that maps dashboard types (currently `global` and `community`) to layout configurations.
+- `community`: The community to display the dashboard for (if `dashboard_type` is `community`). [Optional. Defaults to `None`, which will display the global dashboard].
 
 ## Configuration
 
@@ -1216,424 +1658,167 @@ The following table provides a complete reference of all available configuration
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
 
-## Statistics
-
-We want to show the following statistics:
-
-- Number of records in collection
-  - Cumulative total at a given point of time (time series for histogram)
-- Number of new records added
-  - Total during a given period (time series for histogram)
-- Number of record views
-  - Total at a given point of time (time series for histogram)
-  - Total during a given period (time series for histogram)
-- Number of file downloads
-  - Total at a given point of time (time series for histogram)
-  - Total during a given period (times series for histogram)
-- Data traffic (i.e., download volume)
-  - Total at a given point of time (time series for histogram)
-  - Total during a given period (time series for histogram)
-- Data volume in collection
-  - Total at a given point of time (time series for histogram)
-  - Total during a given period (time series for histogram)
-- Number of uploaders
-  - Total at a given point of time (time series for histogram)
-  - Total during a given period (time series for histogram)
-- Top records by views
-  - During a given period
-- Top records by downloads
-  - During a given period
-- Top records by data traffic
-  - During a given period
-- Top users by created records
-- Top languages
-  - During a given period
-- Top visitor countries
-  - During a given period
-- Top referrers
-  - During a given period
-- Top access rights
-  - During a given period
-- Top record types
-  - During a given period
-- Top record rights
-  - During a given period
-- Top funders for created records
-- Top affiliations
-- Top subject headings?
-- Top communities?
-- Top sub-communities?
-
-
-## Search indices for statistics
-
-**Assume that STATS_REGISTER_INDEX_TEMPLATES is set to True.**
 
 ## CLI Commands
 
-The `invenio-stats-dashboard` module provides the following CLI commands for managing statistics infrastructure, migrating events, and monitoring progress. All commands are available as subcommands under the `invenio community-stats` command.
+The `invenio-stats-dashboard` module provides CLI commands for managing statistics infrastructure, migrating events, and monitoring progress. All commands are available as subcommands under the `invenio community-stats` command, organized into command groups.
 
-### Usage Event Migration Commands
+### Core Commands
 
-#### `migrate-events`
+#### `aggregate`
 
-Migrate existing usage (view and download) events to enriched indices with community and record metadata.
+Manually trigger the aggregation of statistics for a community or instance.
 
 ```bash
-invenio community-stats migrate-events [OPTIONS]
+invenio community-stats aggregate [OPTIONS]
 ```
 
 **Options:**
-- `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
-- `--max-batches, -b`: Maximum batches to process per month (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`)
-- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`; max 10,000)
-- `--max-memory-percent`: Maximum memory usage percentage before stopping (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`)
-- `--dry-run`: Show what would be migrated without doing it
-- `--async`: Run reindexing asynchronously using Celery
-- `--delete-old-indices`: Delete old indices after migration (default is to keep them)
+- `--community-id`: The UUID or slug of the community to aggregate stats for. Can be specified multiple times. If not specified, aggregates for all communities and the global instance.
+- `--start-date`: The start date to aggregate stats for (YYYY-MM-DD). Default: creation/publication/adding of the first record.
+- `--end-date`: The end date to aggregate stats for (YYYY-MM-DD). Default: today.
+- `--eager`: Run aggregation eagerly (synchronously) rather than asynchronously.
+- `--update-bookmark`: Update the progress bookmark after aggregation (default: True).
+- `--ignore-bookmark`: Ignore the progress bookmark and force a full re-aggregation.
+- `--verbose`: Show detailed timing information for each aggregator.
 
 **Examples:**
 ```bash
-# Basic migration for all event types
-invenio community-stats migrate-events
+# Aggregate stats for all communities and the global instance
+invenio community-stats aggregate
 
-# Dry run to see what would be migrated
-invenio community-stats migrate-events --dry-run
+# Aggregate stats for specific community
+invenio community-stats aggregate --community-id my-community-id
 
-# Limit batches for testing
-invenio community-stats migrate-events --max-batches 10
+# Aggregate stats for specific date range
+invenio community-stats aggregate --start-date 2024-01-01 --end-date 2024-01-31
 
-# Migrate only view events
-invenio community-stats migrate-events --event-types view
-
-# Run asynchronously with custom settings
-invenio community-stats migrate-events --async --batch-size 500 --max-memory-percent 70
+# Force eager aggregation with verbose output
+invenio community-stats aggregate --eager --ignore-bookmark --verbose
 ```
 
-#### `migrate-events-background`
+#### `read`
 
-Start event migration in the background with full process management capabilities. This command provides the same functionality as `migrate-events` but runs in the background with monitoring and control features.
+Read and display statistics data for a community or instance.
 
 ```bash
-invenio community-stats migrate-events-background [OPTIONS]
+invenio community-stats read [OPTIONS]
 ```
 
 **Options:**
-- `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
-- `--max-batches, -b`: Maximum batches to process per month
-- `--batch-size`: Number of events to process per batch (default: 1000)
-- `--max-memory-percent`: Maximum memory usage percentage before stopping (default: 85)
-- `--delete-old-indices`: Delete old indices after migration
-- `--pid-dir`: Directory to store PID and status files (default: `/tmp`)
+- `--community-id`: The ID of the community to read stats for (default: "global").
+- `--start-date`: The start date to read stats for (default: yesterday).
+- `--end-date`: The end date to read stats for (default: today).
 
 **Examples:**
 ```bash
-# Start background migration for all event types
-invenio community-stats migrate-events-background
+# Read global stats for yesterday
+invenio community-stats read
 
-# Start background migration with custom settings
-invenio community-stats migrate-events-background \
-  --event-types view download \
-  --batch-size 500 \
-  --max-memory-percent 70 \
-  --max-batches 100
-
-# Use custom PID directory
-invenio community-stats migrate-events-background \
-  --pid-dir /var/run/invenio-community-stats
+# Read stats for specific community and date range
+invenio community-stats read --community-id my-community --start-date 2024-01-01 --end-date 2024-01-31
 ```
 
-**Process Management:**
-- Process name: `event-migration`
-- Monitor progress: `invenio community-stats process-status event-migration`
-- Cancel process: `invenio community-stats cancel-process event-migration`
-- View logs: `invenio community-stats process-status event-migration --show-log`
+### Community Events Commands
 
-#### `migrate-month`
+#### `community-events generate`
 
-Migrate a specific monthly download or view event index.
+Generate community add/remove events for all records in the instance or specific records/communities.
 
 ```bash
-invenio community-stats migrate-month [OPTIONS]
+invenio community-stats community-events generate [OPTIONS]
 ```
 
 **Options:**
-- `--event-type, -e`: Event type (view or download) [required]
-- `--month, -m`: Month to migrate (YYYY-MM) [required]
-- `--max-batches, -b`: Maximum batches to process (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`)
-- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`; max 10,000)
-- `--max-memory-percent`: Maximum memory usage percentage (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`)
-- `--delete-old-indices`: Delete old indices after migration
-
-**Examples:**
-```bash
-# Migrate specific month
-invenio community-stats migrate-month --event-type view --month 2024-01
-
-# Resume interrupted migration with batch limit
-invenio community-stats migrate-month --event-type download --month 2024-02 --max-batches 50
-
-# Migrate with custom settings
-invenio community-stats migrate-month --event-type view --month 2024-03 --batch-size 500 --max-memory-percent 70
-```
-
-### Status and Progress Commands
-
-#### `migration-status`
-
-Show the current migration status and progress across all monthly indices.
-
-```bash
-invenio community-stats migration-status
-```
-
-**Output includes:**
-- System health status and memory usage
-- Event estimates for each type (view, download)
-- Monthly indices found with current month indicators
-- Migration bookmarks showing progress for each month
-
-**Example output:**
-```
-Migration Status
-===============
-System Health: ✅ OK
-Memory Usage: 45.2%
-
-Event Estimates:
-  view: 1,234,567 events
-  download: 567,890 events
-  Total: 1,802,457 events
-
-Monthly Indices:
-  view: 24 indices
-    - kcworks-events-stats-record-view-2023-01
-    - kcworks-events-stats-record-view-2023-02
-    - kcworks-events-stats-record-view-2024-01 (current)
-  download: 24 indices
-    - kcworks-events-stats-file-download-2023-01
-    - kcworks-events-stats-file-download-2023-02
-    - kcworks-events-stats-file-download-2024-01 (current)
-
-Migration Bookmarks:
-  view:
-    2023-01: not started
-    2023-02: abc123def456
-    2024-01: xyz789uvw012
-  download:
-    2023-01: not started
-    2023-02: def456ghi789
-    2024-01: uvw012xyz345
-```
-
-#### `show-interrupted`
-
-Show details about interrupted migrations and provide resume commands.
-
-```bash
-invenio community-stats show-interrupted
-```
-
-**Output includes:**
-- List of interrupted migrations by event type and month
-- Source and target indices for each interrupted migration
-- Last processed event ID
-- Resume commands for each interrupted migration
-
-**Example output:**
-```
-Interrupted Migrations
-=====================
-
-⏸️  VIEW 2024-01:
-  Source index: kcworks-events-stats-record-view-2024-01
-  Last processed ID: abc123def456
-  More records available: Yes
-  Resume command:
-    invenio community-stats migrate-month --event-type view --month 2024-01
-
-⏸️  DOWNLOAD 2024-02:
-  Source index: kcworks-events-stats-file-download-2024-02
-  Last processed ID: xyz789uvw012
-  More records available: Yes
-  Resume command:
-    invenio community-stats migrate-month --event-type download --month 2024-02
-```
-
-#### `estimate-migration`
-
-Estimate the total number of events to migrate and provide time estimates.
-
-```bash
-invenio community-stats estimate-migration
-```
-
-**Output includes:**
-- Event counts by type (view, download)
-- Total events to migrate
-- Rough time estimates for completion
-
-**Example output:**
-```
-Event Migration Estimates:
-========================================
-     view:  1,234,567 events
- download:    567,890 events
-----------------------------------------
-    TOTAL:  1,802,457 events
-
-Rough time estimate: 3.2 hours
-(This is a very conservative estimate - actual time may vary significantly)
-```
-
-### Process Management Commands
-
-These commands provide monitoring and control capabilities for background processes started with the `*-background` commands.
-
-#### `process-status`
-
-Monitor the status of a running background process.
-
-```bash
-invenio community-stats process-status <process-name> [OPTIONS]
-```
-
-**Arguments:**
-- `process-name`: Name of the process to monitor (e.g., `event-migration`, `community-event-generation`)
-
-**Options:**
-- `--show-log`: Show recent log output from the process
-- `--log-lines`: Number of log lines to show (default: 20)
-- `--pid-dir`: Directory containing PID and status files (default: `/tmp`)
-
-**Examples:**
-```bash
-# Check basic status
-invenio community-stats process-status event-migration
-
-# Show recent logs
-invenio community-stats process-status event-migration --show-log
-
-# Show more log lines
-invenio community-stats process-status event-migration --show-log --log-lines 50
-```
-
-#### `cancel-process`
-
-Gracefully cancel a running background process.
-
-```bash
-invenio community-stats cancel-process <process-name> [OPTIONS]
-```
-
-**Arguments:**
-- `process-name`: Name of the process to cancel (e.g., `event-migration`, `community-event-generation`)
-
-**Options:**
-- `--timeout`: Seconds to wait for graceful shutdown before force kill (default: 30)
-- `--pid-dir`: Directory containing PID files (default: `/tmp`)
-
-**Examples:**
-```bash
-# Cancel with default timeout
-invenio community-stats cancel-process event-migration
-
-# Cancel with custom timeout
-invenio community-stats cancel-process event-migration --timeout 60
-```
-
-#### `list-processes`
-
-List all currently running background processes.
-
-```bash
-invenio community-stats list-processes [OPTIONS]
-```
-
-**Options:**
-- `--pid-dir`: Directory containing PID files (default: `/tmp`)
-- `--package-only`: Only show processes managed by invenio-stats-dashboard
-
-**Examples:**
-```bash
-# List all processes
-invenio community-stats list-processes
-
-# List only package processes
-invenio community-stats list-processes --package-only
-```
-
-### Community Add/Remove Events Commands
-
-#### `generate-community-events`
-
-Generate community add/remove events for all records in the instance or specific records/communities. This generates randomized synthetic data for testing purposes.
-
-```bash
-invenio community-stats generate-community-events [OPTIONS]
-```
-
-**Options:**
-- `--community-id`: The UUID or slug of the community to generate events for. Can be specified multiple times.
+- `--community-id`: The ID of the community to generate events for. Can be specified multiple times.
 - `--record-ids`: The IDs of the records to generate events for. Can be specified multiple times.
+- `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
+- `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
+- `--show-progress`: Show progress information during processing (default: True).
 
 **Examples:**
 ```bash
 # Generate events for all records
-invenio community-stats generate-community-events
+invenio community-stats community-events generate
 
 # Generate events for specific community
-invenio community-stats generate-community-events --community-id my-community-slug
+invenio community-stats community-events generate --community-id my-community-slug
 
 # Generate events for specific records
-invenio community-stats generate-community-events --record-ids abc123 def456 ghi789
+invenio community-stats community-events generate --record-ids abc123 def456 ghi789
 
-# Generate events for multiple communities
-invenio community-stats generate-community-events --community-id comm1 --community-id comm2
+# Generate events for specific date range
+invenio community-stats community-events generate --start-date 2024-01-01 --end-date 2024-01-31
 ```
 
-#### `generate-community-events-background`
+#### `community-events status`
 
-Start community event generation in the background with full process management capabilities. This command provides the same functionality as `generate-community-events` but runs in the background with monitoring and control features.
+Count records that need community events created and show detailed status information.
 
 ```bash
-invenio community-stats generate-community-events-background [OPTIONS]
+invenio community-stats community-events status [OPTIONS]
 ```
 
 **Options:**
-- `--community-id`: The UUID or slug of the community to generate events for. Can be specified multiple times.
+- `--community-id`: The ID of the community to check. Can be specified multiple times.
+- `--record-ids`: The IDs of the records to check. Can be specified multiple times.
+- `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
+- `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
+- `--community-details`: Show detailed community information.
+
+**Examples:**
+```bash
+# Check status for all communities
+invenio community-stats community-events status
+
+# Check status for specific community with details
+invenio community-stats community-events status --community-id my-community --community-details
+
+# Check status for specific date range
+invenio community-stats community-events status --start-date 2024-01-01 --end-date 2024-01-31
+```
+
+#### `community-events generate-background`
+
+Start community event generation in the background with full process management capabilities.
+
+```bash
+invenio community-stats community-events generate-background [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: The ID of the community to generate events for. Can be specified multiple times.
 - `--record-ids`: The IDs of the records to generate events for. Can be specified multiple times.
+- `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
+- `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
 - `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
 
 **Examples:**
 ```bash
 # Start background event generation for all records
-invenio community-stats generate-community-events-background
+invenio community-stats community-events generate-background
 
 # Start background event generation for specific community
-invenio community-stats generate-community-events-background --community-id my-community-slug
-
-# Start background event generation for specific records
-invenio community-stats generate-community-events-background --record-ids abc123 def456 ghi789
+invenio community-stats community-events generate-background --community-id my-community-slug
 
 # Use custom PID directory
-invenio community-stats generate-community-events-background --pid-dir /var/run/invenio-community-stats
+invenio community-stats community-events generate-background --pid-dir /var/run/invenio-community-stats
 ```
 
 **Process Management:**
 - Process name: `community-event-generation`
-- Monitor progress: `invenio community-stats process-status community-event-generation`
-- Cancel process: `invenio community-stats cancel-process community-event-generation`
-- View logs: `invenio community-stats process-status community-event-generation --show-log`
+- Monitor progress: `invenio community-stats processes status community-event-generation`
+- Cancel process: `invenio community-stats processes cancel community-event-generation`
+- View logs: `invenio community-stats processes status community-event-generation --show-log`
 
-### Usage Event Generation Commands
+### Usage Events Commands
 
-#### `generate-usage-events`
+#### `usage-events generate`
 
 Generate synthetic usage events (view/download) for testing purposes using the UsageEventFactory.
 
 ```bash
-invenio community-stats generate-usage-events [OPTIONS]
+invenio community-stats usage-events generate [OPTIONS]
 ```
 
 **Options:**
@@ -1645,34 +1830,36 @@ invenio community-stats generate-usage-events [OPTIONS]
 - `--max-records`: Maximum number of records to process (default: 0 = all records).
 - `--enrich-events`: Enrich events with additional data matching extended fields.
 - `--dry-run`: Generate events but don't index them.
+- `--yes-i-know`: Skip confirmation prompt.
+- `--use-migrated-indices`: Use migrated indices with -v2.0.0 suffix when they exist.
 
 **Examples:**
 ```bash
 # Generate 5 events per record for all records
-invenio community-stats generate-usage-events
+invenio community-stats usage-events generate
 
 # Generate events for specific date range
-invenio community-stats generate-usage-events \
+invenio community-stats usage-events generate \
   --start-date 2024-01-01 \
   --end-date 2024-01-31 \
   --events-per-record 10
 
 # Dry run to see what would be generated
-invenio community-stats generate-usage-events --dry-run
+invenio community-stats usage-events generate --dry-run
 
 # Generate enriched events for limited records
-invenio community-stats generate-usage-events \
+invenio community-stats usage-events generate \
   --max-records 100 \
   --enrich-events \
   --events-per-record 3
 ```
 
-#### `generate-usage-events-background`
+#### `usage-events generate-background`
 
-Start usage event generation in the background with full process management capabilities. This command provides the same functionality as `generate-usage-events` but runs in the background with monitoring and control features.
+Start usage event generation in the background with full process management capabilities.
 
 ```bash
-invenio community-stats generate-usage-events-background [OPTIONS]
+invenio community-stats usage-events generate-background [OPTIONS]
 ```
 
 **Options:**
@@ -1688,94 +1875,216 @@ invenio community-stats generate-usage-events-background [OPTIONS]
 **Examples:**
 ```bash
 # Start background usage event generation
-invenio community-stats generate-usage-events-background
+invenio community-stats usage-events generate-background
 
 # Start with custom parameters
-invenio community-stats generate-usage-events-background \
+invenio community-stats usage-events generate-background \
   --start-date 2024-01-01 \
   --end-date 2024-01-31 \
   --events-per-record 10 \
   --enrich-events
 
 # Use custom PID directory
-invenio community-stats generate-usage-events-background \
-  --pid-dir /var/run/invenio-community-stats
+invenio community-stats usage-events generate-background --pid-dir /var/run/invenio-community-stats
 ```
 
 **Process Management:**
 - Process name: `usage-event-generation`
-- Monitor progress: `invenio community-stats process-status usage-event-generation`
-- Cancel process: `invenio community-stats cancel-process usage-event-generation`
-- View logs: `invenio community-stats process-status usage-event-generation --show-log`
+- Monitor progress: `invenio community-stats processes status usage-event-generation`
+- Cancel process: `invenio community-stats processes cancel usage-event-generation`
+- View logs: `invenio community-stats processes status usage-event-generation --show-log`
 
-### Statistics Commands
+#### `usage-events migrate`
 
-#### `aggregate-stats`
-
-Manually trigger the asynchronous aggregation of statistics for a community or instance.
+Migrate existing usage (view and download) events to enriched indices with community and record metadata.
 
 ```bash
-invenio community-stats aggregate-stats [OPTIONS]
+invenio community-stats usage-events migrate [OPTIONS]
 ```
 
 **Options:**
-- `--community-id`: The UUID or slug of the community to aggregate stats for. Can also be `global` to aggregate stats for the global instance. If not specified, the aggregation will be done for all communities and the global instance.
-- `--start-date`: The start date to aggregate stats for (default: the creation/publication/adding of the first record in the community/instance)
-- `--end-date`: The end date to aggregate stats for (default: today)
-- `--eager`: Whether to aggregate stats eagerly rather than asynchronously (default: False)
-- `--update-bookmark`: Whether to update the progress bookmark (default: True)
-- `--ignore-bookmark`: Whether to ignore the progress bookmark and force a full re-aggregation (default: False)
+- `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
+- `--max-batches, -b`: Maximum batches to process per month (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`).
+- `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`; max 10,000).
+- `--max-memory-percent`: Maximum memory usage percentage before stopping (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`).
+- `--dry-run`: Show what would be migrated without doing it.
+- `--async`: Run reindexing asynchronously using Celery.
+- `--delete-old-indices`: Delete old indices after migration (default is to keep them).
 
 **Examples:**
 ```bash
-# Aggregate stats for all communities and the global instance
-invenio community-stats aggregate-stats
+# Basic migration for all event types
+invenio community-stats usage-events migrate
 
-# Aggregate stats for specific community
-invenio community-stats aggregate-stats --community-id my-community-id
+# Dry run to see what would be migrated
+invenio community-stats usage-events migrate --dry-run
 
-# Aggregate stats for specific date range
-invenio community-stats aggregate-stats --start-date 2024-01-01 --end-date 2024-01-31
+# Limit batches for testing
+invenio community-stats usage-events migrate --max-batches 10
 
-# Force eager aggregation
-invenio community-stats aggregate-stats --eager --ignore-bookmark
+# Migrate only view events
+invenio community-stats usage-events migrate --event-types view
+
+# Run asynchronously with custom settings
+invenio community-stats usage-events migrate --async --batch-size 500 --max-memory-percent 70
 ```
 
-```{warning}
-Currently this task does not automatically migrate historical view/download events. This needs to be done manually by running the `migrate-events` command before this task is run.
-```
+#### `usage-events migrate-background`
 
-```{note}
-This aggregation task will try to catch up missing community add/remove events, as with the regular scheduled aggregation tasks. It will also observe the aggregators' limits on the number of records to process in a single task run.
-```
-
-```{note}
-Since the Celery task involved employs a lock to prevent concurrent execution, this manual trigger will prevent the scheduled task from running until it is completed.
-```
-
-#### `read-stats`
-
-Read and display statistics data for a community or instance.
+Start event migration in the background with full process management capabilities.
 
 ```bash
-invenio community-stats read-stats [OPTIONS]
+invenio community-stats usage-events migrate-background [OPTIONS]
 ```
 
 **Options:**
-- `--community-id`: The ID of the community to read stats for (default: "global")
-- `--start-date`: The start date to read stats for (default: yesterday)
-- `--end-date`: The end date to read stats for (default: today)
+- `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
+- `--max-batches, -b`: Maximum batches to process per month.
+- `--batch-size`: Number of events to process per batch (default: 1000).
+- `--max-memory-percent`: Maximum memory usage percentage before stopping (default: 85).
+- `--delete-old-indices`: Delete old indices after migration.
+- `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
 
 **Examples:**
 ```bash
-# Read global stats for yesterday
-invenio community-stats read-stats
+# Start background migration for all event types
+invenio community-stats usage-events migrate-background
 
-# Read community stats for specific date range
-invenio community-stats read-stats --community-id my-community-id --start-date 2024-01-01 --end-date 2024-01-31
+# Start background migration with custom settings
+invenio community-stats usage-events migrate-background \
+  --event-types view download \
+  --batch-size 500 \
+  --max-memory-percent 70 \
+  --max-batches 100
 
-# Read global stats for specific date range
-invenio community-stats read-stats --start-date 2024-01-01 --end-date 2024-01-31
+# Use custom PID directory
+invenio community-stats usage-events migrate-background --pid-dir /var/run/invenio-community-stats
 ```
 
-**Note:** This command calls the `read_stats` method on the CommunityStatsService and displays the results using `pprint`.
+**Process Management:**
+- Process name: `event-migration`
+- Monitor progress: `invenio community-stats processes status event-migration`
+- Cancel process: `invenio community-stats processes cancel event-migration`
+- View logs: `invenio community-stats processes status event-migration --show-log`
+
+#### `usage-events status`
+
+Show the current migration status and progress across all monthly indices.
+
+```bash
+invenio community-stats usage-events status [OPTIONS]
+```
+
+**Options:**
+- `--show-bookmarks`: Show detailed bookmark information for each month.
+
+**Examples:**
+```bash
+# Show basic migration status
+invenio community-stats usage-events status
+
+# Show detailed status with bookmarks
+invenio community-stats usage-events status --show-bookmarks
+```
+
+#### `usage-events clear-bookmarks`
+
+Clear migration bookmarks for specific months or all months.
+
+```bash
+invenio community-stats usage-events clear-bookmarks [OPTIONS]
+```
+
+**Options:**
+- `--event-type`: Event type to clear bookmarks for (view, download). Can be specified multiple times.
+- `--months`: Months to clear bookmarks for (YYYY-MM). Can be specified multiple times.
+- `--fresh-start`: Clear all bookmarks and start fresh.
+
+**Examples:**
+```bash
+# Clear bookmarks for all months and event types
+invenio community-stats usage-events clear-bookmarks --fresh-start
+
+# Clear bookmarks for specific month and event type
+invenio community-stats usage-events clear-bookmarks --event-type view --months 2024-01
+
+# Clear bookmarks for multiple months
+invenio community-stats usage-events clear-bookmarks --months 2024-01 --months 2024-02
+```
+
+### Process Management Commands
+
+These commands provide monitoring and control capabilities for background processes started with the `*-background` commands.
+
+#### `processes status`
+
+Monitor the status of a running background process.
+
+```bash
+invenio community-stats processes status <process-name> [OPTIONS]
+```
+
+**Arguments:**
+- `process-name`: Name of the process to monitor (e.g., `event-migration`, `community-event-generation`, `usage-event-generation`).
+
+**Options:**
+- `--show-log`: Show recent log output from the process.
+- `--log-lines`: Number of log lines to show (default: 20).
+- `--pid-dir`: Directory containing PID and status files (default: `/tmp`).
+
+**Examples:**
+```bash
+# Check basic status
+invenio community-stats processes status event-migration
+
+# Show recent logs
+invenio community-stats processes status event-migration --show-log
+
+# Show more log lines
+invenio community-stats processes status event-migration --show-log --log-lines 50
+```
+
+#### `processes cancel`
+
+Gracefully cancel a running background process.
+
+```bash
+invenio community-stats processes cancel <process-name> [OPTIONS]
+```
+
+**Arguments:**
+- `process-name`: Name of the process to cancel (e.g., `event-migration`, `community-event-generation`, `usage-event-generation`).
+
+**Options:**
+- `--timeout`: Seconds to wait for graceful shutdown before force kill (default: 30).
+- `--pid-dir`: Directory containing PID files (default: `/tmp`).
+
+**Examples:**
+```bash
+# Cancel with default timeout
+invenio community-stats processes cancel event-migration
+
+# Cancel with custom timeout
+invenio community-stats processes cancel event-migration --timeout 60
+```
+
+#### `processes list`
+
+List all currently running background processes.
+
+```bash
+invenio community-stats processes list [OPTIONS]
+```
+
+**Options:**
+- `--pid-dir`: Directory containing PID files (default: `/tmp`).
+- `--package-only`: Only show processes managed by invenio-stats-dashboard.
+
+**Examples:**
+```bash
+# List all processes
+invenio community-stats processes list
+
+# List only package processes
+invenio community-stats processes list --package-only
+```

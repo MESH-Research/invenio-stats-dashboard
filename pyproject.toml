@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "invenio-stats-dashboard"
-version = "0.1.0"  # This will be dynamically set from version.py
+version = "0.1.0-alpha1"
 description = "Invenio Stats Dashboard"
 readme = "README.md"
 requires-python = ">=3.12"
