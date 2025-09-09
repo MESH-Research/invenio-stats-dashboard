@@ -267,6 +267,7 @@
 <section id="current-known-issues">
 <h2>Current Known Issues<a class="headerlink" href="#current-known-issues" title="Link to this heading">¶</a></h2>
 <ul class="simple">
+<li><p>client-side transformation of the queried API data is broken while we refactor it to use the configurable subcounts</p></li>
 <li><p>the <code class="docutils literal notranslate"><span class="pre">-background</span></code> versions of CLI commands are working but not creating the correct PID files, so the <code class="docutils literal notranslate"><span class="pre">status</span></code> and <code class="docutils literal notranslate"><span class="pre">cancel</span></code> sub-commands are not working correctly. We need to manage the background processes manually for now. But the process logs are still being captured correctly in the /tmp folder.</p></li>
 <li><p>the record delta aggregator is not working properly when using the publication date as the basis for the aggregation. It is missing records published before the first record was created. This also throws off the record snapshot aggregator when using the publication date as the basis for the aggregation.</p></li>
 <li><p>Not a problem, but need to clarify that the “affiliations” subcounts count the <em>number of creators/contributors</em> to records with the affiliation (i.e., the number of “contributions”), not the <em>number of records</em> with the affiliation.</p></li>
