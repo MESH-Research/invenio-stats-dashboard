@@ -1,0 +1,722 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Configuration" href="configuration.html" /><link rel="prev" title="Setup and Migration" href="setup.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
+        <title>Usage - Invenio Stats Dashboard 0.1.0-alpha1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Invenio Stats Dashboard 0.1.0-alpha1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">Invenio Stats Dashboard 0.1.0-alpha1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Invenio Stats Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Migration</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/blob/main/docs/source/usage.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/edit/main/docs/source/usage.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h1>
+<section id="enabling-the-global-dashboard-template">
+<h2>Enabling the global dashboard template<a class="headerlink" href="#enabling-the-global-dashboard-template" title="Link to this heading">¶</a></h2>
+<p>A Jinja2 template for the global dashboard, registered as a top-level page template at the global stats dashboard route (<code class="docutils literal notranslate"><span class="pre">/stats</span></code> by default). A top-level menu item is registered for this template by default, but can be disabled by setting the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span></code> configuration variable to <code class="docutils literal notranslate"><span class="pre">False</span></code>. The text and position of the menu item can be configured via config variables. Alternately, a custom function can be provided to register the menu item (See <a class="reference internal" href="configuration.html"><span class="doc std std-doc">Configuration</span></a> below for more information.)</p>
+</section>
+<section id="enabling-the-community-dashboard-template">
+<h2>Enabling the community dashboard template<a class="headerlink" href="#enabling-the-community-dashboard-template" title="Link to this heading">¶</a></h2>
+<p>A Jinja2 template for the community dashboard page content, intended to be used as a sub-page of the community details page. This is registered with the community stats dashboard route (<code class="docutils literal notranslate"><span class="pre">/communities/&lt;community_id&gt;/stats</span></code> by default).</p>
+<p>To implement this in your community details page, you can add a menu tab to the community details page template linking to this template route.</p>
+</section>
+<section id="blueprints-and-routes">
+<h2>Blueprints and routes<a class="headerlink" href="#blueprints-and-routes" title="Link to this heading">¶</a></h2>
+<p>The module provides a blueprint <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard.blueprint</span></code> that is registered with the following routes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/stats</span></code> - the global dashboard.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/communities/&lt;community_id&gt;/stats</span></code> - the community dashboard.</p></li>
+</ul>
+<p>These default routes are set via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ROUTES</span></code> configuration variable and can be overridden.</p>
+</section>
+<section id="customizing-the-layout-of-your-dashboard">
+<h2>Customizing the layout of your dashboard<a class="headerlink" href="#customizing-the-layout-of-your-dashboard" title="Link to this heading">¶</a></h2>
+<p>The layout and pagination of the stats dashboards is intended to be highly customizable via
+the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code> are available) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section.</p>
+<ul class="simple">
+<li><p>Tabs can be specified to group dashboard pages, navigated between using a menu at the side</p></li>
+<li><p>Rows can be specified to group components together, and component widths can be specified with a “width” key.</p></li>
+<li><p>Individual components of the layout are React components that are configurable via the <code class="docutils literal notranslate"><span class="pre">props</span></code> key.</p>
+<ul>
+<li><p>specify, e.g., the title, number of items to display in the view, etc.</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The plan is to provide a way to register additional React components via an entry point, so that they can be used in the layout configuration.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We will also be using ReactOverridable to allow overriding of the default React components. This will include the overall dashboard frame layout (with menu, sidebar, and main content areas) as well as individual metrics components.</p>
+</div>
+<section id="layout-configuration-structure">
+<h3>Layout Configuration Structure<a class="headerlink" href="#layout-configuration-structure" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> configuration follows this structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;tab_identifier&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Tab Display Name&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;semantic-ui-icon-name&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;date_range_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;Date range description&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;row_identifier&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span>
+                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ComponentName&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>  <span class="c1"># Grid width (1-16)</span>
+                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Component Title&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+                                    <span class="s2">&quot;pageSize&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                                    <span class="c1"># ... other component-specific props</span>
+                                <span class="p">}</span>
+                            <span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="available-components">
+<h3>Available Components<a class="headerlink" href="#available-components" title="Link to this heading">¶</a></h3>
+<p>The dashboard supports several categories of components:</p>
+<p><strong>Single Statistics Components:</strong></p>
+<p>These are single numerical metrics much like the ones provided at the top of the default record stats display for view and download counts.</p>
+<p>Several built-in single-statistic components give numerical counts for some metric during a given period of time. The time period is dictated by the dashboard global date range selector.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatRecordCount</span></code> - Number of records added during a period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatUploaders</span></code> - Number of active uploaders during a period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatDataVolume</span></code> - Volume of downloaded data during a period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatViews</span></code> - Number of unique views during a period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatDownloads</span></code> - Number of unique downloads during a period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatTraffic</span></code> - Volume of data downloaded during a period</p></li>
+</ul>
+<p>The other category of built-in single-statistic components give cumulative totals for some metric by a given date. The date is the end point of the range selected in the dashboard global date range selector.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatRecordCountCumulative</span></code> - Cumulative total number of records added by a given date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatUploadersCumulative</span></code> - Cumulative total number of unique uploaders by a date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatDataVolumeCumulative</span></code> - Cumulative total volume of downloaded data by a given date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatViewsCumulative</span></code> - Cumulative total number of unique views by a given date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatDownloadsCumulative</span></code> - Cumulative total number of unique downloads by a given date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SingleStatTrafficCumulative</span></code> - Cumulative total volume of data downloaded by a given date</p></li>
+</ul>
+<p>Both categories of single-statistic components all inherit from the abstract <code class="docutils literal notranslate"><span class="pre">SingleStatBox</span></code> component, which can be used to construct other single-statistic components.</p>
+<p><strong>Chart Components:</strong></p>
+<p>These are bar or line charts (rendered by Apache ECharts) that show time series data. The time period is dictated by the dashboard global date range selector. The granularity of the data points displayed (day, week, month, quarter, year) is dictated by the dashboard global granularity selector.</p>
+<p>The default charts visualize the four different types of aggregation series:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ContentStatsChart</span></code> - Daily record deltas (additional records, files, uploaders, and data volume during each period)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ContentStatsChartCumulative</span></code> - Daily record snapshots (cumulative totals of records, files, uploaders, and data volume as of each date)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TrafficStatsChart</span></code> - Usage deltas (additional views, downloads, and data volume each period)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TrafficStatsChartCumulative</span></code> - Usage snapshots (cumulative totals of views, downloads, and data volume as of each date)</p></li>
+</ul>
+<p>The “display separately” filter in each one can be configured to allow dynamic display of any breakdown configured for the extension. We could allow only breakdowns by resource type, file type, and funder, for example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ContentStatsChart&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Cumulative Content Totals&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;display_subcounts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;by_resource_types&quot;</span><span class="p">,</span> <span class="s2">&quot;by_file_types&quot;</span><span class="p">,</span> <span class="s2">&quot;by_funders&quot;</span><span class="p">],</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>These all inherit from the abstract <code class="docutils literal notranslate"><span class="pre">StatsChart</span></code> component, which can be used to construct other chart components.</p>
+<p><strong>Multi-Display Components:</strong></p>
+<p>The multi-display components show a single metric broken down by one of the configured subcount types (e.g., top resource types by cumulative record count, top subjects by views during a period, etc.). They display as a box with a title, icon, and controls to switch the visualization type on the fly. The available visualization types are:</p>
+<ul class="simple">
+<li><p>text table</p></li>
+<li><p>pie chart</p></li>
+<li><p>bar chart</p></li>
+</ul>
+<p>The default visualization type, as well as which visualization types are available, can be configured separately for each multi-display component via component props. For example, I could specify in my layout that I want to display the top resource types by cumulative record count, with:</p>
+<ul class="simple">
+<li><p>the pie chart as the default visualization type</p></li>
+<li><p>only the table as an alternate available visualization type (hiding the bar chart option)</p></li>
+<li><p>displaying only the top 10 items</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ResourceTypesMultiDisplay&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Top Resource Types&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pageSize&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="s2">&quot;available_views&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;default_view&quot;</span><span class="p">:</span> <span class="s2">&quot;pie&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If I wish to display just one visualization type, with no selection controls, I can set the <code class="docutils literal notranslate"><span class="pre">available_views</span></code> prop to an array containing only the desired visualization type.</p>
+<p>Currently, all of the build-in multi-display components provide counts <em>for the period selected in the dashboard global date range selector</em>. We plan to add multi-display components that provide cumulative totals <em>as of the end of the range selected in the dashboard global date range selector</em>.</p>
+<p>Several of the built-in multi-display components are offer record counts broken down by a metadata field:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ResourceTypesMultiDisplay</span></code> - Record counts by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SubjectsMultiDisplay</span></code> - Record counts by subject</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AccessStatusesMultiDisplay</span></code> - Record counts by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RightsMultiDisplay</span></code> - Record counts by rights/licenses</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AffiliationsMultiDisplay</span></code> - Record counts by affiliation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FundersMultiDisplay</span></code> - Record counts by funder</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PeriodicalsMultiDisplay</span></code> - Record counts by periodical</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PublishersMultiDisplay</span></code> - Record counts by publisher</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TopLanguagesMultiDisplay</span></code> - Record counts by language</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FileTypesMultiDisplay</span></code> - Record counts by file type</p></li>
+</ul>
+<p>Other built-in multi-display components offer top lists of values broken down by view or download event data:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TopCountriesMultiDisplay</span></code> - Top countries by visits</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TopReferrersMultiDisplay</span></code> - Top referrer domains</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MostDownloadedRecordsMultiDisplay</span></code> - Most downloaded records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MostViewedRecordsMultiDisplay</span></code> - Most viewed records</p></li>
+</ul>
+<p><strong>Map Components:</strong></p>
+<p>A map component is also available to display the geographic distribution of record viewers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">StatsMap</span></code> - Interactive world map showing geographic distribution</p></li>
+</ul>
+<p>This can be added to the layout like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsMap&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Top Countries by Visits&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="s2">&quot;minHeight&quot;</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="s2">&quot;zoom&quot;</span><span class="p">:</span> <span class="mf">1.3</span><span class="p">,</span>
+        <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The plan is to add an additional map component to display the geographic distribution of downloaders.</p>
+</section>
+<section id="component-properties">
+<h3>Component Properties<a class="headerlink" href="#component-properties" title="Link to this heading">¶</a></h3>
+<p>Each component accepts various properties through the <code class="docutils literal notranslate"><span class="pre">props</span></code> dictionary:</p>
+<p><strong>Common Properties:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code> - Display title for the component</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">height</span></code> - Component height in pixels</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pageSize</span></code> - Number of items to display per page (for tables/lists)</p></li>
+</ul>
+<p><strong>Chart-Specific Properties:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">display_subcounts</span></code> - Array of subcount types to display (e.g., <code class="docutils literal notranslate"><span class="pre">[&quot;by_resource_types&quot;,</span> <span class="pre">&quot;by_subjects&quot;]</span></code>)</p></li>
+</ul>
+<p><strong>Multi-Display Properties:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">available_views</span></code> - Array of available view types: <code class="docutils literal notranslate"><span class="pre">[&quot;pie&quot;,</span> <span class="pre">&quot;bar&quot;,</span> <span class="pre">&quot;list&quot;]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default_view</span></code> - Default view type to display</p></li>
+</ul>
+<p><strong>Map-Specific Properties:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">minHeight</span></code> - Minimum height for the map</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zoom</span></code> - Initial zoom level</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">center</span></code> - Map center coordinates <code class="docutils literal notranslate"><span class="pre">[latitude,</span> <span class="pre">longitude]</span></code></p></li>
+</ul>
+</section>
+</section>
+<section id="global-ui-configuration">
+<h2>Global UI Configuration<a class="headerlink" href="#global-ui-configuration" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code> variable controls dashboard-wide settings:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Statistics&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Dashboard description&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Community Statistics&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Community dashboard description&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>UI Configuration Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code> - Dashboard title</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - Dashboard description text</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxHistoryYears</span></code> - Maximum number of years of historical data that can be selected for view</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default_granularity</span></code> - Default time granularity (<code class="docutils literal notranslate"><span class="pre">&quot;day&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;week&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;month&quot;</span></code>) to display in the date range selector when the dashboard is first loaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_title</span></code> - Whether to display the dashboard title</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_description</span></code> - Whether to display the dashboard description</p></li>
+</ul>
+<section id="customization-examples">
+<h3>Customization Examples<a class="headerlink" href="#customization-examples" title="Link to this heading">¶</a></h3>
+<p><strong>Example 1: Custom Global Dashboard Layout</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;overview&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Overview&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;chart bar&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;date_range_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;Data as of&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;key-metrics&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span>
+                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCountCumulative&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Total Records&quot;</span><span class="p">,</span> <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;file&quot;</span><span class="p">}</span>
+                            <span class="p">},</span>
+                            <span class="p">{</span>
+                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViewsCumulative&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Total Views&quot;</span><span class="p">,</span> <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;eye&quot;</span><span class="p">}</span>
+                            <span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content-breakdown&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span>
+                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ResourceTypesMultiDisplay&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Content by Type&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;pageSize&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+                                    <span class="s2">&quot;available_views&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;pie&quot;</span><span class="p">,</span> <span class="s2">&quot;bar&quot;</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">],</span>
+                                    <span class="s2">&quot;default_view&quot;</span><span class="p">:</span> <span class="s2">&quot;pie&quot;</span>
+                                <span class="p">}</span>
+                            <span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Example 2: Community Dashboard Layout</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;community-stats&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Community Statistics&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;date_range_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;Community activity during&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;metrics&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span>
+                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Records Added&quot;</span><span class="p">,</span> <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;plus&quot;</span><span class="p">}</span>
+                            <span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Example 3: Customizing Component Widths</strong></p>
+<p>Components use a 16-column grid system. You can control layout by adjusting widths:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Takes 1/4 of the row</span>
+        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Records&quot;</span><span class="p">}</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViews&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>  <span class="c1"># Takes 1/2 of the row</span>
+        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Views&quot;</span><span class="p">}</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDownloads&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Takes 1/4 of the row</span>
+        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Downloads&quot;</span><span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="adding-dashboard-views-to-other-pages">
+<h2>Adding dashboard views to other pages<a class="headerlink" href="#adding-dashboard-views-to-other-pages" title="Link to this heading">¶</a></h2>
+<p>The default global and community dashboard templates are based on a Jinja2 template macro that can also be included in other templates to display an embedded dashboard view:</p>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span>{%- extends &quot;invenio_theme/page.html&quot; %}
+{%- import &quot;invenio_stats_dashboard/stats_dashboard.html&quot; as stats_dashboard %}
+
+{%- block page_body %}
+  {{ stats_dashboard.stats_dashboard(dashboard_config, community=community) }}
+{%- endblock %}
+</pre></div>
+</div>
+<p>The macro takes the following parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dashboard_config</span></code>: The configuration for the dashboard. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to layout configurations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community</span></code>: The community to display the dashboard for (if <code class="docutils literal notranslate"><span class="pre">dashboard_type</span></code> is <code class="docutils literal notranslate"><span class="pre">community</span></code>). [Optional. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which will display the global dashboard].</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="configuration.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Configuration</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="setup.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Setup and Migration</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, MESH Research
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MESH-Research/invenio-stats-dashboard" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Usage</a><ul>
+<li><a class="reference internal" href="#enabling-the-global-dashboard-template">Enabling the global dashboard template</a></li>
+<li><a class="reference internal" href="#enabling-the-community-dashboard-template">Enabling the community dashboard template</a></li>
+<li><a class="reference internal" href="#blueprints-and-routes">Blueprints and routes</a></li>
+<li><a class="reference internal" href="#customizing-the-layout-of-your-dashboard">Customizing the layout of your dashboard</a><ul>
+<li><a class="reference internal" href="#layout-configuration-structure">Layout Configuration Structure</a></li>
+<li><a class="reference internal" href="#available-components">Available Components</a></li>
+<li><a class="reference internal" href="#component-properties">Component Properties</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#global-ui-configuration">Global UI Configuration</a><ul>
+<li><a class="reference internal" href="#customization-examples">Customization Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#adding-dashboard-views-to-other-pages">Adding dashboard views to other pages</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=c5ea77a9"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

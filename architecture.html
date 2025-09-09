@@ -1,0 +1,1244 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Setup and Migration" href="setup.html" /><link rel="prev" title="Overview" href="overview.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
+        <title>Architecture - Invenio Stats Dashboard 0.1.0-alpha1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Invenio Stats Dashboard 0.1.0-alpha1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">Invenio Stats Dashboard 0.1.0-alpha1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Invenio Stats Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Migration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/blob/main/docs/source/architecture.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/edit/main/docs/source/architecture.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h1>
+<section id="building-on-the-invenio-stats-module">
+<h2>Building on the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module<a class="headerlink" href="#building-on-the-invenio-stats-module" title="Link to this heading">¶</a></h2>
+<p>Wherever possible, this module uses the infrastructure provided by the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module to store and aggregate the statistics data. The <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module handles:</p>
+<ul class="simple">
+<li><p>registration of new and expanded search index templates (for a new instance only)</p></li>
+<li><p>registration of statistics aggregators via the <code class="docutils literal notranslate"><span class="pre">STATS_AGGREGATIONS</span></code> configuration variable</p>
+<ul>
+<li><p>with completely new aggregator classes that work independently of any event type</p></li>
+</ul>
+</li>
+<li><p>registration of usage (view and download) events via the <code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code> configuration variable</p>
+<ul>
+<li><p>with new event search index templates to include community and record metadata fields in the usage events</p></li>
+<li><p>with new event builder classes to include community and record metadata fields in the usage events</p></li>
+</ul>
+</li>
+<li><p>registration of community and global statistics API responses via the <code class="docutils literal notranslate"><span class="pre">STATS_QUERIES</span></code> configuration variable</p>
+<ul>
+<li><p>using new query classes to build the community and global statistics API responses</p></li>
+</ul>
+</li>
+<li><p>management of the stats API endpoint where the configured queries are exposed</p></li>
+</ul>
+</section>
+<section id="data-layer">
+<h2>Data layer<a class="headerlink" href="#data-layer" title="Link to this heading">¶</a></h2>
+<p>This package provides infrastructure to pre-calculate and store daily aggregated delta and snapshot statistics for each community and the instance as a whole, with subcounts broken down by a configurable list of metadata fields. The data layer includes:</p>
+<ul class="simple">
+<li><p>search indices to store pre-aggregated statistics for communities and the instance as a whole</p></li>
+<li><p>search index to store events for community membership changes</p></li>
+<li><p>expanded usage event (view and download) search index mappings to include community and record metadata fields</p></li>
+<li><p>utility service to migrate existing usage events to the expanded mappings</p></li>
+<li><p>configuration to control which additional metadata fields are added to usage events to allow subcount aggregation by those fields</p></li>
+<li><p>configuration to control which metadata fields are used to provide pre-calculated subcounts in all aggregated statistics</p></li>
+<li><p>scheduled background tasks for hourly aggregation of the statistics</p></li>
+</ul>
+<section id="community-membership-events">
+<h3>Community membership events<a class="headerlink" href="#community-membership-events" title="Link to this heading">¶</a></h3>
+<p>Several aggregations provided by <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> depend on knowing exactly which records are in a community at a given time. These events are stored in the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index. Each addition or removal of a record to/from a community is recorded as an event, along with the record’s creation and publication dates, and deletion status/date. This allows for a more efficient aggregation of the record-based statistics. The inclusion of the creation and publication dates allows for easy aggregation of stats based on when a community’s records were created or published, as well as when they were added to the community.</p>
+<p>Events with a <code class="docutils literal notranslate"><span class="pre">community_id</span></code> of “global” are also used to mark the addition and removal of records to/from the global repository instance. This may seem redundant, but it allows aggregator classes to use the same logic in aggregating community stats and stats for the global instance. These global events are are also especially useful when aggregating statistics based on the record’s publication date (which presents problems for a simple range query from the record index) as well as preserving the correct historical record counts after a record is deleted.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index is configured by the index template at <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_events/os-v2/stats-community-events-v1.0.0.json</span></code>. Each event is shaped like this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;record_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;event_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;add&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;event_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;record_created_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;record_published_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_deleted&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;deleted_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-04&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>There is one index for each year, suffixed like this: <code class="docutils literal notranslate"><span class="pre">stats-community-events-2021</span></code>. The indices are collectively aliased to <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code>.</p>
+</section>
+<section id="enriched-record-usage-events">
+<h3>Enriched record usage events<a class="headerlink" href="#enriched-record-usage-events" title="Link to this heading">¶</a></h3>
+<p>In order to efficiently aggregate usage statistics by community, and in order to provide subcounts based on record metadata fields, the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> module enriches the standard <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> usage events with community and record metadata fields. This is done by overriding the default <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> index templates for the <code class="docutils literal notranslate"><span class="pre">stats-events-record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">stats-events-file-download</span></code> indices.</p>
+<p>The new index templates are identical to the default templates, but add:</p>
+<ul class="simple">
+<li><p>a “community_ids” field with a list of the record’s communities at the time of the event.</p></li>
+<li><p>a set of additional configurable fields containing record metadata to be used for subcount aggregations</p></li>
+</ul>
+<p>By default, the following metadata fields are added to the enriched events:</p>
+<ul class="simple">
+<li><p>“resource_type”</p></li>
+<li><p>“access_status”</p></li>
+<li><p>“languages”</p></li>
+<li><p>“subjects”</p></li>
+<li><p>“publisher”</p></li>
+<li><p>“journal_title”</p></li>
+<li><p>“rights”</p></li>
+<li><p>“funders”</p></li>
+<li><p>“affiliations”</p></li>
+<li><p>“file_types”</p></li>
+<li><p>“periodical”</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The addition of these metadata fields does increase the size of the view and download search indices. Addition of the full set of metadata fields for each record will increase the size of the indices by approximately 100-150%.</p>
+</div>
+<p>The extension also overrides the default <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> event builder classes for view and download events, adding logic to record community and select metadata information to each event document.</p>
+<p>These two changes are sufficient to provide the enriched data for all future usage events. If the InvenioRDM instance has existing legacy view and download events, the extension provides a utility service to migrate the existing indices to the new index template and add the missing community and record metadata fields to the existing events. For more details, see <a class="reference internal" href="#setup-and-migration"><span class="xref myst">Setup and Migration</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The default search index templates provided by the <code class="docutils literal notranslate"><span class="pre">invenio-rdm-records</span></code> package do not specify the number of shards to be used per index. On platforms like AWS, this can result in creation of 5 shard indices per month, which can be problematic for performance and cost. The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> module overrides the default templates to specify a single shard per index by default.</p>
+</div>
+</section>
+<section id="aggregated-statistics">
+<h3>Aggregated statistics<a class="headerlink" href="#aggregated-statistics" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> module provides pre-aggregated daily statistics for each community and the instance as a whole. There are four kinds of pre-aggregations:</p>
+<ol class="arabic simple">
+<li><p><strong>Record deltas</strong>: Daily changes in the number of records and files in the community/instance. These record the changes (additions/and removals) to the contents of a community/instance during a given day, based on the indexed record metadata and community membership events.</p></li>
+<li><p><strong>Record snapshots</strong>: Daily cumulative total counts of records and files in the community/instance as of a given date. These are based on the indexed record metadata and community membership events. They are calculated fresh for each day, rather than being aggregated from the record deltas. This is because some subcounts in the aggregated record deltas (such as by subject heading) include only the day’s top values (e.g., the top 20 subject headings for the day). An accurate snapshot count requires that we include all records, not just the top values.</p></li>
+<li><p><strong>Usage deltas</strong>: Daily counts for the number of views and downloads for records and files in the community/instance. These are based on the indexed usage events.</p></li>
+<li><p><strong>Usage snapshots</strong>: Daily cumulative total counts of views and downloads for records and files in the community/instance as of a given date.</p></li>
+</ol>
+<p>Each aggregation document includes a breakdown of subcounts based on a configurable list of metadata fields. By default, the following metadata fields are used:</p>
+<ul class="simple">
+<li><p>“metadata.resource_type”</p></li>
+<li><p>“access.status”</p></li>
+<li><p>“metadata.languages”</p></li>
+<li><p>“metadata.subjects”</p></li>
+<li><p>“metadata.publisher”</p></li>
+<li><p>“custom_fields.journal:journal.title”</p></li>
+<li><p>“metadata.rights”</p></li>
+<li><p>“metadata.funding.funder”</p></li>
+<li><p>“metadata.creators.affiliations”</p></li>
+<li><p>“metadata.contributors.affiliations”</p></li>
+<li><p>“files.entries.ext”</p></li>
+</ul>
+<p>This allows on-the-fly display and reporting of any aggregated metrics broken down by any of these metadata fields.</p>
+<p>Each aggregation is stored in a separate set of indices, one index per year, with a common alias to facilitate easy searching across all years. Each index includes daily documents with over-arching numbers for the InvenioRDM instance, as well as daily documents for each community. Each daily document includes broken-down subcounts based on record metadata fields such as resource type, access right, language, affiliation, funder, subject, publisher, and periodical.</p>
+<p>With record deltas and record snapshots, there is an additional question about what to consider the “start” of a record’s
+lifetime for the sake of the aggregation. In some cases it may be most useful to consider when records are actually added to a community/instance. But we
+may also want to display a time series of a community’s contents based on when its records were published (the record’s <code class="docutils literal notranslate"><span class="pre">metadata.publication_date</span></code>) or when they were created in the InvenioRDM instance (the record’s <code class="docutils literal notranslate"><span class="pre">created</span></code> date).</p>
+<p>So we aggregate and store three different versions of the record deltas and record snapshots aggregations for each day, based these three different “start” dates. Together with the usage delta and snapshot aggregations, this gives us a total of 8 different stored aggregation documents for each day for each community. These are stored in 8 different sets of search indices, with one index of each type per year. The indices are named like this:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-created-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-published-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-added-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-created-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-published-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-added-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-usage-delta-YYYY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-usage-snapshot-YYYY</span></code></p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The “published” record delta aggregators are not currently working. These require significant extra logic to handle (a) the aggregation of past delta documents prior to the InvenioRDM instance’s first published record and (b) the updating of past snapshot documents when new records are added with a prior publication date.</p>
+</div>
+</section>
+<section id="daily-record-deltas">
+<h3>Daily record deltas<a class="headerlink" href="#daily-record-deltas" title="Link to this heading">¶</a></h3>
+<p>The record delta aggregations track daily changes in the number of records and files in the community/instance. These aggregations are based on the metadata records in the <code class="docutils literal notranslate"><span class="pre">rdm-records-records</span></code> index and the community membership events in the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index.</p>
+<p>Each daily record delta document includes these fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp</span></code> (date): When the aggregation was created</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community_id</span></code> (string): The community identifier (or “global” for the instance as a whole)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">files</span></code> (object): the number of files and data volume added/removed for the day</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">parents</span></code> (object): the number of parent records added/removed for the day, with subcounts for metadata-only parent records and parent records with files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">records</span></code> (object): the number of records added/removed for the day, with subcounts for metadata-only records and records with files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">period_start</span></code> and <code class="docutils literal notranslate"><span class="pre">period_end</span></code> (date): The date range for this delta</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uploaders</span></code> (integer): Number of unique users who uploaded records</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): breakdowns by configurable metadata fields, by default including:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_resource_types</span></code> (array[object]): breakdown by resource type (journal articles, datasets, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> (array[object]): breakdown by access status (open, restricted, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_languages</span></code> (array[object]): breakdown by deposit language (English, French, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_affiliations_contributor</span></code> (array[object]): breakdown by contributor affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_affiliations_creator</span></code> (array[object]): breakdown by creator affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_funders</span></code> (array[object]): breakdown by funding organizations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_subjects</span></code> (array[object]): breakdown by subject classifications</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_publishers</span></code> (array[object]): breakdown by publisher</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_periodicals</span></code> (array[object]): breakdown by journal/periodical</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_file_types</span></code> (array[object]): breakdown by file types (PDF, CSV, etc.)</p></li>
+</ul>
+</li>
+</ul>
+<p>Each of the subcounts is an array of objects with the following fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">label</span></code> (string or object): The readable label for the subcount if one is available (e.g., “open”, {“en”: “English”, “fr”: “French”}, etc.). The type of this field value depends on the type of the readable field provided in the record metadata schema.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">files</span></code> (object): The number of added/removed files and data volume for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">files</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">parents</span></code> (object): The number of added/removed parent records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">parents</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">records</span></code> (object): The number of added/removed records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">records</span></code> object</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each subcount array will include objects for only those subcount values that appear in that day’s added or removed records. For example, if there are no records with the “open” access status on a given day, the <code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> subcount array will not include an object for “open”.</p>
+</div>
+<p>These aggregation documents are stored in a set of annual indices:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-created-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-created</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_records_delta_created/os-v2/stats-community-records-delta-created-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-published-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-published</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_records_delta_published/os-v2/stats-community-records-delta-published-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-added-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-records-delta-added</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_records_delta_added/os-v2/stats-community-records-delta-added-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Each document is shaped like this (the documents for the three different record delta indices have an identical shape, but the counts will differ):</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;period_start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;period_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;uploaders&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;by_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dataset&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dataset&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;research_paper&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Research Paper&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;by_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;by_file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                  </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">              </span><span class="p">},</span>
+<span class="w">              </span><span class="nt">&quot;removed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                  </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="daily-record-snapshots">
+<h3>Daily record snapshots<a class="headerlink" href="#daily-record-snapshots" title="Link to this heading">¶</a></h3>
+<p>The snapshot aggregations provide cumulative totals at specific points in time, showing the total state of the community/instance as of a given date. These aggregations are based on the metadata records in the <code class="docutils literal notranslate"><span class="pre">rdm-records-records</span></code> index and the community membership events in the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index. Each snapshot document includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">community_id</span></code> (string): The community identifier</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code> (date): The date of this snapshot</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp</span></code> (date): When the aggregation was created</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_records</span></code> (object): Total record counts (metadata-only vs with files)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_parents</span></code> (object): Total parent record counts (metadata-only vs with files)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_files</span></code> (object): Total file counts and data volume</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_uploaders</span></code> (integer): Total number of unique uploaders</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes. By default these include:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_access_statuses</span></code> (array[object]): Total number of records by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_file_types</span></code> (array[object]): Total number of records by file type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_rights</span></code> (array[object]): Total number of records by rights</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_languages</span></code> (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_affiliations_contributor</span></code> (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_affiliations_creator</span></code> (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_funders</span></code> (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_periodicals</span></code> (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_publishers</span></code> (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_subjects</span></code> (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+</ul>
+</li>
+</ul>
+<p>The subcount properties are named slightly differently from the delta aggregations. Instead of the <code class="docutils literal notranslate"><span class="pre">by_</span></code> prefix, the subcount properties will be prefixed with either <code class="docutils literal notranslate"><span class="pre">all_</span></code> or <code class="docutils literal notranslate"><span class="pre">top_</span></code>. The <code class="docutils literal notranslate"><span class="pre">all_</span></code> prefix indicates that the subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">all_access_statuses</span></code> subcount will provide a number for all access status values that appear in any record. The <code class="docutils literal notranslate"><span class="pre">top_</span></code> prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">top_affiliations_contributor</span></code> subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
+<p>Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">top_</span></code> subcounts provide the top values over the whole history of the community/instance, even if it does not appear in records added on the snapshot date.</p>
+</div>
+<p>These aggregation documents are stored in the indices:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-created-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-created</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_records_snapshot_created/os-v2/stats-community-records-snapshot-created-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-published-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-published</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_records_snapshot_published/os-v2/stats-community-records-snapshot-published-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-added-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-records-snapshot-added</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_records_snapshot_added/os-v2/stats-community-records-snapshot-added-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Each document is shaped like this (the documents for the three different record snapshot indices have an identical shape, but the counts will differ):</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;snapshot_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;total_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;total_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;total_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;total_uploaders&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;all_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;all_file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PDF&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;removed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;top_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;all_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_affiliations_contributor&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_affiliations_creator&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The subcounts will in practice never be empty after the first few snapshots, since even the “top_” subcounts will include the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
+</div>
+</section>
+<section id="usage-deltas">
+<h3>Usage deltas<a class="headerlink" href="#usage-deltas" title="Link to this heading">¶</a></h3>
+<p>The usage delta aggregations track daily view and download counts for the community/instance as a whole. These aggregations are based on the <code class="docutils literal notranslate"><span class="pre">record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">file-download</span></code> events indexed by the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, which are enriched beforehand with community membership information and selected record metadata. Each usage delta document includes these fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">community_id</span></code> (string): The community identifier</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">period_start</span></code> and <code class="docutils literal notranslate"><span class="pre">period_end</span></code> (date): The date range for this delta</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp</span></code> (date): When the aggregation was created</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">totals</span></code> (object): Overall usage metrics for the day:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): View event statistics</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_events</span></code> (integer): Total number of views</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_parents</span></code> (integer): Total number of unique parent records viewed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_records</span></code> (integer): Total number of unique records viewed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_visitors</span></code> (integer): Total number of unique visitors who viewed the records</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): Download event statistics with data volume</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_events</span></code> (integer): Total number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_volume</span></code> (float): Total data volume of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_files</span></code> (integer): Total number of unique files downloaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_parents</span></code> (integer): Total number of unique parent records downloaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_records</span></code> (integer): Total number of unique records downloaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_visitors</span></code> (integer): Total number of unique visitors</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): Detailed breakdowns by configurable metadata fields, by default including:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> (array[object]): Usage by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_resource_types</span></code> (array[object]): Usage by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_rights</span></code> (array[object]): Usage by rights type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_funders</span></code> (array[object]): Usage by funding organization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_periodicals</span></code> (array[object]): Usage by journal/periodical</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_languages</span></code> (array[object]): Usage by language</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_subjects</span></code> (array[object]): Usage by subject classification</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_publishers</span></code> (array[object]): Usage by publisher</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_affiliations</span></code> (array[object]): Usage by creator/contributor affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_file_types</span></code> (array[object]): Usage by file type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_countries</span></code> (array[object]): Usage by visitor country</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_referrers</span></code> (array[object]): Usage by referrer</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Each of the subcount arrays will include objects for only those subcount values that appear in that day’s view or download events. For example, if no records with the “open” access status are viewed or downloaded on a given day, the <code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> subcount array will not include an object for “open”.</p>
+<p>Each object in the subcount arrays will have the following fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">label</span></code> (string): The label for the subcount (e.g., “Open”, “English”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): The number of views for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">view</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): The number of downloads for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">download</span></code> object</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations by default also include subcounts for visitor country and referrer domain. These too are configurable via the COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The counts for unique visitors, unique views, and unique downloads depend on the deduplication logic in the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, implemented when the <code class="docutils literal notranslate"><span class="pre">record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">file-download</span></code> events are indexed.</p>
+</div>
+<p>These aggregation documents are stored in the indices:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-usage-delta-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-usage-delta</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_usage_delta/os-v2/stats-community-usage-delta-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Each document is shaped like this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;period_start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;period_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;totals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;by_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">          </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;by_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;by_referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="usage-snapshots">
+<h3>Usage snapshots<a class="headerlink" href="#usage-snapshots" title="Link to this heading">¶</a></h3>
+<p>The usage snapshot aggregations provide cumulative view and download totals for each community/instance at the end of each day. These aggregations are based
+on the <code class="docutils literal notranslate"><span class="pre">record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">file-download</span></code> events indexed by the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, which are enriched beforehand with community membership information and selected record metadata. Each usage snapshot
+document includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">community_id</span></code> (string): The community identifier</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code> (date): The date of this snapshot</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp</span></code> (date): When the aggregation was created</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">totals</span></code> (object): Cumulative usage metrics (similar structure to deltas but cumulative)</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): View event statistics</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_events</span></code> (integer): Total number of views</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_parents</span></code> (integer): Total number of unique parent records viewed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_records</span></code> (integer): Total number of unique records viewed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_visitors</span></code> (integer): Total number of unique visitors who viewed the records</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): Download event statistics with data volume</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_events</span></code> (integer): Total number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">total_volume</span></code> (float): Total data volume of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_files</span></code> (integer): Total number of unique files downloaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_parents</span></code> (integer): Total number of unique parent records downloaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_records</span></code> (integer): Total number of unique records downloaded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unique_visitors</span></code> (integer): Total number of unique visitors</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes, by default including:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_access_statuses</span></code> (array[object]): Total number of records by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_file_types</span></code> (array[object]): Total number of records by file type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_rights</span></code> (array[object]): Total number of records by rights type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_languages</span></code> (array[object]): Top N languages, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_affiliations</span></code> (array[object]): Top N contributor affiliations, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_funders</span></code> (array[object]): Top N funders, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_periodicals</span></code> (array[object]): Top N journals/periodicals, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_publishers</span></code> (array[object]): Top N publishers, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_subjects</span></code> (array[object]): Top N subjects, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_countries</span></code> (array[object]): Top N countries, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_referrers</span></code> (array[object]): Top N referrers, calculated both by number of views and number of downloads</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each of the <code class="docutils literal notranslate"><span class="pre">top_</span></code> subcount arrays will include objects for the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT), even if they do not appear in the records added on the snapshot date.</p>
+</div>
+<p>Each object in the <code class="docutils literal notranslate"><span class="pre">all_</span></code> subcount arrays will have the following fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">label</span></code> (string): The label for the subcount (e.g., “Open”, “English”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): The number of views for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">view</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): The number of downloads for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">download</span></code> object</p></li>
+</ul>
+<p>Each object in the <code class="docutils literal notranslate"><span class="pre">top_</span></code> subcount arrays will have the following fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">by_view</span></code> (array[object]): The top N views for the subcount item, each with the fields:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">label</span></code> (string): The label for the subcount (e.g., “Open”, “English”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): The number of views for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">view</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): The number of downloads for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">download</span></code> object</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_download</span></code> (array[object]): The top N downloads for the subcount item, each with the fields:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">label</span></code> (string): The label for the subcount (e.g., “Open”, “English”, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): The number of views for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">view</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): The number of downloads for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">download</span></code> object</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The counts for unique visitors, unique views, and unique downloads depend on the deduplication logic in the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, implemented when the <code class="docutils literal notranslate"><span class="pre">record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">file-download</span></code> events are indexed.</p>
+</div>
+<p>These aggregation documents are stored in the indices:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats-community-usage-snapshot-YYYY</span></code></p>
+<ul>
+<li><p>alias: <code class="docutils literal notranslate"><span class="pre">stats-community-usage-snapshot</span></code></p></li>
+<li><p>index template: <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_usage_snapshot/os-v2/stats-community-usage-snapshot-v1.0.0.json</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Each document is shaped like this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;snapshot_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;totals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;all_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;top_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;all_rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;all_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;by_view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;013v4ng57&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;University of California, Berkeley&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">              </span><span class="p">},</span>
+<span class="w">              </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">],</span>
+<span class="w">          </span><span class="nt">&quot;by_download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;013v4ng58&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;National Science Foundation&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">              </span><span class="p">},</span>
+<span class="w">              </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;top_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;top_referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="search-index-configuration">
+<h3>Search index configuration<a class="headerlink" href="#search-index-configuration" title="Link to this heading">¶</a></h3>
+<p>The indices used for the statistics are managed by index templates that are registered with <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> via the
+aggregation configurations in the <code class="docutils literal notranslate"><span class="pre">STATS_AGGREGATIONS</span></code> configuration variable. In a new InvenioRDM instance, the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module
+ensures that the templates are registered with the OpenSearch domain. and the indices are created automatically when records are first indexed.</p>
+<p>For more information about the index configuration and creation process, see <a class="reference internal" href="#setup-and-migration"><span class="xref myst">Setup and Migration</span></a> below.</p>
+</section>
+</section>
+<section id="service-layer">
+<h2>Service layer<a class="headerlink" href="#service-layer" title="Link to this heading">¶</a></h2>
+<p>At the service layer, this module provides:</p>
+<ul class="simple">
+<li><p>celery tasks to aggregate community and global instance statistics on an hourly schedule</p></li>
+<li><p>service components to record community and global add/remove events</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">CommunityStatsService</span></code> class to facilitate programmatic access to the statistics data (accessed via the <code class="docutils literal notranslate"><span class="pre">current_community_stats_service</span></code> proxy) and handle community event record operations</p></li>
+<li><p>a second <code class="docutils literal notranslate"><span class="pre">EventReindexingService</span></code> class to facilitate migration of the usage event indices (accessed via the <code class="docutils literal notranslate"><span class="pre">current_event_reindexing_service</span></code> proxy)</p></li>
+<li><p>a helper <code class="docutils literal notranslate"><span class="pre">UsageEventFactory</span></code> class to generate synthetic usage events for testing</p></li>
+</ul>
+<p>The celery tasks are also responsible for ensuring that historical data is progressively aggregated and indexed when the extension is first installed. For more information, see <a class="reference internal" href="#setup-and-migration"><span class="xref myst">Setup and Migration</span></a> below.</p>
+<section id="aggregator-classes">
+<h3>Aggregator classes<a class="headerlink" href="#aggregator-classes" title="Link to this heading">¶</a></h3>
+<p>The actual aggregations are performed by a set of aggregator classes registered with the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module via the <code class="docutils literal notranslate"><span class="pre">STATS_AGGREGATIONS</span></code> configuration variable. These classes are:</p>
+<ul class="simple">
+<li><p><strong>CommunityRecordsSnapshotCreatedAggregator</strong>: Creates snapshot aggregations based on record creation dates</p></li>
+<li><p><strong>CommunityRecordsSnapshotAddedAggregator</strong>: Creates snapshot aggregations based on when records were added to communities</p></li>
+<li><p><strong>CommunityRecordsSnapshotPublishedAggregator</strong>: Creates snapshot aggregations based on record publication dates</p></li>
+<li><p><strong>CommunityRecordsDeltaCreatedAggregator</strong>: Creates delta aggregations based on record creation dates</p></li>
+<li><p><strong>CommunityRecordsDeltaAddedAggregator</strong>: Creates delta aggregations based on when records were added to communities</p></li>
+<li><p><strong>CommunityRecordsDeltaPublishedAggregator</strong>: Creates delta aggregations based on record publication dates</p></li>
+<li><p><strong>CommunityUsageSnapshotAggregator</strong>: Creates usage snapshot aggregations for view and download events</p></li>
+<li><p><strong>CommunityUsageDeltaAggregator</strong>: Creates usage delta aggregations for view and download events</p></li>
+</ul>
+<p>One additional aggregator class (<strong>CommunityEventsIndexAggregator</strong>) is registered with the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module to facilitate registration of the index template for the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index. This class does not usually actually perform any aggregation, since those events are created by the service components described below. It is
+only called by the utility service method that sets up the initial indexed events for an existing InvenioRDM
+instance.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The aggregator classes are idempotent, meaning that they can be run multiple times without causing duplicate aggregations. This is achieved first by using the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> bookmarking mechanism to track the progress of the aggregation and begin each aggregation from the last processed date. The aggregator classes also check each time for an existing aggregation document and deleting any that are found for the same date before indexing a new one.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module expects each configured aggregation to correspond to a configured event type. The default aggregator class, along with several available properties of the <code class="docutils literal notranslate"><span class="pre">STATS_AGGREGATIONS</span></code> config objects, are designed with this kind of event-aggregation structure in mind. The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> aggregations, however, are compiling counts based on record metadata or usage events in ways that do not fit this pattern. Hence this package provides aggregator classes that are designed quite differently, although they follow some of the patterns of the default aggregator class (e.g., the use of an <code class="docutils literal notranslate"><span class="pre">agg_iter</span></code> method and the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> bookmarking mechanism). As a result, the <code class="docutils literal notranslate"><span class="pre">STATS_AGGREGATIONS</span></code> config objects for the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> aggregations include less information than what must be provided to the default aggregator class.</p>
+</div>
+</section>
+<section id="scheduled-aggregation-of-statistics">
+<h3>Scheduled aggregation of statistics<a class="headerlink" href="#scheduled-aggregation-of-statistics" title="Link to this heading">¶</a></h3>
+<p>The aggregator classes are run via a celery task, tasks.aggregate_community_record_stats. This task calls the <code class="docutils literal notranslate"><span class="pre">run</span></code> method of the eight aggregator classes in turn. These methods are run sequentially by design, to avoid race conditions, and to avoid overloading the OpenSearch domain with too many concurrent requests. The task is scheduled to run hourly by default, but can be configured via the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span></code> configuration variable. The scheduled tasks can be disabled by setting the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> configuration variable to <code class="docutils literal notranslate"><span class="pre">False</span></code>. (See <a class="reference internal" href="configuration.html"><span class="doc std std-doc">Configuration</span></a> below for more information.)</p>
+</section>
+<section id="aggregation-task-locking-and-catch-up-limits">
+<h3>Aggregation task locking and catch-up limits<a class="headerlink" href="#aggregation-task-locking-and-catch-up-limits" title="Link to this heading">¶</a></h3>
+<p>The background aggregation tasks are designed to be as efficient as possible. With large instances, though, it is theoretically possible that an aggregation task may not complete before the next aggregation task is scheduled to run. To prevent this, a lock prevents a new aggregation tasks from starting until the previous task has completed. In case a scheduled task is not able to acquire the lock, it will log a warning and skip the aggregation. Aggregation will continue normally on the next scheduled run, provided that the lock is not still held by the previous task. This locking mechanism can be disabled or configured via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LOCK_CONFIG</span></code> configuration variable.</p>
+<p>The risk of long-running tasks is mitigated by the use of a catch-up limit. Most long-running tasks would result from the presence of historical data that must be aggregated before the current date’s aggregation can begin. The catch-up limit is set to 365 days by default, but can be configured via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_CATCHUP_INTERVAL</span></code> configuration variable. If the catch-up limit is reached before the current date’s aggregation is complete, the task will exit and continue to catch up on the next scheduled run. See <a class="reference internal" href="#setup-and-migration"><span class="xref myst">Setup and Migration</span></a> below for more information about the catch-up process.</p>
+</section>
+<section id="service-components-for-community-event-tracking">
+<h3>Service components for community event tracking<a class="headerlink" href="#service-components-for-community-event-tracking" title="Link to this heading">¶</a></h3>
+<p>The module provides specialized service components that automatically record community membership changes. These
+components hook into the following service classes and methods:</p>
+<ul class="simple">
+<li><p><strong>CommunityAcceptedEventComponent</strong>: Integrates with the <code class="docutils literal notranslate"><span class="pre">RequestEventsService</span></code> from <code class="docutils literal notranslate"><span class="pre">invenio-requests</span></code> and triggers on the <code class="docutils literal notranslate"><span class="pre">create</span></code> method when community inclusion, submission, or transfer requests are accepted. It automatically creates events in the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index when records are added to communities through the request workflow.</p></li>
+<li><p><strong>RecordCommunityEventComponent</strong>: Integrates with the <code class="docutils literal notranslate"><span class="pre">RDMRecordService</span></code> from <code class="docutils literal notranslate"><span class="pre">invenio-rdm-records</span></code> and provides three key methods:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">publish</span></code>: Called when a record is published, compares the new community membership with the previous published version to determine additions and removals</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete_record</span></code>: Called when a record is deleted, marks all existing community events for that record as deleted</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">restore_record</span></code>: Called when a record is restored, clears the deletion flags from all community events for that record</p></li>
+</ul>
+</li>
+<li><p><strong>RecordCommunityEventTrackingComponent</strong>: Integrates with the <code class="docutils literal notranslate"><span class="pre">RecordCommunitiesService</span></code> from <code class="docutils literal notranslate"><span class="pre">invenio-rdm-records</span></code> and provides methods for direct community membership management:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">add</span></code>: Called when records are added to communities, creates addition events</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bulk_add</span></code>: Called for bulk community additions, processes multiple records at once</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">remove</span></code>: Called when records are removed from communities, creates removal events</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is some redundant overlap between the components for these service components, meaning that in some cases
+the same user action will trigger more than one component. This will <em>not</em> result in duplicate events being created,
+and it is necessary to ensure that all events are caught when community inclusion is changed using any of the
+multiple possible methods.</p>
+</div>
+</section>
+<section id="programmatic-statistics-access-service">
+<h3>Programmatic statistics access service<a class="headerlink" href="#programmatic-statistics-access-service" title="Link to this heading">¶</a></h3>
+<p>The module includes a CommunityStatsService class that provides a programmatic interface to the statistics data, accessed via the <code class="docutils literal notranslate"><span class="pre">current_community_stats_service</span></code> proxy. The class exposes the following public methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">generate_record_community_events</span></code>: Creates community add/remove events for all records in the instance that do not already have events. Can be run via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">community-events</span> <span class="pre">generate</span></code> CLI command.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_stats</span></code>: Manually triggers the aggregation of statistics for a community or instance. Can be run via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">aggregate</span></code> CLI command.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">read_stats</span></code>: Reads the statistics data for a community or instance. Can be run via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">read</span></code> CLI command.</p></li>
+</ul>
+</section>
+<section id="helper-class-for-usage-event-index-migration">
+<h3>Helper class for usage event index migration<a class="headerlink" href="#helper-class-for-usage-event-index-migration" title="Link to this heading">¶</a></h3>
+<p>The module includes an <code class="docutils literal notranslate"><span class="pre">EventReindexingService</span></code> class that can be used to migrate existing usage events to the new index templates, accessed via the <code class="docutils literal notranslate"><span class="pre">current_event_reindexing_service</span></code> proxy. This class can also be used via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">migrate</span></code> CLI command and its associated helper commands.</p>
+</section>
+<section id="utilities-for-generating-testing-data">
+<h3>Utilities for generating testing data<a class="headerlink" href="#utilities-for-generating-testing-data" title="Link to this heading">¶</a></h3>
+<p>The module includes a helper class (<code class="docutils literal notranslate"><span class="pre">UsageEventFactory</span></code>) that can be used to generate synthetic view and download events for testing.
+This class can create usage events with or without the enriched metadata fields that are added to the events by the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> module, to facilitate testing of the index migration process for those usage events. This class can also be used via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">generate</span></code> CLI command and its associated helper commands.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Generated usage events cannot easily be removed without deleting the indices and losing any genuine usage events. It is therefore important not to generate these synthetic events in a production environment.</p>
+</div>
+</section>
+</section>
+<section id="presentation-layer">
+<h2>Presentation layer<a class="headerlink" href="#presentation-layer" title="Link to this heading">¶</a></h2>
+<p>At the presentation layer, this module provides:</p>
+<ul class="simple">
+<li><p>Jinja2 templates and macros to display dynamic and configurable React-based statistics dashboards</p></li>
+<li><p>a Flask blueprint <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard.blueprint</span></code> that registers view functions and routes for the global and community dashboards</p></li>
+<li><p>API queries to retrieve the aggregated statistics data at the <code class="docutils literal notranslate"><span class="pre">/api/stats</span></code> endpoint managed by the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module</p></li>
+</ul>
+<section id="dashboard-templates">
+<h3>Dashboard templates<a class="headerlink" href="#dashboard-templates" title="Link to this heading">¶</a></h3>
+<p>Two templates are provided, one for the global dashboard and one for the community dashboard:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">templates/semantic-ui/invenio_stats_dashboard/stats_dashboard.html</span></code> - the global dashboard template</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">templates/semantic-ui/invenio_stats_dashboard/community_stats_dashboard.html</span></code> - the community dashboard template</p></li>
+</ul>
+<p>Both of these templates are essentially wrappers around the <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard/macros/stats_dashboard_macro.html</span></code> macro, which is used to display the dashboard content.</p>
+<p>The templates themselves may be overridden by providing a custom template in the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_TEMPLATES</span></code> configuration variable.</p>
+</section>
+<section id="views-and-routes">
+<h3>Views and routes<a class="headerlink" href="#views-and-routes" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard</span></code> (in <code class="docutils literal notranslate"><span class="pre">views/views.py</span></code>) registers two view functions for the global and community dashboards:</p>
+<ul class="simple">
+<li><p>the global dashboard view, using the <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard/stats_dashboard.html</span></code> template</p></li>
+<li><p>the community dashboard view, using the <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard/community_stats_dashboard.html</span></code> template</p></li>
+</ul>
+<p>By default, the global dashboard is registered with the <code class="docutils literal notranslate"><span class="pre">/stats</span></code> route, and the community dashboard is registered with the <code class="docutils literal notranslate"><span class="pre">/communities/&lt;community_id&gt;/stats</span></code> route. These routes can be overridden via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ROUTES</span></code> configuration variable.</p>
+</section>
+<section id="api-queries">
+<h3>API queries<a class="headerlink" href="#api-queries" title="Link to this heading">¶</a></h3>
+<p>The module exposes the aggregated stats at the <code class="docutils literal notranslate"><span class="pre">/api/stats</span></code> endpoint managed by the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module by adding configured queries to the <code class="docutils literal notranslate"><span class="pre">STATS_QUERIES</span></code> configuration variable.</p>
+<p>Ten different queries are configured for this endpoint. Eight of these retrieve aggregated statistics from one of the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> aggregation indices:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-delta-created</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-delta-published</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-delta-added</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-snapshot-created</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-snapshot-added</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-snapshot-published</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-usage-delta</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-usage-snapshot</span></code></p></li>
+</ul>
+<p>The ninth and tenth queries, <code class="docutils literal notranslate"><span class="pre">global-stats</span></code> and <code class="docutils literal notranslate"><span class="pre">community-stats</span></code>, are composite queries that retrieve the results of the other eight queries and combines them into a single response. Both of these queries use the <code class="docutils literal notranslate"><span class="pre">CommunityStatsResultsQuery</span></code> class:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">global-stats</span></code>: calls the <code class="docutils literal notranslate"><span class="pre">CommunityStatsResultsQuery</span></code> class with the <code class="docutils literal notranslate"><span class="pre">global</span></code> community ID and passes along optional <code class="docutils literal notranslate"><span class="pre">start_date</span></code> and <code class="docutils literal notranslate"><span class="pre">end_date</span></code> parameters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-stats</span></code>: calls the <code class="docutils literal notranslate"><span class="pre">CommunityStatsResultsQuery</span></code> class with a required <code class="docutils literal notranslate"><span class="pre">community_id</span></code> parameter (the UUID of the community for which the stats are being retrieved) as well as the optional <code class="docutils literal notranslate"><span class="pre">start_date</span></code> and <code class="docutils literal notranslate"><span class="pre">end_date</span></code> parameters.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="setup.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Setup and Migration</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="overview.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Overview</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, MESH Research
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MESH-Research/invenio-stats-dashboard" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Architecture</a><ul>
+<li><a class="reference internal" href="#building-on-the-invenio-stats-module">Building on the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module</a></li>
+<li><a class="reference internal" href="#data-layer">Data layer</a><ul>
+<li><a class="reference internal" href="#community-membership-events">Community membership events</a></li>
+<li><a class="reference internal" href="#enriched-record-usage-events">Enriched record usage events</a></li>
+<li><a class="reference internal" href="#aggregated-statistics">Aggregated statistics</a></li>
+<li><a class="reference internal" href="#daily-record-deltas">Daily record deltas</a></li>
+<li><a class="reference internal" href="#daily-record-snapshots">Daily record snapshots</a></li>
+<li><a class="reference internal" href="#usage-deltas">Usage deltas</a></li>
+<li><a class="reference internal" href="#usage-snapshots">Usage snapshots</a></li>
+<li><a class="reference internal" href="#search-index-configuration">Search index configuration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#service-layer">Service layer</a><ul>
+<li><a class="reference internal" href="#aggregator-classes">Aggregator classes</a></li>
+<li><a class="reference internal" href="#scheduled-aggregation-of-statistics">Scheduled aggregation of statistics</a></li>
+<li><a class="reference internal" href="#aggregation-task-locking-and-catch-up-limits">Aggregation task locking and catch-up limits</a></li>
+<li><a class="reference internal" href="#service-components-for-community-event-tracking">Service components for community event tracking</a></li>
+<li><a class="reference internal" href="#programmatic-statistics-access-service">Programmatic statistics access service</a></li>
+<li><a class="reference internal" href="#helper-class-for-usage-event-index-migration">Helper class for usage event index migration</a></li>
+<li><a class="reference internal" href="#utilities-for-generating-testing-data">Utilities for generating testing data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#presentation-layer">Presentation layer</a><ul>
+<li><a class="reference internal" href="#dashboard-templates">Dashboard templates</a></li>
+<li><a class="reference internal" href="#views-and-routes">Views and routes</a></li>
+<li><a class="reference internal" href="#api-queries">API queries</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=c5ea77a9"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

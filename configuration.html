@@ -1,0 +1,809 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="CLI Commands" href="cli.html" /><link rel="prev" title="Usage" href="usage.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
+        <title>Configuration - Invenio Stats Dashboard 0.1.0-alpha1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+<div class="announcement">
+  <aside class="announcement-content">
+     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+  </aside>
+</div>
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Invenio Stats Dashboard 0.1.0-alpha1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">Invenio Stats Dashboard 0.1.0-alpha1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Invenio Stats Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Migration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/blob/main/docs/source/configuration.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/edit/main/docs/source/configuration.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h1>
+<section id="configuration-overrides">
+<h2>Configuration Overrides<a class="headerlink" href="#configuration-overrides" title="Link to this heading">¶</a></h2>
+<p>The default configuration values are defined in the module’s <code class="docutils literal notranslate"><span class="pre">config.py</span></code> file. These defaults can be overridden in the top-level <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file of
+an InvenioRDM instance or as environment variables.</p>
+</section>
+<section id="module-enable-disable">
+<h2>Module Enable/Disable<a class="headerlink" href="#module-enable-disable" title="Link to this heading">¶</a></h2>
+<p>The entire community stats dashboard module can be enabled or disabled using the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration variable:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Disable the module completely</span>
+<span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>When disabled:</p>
+<ul class="simple">
+<li><p><strong>Scheduled tasks will not run</strong>: No automatic aggregation or migration tasks</p></li>
+<li><p><strong>CLI commands will fail</strong>: All commands will show an error message</p></li>
+<li><p><strong>Services will not be initialized</strong>: No event tracking or statistics services</p></li>
+<li><p><strong>Menus will not be registered</strong>: No dashboard menu items</p></li>
+<li><p><strong>Components will not be added</strong>: No event tracking components</p></li>
+</ul>
+<p><strong>Note</strong>: This is a global on/off switch. When disabled, the module will not modify the instance in any way.</p>
+</section>
+<section id="scheduled-tasks-enable-disable">
+<h2>Scheduled Tasks Enable/Disable<a class="headerlink" href="#scheduled-tasks-enable-disable" title="Link to this heading">¶</a></h2>
+<p>Scheduled aggregation tasks can be controlled separately using the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> configuration variable:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable the module but disable scheduled tasks</span>
+<span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>When scheduled tasks are disabled:</p>
+<ul class="simple">
+<li><p><strong>Scheduled aggregation tasks will not run</strong>: No automatic daily/weekly aggregation</p></li>
+<li><p><strong>CLI aggregation commands will fail</strong>: <code class="docutils literal notranslate"><span class="pre">aggregate-stats</span></code> command will show an error</p></li>
+<li><p><strong>Manual aggregation still works</strong>: You can still run aggregation manually via Celery tasks</p></li>
+<li><p><strong>All other functionality remains</strong>: Event tracking, migration, and other features work normally</p></li>
+</ul>
+<p>This allows you to enable the module for manual operations while preventing automatic background tasks.</p>
+</section>
+<section id="view-download-event-migration">
+<h2>View/Download event migration<a class="headerlink" href="#view-download-event-migration" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables control the default behavior of migration commands:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_REINDEXING_MAX_BATCHES</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Maximum number of batches to process per month</span>
+<span class="n">STATS_DASHBOARD_REINDEXING_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Number of events to process per batch</span>
+<span class="n">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span> <span class="o">=</span> <span class="mi">75</span>  <span class="c1"># Maximum memory usage percentage before stopping</span>
+</pre></div>
+</div>
+<p>These defaults can be overridden using the corresponding CLI options when running the <code class="docutils literal notranslate"><span class="pre">migrate-events</span></code> command.</p>
+</section>
+<section id="task-scheduling-and-aggregation">
+<h2>Task scheduling and aggregation<a class="headerlink" href="#task-scheduling-and-aggregation" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables control the scheduling and behavior of aggregation tasks:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
+
+<span class="n">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;Celery beat schedule for aggregation tasks.&quot;&quot;&quot;</span>
+
+<span class="n">COMMUNITY_STATS_CATCHUP_INTERVAL</span> <span class="o">=</span> <span class="mi">365</span>
+<span class="sd">&quot;&quot;&quot;Maximum number of days to catch up when aggregating historical data.&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="aggregation-task-locking">
+<h2>Aggregation task locking<a class="headerlink" href="#aggregation-task-locking" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables control the locking mechanism for the aggregation task:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LOCK_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable distributed locking</span>
+    <span class="s2">&quot;lock_timeout&quot;</span><span class="p">:</span> <span class="mi">86400</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (24 hours)</span>
+    <span class="s2">&quot;lock_name&quot;</span><span class="p">:</span> <span class="s2">&quot;community_stats_aggregation&quot;</span><span class="p">,</span>  <span class="c1"># Lock name</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="default-range-options">
+<h2>Default range options<a class="headerlink" href="#default-range-options" title="Link to this heading">¶</a></h2>
+<p>The following configuration variable controls the default date range options for the dashboard. The keys represent the
+available granularity levels for the date range selector and cannot be changed. The values represent the default date
+range for each granularity level.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;day&quot;</span><span class="p">:</span> <span class="s2">&quot;30days&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;week&quot;</span><span class="p">:</span> <span class="s2">&quot;12weeks&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;month&quot;</span><span class="p">:</span> <span class="s2">&quot;12months&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;quarter&quot;</span><span class="p">:</span> <span class="s2">&quot;4quarters&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;year&quot;</span><span class="p">:</span> <span class="s2">&quot;5years&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="menu-configuration">
+<h2>Menu configuration<a class="headerlink" href="#menu-configuration" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables control the menu integration for the global dashboard:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="sd">&quot;&quot;&quot;Enable or disable the stats menu item.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;Text for the stats menu item.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_MENU_ORDER</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="sd">&quot;&quot;&quot;Order of the stats menu item in the menu.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_MENU_ENDPOINT</span> <span class="o">=</span> <span class="s2">&quot;invenio_stats_dashboard.global_stats_dashboard&quot;</span>
+<span class="sd">&quot;&quot;&quot;Endpoint for the stats menu item.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="sd">&quot;&quot;&quot;Custom function to register the menu item. If None, uses default registration.</span>
+<span class="sd">Should be a callable that takes the Flask app as its only argument.&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="dashboard-layout-and-components">
+<h2>Dashboard layout and components<a class="headerlink" href="#dashboard-layout-and-components" title="Link to this heading">¶</a></h2>
+<p>The layout and components for the dashboard are configured via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a “width” key.</p>
+<p>For example, the default global layout configuration is:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}],</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                        <span class="p">],</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;charts&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsChart&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                        <span class="p">],</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;tables&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ResourceTypesTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;AccessStatusTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;RightsTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;AffiliationsTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                        <span class="p">],</span>
+                    <span class="p">},</span>
+                <span class="p">],</span>
+            <span class="p">},</span>
+        <span class="p">],</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If no layout configuration is provided for a dashboard type, the default “global” layout configuration will be used.</p>
+<p>Any additional key/value pairs in the dictionary for a component will be passed to the component class as additional props. This allows for some customization of the component without having to subclass and override the component class.</p>
+<p>The component labels used for the layout configuration are defined in the <code class="docutils literal notranslate"><span class="pre">components_map.js</span></code> file, where they are mapped to the component classes.</p>
+</section>
+<section id="routes">
+<h2>Routes<a class="headerlink" href="#routes" title="Link to this heading">¶</a></h2>
+<p>The routes for the dashboard are defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ROUTES</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to route strings.</p>
+<p>For example, the default routes are:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_ROUTES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="s2">&quot;/stats&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="s2">&quot;/communities/&lt;community_id&gt;/stats&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="templates">
+<h2>Templates<a class="headerlink" href="#templates" title="Link to this heading">¶</a></h2>
+<p>The templates for the dashboard are defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_TEMPLATES</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to template strings.</p>
+<p>For example, the default templates are:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_TEMPLATES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;macro&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard/macros/stats_dashboard_macro.html&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard/stats_dashboard.html&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard/community_stats_dashboard.html&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="ui-configuration">
+<h2>UI Configuration<a class="headerlink" href="#ui-configuration" title="Link to this heading">¶</a></h2>
+<p>The UI configuration for the dashboard is defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to a dictionary of configuration options.</p>
+<p>For example, the default UI configuration is:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the global stats dashboard.&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the community stats dashboard.&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="title-and-description-display">
+<h3>Title and description display<a class="headerlink" href="#title-and-description-display" title="Link to this heading">¶</a></h3>
+<p>The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">show_title</span></code> and <code class="docutils literal notranslate"><span class="pre">show_description</span></code> options can be used to control whether the title and description are displayed for the global and community dashboards.</p>
+</section>
+</section>
+<section id="subcount-configuration">
+<h2>Subcount Configuration<a class="headerlink" href="#subcount-configuration" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables control how subcount breakdowns are generated and displayed:</p>
+<section id="community-stats-top-subcount-limit">
+<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code><a class="headerlink" href="#community-stats-top-subcount-limit" title="Link to this heading">¶</a></h3>
+<p>This variable controls the maximum number of items returned in subcount breakdowns (e.g., “Top 20 Resource Types”). This helps prevent overwhelming the UI with too many items and improves performance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span> <span class="o">=</span> <span class="mi">20</span>
+</pre></div>
+</div>
+</section>
+<section id="community-stats-subcount-configs">
+<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code><a class="headerlink" href="#community-stats-subcount-configs" title="Link to this heading">¶</a></h3>
+<p>This variable defines the configuration for different subcount breakdown types, including field mappings and display options.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;by_resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Resource Type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;display_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;by_subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;display_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="c1"># ... other subcount configurations</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="stats-dashboard-ui-subcounts">
+<h3><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code><a class="headerlink" href="#stats-dashboard-ui-subcounts" title="Link to this heading">¶</a></h3>
+<p>This variable controls which subcount breakdowns are available in the UI and how they are displayed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;by_resource_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_subjects&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_languages&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_rights&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_funders&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_affiliations&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;combine&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;by_affiliations_creator&quot;</span><span class="p">,</span> <span class="s2">&quot;by_affiliations_contributor&quot;</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;by_countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_file_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;by_access_statuses&quot;</span><span class="p">:</span> <span class="p">{},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="test-data-mode">
+<h2>Test Data Mode<a class="headerlink" href="#test-data-mode" title="Link to this heading">¶</a></h2>
+<section id="stats-dashboard-use-test-data">
+<h3><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_USE_TEST_DATA</span></code><a class="headerlink" href="#stats-dashboard-use-test-data" title="Link to this heading">¶</a></h3>
+<p>This variable enables test data mode for development and testing purposes. When enabled, the dashboard will use synthetic data instead of making API calls to the statistics service.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_USE_TEST_DATA</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p><strong>Note</strong>: This should be set to <code class="docutils literal notranslate"><span class="pre">False</span></code> in production environments to ensure real statistics data is displayed.</p>
+</section>
+</section>
+<section id="event-processing-configuration">
+<h2>Event Processing Configuration<a class="headerlink" href="#event-processing-configuration" title="Link to this heading">¶</a></h2>
+<section id="stats-events">
+<h3><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code><a class="headerlink" href="#stats-events" title="Link to this heading">¶</a></h3>
+<p>This variable defines the event types and their configurations for statistics processing. It controls which events are tracked and how they are processed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_EVENTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;file-download&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_robots&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_machines&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.anonymize_user&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;record-view&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_robots&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_machines&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.anonymize_user&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="auto-generated-configuration">
+<h2>Auto-Generated Configuration<a class="headerlink" href="#auto-generated-configuration" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables are automatically generated by the module and typically do not need manual configuration:</p>
+<section id="community-stats-aggregations">
+<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_AGGREGATIONS</span></code><a class="headerlink" href="#community-stats-aggregations" title="Link to this heading">¶</a></h3>
+<p>This variable contains the aggregation configurations for all statistics aggregators. It is automatically populated by the <code class="docutils literal notranslate"><span class="pre">register_aggregations()</span></code> function and includes configurations for record counts, usage statistics, and other metrics.</p>
+</section>
+<section id="community-stats-queries">
+<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_QUERIES</span></code><a class="headerlink" href="#community-stats-queries" title="Link to this heading">¶</a></h3>
+<p>This variable contains the query configurations for accessing statistics data. It is automatically populated and includes configurations for different types of statistics queries.</p>
+</section>
+</section>
+<section id="configuration-reference">
+<h2>Configuration Reference<a class="headerlink" href="#configuration-reference" title="Link to this heading">¶</a></h2>
+<p>The following table provides a complete reference of all available configuration variables:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Enable/disable the entire module</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Enable/disable scheduled aggregation tasks</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Celery beat schedule for aggregation tasks</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CATCHUP_INTERVAL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">365</span></code></p></td>
+<td><p>Maximum days to catch up when aggregating historical data</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_AGGREGATIONS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Aggregation configurations (auto-generated)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_QUERIES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Query configurations (auto-generated)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p>Maximum number of items to return in subcount breakdowns</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Configuration for subcount breakdowns and field mappings</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>UI subcount configuration for different breakdown types</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LOCK_CONFIG</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Distributed locking configuration for aggregation tasks</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_TEMPLATES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Template paths for dashboard views</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ROUTES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>URL routes for dashboard pages</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>UI configuration for dashboard appearance and behavior</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Default date range options for different granularities</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Dashboard layout and component configuration</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Enable/disable menu integration</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_TEXT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_(&quot;Statistics&quot;)</span></code></p></td>
+<td><p>Menu item text</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ORDER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Menu item order</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENDPOINT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;invenio_stats_dashboard.global_stats_dashboard&quot;</span></code></p></td>
+<td><p>Menu item endpoint</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Custom menu registration function</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_USE_TEST_DATA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Enable/disable test data mode for development</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_MAX_BATCHES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1000</span></code></p></td>
+<td><p>Maximum batches per month for migration</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_BATCH_SIZE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">5000</span></code></p></td>
+<td><p>Events per batch for migration. <strong>Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">85</span></code></p></td>
+<td><p>Maximum memory usage percentage before stopping migration</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Event type configurations for statistics processing</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Note</strong>: Variables marked with <code class="docutils literal notranslate"><span class="pre">{...}</span></code> contain complex configuration objects that are documented in detail in the sections above.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="cli.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">CLI Commands</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="usage.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Usage</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, MESH Research
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MESH-Research/invenio-stats-dashboard" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Configuration</a><ul>
+<li><a class="reference internal" href="#configuration-overrides">Configuration Overrides</a></li>
+<li><a class="reference internal" href="#module-enable-disable">Module Enable/Disable</a></li>
+<li><a class="reference internal" href="#scheduled-tasks-enable-disable">Scheduled Tasks Enable/Disable</a></li>
+<li><a class="reference internal" href="#view-download-event-migration">View/Download event migration</a></li>
+<li><a class="reference internal" href="#task-scheduling-and-aggregation">Task scheduling and aggregation</a></li>
+<li><a class="reference internal" href="#aggregation-task-locking">Aggregation task locking</a></li>
+<li><a class="reference internal" href="#default-range-options">Default range options</a></li>
+<li><a class="reference internal" href="#menu-configuration">Menu configuration</a></li>
+<li><a class="reference internal" href="#dashboard-layout-and-components">Dashboard layout and components</a></li>
+<li><a class="reference internal" href="#routes">Routes</a></li>
+<li><a class="reference internal" href="#templates">Templates</a></li>
+<li><a class="reference internal" href="#ui-configuration">UI Configuration</a><ul>
+<li><a class="reference internal" href="#title-and-description-display">Title and description display</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#subcount-configuration">Subcount Configuration</a><ul>
+<li><a class="reference internal" href="#community-stats-top-subcount-limit"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code></a></li>
+<li><a class="reference internal" href="#community-stats-subcount-configs"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code></a></li>
+<li><a class="reference internal" href="#stats-dashboard-ui-subcounts"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#test-data-mode">Test Data Mode</a><ul>
+<li><a class="reference internal" href="#stats-dashboard-use-test-data"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_USE_TEST_DATA</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#event-processing-configuration">Event Processing Configuration</a><ul>
+<li><a class="reference internal" href="#stats-events"><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#auto-generated-configuration">Auto-Generated Configuration</a><ul>
+<li><a class="reference internal" href="#community-stats-aggregations"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_AGGREGATIONS</span></code></a></li>
+<li><a class="reference internal" href="#community-stats-queries"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_QUERIES</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#configuration-reference">Configuration Reference</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=c5ea77a9"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>
