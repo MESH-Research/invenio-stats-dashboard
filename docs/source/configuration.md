@@ -1,0 +1,371 @@
+## Configuration
+
+### Configuration Overrides
+
+The default configuration values are defined in the module's `config.py` file. These defaults can be overridden in the top-level `invenio.cfg` file of
+an InvenioRDM instance or as environment variables.
+
+### Module Enable/Disable
+
+The entire community stats dashboard module can be enabled or disabled using the `COMMUNITY_STATS_ENABLED` configuration variable:
+
+```python
+# Disable the module completely
+COMMUNITY_STATS_ENABLED = False
+```
+
+When disabled:
+- **Scheduled tasks will not run**: No automatic aggregation or migration tasks
+- **CLI commands will fail**: All commands will show an error message
+- **Services will not be initialized**: No event tracking or statistics services
+- **Menus will not be registered**: No dashboard menu items
+- **Components will not be added**: No event tracking components
+
+**Note**: This is a global on/off switch. When disabled, the module will not modify the instance in any way.
+
+### Scheduled Tasks Enable/Disable
+
+Scheduled aggregation tasks can be controlled separately using the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration variable:
+
+```python
+# Enable the module but disable scheduled tasks
+COMMUNITY_STATS_ENABLED = True
+COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
+```
+
+When scheduled tasks are disabled:
+- **Scheduled aggregation tasks will not run**: No automatic daily/weekly aggregation
+- **CLI aggregation commands will fail**: `aggregate-stats` command will show an error
+- **Manual aggregation still works**: You can still run aggregation manually via Celery tasks
+- **All other functionality remains**: Event tracking, migration, and other features work normally
+
+This allows you to enable the module for manual operations while preventing automatic background tasks.
+
+### View/Download event migration
+
+The following configuration variables control the default behavior of migration commands:
+
+```python
+STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000  # Maximum number of batches to process per month
+STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000  # Number of events to process per batch
+STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 75  # Maximum memory usage percentage before stopping
+```
+
+These defaults can be overridden using the corresponding CLI options when running the `migrate-events` command.
+
+### Task scheduling and aggregation
+
+The following configuration variables control the scheduling and behavior of aggregation tasks:
+
+```python
+from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
+
+COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+    "stats-aggregate-community-record-stats": {
+        **CommunityStatsAggregationTask,
+    },
+}
+"""Celery beat schedule for aggregation tasks."""
+
+COMMUNITY_STATS_CATCHUP_INTERVAL = 365
+"""Maximum number of days to catch up when aggregating historical data."""
+```
+
+### Aggregation task locking
+
+The following configuration variables control the locking mechanism for the aggregation task:
+
+```python
+STATS_DASHBOARD_LOCK_CONFIG = {
+    "enabled": True,  # Enable/disable distributed locking
+    "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
+    "lock_name": "community_stats_aggregation",  # Lock name
+}
+```
+
+### Default range options
+
+The following configuration variable controls the default date range options for the dashboard. The keys represent the
+available granularity levels for the date range selector and cannot be changed. The values represent the default date
+range for each granularity level.
+
+```python
+STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
+    "day": "30days",
+    "week": "12weeks",
+    "month": "12months",
+    "quarter": "4quarters",
+    "year": "5years",
+}
+```
+
+### Menu configuration
+
+The following configuration variables control the menu integration for the global dashboard:
+
+```python
+STATS_DASHBOARD_MENU_ENABLED = True
+"""Enable or disable the stats menu item."""
+
+STATS_DASHBOARD_MENU_TEXT = _("Statistics")
+"""Text for the stats menu item."""
+
+STATS_DASHBOARD_MENU_ORDER = 1
+"""Order of the stats menu item in the menu."""
+
+STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
+"""Endpoint for the stats menu item."""
+
+STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the menu item. If None, uses default registration.
+Should be a callable that takes the Flask app as its only argument."""
+```
+
+### Dashboard layout and components
+
+The layout and components for the dashboard are configured via the `STATS_DASHBOARD_LAYOUT` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a "width" key.
+
+For example, the default global layout configuration is:
+
+```python
+STATS_DASHBOARD_LAYOUT = {
+    "global": {
+        "tabs": [
+            {
+                "name": "content",
+                "label": "Content",
+                "rows": [
+                    {
+                        "name": "date-range-selector",
+                        "components": [{"component": "DateRangeSelector", "width": 16}],
+                    },
+                    {
+                        "name": "single-stats",
+                        "components": [
+                            {"component": "SingleStatRecordCount", "width": 3},
+                            {"component": "SingleStatUploaders", "width": 3},
+                            {"component": "SingleStatDataVolume", "width": 3},
+                        ],
+                    },
+                    {
+                        "name": "charts",
+                        "components": [
+                            {"component": "StatsChart", "width": 8},
+                        ],
+                    },
+                    {
+                        "name": "tables",
+                        "components": [
+                            {"component": "ResourceTypesTable", "width": 8},
+                            {"component": "AccessStatusTable", "width": 8},
+                            {"component": "RightsTable", "width": 8},
+                            {"component": "AffiliationsTable", "width": 8},
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+}
+```
+If no layout configuration is provided for a dashboard type, the default "global" layout configuration will be used.
+
+Any additional key/value pairs in the dictionary for a component will be passed to the component class as additional props. This allows for some customization of the component without having to subclass and override the component class.
+
+The component labels used for the layout configuration are defined in the `components_map.js` file, where they are mapped to the component classes.
+
+### Routes
+
+The routes for the dashboard are defined by the `STATS_DASHBOARD_ROUTES` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to route strings.
+
+For example, the default routes are:
+
+```python
+STATS_DASHBOARD_ROUTES = {
+    "global": "/stats",
+    "community": "/communities/<community_id>/stats",
+}
+```
+
+### Templates
+
+The templates for the dashboard are defined by the `STATS_DASHBOARD_TEMPLATES` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to template strings.
+
+For example, the default templates are:
+
+```python
+STATS_DASHBOARD_TEMPLATES = {
+    "macro": "invenio_stats_dashboard/macros/stats_dashboard_macro.html",
+    "global": "invenio_stats_dashboard/stats_dashboard.html",
+    "community": "invenio_stats_dashboard/community_stats_dashboard.html",
+}
+```
+
+### UI Configuration
+
+The UI configuration for the dashboard is defined by the `STATS_DASHBOARD_UI_CONFIG` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to a dictionary of configuration options.
+
+For example, the default UI configuration is:
+
+```python
+STATS_DASHBOARD_UI_CONFIG = {
+    "global": {
+        "title": _("Statistics"),
+        "description": _("This is the global stats dashboard."),
+        "maxHistoryYears": 15,
+        "default_granularity": "month",
+        "show_title": True,
+        "show_description": False,
+    },
+    "community": {
+        "title": _("Statistics"),
+        "description": _("This is the community stats dashboard."),
+        "maxHistoryYears": 15,
+        "default_granularity": "month",
+        "show_title": True,
+        "show_description": False,
+    },
+}
+```
+
+#### Title and description display
+
+The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.
+
+The `show_title` and `show_description` options can be used to control whether the title and description are displayed for the global and community dashboards.
+
+### Subcount Configuration
+
+The following configuration variables control how subcount breakdowns are generated and displayed:
+
+#### `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT`
+
+This variable controls the maximum number of items returned in subcount breakdowns (e.g., "Top 20 Resource Types"). This helps prevent overwhelming the UI with too many items and improves performance.
+
+```python
+COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
+```
+
+#### `COMMUNITY_STATS_SUBCOUNT_CONFIGS`
+
+This variable defines the configuration for different subcount breakdown types, including field mappings and display options.
+
+```python
+COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
+    "by_resource_types": {
+        "field": "metadata.resource_type.id",
+        "label": "Resource Type",
+        "display_field": "metadata.resource_type.title",
+    },
+    "by_subjects": {
+        "field": "metadata.subjects.subject",
+        "label": "Subject",
+        "display_field": "metadata.subjects.subject",
+    },
+    # ... other subcount configurations
+}
+```
+
+#### `STATS_DASHBOARD_UI_SUBCOUNTS`
+
+This variable controls which subcount breakdowns are available in the UI and how they are displayed.
+
+```python
+STATS_DASHBOARD_UI_SUBCOUNTS = {
+    "by_resource_types": {},
+    "by_subjects": {},
+    "by_languages": {},
+    "by_rights": {},
+    "by_funders": {},
+    "by_periodicals": {},
+    "by_publishers": {},
+    "by_affiliations": {
+        "combine": ["by_affiliations_creator", "by_affiliations_contributor"]
+    },
+    "by_countries": {},
+    "by_referrers": {},
+    "by_file_types": {},
+    "by_access_statuses": {},
+}
+```
+
+### Test Data Mode
+
+#### `STATS_DASHBOARD_USE_TEST_DATA`
+
+This variable enables test data mode for development and testing purposes. When enabled, the dashboard will use synthetic data instead of making API calls to the statistics service.
+
+```python
+STATS_DASHBOARD_USE_TEST_DATA = True
+```
+
+**Note**: This should be set to `False` in production environments to ensure real statistics data is displayed.
+
+### Event Processing Configuration
+
+#### `STATS_EVENTS`
+
+This variable defines the event types and their configurations for statistics processing. It controls which events are tracked and how they are processed.
+
+```python
+STATS_EVENTS = {
+    "file-download": {
+        "processor": "invenio_stats.processors.flag_robots",
+        "processor": "invenio_stats.processors.flag_machines",
+        "processor": "invenio_stats.processors.anonymize_user",
+    },
+    "record-view": {
+        "processor": "invenio_stats.processors.flag_robots",
+        "processor": "invenio_stats.processors.flag_machines",
+        "processor": "invenio_stats.processors.anonymize_user",
+    },
+}
+```
+
+### Auto-Generated Configuration
+
+The following configuration variables are automatically generated by the module and typically do not need manual configuration:
+
+#### `COMMUNITY_STATS_AGGREGATIONS`
+
+This variable contains the aggregation configurations for all statistics aggregators. It is automatically populated by the `register_aggregations()` function and includes configurations for record counts, usage statistics, and other metrics.
+
+#### `COMMUNITY_STATS_QUERIES`
+
+This variable contains the query configurations for accessing statistics data. It is automatically populated and includes configurations for different types of statistics queries.
+
+### Configuration Reference
+
+The following table provides a complete reference of all available configuration variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COMMUNITY_STATS_ENABLED` | `True` | Enable/disable the entire module |
+| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `False` | Enable/disable scheduled aggregation tasks |
+| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for aggregation tasks |
+| `COMMUNITY_STATS_CATCHUP_INTERVAL` | `365` | Maximum days to catch up when aggregating historical data |
+| `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
+| `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
+| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
+| `COMMUNITY_STATS_SUBCOUNT_CONFIGS` | `{...}` | Configuration for subcount breakdowns and field mappings |
+| `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
+| `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
+| `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |
+| `STATS_DASHBOARD_ROUTES` | `{...}` | URL routes for dashboard pages |
+| `STATS_DASHBOARD_UI_CONFIG` | `{...}` | UI configuration for dashboard appearance and behavior |
+| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS` | `{...}` | Default date range options for different granularities |
+| `STATS_DASHBOARD_LAYOUT` | `{...}` | Dashboard layout and component configuration |
+| `STATS_DASHBOARD_MENU_ENABLED` | `True` | Enable/disable menu integration |
+| `STATS_DASHBOARD_MENU_TEXT` | `_("Statistics")` | Menu item text |
+| `STATS_DASHBOARD_MENU_ORDER` | `1` | Menu item order |
+| `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
+| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
+| `STATS_DASHBOARD_USE_TEST_DATA` | `True` | Enable/disable test data mode for development |
+| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
+| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `5000` | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
+| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85` | Maximum memory usage percentage before stopping migration |
+| `STATS_EVENTS` | `{...}` | Event type configurations for statistics processing |
+
+**Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
+
+
