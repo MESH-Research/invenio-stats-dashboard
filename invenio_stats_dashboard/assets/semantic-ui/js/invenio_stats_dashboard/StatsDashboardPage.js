@@ -1,3 +1,9 @@
+// Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+// Copyright (C) 2025 Mesh Research
+//
+// Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
+// it under the terms of the MIT License; see LICENSE file for more details.
+
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Label, Grid, Loader, Message } from "semantic-ui-react";

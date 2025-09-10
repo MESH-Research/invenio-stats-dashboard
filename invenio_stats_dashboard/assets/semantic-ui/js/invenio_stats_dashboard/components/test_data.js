@@ -1,3 +1,9 @@
+// Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+// Copyright (C) 2025 Mesh Research
+//
+// Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
+// it under the terms of the MIT License; see LICENSE file for more details.
+
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import React from "react";
 
