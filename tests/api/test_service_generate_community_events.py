@@ -13,8 +13,8 @@ import arrow
 from invenio_access.permissions import system_identity
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
-from invenio_stats_dashboard.proxies import current_community_stats_service
 
+from invenio_stats_dashboard.proxies import current_community_stats_service
 from tests.helpers.sample_records import (
     sample_metadata_book_pdf,
     sample_metadata_journal_article_pdf,

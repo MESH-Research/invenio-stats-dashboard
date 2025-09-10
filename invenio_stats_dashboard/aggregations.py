@@ -4,18 +4,16 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-import copy
 import datetime
 import numbers
 import time
 from collections.abc import Generator
 from functools import wraps
-from pprint import pformat
-from typing import Any, Callable
+from itertools import chain
+from typing import Any, TypedDict
 
 import arrow
 from flask import current_app
-from itertools import chain
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
@@ -36,6 +34,191 @@ from .queries import (
     CommunityUsageDeltaQuery,
     CommunityUsageSnapshotQuery,
 )
+
+# ============================================================================
+# Record snapshot aggregation types
+# ============================================================================
+
+
+class RecordTotals(TypedDict, total=False):
+    """Totals structure for record aggregation documents."""
+
+    metadata_only: int
+    with_files: int
+
+
+class RecordFilesTotals(TypedDict):
+    """Totals structure for record files aggregation documents."""
+
+    file_count: int
+    data_volume: float
+
+
+class RecordSnapshotSubcountItem(TypedDict, total=False):
+    """Individual subcount item for record snapshot aggregations."""
+
+    id: str
+    label: str
+    records: RecordTotals
+    parents: RecordTotals
+    files: RecordFilesTotals
+
+
+class RecordSnapshotTopSubcounts(TypedDict, total=False):
+    """Subcount data structure for record aggregations."""
+
+    by_view: list[RecordSnapshotSubcountItem]
+    by_download: list[RecordSnapshotSubcountItem]
+
+
+class RecordSnapshotDocument(TypedDict):
+    """Snapshot document for record aggregations."""
+
+    timestamp: str
+    community_id: str
+    snapshot_date: str
+    subcounts: dict[str, list[RecordSnapshotSubcountItem] | RecordSnapshotTopSubcounts]
+    total_records: RecordTotals
+    total_parents: RecordTotals
+    total_files: RecordFilesTotals
+    total_uploaders: int
+    updated_timestamp: str
+
+
+# ============================================================================
+# Record delta aggregation types
+# ============================================================================
+
+
+class RecordDeltaCounts(TypedDict):
+    """Counts for record delta aggregations."""
+
+    metadata_only: int
+    with_files: int
+
+
+class RecordFilesDeltaCounts(TypedDict):
+    """Counts for record files delta aggregations."""
+
+    file_count: int
+    data_volume: float
+
+
+class RecordDeltaTotals(TypedDict):
+    """Totals for record delta aggregations."""
+
+    added: RecordDeltaCounts
+    removed: RecordDeltaCounts
+
+
+class RecordFilesDeltaTotals(TypedDict):
+    """Totals for record files delta aggregations."""
+
+    added: RecordFilesDeltaCounts
+    removed: RecordFilesDeltaCounts
+
+
+class RecordDeltaSubcountItem(TypedDict):
+    """Individual subcount item for record delta aggregations."""
+
+    id: str
+    label: str
+    records: RecordDeltaTotals
+    parents: RecordDeltaTotals
+    files: RecordFilesDeltaTotals
+
+
+class RecordDeltaDocument(TypedDict, total=False):
+    """Delta document for record aggregations."""
+
+    timestamp: str
+    community_id: str
+    period_start: str
+    period_end: str
+    records: RecordDeltaTotals
+    parents: RecordDeltaTotals
+    files: RecordFilesDeltaTotals
+    uploaders: int
+    subcounts: dict[str, list[RecordDeltaSubcountItem]]
+    updated_timestamp: str
+
+
+# ============================================================================
+# Usage aggregation types
+# ============================================================================
+
+
+class UsageViewMetrics(TypedDict):
+    """View metrics for usage aggregations."""
+
+    total_events: int
+    unique_visitors: int
+    unique_records: int
+    unique_parents: int
+
+
+class UsageDownloadMetrics(TypedDict):
+    """Download metrics for usage aggregations."""
+
+    total_events: int
+    unique_visitors: int
+    unique_records: int
+    unique_parents: int
+    unique_files: int
+    total_volume: float
+
+
+class UsageCategories(TypedDict):
+    """Totals structure for usage snapshot documents."""
+
+    view: UsageViewMetrics
+    download: UsageDownloadMetrics
+
+
+class UsageSubcountItem(TypedDict, total=False):
+    """Totals structure for usage snapshot subcount items."""
+
+    id: str
+    label: str | dict[str, str]
+    view: UsageViewMetrics
+    download: UsageDownloadMetrics
+
+
+class UsageSnapshotTopCategories(TypedDict):
+    """Subcount data structure for usage snapshot aggregations."""
+
+    by_view: list[UsageSubcountItem]
+    by_download: list[UsageSubcountItem]
+
+
+class UsageSnapshotDocument(TypedDict, total=False):
+    """Document structure for usage snapshot aggregations.
+
+    Used by:
+    - CommunityUsageSnapshotAggregator
+    """
+
+    community_id: str
+    snapshot_date: str
+    totals: UsageCategories
+    subcounts: dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]
+    timestamp: str
+    updated_timestamp: str
+
+
+class UsageDeltaDocument(TypedDict, total=False):
+    """Document structure for usage delta aggregations.
+
+    Used by:
+    - CommunityUsageDeltaAggregator
+    """
+
+    community_id: str
+    period_start: str
+    period_end: str
+    timestamp: str
+    totals: UsageCategories
+    subcounts: dict[str, list[UsageSubcountItem]]
 
 
 def register_aggregations():
@@ -213,7 +396,7 @@ class CommunityAggregatorBase(StatAggregator):
         self.event = ""
         self.aggregation_field: str | None = None
         self.copy_fields: dict[str, str] = {}
-        self.event_index: str | None = None
+        self.event_index: str | list[tuple[str, str]] | None = None
         self.first_event_index: str | None = None
         self.record_index: str | list[tuple[str, str]] | None = None
         self.aggregation_index: str | None = None
@@ -606,7 +789,7 @@ class CommunityAggregatorBase(StatAggregator):
         data_source: list,
         target_path: list,
         key: str | dict,
-    ) -> str | dict | list:
+    ) -> str | dict[str, str]:
         """Find a matching item in a data source by key and extract the label."""
         if not isinstance(data_source, list) or len(data_source) == 0:
             return ""
@@ -642,9 +825,9 @@ class CommunityAggregatorBase(StatAggregator):
 
     @staticmethod
     def _extract_label_from_item(
-        item: dict[str, str | dict | list],
+        item: dict[str, str | dict],
         target_path: list,
-    ) -> str | dict | list:
+    ) -> str | dict:
         """Extract the label from a matching item using the remaining path.
 
         Args:
@@ -679,11 +862,16 @@ class CommunityAggregatorBase(StatAggregator):
         """
         if last_event_date is None:
             return True
-        return last_event_date < start_date
+        return bool(last_event_date < start_date)
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
-    ) -> dict:
+    ) -> (
+        RecordSnapshotDocument
+        | RecordDeltaDocument
+        | UsageSnapshotDocument
+        | UsageDeltaDocument
+    ):
         """Create a zero-value document for when no events exist.
 
         This method should be overridden by subclasses to provide the appropriate
@@ -718,12 +906,13 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         self.event_community_query_term = lambda community_id: Q(
             "term", community_id=community_id
         )
-        # These will be set by subclasses
         self.delta_index: str | None = None
 
     def _copy_snapshot_forward(
-        self, previous_snapshot: dict, current_date: arrow.Arrow
-    ) -> dict:
+        self,
+        previous_snapshot: RecordSnapshotDocument | UsageSnapshotDocument,
+        current_date: arrow.Arrow,
+    ) -> RecordSnapshotDocument | UsageSnapshotDocument:
         """Efficiently copy a previous snapshot forward to the current date.
 
         This is much more efficient than calling create_agg_dict with empty data
@@ -736,10 +925,8 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             A new snapshot document with updated dates but same cumulative data
         """
-        # Create a copy of the previous snapshot
         new_snapshot = previous_snapshot.copy()
 
-        # Update only the date fields
         new_snapshot["snapshot_date"] = current_date.format("YYYY-MM-DDTHH:mm:ss")
         new_snapshot["timestamp"] = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss")
         new_snapshot["updated_timestamp"] = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss")
@@ -748,7 +935,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
 
     def _get_previous_snapshot(
         self, community_id: str, current_date: arrow.Arrow
-    ) -> tuple[dict, bool]:
+    ) -> tuple[RecordSnapshotDocument | UsageSnapshotDocument, bool]:
         """Get the last snapshot document for a community and date.
 
         If no previous snapshot exists, returns a zero document as the base.
@@ -796,6 +983,12 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             self._create_zero_document(community_id, previous_date),
             True,
         )
+
+    def _create_zero_document(
+        self, community_id: str, current_day: arrow.Arrow
+    ) -> RecordSnapshotDocument | UsageSnapshotDocument:
+        """Create a zero-value document for when no events exist."""
+        raise NotImplementedError("Subclasses must override _create_zero_document")
 
     def _get_delta_index_by_date(
         self,
@@ -893,7 +1086,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             Dictionary mapping item IDs to their cumulative totals
         """
-        accumulated = {}
+        accumulated: dict[str, int] = {}
 
         for doc in deltas:
             if "subcounts" in doc:
@@ -906,7 +1099,10 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         return accumulated
 
     def _update_exhaustive_cache(
-        self, category_name: str, delta_document: dict, exhaustive_counts_cache: dict
+        self,
+        category_name: str,
+        delta_document: RecordDeltaDocument | UsageDeltaDocument,
+        exhaustive_counts_cache: dict,
     ) -> None:
         """Update existing exhaustive cache in place with latest delta documents.
 
@@ -991,11 +1187,11 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
     def create_agg_dict(
         self,
         current_day: arrow.Arrow,
-        previous_snapshot: dict = {},
-        latest_delta: dict = {},
-        deltas: list = [],
+        previous_snapshot: RecordSnapshotDocument | UsageSnapshotDocument,
+        latest_delta: RecordDeltaDocument | UsageDeltaDocument,
+        deltas: list,
         exhaustive_counts_cache: dict = {},
-    ) -> dict:
+    ) -> RecordSnapshotDocument | UsageSnapshotDocument:
         """Create a dictionary representing the aggregation result for indexing.
 
         This method should be overridden by subclasses to provide the appropriate
@@ -1034,12 +1230,12 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         """
         current_iteration_date = arrow.get(start_date)
 
-        exhaustive_counts_cache = {}
+        exhaustive_counts_cache: dict[str, Any] = {}
         previous_snapshot, is_zero_placeholder = self._get_previous_snapshot(
             community_id, current_iteration_date
         )
         previous_snapshot_date = (
-            arrow.get(previous_snapshot["snapshot_date"])
+            arrow.get(previous_snapshot["snapshot_date"])  # type: ignore
             if previous_snapshot and not is_zero_placeholder
             else None
         )
@@ -1233,7 +1429,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
-    ) -> dict:
+    ) -> RecordSnapshotDocument:
         """Create a zero-value snapshot document for when no events exist.
 
         Args:
@@ -1244,7 +1440,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             A snapshot document with zero values
         """
         # Dynamically build subcounts based on subcount_configs
-        subcounts = {}
+        subcounts: dict[
+            str, list[RecordSnapshotSubcountItem] | RecordSnapshotTopSubcounts
+        ] = {}
         for config in self.subcount_configs.values():
             if "records" in config and "delta_aggregation_name" in config["records"]:
                 delta_name = config["records"]["delta_aggregation_name"]
@@ -1280,12 +1478,12 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
 
-    def _update_top_subcounts(
+    def _update_top_subcounts(  # type: ignore[override]
         self,
-        new_dict: dict,
+        new_dict: RecordSnapshotDocument,
         deltas: list,
         exhaustive_counts_cache: dict,
-        latest_delta: dict = {},
+        latest_delta: RecordDeltaDocument,
     ) -> None:
         """Update top subcounts.
 
@@ -1338,7 +1536,12 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             )
 
     def _add_delta_to_subcounts(
-        self, previous_subcounts: list, latest_delta: dict, category_name: str
+        self,
+        previous_subcounts: (
+            list[RecordSnapshotSubcountItem] | RecordSnapshotTopSubcounts
+        ),
+        latest_delta: RecordDeltaDocument,
+        category_name: str,
     ) -> list:
         """Add latest delta subcounts onto previous snapshot subcounts.
 
@@ -1405,7 +1608,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
 
         previous_dict = {}
         for item in previous_subcounts:
-            previous_dict[item["id"]] = item.copy()
+            previous_dict[item["id"]] = item.copy()  # type: ignore
 
         if "subcounts" in latest_delta and category_name in latest_delta["subcounts"]:
             for delta_item in latest_delta["subcounts"][category_name]:
@@ -1413,7 +1616,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
 
         return list(previous_dict.values())
 
-    def _update_cumulative_totals(self, new_dict: dict, delta_doc: dict) -> dict:
+    def _update_cumulative_totals(  # type: ignore[override]
+        self, new_dict: RecordSnapshotDocument, delta_doc: RecordDeltaDocument
+    ) -> RecordSnapshotDocument:
         """Update cumulative totals with values from a daily delta document."""
         new_dict["total_records"]["metadata_only"] = max(
             0,
@@ -1496,14 +1701,14 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
 
         return new_dict
 
-    def create_agg_dict(
+    def create_agg_dict(  # type: ignore[override]
         self,
         current_day: arrow.Arrow,
-        previous_snapshot: dict = {},
-        latest_delta: dict = {},
-        deltas: list = [],
+        previous_snapshot: RecordSnapshotDocument,
+        latest_delta: RecordDeltaDocument,
+        deltas: list,
         exhaustive_counts_cache: dict = {},
-    ) -> dict:
+    ) -> RecordSnapshotDocument:
         """Create a dictionary representing the aggregation result for indexing.
 
         Args:
@@ -1513,7 +1718,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             deltas: All delta documents for top subcounts (from earliest date)
             exhaustive_counts_cache: The exhaustive counts cache
         """
-        new_dict = self._copy_snapshot_forward(previous_snapshot, current_day)
+        new_dict: RecordSnapshotDocument = self._copy_snapshot_forward(
+            previous_snapshot, current_day  # type: ignore
+        )
         records = latest_delta.get("records", {})
         if (
             records.get("added", {}).get("with_files", 0) == 0
@@ -1548,8 +1755,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         mapped_subcounts = {}
 
         for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
-            # Find the config that matches this delta field
-            for subcount_name, config in self.subcount_configs.items():
+            for config in self.subcount_configs.values():
                 records_config = config.get("records", {})
                 if not records_config:
                     continue
@@ -1720,7 +1926,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
-    ) -> dict:
+    ) -> UsageSnapshotDocument:
         """Create a zero-value usage snapshot document for when no events exist.
 
         Args:
@@ -1753,14 +1959,14 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
 
-    def create_agg_dict(
+    def create_agg_dict(  # type: ignore[override]
         self,
         current_day: arrow.Arrow,
-        previous_snapshot: dict,
-        latest_delta: dict,
+        previous_snapshot: UsageSnapshotDocument,
+        latest_delta: UsageDeltaDocument,
         deltas: list,
-        exhaustive_counts_cache: dict,
-    ) -> dict:
+        exhaustive_counts_cache: dict = {},
+    ) -> UsageSnapshotDocument:
         """Create the final aggregation document from cumulative totals.
 
         Args:
@@ -1770,7 +1976,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             deltas: All delta documents for top subcounts
             exhaustive_counts_cache: The exhaustive counts cache
         """
-        new_dict = self._copy_snapshot_forward(previous_snapshot, current_day)
+        new_dict: UsageSnapshotDocument = self._copy_snapshot_forward(
+            previous_snapshot, current_day
+        )  # type: ignore
 
         totals = latest_delta.get("totals", {})
         if (
@@ -1843,60 +2051,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         return True
 
-    # FIXME: Deprecated. Remove this method.
-    def _should_skip_aggregation(
-        self,
-        start_date: arrow.Arrow,
-        last_event_date: arrow.Arrow | None,
-        period_delta_records: list,
-        community_id: str | None = None,
-        end_date: arrow.Arrow | None = None,
-    ) -> bool:
-        """Check if aggregation should be skipped due to no events with counts.
-
-        Where the other aggregators skip if there are no events after the start date,
-        this one skips if there are no events with counts between the start date and
-        the last event date. If all the delta records are empty, the cumulative totals
-        will not change.
-
-        Args:
-            start_date: The start date for aggregation
-            last_event_date: The last event date, or None if no events exist
-            period_delta_records: List of delta records for the period
-            community_id: The community ID (optional, for dependency checking)
-            end_date: The end date (optional, for dependency checking)
-
-        Returns:
-            True if aggregation should be skipped, False otherwise
-        """
-
-        # First check if usage delta aggregator has caught up
-        if community_id and end_date:
-            dependency_result = self._check_usage_delta_dependency(
-                community_id, start_date, end_date
-            )
-
-            if not dependency_result:
-                return True
-
-        total_events = sum(
-            delta["totals"]["view"]["total_events"] for delta in period_delta_records
-        )
-        total_downloads = sum(
-            delta["totals"]["download"]["total_events"]
-            for delta in period_delta_records
-        )
-
-        if last_event_date is None:
-            return True
-        elif total_events == 0 and total_downloads == 0:
-            return True
-        elif last_event_date < start_date:
-            return True
-
-        return False
-
-    def _map_delta_to_snapshot_subcounts(self, delta_doc: dict) -> dict:
+    def _map_delta_to_snapshot_subcounts(  # type: ignore[override]
+        self, delta_doc: UsageDeltaDocument
+    ) -> UsageDeltaDocument:
         """Map delta document subcount field names to snapshot field names.
 
         This transforms the enriched aggregation field names (e.g., 'by_resource_types')
@@ -1985,11 +2142,11 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         return top_subcount_list
 
-    def _update_cumulative_totals(
+    def _update_cumulative_totals(  # type: ignore[override]
         self,
-        new_dict: dict,
-        delta_doc: dict,
-    ) -> None:
+        new_dict: UsageSnapshotDocument,
+        delta_doc: UsageDeltaDocument,
+    ) -> UsageSnapshotDocument:
         """Update cumulative totals with values from enriched daily delta documents."""
 
         def add_numeric_values(target: dict, source: dict) -> None:
@@ -2008,22 +2165,24 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 ):
                     add_numeric_values(target[key], value)
 
-        def update_totals(new_dict: dict, delta_doc: dict, key: str) -> Any:
+        def update_totals(
+            new_dict: UsageSnapshotDocument, delta_doc: UsageDeltaDocument, key: str
+        ) -> None:
             """Update cumulative totals with values from a daily delta document."""
-            for k, value in delta_doc[key].items():
+            for k, value in delta_doc[key].items():  # type: ignore[literal-required]
                 # Skip keys that start with "top_" in subcounts
                 if k.startswith("top_"):
                     continue
 
-                if k in new_dict[key]:
+                if k in new_dict[key]:  # type: ignore[literal-required]
                     if isinstance(value, dict):
-                        update_totals(new_dict[key], delta_doc[key], k)
+                        update_totals(new_dict[key], delta_doc[key], k)  # type: ignore[literal-required] # noqa: E501
                     elif isinstance(value, list):
                         for item in value:
                             matching_item = next(
                                 (
                                     existing_item
-                                    for existing_item in new_dict[key][k]
+                                    for existing_item in new_dict[key][k]  # type: ignore[literal-required] # noqa: E501
                                     if existing_item["id"] == item["id"]
                                 ),
                                 None,
@@ -2031,16 +2190,16 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                             if matching_item:
                                 add_numeric_values(matching_item, item)
                             else:
-                                new_dict[key][k].append(item)
+                                new_dict[key][k].append(item)  # type: ignore[literal-required] # noqa: E501
                     else:
                         # Sum all numeric values since these are daily deltas
-                        if isinstance(new_dict[key][k], numbers.Number):
-                            new_dict[key][k] += value
+                        if isinstance(new_dict[key][k], numbers.Number):  # type: ignore[literal-required] # noqa: E501
+                            new_dict[key][k] += value  # type: ignore[literal-required]
                         else:
                             # Keep strings as is (id and string label)
-                            new_dict[key][k] = value
+                            new_dict[key][k] = value  # type: ignore[literal-required]
                 else:
-                    new_dict[key][k] = value
+                    new_dict[key][k] = value  # type: ignore[literal-required] # noqa: E501
 
         update_totals(new_dict, delta_doc, "totals")
 
@@ -2048,12 +2207,14 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         # The mapping has already transformed field names to snapshot format
         update_totals(new_dict, delta_doc, "subcounts")
 
-    def _update_top_subcounts(
+        return new_dict
+
+    def _update_top_subcounts(  # type: ignore[override]
         self,
-        new_dict: dict,
+        new_dict: UsageSnapshotDocument,
         deltas: list,
         exhaustive_counts_cache: dict,
-        latest_delta: dict = {},
+        latest_delta: UsageDeltaDocument,
     ) -> None:
         """Update top subcounts.
 
@@ -2108,15 +2269,17 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             top_by_download = self._select_top_n_from_cache(
                 exhaustive_counts_cache[top_subcount_name], "download"
             )
-            new_dict["subcounts"][top_subcount_name] = {
+            new_dict["subcounts"][top_subcount_name] = {  # type: ignore
                 "by_view": top_by_view,
                 "by_download": top_by_download,
             }
 
-    def _initialize_subcounts_structure(self) -> dict:
+    def _initialize_subcounts_structure(
+        self,
+    ) -> dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]:
         """Initialize the subcounts structure based on configuration."""
-        subcounts = {}
-        for subcount_name, config in self.subcount_configs.items():
+        subcounts: dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories] = {}
+        for config in self.subcount_configs.values():
             usage_config = config.get("usage_events", {})
             if not usage_config:
                 continue
@@ -2211,7 +2374,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
-    ) -> dict:
+    ) -> UsageDeltaDocument:
         """Create a zero-value usage delta document for when no events exist.
 
         Args:
@@ -2421,9 +2584,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         return all_aggs
 
-    def _combine_query_results(
+    def create_agg_dict(
         self, view_results, download_results, community_id: str, date: arrow.Arrow
-    ) -> dict:
+    ) -> UsageDeltaDocument:
         """Combine results from separate view and download queries.
 
         Args:
@@ -2433,9 +2596,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             date (arrow.Arrow): The date for the aggregation.
 
         Returns:
-            dict: Combined aggregation document.
+            UsageDeltaDocument: Combined aggregation document.
         """
-        combined_results = {
+        combined_results: UsageDeltaDocument = {
             "community_id": community_id,
             "period_start": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
             "period_end": date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
@@ -2560,7 +2723,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         break
 
                 # Extract label from title aggregation or use key as default
-                label = str(key)
+                label: str | dict[str, str] = str(key)
                 label_field = usage_config.get("label_field")
 
                 if label_field and view_bucket:
@@ -2569,16 +2732,20 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     ):
                         title_hits = view_bucket.label.hits.hits
                         if title_hits and title_hits[0]._source:
-                            source = title_hits[0]._source
+                            source: AttrDict = title_hits[0]._source
                             # Convert AttrDict to regular dict
                             if hasattr(source, "to_dict"):
                                 source = source.to_dict()
-                            # Parse the label_field path to find the correct item
-                            label = CommunityUsageDeltaAggregator._extract_label_from_source(
+                            label_result = CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
                                 source, label_field, key
                             )
+                            label = (
+                                label_result
+                                if isinstance(label_result, (str, dict))
+                                else str(key)
+                            )
 
-                subcount_item = {
+                subcount_item: UsageSubcountItem = {
                     "id": str(key),
                     "label": label,
                     "view": {
@@ -2684,7 +2851,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     download_results = None
 
                 # Combine results
-                combined_results = self._combine_query_results(
+                combined_results = self.create_agg_dict(
                     view_results, download_results, community_id, current_iteration_date
                 )
 
@@ -2768,11 +2935,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
                 bucket, bucket_type, id_field_path, name_field_path, config
             )
-            key = (id_and_label["id"], id_and_label["label"])
+            key = (id_and_label["id"], id_and_label["label"])  # type: ignore
 
             if key not in combined_items:
                 combined_items[key] = self._create_empty_subcount_item(
-                    id_and_label["id"], id_and_label["label"]
+                    id_and_label["id"], id_and_label["label"]  # type: ignore
                 )
 
             # Add metrics
@@ -2804,10 +2971,17 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     @staticmethod
     def _extract_id_name_from_bucket(
-        bucket, bucket_type, id_field_path, name_field_path, config
-    ):
+        bucket: AttrDict,
+        bucket_type: str,
+        id_field_path: str,
+        name_field_path: str,
+        config: dict,
+    ) -> UsageSubcountItem:
         """Extract id and name from a bucket based on its type."""
-        extracted_values = {"id": bucket.key, "label": bucket.key}
+        extracted_values: UsageSubcountItem = {
+            "id": bucket.key,
+            "label": bucket.key,
+        }
 
         if hasattr(bucket, "label"):
             if hasattr(bucket.label, "hits"):
@@ -2841,14 +3015,14 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
                 target_values = (
                     CommunityUsageDeltaAggregator._find_and_merge_matching_items(
-                        field_data,
+                        field_data,  # type: ignore
                         bucket.key,
                         match_path,
                         id_field_path,
                         name_field_path,
                     )
                 )
-                extracted_values = target_values
+                extracted_values = target_values if target_values else extracted_values
 
         if extracted_values and isinstance(extracted_values, dict):
             return extracted_values
@@ -2891,7 +3065,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
                 target_values = (
                     CommunityUsageDeltaAggregator._find_and_merge_matching_items(
-                        field_data,
+                        field_data,  # type: ignore
                         bucket.key,
                         match_path_string,
                         id_field_path,
@@ -2930,7 +3104,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         match_path: str,
         id_field_path: str,
         name_field_path: str,
-    ) -> dict | None:
+    ) -> UsageSubcountItem | None:
         """Find all items that match the bucket key and return id/label dict.
 
         Args:
@@ -2974,7 +3148,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 name_value = CommunityUsageDeltaAggregator._get_nested_field_value(
                     item, name_field_path, None
                 )
-                if name_value and name_value != bucket_key:
+                if name_value and str(name_value) != bucket_key:
                     label_val = name_value
                     break
         else:
@@ -2984,7 +3158,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 id_value = CommunityUsageDeltaAggregator._get_nested_field_value(
                     item, id_field_path, None
                 )
-                if id_value and id_value != bucket_key:
+                if id_value and str(id_value) != bucket_key:
                     id_val = id_value
                     break
 
@@ -3034,7 +3208,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
     @staticmethod
     def _extract_label_from_source(
         source: dict, title_field: str, bucket_key: str
-    ) -> str | dict | list:
+    ) -> str | dict[str, str]:
         """Extract the correct label from source by matching the bucket key.
 
         This method handles the case where the label sub-aggregation contains all items
@@ -3050,7 +3224,8 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             The label string, or the bucket_key as fallback
         """
         if "." not in title_field:
-            return source.get(title_field, str(bucket_key))
+            result = source.get(title_field, str(bucket_key))
+            return result if isinstance(result, (str, dict)) else str(bucket_key)
 
         parts = title_field.split(".")
 
@@ -3073,14 +3248,17 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     else:
                         value = ""
                         break
-                return value if value else str(bucket_key)
+                return str(value) if value else str(bucket_key)
 
         if isinstance(field_value, list) and len(field_value) > 0:
             label_path_leaf = parts[1:] if len(parts) > 1 else []
             label = CommunityAggregatorBase._find_matching_item_by_key(
                 field_value, label_path_leaf, bucket_key
             )
-            return label if label else str(bucket_key)
+            if label and isinstance(label, (str, dict)):
+                return label
+            else:
+                return str(bucket_key)
 
         return str(bucket_key)
 
@@ -3109,11 +3287,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             "term", community_id=community_id
         )
 
-    def _should_skip_aggregation(
+    def _should_skip_aggregation(  # type: ignore[override]
         self,
         start_date: arrow.Arrow,
         end_date: arrow.Arrow,
-        last_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None = None,
         community_id: str | None = None,
     ) -> bool:
         """Check if aggregation should be skipped because no records in date range.
@@ -3142,7 +3320,8 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         if community_id == "global":
             # For global aggregator, just check if there are any records at all
             search = Search(using=self.client, index=self.event_index)
-            return search.count() == 0
+            count_result: int = search.count()  # type: ignore[assignment]
+            return count_result == 0
         else:
             # For community-specific aggregators, check if any records were added
             # to the community before or on the aggregation date
@@ -3162,13 +3341,13 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 )
             )
 
-            community_results = community_search.count()
+            community_results: int = community_search.count()  # type: ignore
 
             return community_results == 0
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
-    ) -> dict:
+    ) -> RecordDeltaDocument:
         """Create a zero-value delta document for when no events exist.
 
         Args:
@@ -3225,13 +3404,15 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         }
 
     @staticmethod
-    def _find_item_label(added, removed, subcount_def, key):
+    def _find_item_label(
+        added: dict, removed: dict, path_strings: list[str], key: str
+    ) -> str | dict[str, str]:
         """Find the label for a given item."""
-        label = ""
+        label: str | dict[str, str] = ""
 
-        if len(subcount_def) > 1:
+        if len(path_strings) > 1:
             label_item = added if added else removed
-            label_field = subcount_def[1]
+            label_field = path_strings[1]
             source_path = ["label", "hits", "hits", 0, "_source"]
             label_path_stem = source_path + label_field.split(".")[:2]
             label_path_leaf = label_field.split(".")[2:]
@@ -3316,7 +3497,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         combined_keys = list(
             set(b["key"] for b in added_items) | set(b["key"] for b in removed_items)
         )
-        subcount_list = []
+        subcount_list: list[RecordDeltaSubcountItem] = []
 
         # Handle case where no items found
         if not combined_keys:
@@ -3332,22 +3513,23 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             removed_filtered = list(filter(lambda x: x["key"] == key, removed_items))
             removed = removed_filtered[0] if removed_filtered else {}
 
-            # Build label configuration for find_item_label
-            label_config = []
+            path_strings: list[str] = []
             if config.get("label_field"):
-                label_config.append(config["field"])
-                label_config.append(config["label_field"])
+                path_strings.append(config["field"])
+                path_strings.append(config["label_field"])
             else:
-                label_config.append(config["field"])
+                path_strings.append(config["field"])
 
-            label = CommunityRecordsDeltaAggregatorBase._find_item_label(
-                added, removed, label_config, key
+            label: str | dict[str, str] = (
+                CommunityRecordsDeltaAggregatorBase._find_item_label(
+                    added, removed, path_strings, key
+                )
             )
 
             subcount_list.append(
                 {
                     "id": key,
-                    "label": label,
+                    "label": label,  # type: ignore
                     "records": {
                         "added": {
                             "metadata_only": (
@@ -3416,10 +3598,10 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         current_day: arrow.Arrow,
         aggs_added: dict,
         aggs_removed: dict,
-    ) -> dict:
+    ) -> RecordDeltaDocument:
         """Create a dictionary representing the aggregation result for indexing."""
 
-        agg_dict = {
+        agg_dict: RecordDeltaDocument = {
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
             "community_id": community_id,
             "period_start": current_day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
@@ -3536,7 +3718,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         start_date = arrow.get(start_date)
         end_date = arrow.get(end_date)
         query_builder = CommunityRecordDeltaQuery(
-            client=self.client,
+            client=self.client,  # type: ignore
             event_index=self.event_index,
             record_index=self.record_index,
         )

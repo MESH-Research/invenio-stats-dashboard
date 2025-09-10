@@ -89,9 +89,18 @@ fi
 # Check for running docker-compose projects before starting services
 check_docker_compose_running
 
+# Check if tests/.env exists and set env_file_arg accordingly
+if [ -f "tests/.env" ]; then
+	env_file_arg="--env-file tests/.env"
+	echo "Using tests/.env file for environment variables"
+else
+	env_file_arg=""
+	echo "No tests/.env file found, using default environment"
+fi
+
 # Start the services and get their environment variables
 echo "Starting the services"
-eval "$(uv run --env-file tests/.env docker-services-cli --filepath .venv/lib/python3.12/site-packages/docker_services_cli/docker-services.yml up --db ${DB:-postgresql} --cache ${CACHE:-redis} --search opensearch --mq ${MQ:-rabbitmq} --env)"
+eval "$(uv run ${env_file_arg} docker-services-cli --filepath .venv/lib/python3.12/site-packages/docker_services_cli/docker-services.yml up --db ${DB:-postgresql} --cache ${CACHE:-redis} --search opensearch --mq ${MQ:-rabbitmq} --env)"
 
 # Unset the environment variables that docker-services-cli set so that the values from tests/.env are used instead of those defaults from docker-services.yml
 unset SQLALCHEMY_DATABASE_URI
@@ -111,10 +120,10 @@ fi
 # variable error when 1) "nounset" and 2) the array is empty.
 if [ ${#pytest_args[@]} -eq 0 ]; then
 	echo "Running pytest"
-	uv run --env-file tests/.env python -m pytest -vv -s --disable-warnings
+	uv run ${env_file_arg} python -m pytest -vv -s --disable-warnings
 else
 	echo "Running pytest with additional arguments"
-	uv run --env-file tests/.env python -m pytest ${pytest_args[@]} -s --disable-warnings
+	uv run ${env_file_arg} python -m pytest ${pytest_args[@]} -s --disable-warnings
 fi
 
 tests_exit_code=$?

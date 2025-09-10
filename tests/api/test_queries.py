@@ -19,6 +19,7 @@ from invenio_accounts.proxies import current_datastore
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
+
 from invenio_stats_dashboard.proxies import (
     current_event_reindexing_service,
 )
@@ -28,7 +29,6 @@ from invenio_stats_dashboard.queries import (
     CommunityUsageSnapshotQuery,
     get_relevant_record_ids_from_events,
 )
-
 from tests.helpers.sample_records import (
     sample_metadata_journal_article4_pdf,
     sample_metadata_journal_article5_pdf,

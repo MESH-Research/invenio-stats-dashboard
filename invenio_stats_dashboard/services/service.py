@@ -64,7 +64,7 @@ class CommunityStatsService:
             if isinstance(results, dict):
                 results["task_id"] = task_id
 
-        return results
+        return results if isinstance(results, dict) else {}
 
     def count_records_needing_events(
         self,
@@ -105,7 +105,7 @@ class CommunityStatsService:
         record_search = Search(
             using=self.client, index=prefix_index("rdmrecords-records")
         )
-        terms = []
+        terms: list[dict] = []
         if recids:
             terms.append({"terms": {"id": recids}})
         if start_date_str:
@@ -240,7 +240,7 @@ class CommunityStatsService:
         record_search = Search(
             using=self.client, index=prefix_index("rdmrecords-records")
         )
-        terms = []
+        terms: list[dict] = []
         if recids:
             terms.append({"terms": {"id": recids}})
         if start_date_str:
@@ -375,4 +375,5 @@ class CommunityStatsService:
             index="stats-community-stats",
             client=self.client._get_current_object(),
         )
-        return query.run(community_id, start_date, end_date)
+        result = query.run(community_id, start_date, end_date)
+        return result if isinstance(result, dict) else {}

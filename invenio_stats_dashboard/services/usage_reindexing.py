@@ -57,11 +57,11 @@ class MetadataExtractor:
             subcount_configs: The COMMUNITY_STATS_SUBCOUNT_CONFIGS
         """
         self.subcount_configs = subcount_configs
-        self.compiled_specs = {}
+        self.compiled_specs: dict[str, Spec] = {}
         self._compile_specs()
 
         # Cache for extracted values by record ID
-        self._extraction_cache = {}
+        self._extraction_cache: dict[str, dict] = {}
         self._cache_hits = 0
         self._cache_misses = 0
 
@@ -98,7 +98,8 @@ class MetadataExtractor:
         # If we have a record ID, check the cache first
         if record_id and record_id in self._extraction_cache:
             self._cache_hits += 1
-            return self._extraction_cache[record_id].copy()
+            cached_result = self._extraction_cache[record_id]
+            return cached_result.copy() if isinstance(cached_result, dict) else {}
 
         # Cache miss - extract the fields
         self._cache_misses += 1
@@ -333,10 +334,10 @@ class EventReindexingService:
         self.subcount_configs = app.config.get("COMMUNITY_STATS_SUBCOUNT_CONFIGS", {})
 
         # Lazy-load components that require application context
-        self._reindexing_bookmark_api = None
-        self._index_patterns = None
-        self._community_events_index_exists = None
-        self._metadata_extractor = None
+        self._reindexing_bookmark_api: EventReindexingBookmarkAPI | None = None
+        self._index_patterns: dict | None = None
+        self._community_events_index_exists: bool | None = None
+        self._metadata_extractor: MetadataExtractor | None = None
 
     @property
     def metadata_extractor(self):
@@ -443,7 +444,8 @@ class EventReindexingService:
 
     def get_current_month(self) -> str:
         """Get the current month in YYYY-MM format."""
-        return arrow.utcnow().format("YYYY-MM")
+        result = arrow.utcnow().format("YYYY-MM")
+        return str(result)
 
     def is_current_month_index(self, index_name: str) -> bool:
         """Check if an index is for the current month."""
@@ -904,9 +906,10 @@ class EventReindexingService:
         """
         if fresh_start or (not last_processed_id and not last_processed_timestamp):
             if max_batches:
-                return min(max_batches * self.batch_size, source_count)
+                result = min(max_batches * self.batch_size, source_count)
+                return int(result)
             else:
-                return source_count
+                return int(source_count)
         else:
             if last_processed_id and last_processed_timestamp:
                 # Count remaining documents after bookmark using multiple search_after
@@ -932,9 +935,10 @@ class EventReindexingService:
                         max_batches * self.batch_size,
                         source_count - already_processed_before_bookmark,
                     )
-                    return already_processed_before_bookmark + new_docs_expected
+                    result = already_processed_before_bookmark + new_docs_expected
+                    return int(result)
                 else:
-                    return source_count
+                    return int(source_count)
             else:
                 # No bookmark info - fallback to source count
                 return source_count
@@ -1411,7 +1415,7 @@ class EventReindexingService:
             else:
                 current_app.logger.warning("No aggregations found in search results")
 
-            membership = {}
+            membership: dict[str, list] = {}
             for record_bucket in community_results.aggregations.by_record.buckets:
                 record_id = record_bucket.key
                 membership[record_id] = []
@@ -1841,11 +1845,13 @@ class EventReindexingService:
             # Collect document IDs from this batch for spot-check validation
             batch_document_ids = [hit["_id"] for hit in hits]
 
-            success, error_msg = self._process_and_index_events_batch(
+            batch_result = self._process_and_index_events_batch(
                 hits, target_index, "events"
             )
-            if not success:
-                current_app.logger.error(f"Failed to process batch: {error_msg}")
+            if not batch_result["success"]:
+                current_app.logger.error(
+                    f"Failed to process batch: {batch_result['error_message']}"
+                )
                 return {
                     "processed_count": 0,
                     "last_event_id": last_processed_id,
@@ -2168,7 +2174,8 @@ class EventReindexingService:
                     )
 
                 current_app.logger.info(
-                    f"Migration interrupted for {event_type}-{month} after {results['total_time']}"
+                    f"Migration interrupted for {event_type}-{month} after "
+                    f"{results['total_time']}"
                 )
                 return results
 
@@ -2182,12 +2189,19 @@ class EventReindexingService:
                     f"No new batches processed for {event_type}-{month} - "
                     "skipping validation (bookmark already at end)"
                 )
-                validation_results = {
+                validation_results: ValidationResult = {
                     "success": True,
                     "errors": [],
                     "document_counts": {"match": True, "source": 0, "target": 0},
                     "missing_community_ids": 0,
-                    "spot_check": {"success": True, "errors": [], "details": {}},
+                    "spot_check": {
+                        "success": True,
+                        "errors": [],
+                        "details": {},
+                        "documents_verified": None,
+                        "field_mismatches": None,
+                        "document_count_mismatch": None,
+                    },
                 }
             else:
                 # Normal case: validate the migrated data
@@ -2277,7 +2291,8 @@ class EventReindexingService:
                     last_processed_timestamp,
                 )
                 current_app.logger.info(
-                    f"Set final bookmark for {event_type}-{month} to {last_processed_id}"
+                    f"Set final bookmark for {event_type}-{month} to "
+                    f"{last_processed_id}"
                 )
 
                 # Calculate timing information
@@ -2319,7 +2334,8 @@ class EventReindexingService:
                 )
 
             current_app.logger.error(
-                f"Migration failed for {event_type}-{month} after {results['total_time']}"
+                f"Migration failed for {event_type}-{month} after "
+                f"{results['total_time']}"
             )
 
         return results
@@ -2377,7 +2393,7 @@ class EventReindexingService:
             False otherwise.
         """
         stats_events = current_app.config["STATS_EVENTS"]
-        templates = {}
+        templates: dict[str, dict] = {}
 
         templates_to_update = self._get_templates_to_update(stats_events)
 
@@ -2579,7 +2595,8 @@ class EventReindexingService:
         elif total_interruptions > 0:
             results["completed"] = False
             current_app.logger.warning(
-                f"Reindexing completed with {total_interruptions} interrupted migrations. "
+                f"Reindexing completed with {total_interruptions} "
+                "interrupted migrations. "
                 "Use --max-batches to limit processing and resume later."
             )
         else:
@@ -2631,7 +2648,7 @@ class EventReindexingService:
 
             for source_index in old_monthly_indices:
                 try:
-                    source_count = self.client.count(index=source_index)["count"]
+                    source_count = self.client.count(index=source_index)["count"] or 0
 
                     old_idx: OldMonthCounts = {
                         "index": source_index,
@@ -2696,8 +2713,8 @@ class EventReindexingService:
                             and new_idx["remaining_count"] == 0
                         )
                         new_idx["interrupted"] = (
-                            new_idx["old_count"] > new_idx["migrated_count"]
-                            and new_idx["remaining_count"] > 0
+                            new_idx["old_count"] > (new_idx["migrated_count"] or 0)
+                            and (new_idx["remaining_count"] or 0) > 0
                         )
                         new_idx["bookmark"] = bookmark
 
@@ -2743,9 +2760,15 @@ class EventReindexingService:
                 )
                 counts["completed_indices"].append(completed_idx)
 
-            counts[f"{event_type}_old"] = event_type_old_count
-            counts[f"{event_type}_migrated"] = event_type_migrated_count
-            counts[f"{event_type}_remaining"] = event_type_remaining_count
+            # Update counts based on event type
+            if event_type == "view":
+                counts["view_old"] = event_type_old_count
+                counts["view_migrated"] = event_type_migrated_count
+                counts["view_remaining"] = event_type_remaining_count
+            else:  # download
+                counts["download_old"] = event_type_old_count
+                counts["download_migrated"] = event_type_migrated_count
+                counts["download_remaining"] = event_type_remaining_count
 
         return counts
 
@@ -2782,7 +2805,8 @@ class EventReindexingService:
             search_query = search_query.extra(size=1)
             response = search_query.execute()
             if response.hits:
-                return response.hits[0].timestamp
+                timestamp = response.hits[0].timestamp
+                return str(timestamp) if timestamp is not None else None
             return None
         except Exception as e:
             current_app.logger.error(

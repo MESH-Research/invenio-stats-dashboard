@@ -127,7 +127,7 @@ class ProcessManager:
                 return False
 
             process = psutil.Process(pid)
-            return process.is_running()
+            return bool(process.is_running())
 
         except (ValueError, FileNotFoundError, psutil.NoSuchProcess):
             self.cleanup()
@@ -151,7 +151,8 @@ class ProcessManager:
 
         try:
             with open(self.status_file, "r") as f:
-                return json.load(f)
+                result = json.load(f)
+                return result if isinstance(result, dict) else None
         except (json.JSONDecodeError, FileNotFoundError):
             return None
 
@@ -318,7 +319,8 @@ class ProcessMonitor:
 
         try:
             with open(self.status_file, "r") as f:
-                return json.load(f)
+                result = json.load(f)
+                return result if isinstance(result, dict) else None
         except (json.JSONDecodeError, FileNotFoundError):
             return None
 
@@ -332,7 +334,7 @@ class ProcessMonitor:
                 return False
 
             process = psutil.Process(pid)
-            return process.is_running()
+            return bool(process.is_running())
 
         except (ValueError, FileNotFoundError, psutil.NoSuchProcess):
             return False
@@ -363,7 +365,7 @@ def list_running_processes(
         List of running process names
     """
     pid_path = Path(pid_dir or "/tmp")
-    running_processes = []
+    running_processes: list[str] = []
 
     if not pid_path.exists():
         return running_processes
@@ -384,7 +386,9 @@ def list_running_processes(
             # If no package prefix specified, use the full name
             short_process_name = full_process_name
 
-        monitor = ProcessMonitor(short_process_name, pid_dir, package_prefix)
+        monitor = ProcessMonitor(
+            short_process_name, pid_dir, package_prefix or "invenio-community-stats"
+        )
 
         if monitor._is_process_running():
             running_processes.append(full_process_name)

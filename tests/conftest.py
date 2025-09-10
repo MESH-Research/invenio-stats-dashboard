@@ -17,6 +17,7 @@ from pathlib import Path
 import jinja2
 import pytest
 from invenio_app.factory import create_app as _create_app
+from invenio_files_rest.models import Location
 from invenio_queues import current_queues
 from invenio_search.proxies import current_search_client
 
@@ -138,10 +139,6 @@ test_config["LOGGING_FS_LEVEL"] = "DEBUG"
 test_config["LOGGING_FS_LOGFILE"] = str(log_file_path)
 test_config["LOGGING_CONSOLE_LEVEL"] = "DEBUG"
 test_config["CELERY_LOGFILE"] = str(log_folder_path / "celery.log")
-test_config["RECORD_IMPORTER_DATA_DIR"] = str(
-    parent_path / "helpers" / "sample_import_data"
-)
-test_config["RECORD_IMPORTER_LOGS_LOCATION"] = log_folder_path
 
 # enable DataCite DOI provider
 test_config["DATACITE_ENABLED"] = True
@@ -163,14 +160,7 @@ test_config["SITE_UI_URL"] = os.environ.get(
 @pytest.fixture(scope="module")
 def extra_entry_points() -> dict:
     """Extra entry points fixture for KCWorks."""
-    return {
-        # "invenio_base.api_apps": ["kcworks = kcworks.ext:KCWorks"],
-        # "invenio_base.apps": ["kcworks = kcworks.ext:KCWorks"],
-        # "invenio_base.api_blueprints": [
-        #     "kcworks = kcworks.views.views:create_api_blueprint"
-        # ],
-        # "invenio_base.blueprints": ["kcworks = kcworks.views.views:create_blueprint"],
-    }
+    return {}
 
 
 @pytest.fixture(scope="session")
@@ -192,19 +182,6 @@ def celery_enable_logging():
     return True
 
 
-# @pytest.fixture(scope="session")
-# def flask_celery_app(celery_config):
-#     app = Celery("invenio_app.celery")
-#     app.config_from_object(celery_config)
-#     return app
-
-
-# @pytest.fixture(scope="session")
-# def flask_celery_worker(flask_celery_app):
-#     with start_worker(flask_celery_app, perform_ping_check=False) as worker:
-#         yield worker
-
-
 @pytest.yield_fixture(scope="module")
 def location(database):
     """Creates a simple default location for a test.
@@ -214,8 +191,6 @@ def location(database):
     Location>`_. The location will be a default location with the name
     ``pytest-location``.
     """
-    from invenio_files_rest.models import Location
-
     uri = tempfile.mkdtemp()
     location_obj = Location(name="pytest-location", uri=uri, default=True)
 
@@ -224,7 +199,6 @@ def location(database):
 
     yield location_obj
 
-    # TODO: Submit PR to pytest-invenio to fix the below line in the stock fixture
     shutil.rmtree(uri)
 
 
@@ -323,6 +297,7 @@ def search_clear(search_clear):
     yield search_clear
 
     # Delete stats indices and templates if they exist
+    # Without this we get data pollution between tests
     current_search_client.indices.delete("*stats*", ignore=[404])
     current_search_client.indices.delete_template("*stats*", ignore=[404])
 

@@ -6,7 +6,7 @@
 
 """Queries for the stats dashboard."""
 
-from itertools import tee
+from typing import Any
 
 import arrow
 from flask import current_app
@@ -17,8 +17,6 @@ from opensearchpy import OpenSearch
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
-
-from tests.services.schemas.test_publication_date import test_date
 
 NESTED_AGGREGATIONS = {
     "resource_type": [
@@ -136,11 +134,12 @@ def get_relevant_record_ids_from_events(
         date_field = "record_created_date"
 
     # Build the query for the events index
-    should_clauses = []
+    should_clauses: list[Any] = []
 
     if find_deleted:
-        # For deleted records, we need to find records that were deleted in the given period
-        # We look for either "removed" events OR records marked as deleted
+        # For deleted records, we need to find records that were deleted in the
+        # given period. We look for either "removed" events OR records marked as
+        # deleted.
         removed_event_clause = {
             "bool": {
                 "must": [
@@ -245,7 +244,7 @@ class CommunityStatsResultsQueryBase(Query):
         must_clauses: list[dict] = [
             {"term": {"community_id": community_id}},
         ]
-        range_clauses = {self.date_field: {}}
+        range_clauses: dict[str, dict[str, str]] = {self.date_field: {}}
         if start_date:
             range_clauses[self.date_field]["gte"] = (
                 arrow.get(start_date).floor("day").format("YYYY-MM-DDTHH:mm:ss")
@@ -835,17 +834,17 @@ class CommunityRecordDeltaQuery:
             if find_deleted:
                 date_series_field = "tombstone.removal_date"
 
-            must_clauses: list[dict] = [
+            must_clauses_global: list[dict] = [
                 {"term": {"is_published": True}},
             ]
 
             if find_deleted:
-                must_clauses.append({"term": {"is_deleted": True}})
-                must_clauses.append(
+                must_clauses_global.append({"term": {"is_deleted": True}})
+                must_clauses_global.append(
                     {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
                 )
             else:
-                must_clauses.append(
+                must_clauses_global.append(
                     {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
                 )
         else:
@@ -870,7 +869,7 @@ class CommunityRecordDeltaQuery:
                     {"term": {"is_published": True}},
                 ]
 
-        return must_clauses
+        return must_clauses_global if community_id == "global" else must_clauses
 
     def _get_sub_aggregations(self) -> dict:
         """Get the sub aggregations for the query.

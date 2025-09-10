@@ -20,6 +20,10 @@ from invenio_accounts.proxies import current_datastore
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
+from opensearchpy.helpers.search import Search
+from opensearchpy.helpers.utils import AttrDict, AttrList
+from pytest import MonkeyPatch
+
 from invenio_stats_dashboard.aggregations import (
     CommunityAggregatorBase,
     CommunityRecordsDeltaAddedAggregator,
@@ -32,14 +36,10 @@ from invenio_stats_dashboard.aggregations import (
     CommunityUsageDeltaAggregator,
     CommunityUsageSnapshotAggregator,
 )
-from opensearchpy.helpers.utils import AttrDict, AttrList
 from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from invenio_stats_dashboard.services.components import (
     update_community_events_created_date,
 )
-from opensearchpy.helpers.search import Search
-from pytest import MonkeyPatch
-
 from tests.conftest import RunningApp
 from tests.fixtures.records import enhance_metadata_with_funding_and_affiliations
 from tests.helpers.sample_records import (

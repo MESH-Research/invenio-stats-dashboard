@@ -300,15 +300,15 @@ class UsageEventFactory:
     @staticmethod
     def _generate_events_for_records(
         records: list,
-        start_date: Optional[arrow.Arrow],
+        start_date: arrow.Arrow | None,
         end_date: arrow.Arrow,
         events_per_record: int,
         enrich_events: bool = False,
     ) -> list:
         """Generate events for a list of records."""
-        events = []
+        events: list[tuple[dict, str]] = []
 
-        for i, record in enumerate(records):
+        for record in records:
             record_data = record.to_dict()
             record_created = arrow.get(record_data["created"])
 
@@ -371,7 +371,8 @@ class UsageEventFactory:
         """Check if a migrated index with -v2.0.0 suffix exists."""
         migrated_index = f"{index_pattern}-{month}-v2.0.0"
         try:
-            return current_search_client.indices.exists(index=migrated_index)
+            result = current_search_client.indices.exists(index=migrated_index)
+            return bool(result)
         except Exception:
             return False
 
@@ -390,7 +391,7 @@ class UsageEventFactory:
         indexed = 0
         errors = 0
 
-        monthly_events = {}
+        monthly_events: dict[str, dict[str, list[tuple[dict, str]]]] = {}
         for event, event_id in events:
             timestamp = arrow.get(event["timestamp"])
             month = timestamp.format("YYYY-MM")

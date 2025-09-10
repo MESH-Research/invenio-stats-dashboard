@@ -303,7 +303,7 @@ def _run_aggregation(
         # Extract detailed results information
         aggr_docs_indexed = 0
         aggr_errors = 0
-        aggr_communities = set()
+        aggr_communities: set[str] = set()
         aggr_error_details = []
 
         if isinstance(result, list):
