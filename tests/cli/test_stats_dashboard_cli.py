@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 import arrow
 import pytest
-
 from invenio_stats_dashboard.cli import cli
 
 

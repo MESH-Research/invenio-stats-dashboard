@@ -13,9 +13,8 @@ import arrow
 from invenio_access.utils import get_identity
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
-from opensearchpy.helpers.search import Search
-
 from invenio_stats_dashboard.utils.usage_events import UsageEventFactory
+from opensearchpy.helpers.search import Search
 
 
 def test_synthetic_usage_event_creation(

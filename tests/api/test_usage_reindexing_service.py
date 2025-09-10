@@ -16,12 +16,12 @@ from flask import current_app
 from invenio_access.utils import get_identity
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
-from opensearchpy.helpers.search import Search
-
 from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from invenio_stats_dashboard.services.usage_reindexing import (
     EventReindexingService,
 )
+from opensearchpy.helpers.search import Search
+
 from tests.fixtures.records import enhance_metadata_with_funding_and_affiliations
 from tests.helpers.sample_records import (
     sample_metadata_journal_article4_pdf,

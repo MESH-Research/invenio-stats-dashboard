@@ -30,10 +30,10 @@ from invenio_requests.proxies import (
 from invenio_requests.resolvers.registry import ResolverRegistry
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
-
 from invenio_stats_dashboard.services.components import (
     CommunityAcceptedEventComponent,
 )
+
 from tests.conftest import RunningApp
 
 

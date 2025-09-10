@@ -14,7 +14,6 @@ import arrow
 from invenio_access.permissions import system_identity
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
-
 from invenio_stats_dashboard.aggregations import (
     CommunityRecordsDeltaAddedAggregator,
     CommunityRecordsDeltaCreatedAggregator,
@@ -29,6 +28,7 @@ from invenio_stats_dashboard.tasks import (
     CommunityStatsAggregationTask,
     aggregate_community_record_stats,
 )
+
 from tests.helpers.sample_records import (
     sample_metadata_book_pdf,
     sample_metadata_journal_article4_pdf,

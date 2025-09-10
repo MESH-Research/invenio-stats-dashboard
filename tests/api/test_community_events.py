@@ -1,7 +1,6 @@
 import arrow
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
-
 from invenio_stats_dashboard.services.components.components import (
     update_community_events_deletion_fields,
     update_community_events_index,
