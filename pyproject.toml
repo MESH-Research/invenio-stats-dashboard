@@ -30,10 +30,29 @@ classifiers = [
     "Development Status :: 4 - Beta",
 ]
 dependencies = [
-    "invenio-base>=1.2.3",
-    "invenio-assets>=1.2.0",
+    "invenio-app-rdm[opensearch2]==12.1.0",
+    "invenio-base==1.4.0",
+    "invenio-assets==3.2.0",
+    "invenio-app==1.5.1",
+    "invenio-accounts==5.2.2",
+    "invenio-access==2.1.0",
+    "invenio-communities==13.0.3",
+    "invenio-rdm-records==10.9.2",
+    "invenio-records-resources==5.10.0",
+    "invenio-requests==4.1.4",
+    "invenio-search==2.4.1",
+    "invenio-stats==4.4.0",
+    "invenio-vocabularies==3.5.0",
+    "invenio-queues==1.0.1",
+    "invenio-pidstore>=1.3.0",
+    "opensearch-py>=2.8.0",
+    "marshmallow>=3.0.0",
+    "jinja2>=3.0.0",
+    "idutils>=1.4.0",
     "psutil>=6.0.0",
     "glom>=23.0.0",
+    "arrow>=1.3.0",
+    "flask-sqlalchemy",
 ]
 
 [project.optional-dependencies]
@@ -47,12 +66,16 @@ docs = [
     "uc-micro-py>=1.0.0",
 ]
 tests = [
-    "pytest-invenio>=1.4.0",
+    "pytest-invenio>=2.2.2,<3.0.0",
     "pytest-ruff>=0.1.0",
     "pytest-mypy>=0.10.0",
     "pytest-black>=0.6.0",
+    "pytest-cov>=6.2.1",
     "pytest-isort>=4.0.0",
     "pytest-mock",
+    "requests-mock",
+    "arrow",
+    "docker-services-cli",
 ]
 dev = [
     "black>=25.1.0",
@@ -62,6 +85,9 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/MESH-Research/invenio-stats-dashboard"
+
+[tool.uv.sources]
+invenio-rdm-records = {path = "../invenio-rdm-records", editable = true}
 
 [tool.setuptools]
 packages = ["invenio_stats_dashboard"]
@@ -104,14 +130,21 @@ target-version = "py312"
 "__init__.py" = ["F401", "D104", "E402"]
 
 [tool.ruff.lint]
+# temporarily removed C for complexity checks
 select = ["E", "F", "I", "B", "UP", "D", "DOC"]
+# Ignore formatting-related rules (let black handle these)
 ignore = [
     "E501", # Line too long
     "I001", # Import sorting
     "E1",   # Indentation
+    # "E2",   # Whitespace
+    # "E3",   # Blank lines
     "W1",   # Indentation warnings
     "W2",   # Whitespace warnings
     "W3",   # Blank line warnings
+    # "COM",  # Trailing comma rules
+    # "ISC",  # Implicit string concatenation
+    # "Q",    # Quotes
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -132,22 +165,58 @@ warn_no_return = false
 ignore_missing_imports = true
 follow_imports = "skip"
 allow_untyped_globals = true
+exclude = [
+    '^tests/',
+]
 
 [tool.isort]
 profile = "black"
 line_length = 88
 verbose = true
-multi_line_output = 3
+multi_line_output = 3  # Vertical hanging indent
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 split_on_trailing_comma = true
+skip = [
+    "__pycache__",  # Skip cache directories
+]
 
 [tool.pytest.ini_options]
 addopts = """
 --black --ruff --isort --doctest-modules
+--log-cli-level=DEBUG
+--ignore=docs
+--ignore=node_modules
 --cov=invenio_stats_dashboard --cov-report=term-missing
 """
+norecursedirs = []
 log_cli_level = "DEBUG"
 isort_show_files = true
+plugins = [
+    "tests.fixtures.files",
+    "tests.fixtures.mail",
+    "tests.fixtures.communities",
+    "tests.fixtures.custom_fields",
+    "tests.fixtures.records",
+    "tests.fixtures.roles",
+    "tests.fixtures.stats",
+    "tests.fixtures.users",
+    "tests.fixtures.vocabularies.affiliations",
+    "tests.fixtures.vocabularies.community_types",
+    "tests.fixtures.vocabularies.date_types",
+    "tests.fixtures.vocabularies.descriptions",
+    "tests.fixtures.vocabularies.funding_and_awards",
+    "tests.fixtures.vocabularies.languages",
+    "tests.fixtures.vocabularies.licenses",
+    "tests.fixtures.vocabularies.resource_types",
+    "tests.fixtures.vocabularies.roles",
+    "tests.fixtures.vocabularies.subjects",
+    "tests.fixtures.vocabularies.title_types",
+]
+
+[tool.coverage.run]
+omit = [
+    "tests/*",
+]
