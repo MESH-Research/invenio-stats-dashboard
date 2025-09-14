@@ -19,6 +19,18 @@ class CommunityEventIndexingError(Exception):
     pass
 
 
+class MissingCommunityEventsError(Exception):
+    """Exception raised when community events are missing."""
+
+    pass
+
+
+class NoCommunityEventsIndexError(Exception):
+    """Exception raised when community events index does not exist."""
+
+    pass
+
+
 class TaskLockAcquisitionError(Exception):
     """Exception raised when a distributed task lock cannot be acquired."""
 
