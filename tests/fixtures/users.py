@@ -1,8 +1,8 @@
-# Part of Knowledge Commons Works
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 #
 # Copyright (C) 2025 MESH Research.
 #
-# Knowledge Commons Works is free software; you can redistribute it and/or modify
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """User related pytest fixtures for testing."""
@@ -22,7 +22,6 @@ from invenio_accounts.proxies import current_accounts
 from invenio_accounts.testutils import login_user_via_session
 from invenio_administration.permissions import administration_access_action
 from invenio_oauth2server.models import Token
-from invenio_oauthclient.models import UserIdentity
 from pytest_invenio.fixtures import UserFixtureBase
 from requests_mock.adapter import _Matcher as Matcher
 
@@ -39,57 +38,12 @@ def get_authenticated_identity(user: User | Identity) -> Identity:
     return identity
 
 
-@pytest.fixture(scope="function")
-def mock_user_data_api(requests_mock) -> Callable:
-    """Mock the user data api."""
-
-    def mock_api_call(saml_id: str, mock_remote_data: dict) -> Matcher:
-        protocol = os.environ.get(
-            "INVENIO_COMMONS_API_REQUEST_PROTOCOL", "https"
-        )  # noqa: E501
-        base_url = f"{protocol}://hcommons-dev.org/wp-json/commons/v1/users"
-        remote_url = f"{base_url}/{saml_id}"
-        mock_adapter = requests_mock.get(
-            remote_url,
-            json=mock_remote_data,
-        )
-        return mock_adapter
-
-    return mock_api_call
-
-
-@pytest.fixture(scope="function")
-def user_data_to_remote_data(requests_mock):
-    """Factory fixture providing function to convert user data format."""
-
-    def convert_user_data_to_remote_data(
-        saml_id: str, email: str, user_data: dict
-    ) -> dict[str, str | list[dict[str, str]]]:
-        """Convert user fixture data to format for remote data."""
-        mock_remote_data = {
-            "username": saml_id,
-            "email": email,
-            "name": user_data.get("name", ""),
-            "first_name": user_data.get("first_name", ""),
-            "last_name": user_data.get("last_name", ""),
-            "institutional_affiliation": user_data.get("institutional_affiliation", ""),
-            "orcid": user_data.get("orcid", ""),
-            "preferred_language": user_data.get("preferred_language", ""),
-            "time_zone": user_data.get("time_zone", ""),
-            "groups": user_data.get("groups", ""),
-        }
-        return mock_remote_data
-
-    return convert_user_data_to_remote_data
-
-
 class AugmentedUserFixture(UserFixtureBase):
     """Augmented UserFixtureBase class."""
 
     def __init__(self, *args, **kwargs):
         """Initialize the AugmentedUserFixture."""
         super().__init__(*args, **kwargs)
-        self.mock_adapter: Matcher | None = None
         self.allowed_token: str | None = None
 
 
@@ -98,9 +52,6 @@ def user_factory(
     app,
     db,
     admin_role_need,
-    requests_mock,
-    mock_user_data_api,
-    user_data_to_remote_data,
 ) -> Callable:
     """Factory for creating test users.
 
@@ -113,11 +64,6 @@ def user_factory(
         password: str = "password",
         token: bool = False,
         admin: bool = False,
-        saml_src: str | None = "knowledgeCommons",
-        saml_id: str | None = "myuser",
-        orcid: str | None = "",
-        kc_username: str | None = "",
-        new_remote_data: dict | None = None,
     ) -> AugmentedUserFixture:
         """Create an augmented pytest-invenio user fixture.
 
@@ -126,29 +72,13 @@ def user_factory(
             password: The password of the user.
             token: Whether the user should have a token.
             admin: Whether the user should have admin access.
-            saml_src: The source of the user's saml authentication.
-            saml_id: The user's ID for saml authentication.
 
         Returns:
             The created UserFixture object. This has the following attributes:
             - user: The created Invenio User object.
-            - mock_adapter: The requests_mock adapter for the api call to
-                sync user data from the remote service.
             - identity: The identity of the user.
             - allowed_token: The API auth token of the user.
         """
-        new_remote_data = new_remote_data or {}
-
-        # Mock remote data that's already in the user fixture.
-        mock_remote_data = user_data_to_remote_data(
-            saml_id, new_remote_data.get("email") or email, new_remote_data
-        )
-        # Mock the remote api call.
-        mock_adapter = mock_user_data_api(saml_id, mock_remote_data)
-
-        if not orcid and new_remote_data.get("orcid"):
-            orcid = new_remote_data.get("orcid")
-
         u = AugmentedUserFixture(
             email=email,
             password=hash_password(password),
@@ -167,23 +97,10 @@ def user_factory(
             )
             datastore.add_role_to_user(u.user, role)
 
-        if u.user and orcid:
+        if u.user:
+            u.user.username = f"test-{email.split('@')[0]}"
             profile = u.user.user_profile
-            profile["identifier_orcid"] = orcid
             u.user.user_profile = profile
-
-        if u.user and kc_username:
-            profile = u.user.user_profile
-            profile["identifier_kc_username"] = kc_username
-            u.user.user_profile = profile
-
-        if u.user and saml_src and saml_id:
-            u.user.username = f"{saml_src}-{saml_id}"
-            profile = u.user.user_profile
-            profile["identifier_kc_username"] = saml_id
-            u.user.user_profile = profile
-            UserIdentity.create(u.user, saml_src, saml_id)
-            u.mock_adapter = mock_adapter
 
         current_accounts.datastore.commit()
         db.session.commit()
@@ -220,8 +137,6 @@ def admin(user_factory) -> AugmentedUserFixture:
         password="password",
         admin=True,
         token=True,
-        saml_src="knowledgeCommons",
-        saml_id="admin",
     )
 
     return u

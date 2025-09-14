@@ -4,73 +4,6 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-SAMPLE_RECORDS_SNAPSHOT_AGG = {
-    "timestamp": "2024-01-01T00:00:00",
-    "community_id": "abcd",
-    "snapshot_date": "2024-01-01",
-    "total_records": {
-        "metadata_only": 100,
-        "with_files": 200,
-    },
-    "total_parents": {
-        "metadata_only": 100,
-        "with_files": 200,
-    },
-    "total_files": {
-        "file_count": 100,
-        "data_volume": 200.0,
-    },
-    "total_uploaders": 100,
-    "subcounts": {
-        "all_resource_types": [
-            {
-                "id": "123",
-                "label": "Resource Type 1",
-                "records": {
-                    "metadata_only": 100,
-                    "with_files": 200,
-                },
-                "parents": {
-                    "metadata_only": 100,
-                    "with_files": 200,
-                },
-                "files": {
-                    "file_count": 100,
-                    "data_volume": 200.0,
-                },
-            },
-        ],
-        "all_access_statuses": [
-            {
-                "id": "123",
-                "label": "Access Right 1",
-                "records": {
-                    "metadata_only": 100,
-                    "with_files": 200,
-                },
-                "parents": {
-                    "metadata_only": 100,
-                    "with_files": 200,
-                },
-                "files": {
-                    "file_count": 100,
-                    "data_volume": 200.0,
-                },
-            },
-        ],
-        "top_languages": [],
-        "all_rights": [],
-        "top_affiliations_creator": [],
-        "top_affiliations_contributor": [],
-        "top_funders": [],
-        "top_subjects": [],
-        "top_publishers": [],
-        "top_periodicals": [],
-        "top_keywords": [],
-    },
-}
-
-
 # Mock search response for three records in period 2025-05-30 to 2025-06-03
 MOCK_RECORD_SEARCH_RESPONSE = {
     "_shards": {"failed": 0, "skipped": 0, "successful": 5, "total": 5},
@@ -130,12 +63,6 @@ MOCK_RECORD_SEARCH_RESPONSE = {
                                 "person_or_org": {
                                     "family_name": "Friedman",
                                     "given_name": "Hal",
-                                    "identifiers": [
-                                        {
-                                            "identifier": "friedman1996",
-                                            "scheme": "kc_username",
-                                        }
-                                    ],
                                     "name": "Friedman, " "Hal",
                                     "type": "personal",
                                 },
@@ -457,12 +384,6 @@ MOCK_RECORD_SEARCH_RESPONSE = {
                                 "person_or_org": {
                                     "family_name": "Dollinger",
                                     "given_name": "Stefan",
-                                    "identifiers": [
-                                        {
-                                            "identifier": "stefand",
-                                            "scheme": "kc_username",
-                                        }
-                                    ],
                                     "name": "Dollinger, " "Stefan",
                                     "type": "personal",
                                 },
@@ -856,10 +777,6 @@ MOCK_RECORD_SEARCH_RESPONSE = {
                                     "family_name": "Austin",
                                     "given_name": "Jeanie",
                                     "identifiers": [
-                                        {
-                                            "identifier": "jeanieaustin",
-                                            "scheme": "kc_username",
-                                        },
                                         {
                                             "identifier": "0009-0008-0969-5474",
                                             "scheme": "orcid",
@@ -8052,7 +7969,7 @@ MOCK_RECORD_SNAPSHOT_AGGREGATIONS = {
 }
 
 SAMPLE_RDMRECORDS_RECORDS_HIT = {
-    "_index": "kcworks-rdmrecords-records-record-v6.0.0-1725995542",
+    "_index": "rdmrecords-records-record-v6.0.0-1725995542",
     "_id": "f5faa3d6-1eb2-4bd7-8d6a-d7a5e9b510ee",
     "_score": 0,
     "_source": {
@@ -8305,7 +8222,7 @@ SAMPLE_RDMRECORDS_RECORDS_HIT = {
 }
 
 SAMPLE_EVENTS_STATS_RECORD_VIEW_HIT = {
-    "_index": "kcworks-events-stats-record-view-2019-01",
+    "_index": "events-stats-record-view-2019-01",
     "_id": "2019-01-01T00:00:00-e84350bffaba52f09db1778b0aea50f417a004b6",
     "_score": 1,
     "_source": {
@@ -8323,7 +8240,7 @@ SAMPLE_EVENTS_STATS_RECORD_VIEW_HIT = {
 }
 
 SAMPLE_EVENTS_STATS_FILE_DOWNLOAD_HIT = {
-    "_index": "kcworks-events-stats-file-download-2025-05",
+    "_index": "events-stats-file-download-2025-05",
     "_id": "2025-05-30T01:25:30-3e5907bfe89ce0a18086ea86af268f77d52fdd06",
     "_score": 1,
     "_source": {
@@ -8335,7 +8252,7 @@ SAMPLE_EVENTS_STATS_FILE_DOWNLOAD_HIT = {
         "recid": "aj52y-eha16",
         "parent_recid": "3v4a1-qn507",
         "referrer": (
-            "https://works.hcommons.org/records/aj52y-eha16/preview/"
+            "https://example.com/records/aj52y-eha16/preview/"
             "undertaken-in-company.pdf?include_deleted=0?"
         ),
         "via_api": False,

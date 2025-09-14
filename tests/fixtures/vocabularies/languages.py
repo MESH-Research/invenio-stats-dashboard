@@ -1,9 +1,8 @@
-# Part of Knowledge Commons Works
-# Copyright (C) 2023-2024, MESH Research
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+# Copyright (C) 2025 MESH Research
 #
-# Knowledge Commons Works is free software; you can redistribute it and/or
-# modify it under the terms of the MIT License; see LICENSE file for more
-# details.
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
+# it under the terms of the MIT License; see LICENSE file for more details.
 
 """Vocabulary pytest fixtures for languages."""
 
