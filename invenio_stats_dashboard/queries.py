@@ -828,23 +828,23 @@ class CommunityRecordDeltaQuery:
                     {"term": {"is_published": True}},
                 ]
         elif community_id == "global":
-            # For global queries without use_published_dates, use record date fields directly
-            # Field to use to find the period's records
+            # For global queries without use_published_dates, use record date
+            # fields directly
             date_series_field = "created"
             if find_deleted:
                 date_series_field = "tombstone.removal_date"
 
-            must_clauses_global: list[dict] = [
+            must_clauses = [
                 {"term": {"is_published": True}},
             ]
 
             if find_deleted:
-                must_clauses_global.append({"term": {"is_deleted": True}})
-                must_clauses_global.append(
+                must_clauses.append({"term": {"is_deleted": True}})
+                must_clauses.append(
                     {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
                 )
             else:
-                must_clauses_global.append(
+                must_clauses.append(
                     {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
                 )
         else:
@@ -869,7 +869,7 @@ class CommunityRecordDeltaQuery:
                     {"term": {"is_published": True}},
                 ]
 
-        return must_clauses_global if community_id == "global" else must_clauses
+        return must_clauses
 
     def _get_sub_aggregations(self) -> dict:
         """Get the sub aggregations for the query.

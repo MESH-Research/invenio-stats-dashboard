@@ -228,7 +228,12 @@ def aggregate_community_record_stats(
                     "Acquired aggregation lock, starting aggregation..."
                 )
                 return _run_aggregation(
-                    aggregations, start_date, end_date, update_bookmark, community_ids
+                    aggregations,
+                    start_date,
+                    end_date,
+                    update_bookmark,
+                    community_ids,
+                    ignore_bookmark,
                 )
         except TaskLockAcquisitionError:
             # Lock acquisition failed - another task is running
@@ -246,7 +251,12 @@ def aggregate_community_record_stats(
         # Run without locking
         current_app.logger.info("Running aggregation without distributed lock...")
         return _run_aggregation(
-            aggregations, start_date, end_date, update_bookmark, community_ids
+            aggregations,
+            start_date,
+            end_date,
+            update_bookmark,
+            community_ids,
+            ignore_bookmark,
         )
 
 
@@ -256,6 +266,7 @@ def _run_aggregation(
     end_date,
     update_bookmark,
     community_ids=None,
+    ignore_bookmark=False,
     verbose=False,
 ):
     """Run the actual aggregation logic."""
@@ -271,8 +282,8 @@ def _run_aggregation(
         end_date=str(end_date) if end_date else None,
         eager=False,  # This is always False when called from task
         update_bookmark=update_bookmark,
-        ignore_bookmark=False,  # This is handled at task level
-        verbose=False,  # We'll log the non-verbose version
+        ignore_bookmark=ignore_bookmark,
+        verbose=False,
     )
     current_app.logger.info(f"Aggregation startup configuration:\n{startup_config}")
 
@@ -290,7 +301,7 @@ def _run_aggregation(
         if community_ids:
             params["community_ids"] = community_ids
         aggregator = aggr_cfg.cls(name=aggr_cfg.name, **params)
-        result = aggregator.run(start_date, end_date, update_bookmark)
+        result = aggregator.run(start_date, end_date, update_bookmark, ignore_bookmark)
         results.append(result)
 
         if hasattr(aggregator, "aggregation_index") and aggregator.aggregation_index:
