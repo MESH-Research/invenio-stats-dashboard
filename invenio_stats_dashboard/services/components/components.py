@@ -395,7 +395,8 @@ def update_community_events_index(
                 newest_event_type = newest_event_source["event_type"]
 
                 if newest_event_type != "added" and event_type == "removed":
-                    # No addition event found, create one with timestamp 1 second before removal
+                    # No addition event found, create one with timestamp
+                    # 1 second before removal
                     removal_timestamp = arrow.get(timestamp)
                     addition_timestamp = removal_timestamp.shift(seconds=-1)
                     create_new_event(
@@ -460,27 +461,26 @@ class CommunityAcceptedEventComponent(ServiceComponent):
         **kwargs,
     ) -> None:
         """Update the community record events."""
-        current_app.logger.error("ACCEPTED EVENT COMPONENT ******************")
-        request_data = event.request.data
+        request_data = event.request.data  # type: ignore
 
         if (
             (
                 request_data["type"] == CommunityInclusion.type_id
-                and event.get("payload").get("event")
+                and event.get("payload", {}).get("event")
                 == CommunityInclusionAcceptAction.status_to
             )
             or (
                 request_data["type"] == CommunitySubmission.type_id
-                and event.get("payload").get("event")
+                and event.get("payload", {}).get("event")
                 == CommunitySubmissionAcceptAction.status_to
             )
             or (
                 request_data["type"] == CommunityTransferRequest.type_id
-                and event.get("payload").get("event")
+                and event.get("payload", {}).get("event")
                 == CommunityTransferAcceptAction.status_to
             )
         ):
-            record = RDMRecord.pid.resolve(request_data["topic"]["record"])
+            record = RDMRecord.pid.resolve(request_data["topic"]["record"])  # type: ignore  # noqa: E501
 
             community_id = request_data["receiver"]["community"]
             record_published_date = record.metadata.get("publication_date")
@@ -489,10 +489,6 @@ class CommunityAcceptedEventComponent(ServiceComponent):
                 community_ids_to_add=[community_id, "global"],
                 record_created_date=record.created,
                 record_published_date=record_published_date,
-            )
-
-            current_app.logger.error(
-                f"Updated community events index for record {record.pid.pid_value} and community {community_id}"
             )
 
 
@@ -516,13 +512,11 @@ class RecordCommunityEventComponent(ServiceComponent):
         Find any changes to the communities field and update the community events
         accordingly on the record.
         """
-        current_app.logger.error("PUBLISH COMPONENT ******************")
-
         new_community_ids = {
             c
             for c in (
-                record.parent.communities.ids
-                if record.parent.communities
+                record.parent.communities.ids  # type: ignore
+                if record.parent.communities  # type: ignore
                 else []  # type: ignore
             )
         }
@@ -536,28 +530,22 @@ class RecordCommunityEventComponent(ServiceComponent):
             current_community_ids = {
                 c.pid.pid_value
                 for c in (
-                    draft.parent.communities.entries if draft.parent.communities else []
+                    draft.parent.communities.entries  # type: ignore
+                    if draft.parent.communities  # type: ignore
+                    else []
                 )
             }
-
-        current_app.logger.error(
-            f"in publish component, new_community_ids: " f"{pformat(new_community_ids)}"
-        )
 
         communities_to_add = list(new_community_ids - current_community_ids)
         communities_to_remove = list(current_community_ids - new_community_ids)
 
-        record_published_date = record.metadata.get("publication_date")
+        record_published_date = record.metadata.get("publication_date")  # type: ignore
         update_community_events_index(
-            record_id=str(record.pid.pid_value),
+            record_id=str(record.pid.pid_value),  # type: ignore
             community_ids_to_add=communities_to_add + ["global"],
             community_ids_to_remove=communities_to_remove,
             record_created_date=record.created,
             record_published_date=record_published_date,
-        )
-
-        current_app.logger.error(
-            f"Updated community events index for record {record.pid.pid_value}: added {communities_to_add}, removed {communities_to_remove}"
         )
 
     def delete_record(
@@ -572,16 +560,10 @@ class RecordCommunityEventComponent(ServiceComponent):
         Find any changes to the communities field and update the community events
         accordingly on the record.
         """
-        current_app.logger.error("DELETE COMPONENT ******************")
-
         update_community_events_deletion_fields(
-            record_id=str(record.pid.pid_value),
+            record_id=str(record.pid.pid_value),  # type: ignore
             is_deleted=True,
             deleted_date=arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
-        )
-
-        current_app.logger.error(
-            f"Updated deletion fields for all community events for record {record.pid.pid_value}"
         )
 
     def restore_record(
@@ -595,16 +577,10 @@ class RecordCommunityEventComponent(ServiceComponent):
         Clear the deletion fields for all community events for this record
         when it is restored from a deleted state.
         """
-        current_app.logger.error("RESTORE COMPONENT ******************")
-
         update_community_events_deletion_fields(
-            record_id=str(record.pid.pid_value),
+            record_id=str(record.pid.pid_value),  # type: ignore
             is_deleted=False,
             deleted_date=None,
-        )
-
-        current_app.logger.error(
-            f"Cleared deletion fields for all community events for record {record.id}"
         )
 
 
@@ -622,13 +598,11 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         uow: UnitOfWork,
     ):
         """Record addition of a record in the record metadata."""
-        current_app.logger.error("ADD COMPONENT ******************")
-
         community_ids = [community["id"] for community in communities]
 
-        record_published_date = record.metadata.get("publication_date")
+        record_published_date = record.metadata.get("publication_date")  # type: ignore
         update_community_events_index(
-            record_id=str(record.pid.pid_value),
+            record_id=str(record.pid.pid_value),  # type: ignore
             community_ids_to_add=community_ids + ["global"],
             record_created_date=record.created,
             record_published_date=record_published_date,
@@ -655,36 +629,35 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
                 record_published_date=record_published_date,
             )
 
-    def remove(
+    def remove_community(
         self,
         identity: Identity,
         record: RDMRecord,
-        communities: list[dict[str, Any]],
+        community: dict[str, Any],
         valid_data: dict[str, Any],
         errors: list[dict[str, Any]],
         uow: UnitOfWork | None = None,
         **kwargs: Any,
     ) -> None:
-        """Record removal of a record in the record metadata.
+        """Record removal of a record from a community in the record metadata.
 
         Parameters:
             identity (Any): The identity performing the action
             record (RDMRecord): The record being removed
-            communities (list[dict[str, Any]]): The communities to remove
+            community (dict[str, Any]): The community to remove
+            valid_data (dict[str, Any]): The valid data
             errors (list[dict[str, Any]]): The errors to add to
             uow (UnitOfWork | None, optional): The unit of work manager. Defaults
                 to None.
             **kwargs (Any): Additional keyword arguments
         """
-        current_app.logger.error("REMOVE COMPONENT ******************")
+        community_id = community["id"]
 
-        communities_to_remove = [c["id"] for c in communities]
-
-        record_published_date = record.metadata.get("publication_date")
+        record_published_date = record.metadata.get("publication_date")  # type: ignore
 
         update_community_events_index(
-            record_id=str(record.pid.pid_value),
-            community_ids_to_remove=communities_to_remove,
+            record_id=str(record.pid.pid_value),  # type: ignore
+            community_ids_to_remove=[community_id],
             record_created_date=record.created,
             record_published_date=record_published_date,
         )
