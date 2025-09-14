@@ -1,8 +1,8 @@
-# Part of Knowledge Commons Works
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 #
 # Copyright (C) 2025 MESH Research.
 #
-# Knowledge Commons Works is free software; you can redistribute it and/or modify
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Test fixtures for records."""
@@ -24,16 +24,16 @@ from flask_principal import Identity
 from invenio_access.permissions import system_identity
 from invenio_accounts.proxies import current_accounts
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
-from invenio_record_importer_kcworks.services.files import FilesHelper
-from invenio_record_importer_kcworks.types import FileData
-from invenio_record_importer_kcworks.utils.utils import replace_value_in_nested_dict
 from invenio_records_resources.services.records.results import RecordItem
 from invenio_records_resources.services.uow import RecordCommitOp, UnitOfWork
+
 from invenio_stats_dashboard.services.components.components import (
     update_community_events_created_date,
 )
 
-from ..helpers.utils import remove_value_by_path
+from ..helpers.files_helper import FilesHelper
+from ..helpers.types import FileData
+from ..helpers.utils import remove_value_by_path, replace_value_in_nested_dict
 from .communities import add_community_to_record
 from .files import build_file_links
 from .users import get_authenticated_identity
@@ -1413,7 +1413,7 @@ def enhance_metadata_with_funding_and_affiliations(metadata, record_index):
                     "identifiers": [
                         {
                             "identifier": (
-                                "https://sandbox.kcworks.org/00k4n6c31::755021"
+                                "https://sandbox.inveniosoftware.org/00k4n6c31::755021"
                             ),
                             "scheme": "url",
                         }
