@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="TODOs" href="todos.html" /><link rel="prev" title="Invenio Stats Dashboard" href="introduction.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Architecture" href="architecture.html" /><link rel="prev" title="TODOs" href="todos.html" />
 
     <!-- Generated with Sphinx 7.3.7 and Furo 2025.07.19 -->
-        <title>Overview - Invenio Stats Dashboard 0.1.0-alpha1 documentation</title>
+        <title>Known Issues - Invenio Stats Dashboard 0.1.0-alpha1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -184,7 +184,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -205,9 +205,9 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Invenio Stats Dashboard</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="todos.html">TODOs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="known_issues.html">Known Issues</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Known Issues</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Migration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
@@ -235,12 +235,12 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/blob/main/docs/source/overview.md?plain=true" title="View this page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/blob/main/docs/source/known_issues.md?plain=true" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
 </div><div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/edit/main/docs/source/overview.md" rel="edit" title="Edit this page">
+  <a class="muted-link" href="https://github.com/MESH-Research/invenio-stats-dashboard/edit/main/docs/source/known_issues.md" rel="edit" title="Edit this page">
     <svg><use href="#svg-pencil"></use></svg>
     <span class="visually-hidden">Edit this page</span>
   </a>
@@ -253,79 +253,24 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides a highly configurable dashboard for viewing and analyzing statistics for the instance and each of its communities. The extension makes available time-series data for each community and the instance as a whole, including:</p>
+          <section class="tex2jax_ignore mathjax_ignore" id="known-issues">
+<h1>Known Issues<a class="headerlink" href="#known-issues" title="Link to this heading">¶</a></h1>
+<section id="as-of-2025-09-12">
+<h2>as of 2025-09-12:<a class="headerlink" href="#as-of-2025-09-12" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>running cumulative totals and delta changes for a given date range</p>
-<ul>
-<li><p>number of records and files</p></li>
-<li><p>file data volume</p></li>
-<li><p>number of unique uploaders</p></li>
-<li><p>number of unique views and downloads</p></li>
+<li><p>the service component calls require PRs to be merged in invenio-requests (<a class="reference external" href="https://github.com/inveniosoftware/invenio-requests/pull/457">https://github.com/inveniosoftware/invenio-requests/pull/457</a>) and invenio-rdm-records (<a class="reference external" href="https://github.com/inveniosoftware/invenio-rdm-records/pull/2002">https://github.com/inveniosoftware/invenio-rdm-records/pull/2002</a>). These PRs are both currently in review. In development I’m using forked versions of these packages with the changes merged in.</p></li>
+<li><p>client-side transformation of the queried API data is broken while we refactor it to use the configurable subcounts</p></li>
+<li><p>the <code class="docutils literal notranslate"><span class="pre">-background</span></code> versions of CLI commands are working but not creating the correct PID files, so the <code class="docutils literal notranslate"><span class="pre">status</span></code> and <code class="docutils literal notranslate"><span class="pre">cancel</span></code> sub-commands are not working correctly. We need to manage the background processes manually for now. But the process logs are still being captured correctly in the /tmp folder.</p></li>
+<li><p>the record delta aggregator is not working properly when using the publication date as the basis for the aggregation. It is missing records published before the first record was created. This also throws off the record snapshot aggregator when using the publication date as the basis for the aggregation.</p></li>
+<li><p>Not a problem, but need to clarify that the “affiliations” subcounts count the <em>number of creators/contributors</em> to records with the affiliation (i.e., the number of “contributions”), not the <em>number of records</em> with the affiliation.</p></li>
 </ul>
-</li>
-<li><p>subcounts for each metric broken down by a configurable list of metadata fields like</p>
-<ul>
-<li><p>resource type</p></li>
-<li><p>access status (open, restricted, etc.)</p></li>
-<li><p>language</p></li>
-<li><p>creator/contributor affiliation</p></li>
-<li><p>funding organization</p></li>
-<li><p>subject heading</p></li>
-<li><p>publisher name</p></li>
-<li><p>periodical title</p></li>
-<li><p>file type</p></li>
-</ul>
-</li>
-<li><p>subcounts for view/download metrics broken down by</p>
-<ul>
-<li><p>referrer domain</p></li>
-<li><p>visitor country</p></li>
-</ul>
-</li>
-</ul>
-<p>The extension provides:</p>
-<div class="table-wrapper colwidths-auto docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Layer</p></th>
-<th class="head"><p>Component</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>data-layer</p></td>
-<td><p>storage of pre-aggregated statistics (daily cumulative snapshots and deltas) for each community and for the instance as a whole</p></td>
-</tr>
-<tr class="row-odd"><td><p>service-layer</p></td>
-<td><p>aggregation of the community and global statistics on a regular schedule, along with service components to record community add/remove events</p></td>
-</tr>
-<tr class="row-even"><td><p>presentation-layer</p></td>
-<td><p>API access to the aggregated daily statistics via the <code class="docutils literal notranslate"><span class="pre">/api/stats</span></code> endpoint</p></td>
-</tr>
-<tr class="row-odd"><td><p></p></td>
-<td><p>Jinja2 templates to display React-based global and community statistics dashboards</p></td>
-</tr>
-<tr class="row-even"><td><p></p></td>
-<td><p>menu configuration options to add the global statistics dashboard to site-wide navigation</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>Most initial setup of the statistics infrastructure is handled automatically when the module is installed. In existing InvenioRDM instances, this includes not only setup of the necessary search indices, but also:</p>
-<ul class="simple">
-<li><p>migration of historical indexed usage events to the expanded mappings with added community and record metadata</p></li>
-<li><p>initial indexing of the community membership events for existing records (when a record is added to or removed from a community)</p></li>
-<li><p>progressive aggregation of historical statistics
-This initial setup is handled by the background tasks that run on a regular schedule to aggregate the statistics. If the instance has a large number of records, this may up to a day or more to complete.</p></li>
-</ul>
-<p>The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.</p>
+</section>
 </section>
 
         </article>
@@ -333,23 +278,23 @@ This initial setup is handled by the background tasks that run on a regular sche
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="todos.html">
+          <a class="next-page" href="architecture.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">TODOs</div>
+                <div class="title">Architecture</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="introduction.html">
+          <a class="prev-page" href="todos.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Invenio Stats Dashboard</div>
+                <div class="title">TODOs</div>
                 
               </div>
             </a>
@@ -378,8 +323,27 @@ This initial setup is handled by the background tasks that run on a regular sche
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Known Issues</a><ul>
+<li><a class="reference internal" href="#as-of-2025-09-12">as of 2025-09-12:</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

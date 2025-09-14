@@ -5,6 +5,8 @@
 
 introduction
 overview
+todos
+known_issues
 architecture
 setup
 usage

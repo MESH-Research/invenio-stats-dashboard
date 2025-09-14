@@ -184,7 +184,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -206,6 +206,8 @@
   <ul class="current">
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Invenio Stats Dashboard</a></li>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="todos.html">TODOs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="known_issues.html">Known Issues</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Migration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
@@ -251,7 +253,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -264,85 +266,6 @@
 <p>Copyright 2025, MESH Research</p>
 <p>Licensed under the MIT License. See LICENSE file for details.</p>
 <p><span class="sd-sphinx-override sd-badge sd-bg-dark sd-bg-text-dark">Code style: black</span></p>
-<section id="current-known-issues">
-<h2>Current Known Issues<a class="headerlink" href="#current-known-issues" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p>client-side transformation of the queried API data is broken while we refactor it to use the configurable subcounts</p></li>
-<li><p>the <code class="docutils literal notranslate"><span class="pre">-background</span></code> versions of CLI commands are working but not creating the correct PID files, so the <code class="docutils literal notranslate"><span class="pre">status</span></code> and <code class="docutils literal notranslate"><span class="pre">cancel</span></code> sub-commands are not working correctly. We need to manage the background processes manually for now. But the process logs are still being captured correctly in the /tmp folder.</p></li>
-<li><p>the record delta aggregator is not working properly when using the publication date as the basis for the aggregation. It is missing records published before the first record was created. This also throws off the record snapshot aggregator when using the publication date as the basis for the aggregation.</p></li>
-<li><p>Not a problem, but need to clarify that the “affiliations” subcounts count the <em>number of creators/contributors</em> to records with the affiliation (i.e., the number of “contributions”), not the <em>number of records</em> with the affiliation.</p></li>
-</ul>
-</section>
-<section id="todos">
-<h2>TODOs<a class="headerlink" href="#todos" title="Link to this heading">¶</a></h2>
-<ul class="contains-task-list simple">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> decide whether to rename the package <code class="docutils literal notranslate"><span class="pre">invenio-community-stats</span></code></p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> add config flag to switch UI between test data and production data</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> testing</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> move all tests from centralized KCWorks test suite into this package</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> fix failing tests</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> expand test coverage</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> search indexing</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add dynamic creation of index templates based on subcount configurations</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> make view and download event factories use the subcounts configuration</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> aggregation</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> refactor CommunityUsageSnapshotAggregator for the enriched event document structure</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> get tests for aggregator classes working</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> get tests for queries working with refactored code</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> set up a check in aggregator classes to ensure that view/download event migration has been completed before running the aggregator tasks</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> set up automatic triggering of the startup tasks (index community events, migrate usage events) when the aggregators first run</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add opensearch health and memory usage checks to the aggregator classes (as in the reindexing service) and quit out gracefully if necessary</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> evaluate the viability of the “published” record aggregators (currently not working because of inherent issue of published dates being retroactive)</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> UI components</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> add proper loading states to the dashboard components</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> add an updated timestamp to the dashboard views</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> fix state problems with chart views</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add custom date range picker to the dashboard views</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add ReactOverridable support for each of the React components</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add mechanism for adding custom React components to the dashboard views (entry point providing file paths and component labels, to be imported in components_map.js?)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> evaluate whether additional default components are needed</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add <code class="docutils literal notranslate"><span class="pre">invenio-communities</span></code> custom field to provide per-community configuration of the dashboard layout</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> client-side data handling</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add client-side caching of the stats data to display while new data is loading (current implementation with IndexedDB is not working)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> update client-side data transformer to use the configurable subcounts</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> UI theming</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> move default CSS into this package</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> finish basic theming of the global dashboard view</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> harmonize default CSS with InvenioRDM defaults</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> improve mobile responsiveness of the dashboard views</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> API requests</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> implement security policy for API queries</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> reporting</p>
-<ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> implement report generation (via API request? via email? generated client-side?)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> enable report download from dashboard widget</p></li>
-</ul>
-</li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> improve documentation</p></li>
-</ul>
-</section>
 </section>
 
         </article>
@@ -395,28 +318,8 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Invenio Stats Dashboard</a><ul>
-<li><a class="reference internal" href="#current-known-issues">Current Known Issues</a></li>
-<li><a class="reference internal" href="#todos">TODOs</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
