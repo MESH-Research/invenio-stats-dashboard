@@ -18,11 +18,17 @@ from glom import Spec, glom
 from invenio_search.proxies import current_search, current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy import Index, Q
-from opensearchpy.exceptions import ConnectionError, ConnectionTimeout, RequestError
+from opensearchpy.exceptions import (
+    ConnectionError,
+    ConnectionTimeout,
+    NotFoundError,
+    RequestError,
+)
 from opensearchpy.helpers import bulk
 from opensearchpy.helpers.search import Search
 
-from ..aggregations import CommunityBookmarkAPI
+from ..aggregations.bookmarks import CommunityBookmarkAPI
+from ..exceptions import MissingCommunityEventsError
 from ..utils.decorators import time_operation
 from .types import (
     BatchProcessingResult,
@@ -336,8 +342,8 @@ class EventReindexingService:
         # Lazy-load components that require application context
         self._reindexing_bookmark_api: EventReindexingBookmarkAPI | None = None
         self._index_patterns: dict | None = None
-        self._community_events_index_exists: bool | None = None
         self._metadata_extractor: MetadataExtractor | None = None
+        self._month_count_without_communities = 0
 
     @property
     def metadata_extractor(self):
@@ -366,29 +372,22 @@ class EventReindexingService:
 
     @property
     def community_events_index_exists(self):
-        """Check if any stats-community-events indices exist."""
-        if self._community_events_index_exists is None:
-            try:
-                # Check for year-specific indices (e.g., stats-community-events-2024)
-                # or the alias if it exists
-                indices = self.client.indices.get(
-                    index=f"{prefix_index('stats-community-events')}*"
-                )
-                if indices:
-                    self._community_events_index_exists = True
-                    current_app.logger.debug(
-                        f"Found community events indices: {list(indices.keys())}"
-                    )
-                else:
-                    self._community_events_index_exists = False
-                    current_app.logger.info("No community events indices found")
-            except Exception:
-                self._community_events_index_exists = False
-                current_app.logger.info(
-                    "Community events indices check failed, "
-                    "will use fallback mechanism"
-                )
-        return self._community_events_index_exists
+        """Check if any stats-community-events indices exist and have documents."""
+        try:
+            # Check if index has any documents by doing a match_all query
+            index_pattern = f"{prefix_index('stats-community-events')}*"
+            search = Search(using=self.client, index=index_pattern)
+            search = search.query("match_all")
+            count = search.count()
+            return count > 0
+        except (
+            ConnectionError,
+            ConnectionTimeout,
+            RequestError,
+            NotFoundError,
+        ) as e:
+            current_app.logger.info(f"Community events index check failed: {e}")
+            return False
 
     def get_monthly_indices(
         self, event_type: str, month_filter: Optional[str | List[str] | tuple] = None
@@ -611,7 +610,7 @@ class EventReindexingService:
             except Exception as e:
                 # No aliases found or other error - this is fine
                 current_app.logger.debug(
-                    f"No existing aliases found for {event_type}-{month}: {e}"
+                    f"No existing aliases found for {event_type}-{month}: {str(e)}"
                 )
 
         except Exception as e:
@@ -685,6 +684,8 @@ class EventReindexingService:
                     validation_results["document_counts"]["expected"] = expected_records
 
             # Check that all documents have the required enriched fields
+            # OpenSearch doesn't distinguish between absent field and []
+            # for empty arrays, so we keep count of documents without community_ids
             search = Search(using=self.client, index=target_index)
             search = search.filter(
                 "bool",
@@ -692,13 +693,14 @@ class EventReindexingService:
                     {"exists": {"field": "community_ids"}},
                 ],
             )
-            missing_community = search.count()
+            hits_without_community = search.count()
+            hits_missing_communities = hits_without_community - target_count
 
-            validation_results["missing_community_ids"] = missing_community
+            validation_results["missing_community_ids"] = hits_missing_communities
 
-            if missing_community > 0:
+            if hits_missing_communities > 0:
                 error_msg = (
-                    f"Found {missing_community} documents without community_ids "
+                    f"Found {hits_missing_communities} documents without community_ids "
                     f"in {target_index}"
                 )
                 current_app.logger.error(error_msg)
@@ -912,23 +914,11 @@ class EventReindexingService:
                 return int(source_count)
         else:
             if last_processed_id and last_processed_timestamp:
-                # Count remaining documents after bookmark using multiple search_after
-                current_app.logger.debug(
-                    f"Counting remaining documents after bookmark: "
-                    f"timestamp={last_processed_timestamp}, id={last_processed_id}"
-                )
-
                 docs_after_bookmark = self.count_remaining_after_bookmark(
                     source_index, last_processed_timestamp, last_processed_id
                 )
 
                 already_processed_before_bookmark = source_count - docs_after_bookmark
-
-                current_app.logger.debug(
-                    f"Found {docs_after_bookmark} remaining documents, "
-                    f"{already_processed_before_bookmark} already processed "
-                    f"out of {source_count} total"
-                )
 
                 if max_batches:
                     new_docs_expected = min(
@@ -1312,6 +1302,7 @@ class EventReindexingService:
             meta_search = meta_search.source(
                 [
                     "access.status",
+                    "created",
                     "custom_fields.journal:journal.title.keyword",
                     "files.types",
                     "id",
@@ -1342,12 +1333,7 @@ class EventReindexingService:
     ) -> Dict[str, List[Tuple[str, str]]]:
         """Get community membership for a batch of record IDs.
 
-        Generally we assume that the stats-community-events index will not yet exist,
-        since this reindexing should happen before the aggregator classes trigger
-        community events creation. However, if the index does exist, we use it to get
-        the community membership. Otherwise, we use a fallback mechanism to infer a
-        plausible membership based on the record creation date and community creation
-        date.
+        We assume that the stats-community-events index will exist and be complete.
 
         Note that the effective date is the date on which the record was added to the
         community (or best guess based on record creation date and community creation
@@ -1363,12 +1349,7 @@ class EventReindexingService:
         if not record_ids:
             return {}
 
-        # If community events index doesn't exist, use fallback immediately
-        if not self.community_events_index_exists:
-            return self._get_community_membership_fallback(metadata_by_recid)
-
         try:
-            # Search across all year-specific community events indices
             search_pattern = f"{prefix_index('stats-community-events')}*"
             current_app.logger.info(
                 f"Searching for community events using pattern: {search_pattern}"
@@ -1378,8 +1359,6 @@ class EventReindexingService:
                 {"terms": {"record_id": record_ids}}
             )
 
-            # Aggregate by record_id, then by community_id, getting the most
-            # recent event by timestamp
             record_agg = community_search.aggs.bucket(
                 "by_record", "terms", field="record_id", size=1000
             )
@@ -1392,23 +1371,10 @@ class EventReindexingService:
 
             community_results = community_search.execute()
 
-            # Debug: Log the search results
-            current_app.logger.info(
-                f"Community search returned "
-                f"{community_results.hits.total.value} total hits"
-            )
-
-            # Log the actual search results for debugging
-            if community_results.hits.total.value > 0:
-                sample_hits = [
-                    hit["_source"] for hit in community_results.hits.hits[:3]
-                ]
-                current_app.logger.info(f"Sample hits: {sample_hits}")
-
             if hasattr(community_results, "aggregations") and hasattr(
                 community_results.aggregations, "by_record"
             ):
-                current_app.logger.info(
+                current_app.logger.error(
                     f"Found {len(community_results.aggregations.by_record.buckets)} "
                     f"record buckets in aggregations"
                 )
@@ -1429,18 +1395,16 @@ class EventReindexingService:
 
                         if event_type == "added":
                             membership[record_id].append((community_id, event_date))
+            current_app.logger.error(f"Membership: {membership}")
 
             # Fallback for records without community event index records
             missing_records = [rid for rid in record_ids if rid not in membership]
             if missing_records:
-                current_app.logger.info(
+                raise MissingCommunityEventsError(
                     f"Found {len(missing_records)} records without community event "
-                    f"index records, using fallback mechanism"
+                    f"index records, cannot get community membership for event "
+                    "migration"
                 )
-                fallback_membership = self._get_community_membership_fallback(
-                    metadata_by_recid
-                )
-                membership.update(fallback_membership)
 
             return membership
         except Exception as e:
@@ -1457,6 +1421,10 @@ class EventReindexingService:
         self, metadata_by_recid: Dict[str, Dict]
     ) -> Dict[str, List[Tuple[str, str]]]:
         """Fallback method to get community membership from record metadata.
+
+        DEPRECATED: This method is deprecated because we now require the
+        stats-community-events index to exist.
+        FIXME: Remove this method
 
         This method is used when stats-community-events index records are not available.
         It gets community membership from record.parent.communities.ids and considers
@@ -1479,7 +1447,7 @@ class EventReindexingService:
             community_creation_dates = {}
             if community_ids:
                 community_search = Search(
-                    using=self.client, index=prefix_index("communities-communities")
+                    using=self.client, index=prefix_index("communities")
                 )
                 community_search = community_search.filter(
                     "terms", id=list(community_ids)
@@ -1501,13 +1469,6 @@ class EventReindexingService:
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
 
-                # Debug logging for community data
-                current_app.logger.debug(
-                    f"Record {record_id}: created={record_created}, "
-                    f"communities={record_communities}, "
-                    f"communities_type={type(record_communities)}"
-                )
-
                 valid_communities = []
                 for community_id in record_communities:
                     community_created = community_creation_dates.get(community_id)
@@ -1524,15 +1485,6 @@ class EventReindexingService:
                 # Return tuples of (community_id, effective_date) for later filtering
                 membership[record_id] = valid_communities
 
-                current_app.logger.debug(
-                    f"Record {record_id}: valid_communities={valid_communities}"
-                )
-
-            current_app.logger.info(
-                f"Fallback community membership found for {len(membership)} records"
-            )
-            current_app.logger.info(f"Final fallback membership: {membership}")
-            current_app.logger.info(f"Returning fallback membership: {membership}")
             return membership
 
         except Exception as e:
@@ -1554,7 +1506,9 @@ class EventReindexingService:
             context: Context for logging (e.g., "new records", "events")
 
         Returns:
-            Tuple of (success, error_message)
+            BatchProcessingResult, which is a dictionary with the following keys:
+            - success: bool
+            - error_message: Optional[str]
         """
         if not hits:
             return {"success": True, "error_message": None}
@@ -1607,10 +1561,6 @@ class EventReindexingService:
                     # Get the last successful document from this batch
                     last_successful_doc = enriched_docs[success - 1]
                     last_successful_id = last_successful_doc["_id"]
-                    current_app.logger.info(
-                        f"Last successful document: {last_successful_id} "
-                        f"(position {success} in batch)"
-                    )
                     return {
                         "success": False,
                         "error_message": (
@@ -1629,12 +1579,18 @@ class EventReindexingService:
             current_app.logger.info(
                 f"Successfully indexed {success} enriched {context}"
             )
-            return {"success": True, "error_message": None}
+            return {
+                "success": True,
+                "error_message": None,
+            }
 
         except Exception as e:
             error_msg = f"Failed to bulk index {context}: {e}"
             current_app.logger.error(error_msg)
-            return {"success": False, "error_message": error_msg}
+            return {
+                "success": False,
+                "error_message": error_msg,
+            }
 
     def _bulk_enrich_events(
         self,
@@ -1650,19 +1606,14 @@ class EventReindexingService:
             target_index: Target index name for the enriched documents
 
         Returns:
-            List of enriched documents ready for bulk indexing
+            List of enriched documents ready for bulk indexing (dicts)
         """
         enriched_docs = []
 
         record_ids = list(set(hit["_source"]["recid"] for hit in hits))
         metadata_by_recid = self.get_metadata_for_records(record_ids)
-        current_app.logger.info(f"Found metadata for {len(metadata_by_recid)} records")
-
         communities_by_recid = self.get_community_membership(
             record_ids, metadata_by_recid
-        )
-        current_app.logger.info(
-            f"Found community membership for {len(communities_by_recid)} records"
         )
 
         enrichment_lookup = {}
@@ -1677,7 +1628,6 @@ class EventReindexingService:
             event = hit["_source"]
             record_id = event["recid"]
 
-            # Get pre-computed enrichment data
             enrichment_data = enrichment_lookup.get(record_id, {}).copy()
 
             # Calculate community_ids based on event timestamp
@@ -1689,9 +1639,11 @@ class EventReindexingService:
             effective_communities = [
                 c
                 for c, effective_date in communities_by_recid.get(record_id, [])
-                if effective_date <= end_of_event_day
+                if effective_date <= end_of_event_day and c != "global"
             ]
             enrichment_data["community_ids"] = effective_communities
+            if not effective_communities:
+                self._month_count_without_communities += 1
 
             # Merge event with enrichment data (fast dictionary merge)
             enriched_event = {**event, **enrichment_data}
@@ -1807,7 +1759,7 @@ class EventReindexingService:
 
             if last_processed_timestamp and last_processed_id:
                 # Use search_after with both timestamp and _id to handle identical
-                # timestamps. This ensures no documents are skipped during pagination.
+                # timestamps.
                 # Note: search_after works for pagination because batch_size <= 10,000
                 # (OpenSearch's hard limit), but cannot be used for counting remaining
                 # documents beyond the 10,000 limit.
@@ -1833,14 +1785,6 @@ class EventReindexingService:
             current_app.logger.info(
                 f"Processing {len(hits)} events for {event_type}-{month}"
             )
-
-            # Log the first and last timestamps in this batch for debugging
-            if hits:
-                first_timestamp = hits[0]["_source"]["timestamp"]
-                last_timestamp = hits[-1]["_source"]["timestamp"]
-                current_app.logger.debug(
-                    f"Batch timestamp range: {first_timestamp} to {last_timestamp}"
-                )
 
             # Collect document IDs from this batch for spot-check validation
             batch_document_ids = [hit["_id"] for hit in hits]
@@ -1974,6 +1918,8 @@ class EventReindexingService:
             "total_time": None,
             "all_sample_document_ids": [],
         }
+        # Reset count without communities for each migration
+        self._month_count_without_communities = 0
 
         current_app.logger.info(f"Starting migration for {event_type}-{month}")
 
@@ -2302,7 +2248,8 @@ class EventReindexingService:
 
             results["completed"] = True
             current_app.logger.info(
-                f"Migration completed for {event_type}-{month} in {results['total_time']}: {results}"
+                f"Migration completed for {event_type}-{month} in "
+                f"{results['total_time']}: {results}"
             )
 
         except Exception as e:
@@ -2505,6 +2452,18 @@ class EventReindexingService:
             "error": None,
         }
 
+        if not self.community_events_index_exists:
+            current_app.logger.error(
+                "Community events index does not exist - stopping reindexing process"
+            )
+            results["total_errors"] = 1
+            results["health_issues"] = ["Community events index does not exist"]
+            results["completed"] = False
+            results["error"] = (
+                "Community events index does not exist - cannot proceed with reindexing"
+            )
+            return results
+
         if not self.update_and_verify_templates():
             current_app.logger.error(
                 "Template update failed - stopping reindexing process"
@@ -2567,7 +2526,8 @@ class EventReindexingService:
 
             results["event_types"][event_type] = event_results
             current_app.logger.info(
-                f"Completed {event_type}: processed {event_results.get('processed', 0)} events across {len(event_results.get('months', {}))} months"
+                f"Completed {event_type}: processed {event_results.get('processed', 0)}"
+                f" events across {len(event_results.get('months', {}))} months."
             )
 
         # Check completion status and count failures from the nested structure
