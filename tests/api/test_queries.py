@@ -19,6 +19,7 @@ from invenio_accounts.proxies import current_datastore
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
+
 from invenio_stats_dashboard.proxies import (
     current_event_reindexing_service,
 )
@@ -28,7 +29,6 @@ from invenio_stats_dashboard.queries import (
     CommunityUsageSnapshotQuery,
     get_relevant_record_ids_from_events,
 )
-
 from tests.helpers.sample_records import (
     sample_metadata_journal_article4_pdf,
     sample_metadata_journal_article5_pdf,
@@ -224,7 +224,7 @@ class TestCommunityRecordCreatedDeltaQuery:
             }
             if idx != 1:
                 file_path = (
-                    Path(__file__).parent.parent.parent
+                    Path(__file__).parent.parent
                     / "helpers"
                     / "sample_files"
                     / list(rec["input"]["files"]["entries"].keys())[0]
@@ -312,15 +312,16 @@ class TestCommunityRecordCreatedDeltaQuery:
             bucket["key"]: bucket for bucket in result["by_file_types"]["buckets"]
         }
 
-        assert file_types["pdf"] == {
-            "doc_count": 2,
-            "key": "pdf",
-            "total_bytes": {"value": 59117831.0},
-            "unique_parents": {"value": 2},
-            "unique_records": {"value": 2},
-        }
+        self._check_query_subcount_results(
+            file_types["pdf"],
+            expected_key="pdf",
+            count_with_files=2,
+            count_without_files=0,
+            expected_bytes=59117831.0,
+        )
         assert result["by_funders_id"]["buckets"] == []
         assert result["by_funders_keyword"]["buckets"] == []
+
         # Find languages by key since order is not guaranteed
         languages = {
             bucket["key"]: bucket for bucket in result["by_languages"]["buckets"]
@@ -336,6 +337,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         )
         assert result["by_rights"]["buckets"] == []
         assert result["by_periodicals"]["buckets"] == []
+
         # Find publishers by key since aggregation order is not guaranteed
         publishers = {
             bucket["key"]: bucket for bucket in result["by_publishers"]["buckets"]
@@ -549,15 +551,16 @@ class TestCommunityRecordCreatedDeltaQuery:
             bucket["key"]: bucket for bucket in result["by_file_types"]["buckets"]
         }
 
-        assert file_types["pdf"] == {
-            "doc_count": 1,
-            "key": "pdf",
-            "total_bytes": {"value": 1984949.0},
-            "unique_parents": {"value": 1},
-            "unique_records": {"value": 1},
-        }
+        self._check_query_subcount_results(
+            file_types["pdf"],
+            expected_key="pdf",
+            count_with_files=1,
+            count_without_files=0,
+            expected_bytes=1984949.0,
+        )
         assert result["by_funders_id"]["buckets"] == []
         assert result["by_funders_keyword"]["buckets"] == []
+
         # Find languages and rights by key since order is not guaranteed
         languages = {
             bucket["key"]: bucket for bucket in result["by_languages"]["buckets"]
@@ -653,9 +656,9 @@ class TestCommunityRecordCreatedDeltaQuery:
             bucket["key"]: bucket for bucket in result["by_subjects"]["buckets"]
         }
 
-        assert [c["doc_count"] for c in subjects.values()] == [1] * 10
-        assert [c["file_count"]["value"] for c in subjects.values()] == [0] * 10
-        assert [c["total_bytes"]["value"] for c in subjects.values()] == [0.0] * 10
+        assert [c["doc_count"] for c in subjects.values()] == [1] * 11
+        assert [c["file_count"]["value"] for c in subjects.values()] == [0] * 11
+        assert [c["total_bytes"]["value"] for c in subjects.values()] == [0.0] * 11
         assert [c["key"] for c in subjects.values()] == [
             "http://id.worldcat.org/fast/1424786",
             "http://id.worldcat.org/fast/817954",
@@ -667,15 +670,16 @@ class TestCommunityRecordCreatedDeltaQuery:
             "http://id.worldcat.org/fast/911328",
             "http://id.worldcat.org/fast/911660",
             "http://id.worldcat.org/fast/911979",
+            "http://id.worldcat.org/fast/934875",
         ]
-        assert [c["with_files"]["doc_count"] for c in subjects.values()] == [0] * 10
-        assert [c["without_files"]["doc_count"] for c in subjects.values()] == [1] * 10
+        assert [c["with_files"]["doc_count"] for c in subjects.values()] == [0] * 11
+        assert [c["without_files"]["doc_count"] for c in subjects.values()] == [1] * 11
         assert [
             c["with_files"]["unique_parents"]["value"] for c in subjects.values()
-        ] == [0] * 10
+        ] == [0] * 11
         assert [
             c["without_files"]["unique_parents"]["value"] for c in subjects.values()
-        ] == [1] * 10
+        ] == [1] * 11
         # Find subjects by key since order is not guaranteed
         subjects = {
             bucket["key"]: bucket for bucket in result["by_subjects"]["buckets"]
@@ -1249,7 +1253,8 @@ class TestCommunityUsageDeltaQuery:
                         "identifiers": [
                             {
                                 "identifier": (
-                                    "https://sandbox.kcworks.org/00k4n6c31::755021"
+                                    "https://sandbox.inveniosoftware.org/"
+                                    "00k4n6c31::755021"
                                 ),
                                 "scheme": "url",
                             }
@@ -1292,7 +1297,7 @@ class TestCommunityUsageDeltaQuery:
             }
             if idx != 1:
                 args["file_paths"] = [
-                    Path(__file__).parent.parent.parent
+                    Path(__file__).parent.parent
                     / "helpers"
                     / "sample_files"
                     / list(rec["input"]["files"]["entries"].keys())[0]
@@ -1564,7 +1569,7 @@ class TestCommunityUsageDeltaQuery:
     ):
         """Test the community usage snapshot query."""
         self.app = running_app.app
-        u = user_factory(email="test@example.com", saml_id="")
+        u = user_factory(email="test@example.com")
         user_email = u.user.email
         community = minimal_community_factory(slug="knowledge-commons")
         community_id = community.id

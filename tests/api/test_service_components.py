@@ -30,10 +30,10 @@ from invenio_requests.proxies import (
 from invenio_requests.resolvers.registry import ResolverRegistry
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
+
 from invenio_stats_dashboard.services.components import (
     CommunityAcceptedEventComponent,
 )
-
 from tests.conftest import RunningApp
 
 
@@ -59,11 +59,11 @@ class TestCommunitiesEventsComponentsIncluded:
 
     def setup_users(self, user_factory):
         """Setup test users."""
-        u = user_factory(email="test@example.com", saml_id=None)
+        u = user_factory(email="test@example.com")
         user_id = u.user.id
         user_email = u.user.email
 
-        u2 = user_factory(email="test2@example.com", saml_id=None)
+        u2 = user_factory(email="test2@example.com")
         user_id2 = u2.user.id
         user_email2 = u2.user.email
 
