@@ -1,13 +1,11 @@
-# Part of Knowledge Commons Works
-# Copyright (C) 2024-2025 MESH Research
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+# Copyright (C) 2025 MESH Research
 #
-# KCWorks is free software; you can redistribute it and/or modify it
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
-"""Top-level pytest configuration for KCWorks tests."""
+"""Top-level pytest configuration for Invenio-Stats-Dashboard tests."""
 
-import importlib
-import importlib.util
 import os
 import shutil
 import tempfile
@@ -24,32 +22,7 @@ from invenio_search.proxies import current_search_client
 from .fixtures.custom_fields import test_config_fields
 from .fixtures.frontend import MockManifestLoader
 from .fixtures.identifiers import test_config_identifiers
-from .fixtures.saml import test_config_saml
 from .fixtures.stats import test_config_stats
-
-
-def load_config():
-    """Load the invenio.cfg file and return a dictionary of its variables.
-
-    This is needed because we can't import the invenio.cfg file directly
-    because it's not a Python module.
-    """
-    config_path = Path(__file__).parent.parent / "invenio.cfg"
-
-    spec = importlib.util.spec_from_loader("config", None)
-    if spec is None:
-        raise ValueError("Failed to load invenio.cfg")
-    config = importlib.util.module_from_spec(spec)
-
-    with open(config_path) as f:
-        exec(f.read(), config.__dict__)
-
-    # Convert module attributes to a dictionary, excluding private attributes
-    return {k: v for k, v in config.__dict__.items() if not k.startswith("_")}
-
-
-config = load_config()
-print("Config loaded successfully")
 
 pytest_plugins = (
     "celery.contrib.pytest",
@@ -81,16 +54,14 @@ def _(x):
 
 
 test_config = {
-    **config,
     **test_config_identifiers,
     **test_config_fields,
     **test_config_stats,
-    **test_config_saml,
     "SQLALCHEMY_DATABASE_URI": (
         "postgresql+psycopg2://invenio:invenio@localhost:5432/invenio"
     ),
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-    "SEARCH_INDEX_PREFIX": "",  # TODO: Search index prefix triggers errors
+    "SEARCH_INDEX_PREFIX": "",
     "POSTGRES_USER": "invenio",
     "POSTGRES_PASSWORD": "invenio",
     "POSTGRES_DB": "invenio",
@@ -102,12 +73,9 @@ test_config = {
         "force_https": False,
     },
     "BROKER_URL": "amqp://guest:guest@localhost:5672//",
-    # "CELERY_CACHE_BACKEND": "memory",
-    # "CELERY_RESULT_BACKEND": "cache",
     "CELERY_TASK_ALWAYS_EAGER": False,
     "CELERY_TASK_EAGER_PROPAGATES_EXCEPTIONS": True,
     "CELERY_LOGLEVEL": "DEBUG",
-    #  'DEBUG_TB_ENABLED': False,
     "INVENIO_INSTANCE_PATH": "/opt/invenio/var/instance",
     "MAIL_SUPPRESS_SEND": False,
     "MAIL_SERVER": "smtp.sparkpostmail.com",
@@ -117,8 +85,6 @@ test_config = {
     "MAIL_USERNAME": os.getenv("SPARKPOST_USERNAME"),
     "MAIL_PASSWORD": os.getenv("SPARKPOST_API_KEY"),
     "MAIL_DEFAULT_SENDER": os.getenv("INVENIO_ADMIN_EMAIL"),
-    #  'OAUTH2_CACHE_TYPE': 'simple',
-    #  'OAUTHLIB_INSECURE_TRANSPORT': True,
     "SECRET_KEY": "test-secret-key",
     "SECURITY_PASSWORD_SALT": "test-secret-key",
     "WEBPACKEXT_MANIFEST_LOADER": MockManifestLoader,
@@ -157,15 +123,9 @@ test_config["SITE_UI_URL"] = os.environ.get(
 )
 
 
-@pytest.fixture(scope="module")
-def extra_entry_points() -> dict:
-    """Extra entry points fixture for KCWorks."""
-    return {}
-
-
 @pytest.fixture(scope="session")
 def celery_config(celery_config):
-    """Celery config fixture for KCWorks."""
+    """Celery config fixture for Invenio-Stats-Dashboard."""
     celery_config["logfile"] = str(log_folder_path / "celery.log")
     celery_config["loglevel"] = "DEBUG"
     celery_config["task_always_eager"] = True
@@ -178,7 +138,7 @@ def celery_config(celery_config):
 
 @pytest.fixture(scope="session")
 def celery_enable_logging():
-    """Celery enable logging fixture for KCWorks."""
+    """Celery enable logging fixture."""
     return True
 
 
@@ -294,6 +254,11 @@ def search_clear(search_clear):
     additional step to delete the stats indices and template manually.
     Otherwise, the stats indices aren't cleared between tests.
     """
+    # Clear identity cache before each test to prevent stale community role data
+    from invenio_communities.proxies import current_identities_cache
+
+    current_identities_cache.flush()
+
     yield search_clear
 
     # Delete stats indices and templates if they exist
@@ -308,23 +273,28 @@ def template_loader():
 
     def load_tempates(app):
         """Load templates for the test app."""
-        site_path = (
+        theme_path = (
             Path(__file__).parent.parent
-            / "site"
-            / "kcworks"
+            / "invenio_stats_dashboard"
             / "templates"
             / "semantic-ui"
         )
-        root_path = Path(__file__).parent.parent / "templates"
+        root_path = (
+            Path(__file__).parent.parent / "invenio_stats_dashboard" / "templates"
+        )
+        test_path = Path(__file__).parent / "helpers" / "templates" / "semantic-ui"
         for path in (
-            site_path,
+            theme_path,
             root_path,
+            test_path,
         ):
             assert path.exists()
         custom_loader = jinja2.ChoiceLoader(
             [
                 app.jinja_loader,
-                jinja2.FileSystemLoader([str(site_path), str(root_path)]),
+                jinja2.FileSystemLoader(
+                    [str(theme_path), str(root_path), str(test_path)]
+                ),
             ]
         )
         app.jinja_loader = custom_loader
@@ -357,7 +327,7 @@ def app(
 
 @pytest.fixture(scope="module")
 def app_config(app_config) -> dict:
-    """App config fixture for KCWorks."""
+    """App config fixture."""
     for k, v in test_config.items():
         app_config[k] = v
 
@@ -366,7 +336,7 @@ def app_config(app_config) -> dict:
 
 @pytest.fixture(scope="module")
 def create_app(instance_path, entry_points):
-    """Create the app fixture for KCWorks.
+    """Create the app fixture.
 
     This initializes the basic Flask app which will then be used
     to set up the `app` fixture with initialized services.

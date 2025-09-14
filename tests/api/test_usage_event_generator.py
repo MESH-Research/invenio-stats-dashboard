@@ -13,8 +13,9 @@ import arrow
 from invenio_access.utils import get_identity
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
-from invenio_stats_dashboard.utils.usage_events import UsageEventFactory
 from opensearchpy.helpers.search import Search
+
+from invenio_stats_dashboard.utils.usage_events import UsageEventFactory
 
 
 def test_synthetic_usage_event_creation(
@@ -30,7 +31,7 @@ def test_synthetic_usage_event_creation(
     """Test synthetic usage event creation and indexing."""
     client = current_search_client
 
-    u = user_factory(email="test@example.com", saml_id="")
+    u = user_factory(email="test@example.com")
     user = u.user
     user_identity = get_identity(user)
 
@@ -54,10 +55,7 @@ def test_synthetic_usage_event_creation(
         }
 
         file_path = (
-            Path(__file__).parent.parent.parent
-            / "helpers"
-            / "sample_files"
-            / "sample.pdf"
+            Path(__file__).parent.parent / "helpers" / "sample_files" / "sample.pdf"
         )
 
         record = minimal_published_record_factory(
@@ -236,7 +234,7 @@ def test_usage_event_community_ids_with_same_day_community_added(
     """Test usage events include community IDs when community added on same day."""
     client = current_search_client
 
-    u = user_factory(email="test@example.com", saml_id="")
+    u = user_factory(email="test@example.com")
     user = u.user
     user_identity = get_identity(user)
 
@@ -252,9 +250,7 @@ def test_usage_event_community_ids_with_same_day_community_added(
         "entries": {"sample.pdf": {"key": "sample.pdf", "ext": "pdf"}},
     }
 
-    file_path = (
-        Path(__file__).parent.parent.parent / "helpers" / "sample_files" / "sample.pdf"
-    )
+    file_path = Path(__file__).parent.parent / "helpers" / "sample_files" / "sample.pdf"
 
     # Create record with community, but don't update community event dates
     # This simulates the scenario where community was added on the same day
@@ -300,7 +296,8 @@ def test_usage_event_community_ids_with_same_day_community_added(
         EventReindexingService,
     )
 
-    service = EventReindexingService(app=running_app)
+    # FIXME: This test needs to be reworked
+    service = EventReindexingService(app=running_app.app)
 
     # Reindex events for June 2025 to add community_ids
     results = service.reindex_events(

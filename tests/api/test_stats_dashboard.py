@@ -1,7 +1,7 @@
-# Part of Knowledge Commons Works
-# Copyright (C) 2024-2025 MESH Research
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+# Copyright (C) 2025 MESH Research
 #
-# KCWorks is free software; you can redistribute it and/or modify it
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Tests for the stats dashboard functionality."""
@@ -11,8 +11,8 @@ from invenio_search.engine import search
 from invenio_search.utils import prefix_index
 from invenio_stats.proxies import current_stats
 
-from tests.helpers.sample_stats_test_data import (
-    SAMPLE_RECORDS_SNAPSHOT_AGG,
+from tests.helpers.sample_stats_data.sample_record_snapshot_docs import (
+    MOCK_RECORD_SNAPSHOT_DOCS,
 )
 
 
@@ -75,7 +75,7 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
             {
                 "_id": "abcd_key-2024-01-01",
                 "_index": index_name,
-                "_source": SAMPLE_RECORDS_SNAPSHOT_AGG,
+                "_source": MOCK_RECORD_SNAPSHOT_DOCS[0]["_source"],
             }
         ]
     )
@@ -132,4 +132,7 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
 
     # Check the search results
     assert result_record["hits"]["total"]["value"] == 1
-    assert result_record["hits"]["hits"][0]["_source"] == SAMPLE_RECORDS_SNAPSHOT_AGG
+    assert (
+        result_record["hits"]["hits"][0]["_source"]
+        == MOCK_RECORD_SNAPSHOT_DOCS[0]["_source"]
+    )
