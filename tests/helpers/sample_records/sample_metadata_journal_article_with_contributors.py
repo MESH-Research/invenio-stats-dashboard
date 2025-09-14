@@ -97,12 +97,7 @@ sample_metadata_journal_article_with_contributors = {
                     "person_or_org": {
                         "family_name": "Roberts",
                         "given_name": "Alexandre",
-                        "identifiers": [
-                            {
-                                "identifier": "amroberts",
-                                "scheme": "hc_username",
-                            }
-                        ],
+                        "identifiers": [],
                         "name": "Roberts, Alexandre",
                         "type": "personal",
                     },
@@ -117,12 +112,7 @@ sample_metadata_journal_article_with_contributors = {
                     "person_or_org": {
                         "family_name": "Smith",
                         "given_name": "Jane",
-                        "identifiers": [
-                            {
-                                "identifier": "jsmith",
-                                "scheme": "hc_username",
-                            }
-                        ],
+                        "identifiers": [],
                         "name": "Smith, Jane",
                         "type": "personal",
                     },
@@ -165,11 +155,6 @@ sample_metadata_journal_article_with_contributors = {
                 "philologically."
             ),
             "identifiers": [
-                {"identifier": "hc:33383", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-40298",
-                    "scheme": "hclegacy-record-id",
-                },
                 {"identifier": "10.1163/24519197-BJA10007", "scheme": "doi"},
                 {"identifier": "2451-9197", "scheme": "issn"},
             ],

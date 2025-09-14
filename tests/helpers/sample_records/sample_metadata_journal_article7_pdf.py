@@ -95,7 +95,6 @@ sample_metadata_journal_article7_pdf = {
                         "given_name": "Andrew C.",
                         "family_name": "Stout",
                         "identifiers": [
-                            {"identifier": "astout", "scheme": "kc_username"},
                             {"identifier": "0000-0002-7489-2684", "scheme": "orcid"},
                         ],
                     },

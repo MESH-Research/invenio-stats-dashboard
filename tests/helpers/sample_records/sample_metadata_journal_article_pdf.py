@@ -45,7 +45,7 @@ sample_metadata_journal_article_pdf = {
             "hclegacy:previously_published": "published",
             "hclegacy:record_change_date": "2023-01-23T14:20:48Z",
             "hclegacy:record_creation_date": "2020-11-25T12:35:10Z",
-            "hclegacy:submitter_affiliation": ("University of Southern California"),
+            "hclegacy:submitter_affiliation": "University of Southern California",
             "hclegacy:submitter_id": "1008812",
             "hclegacy:submitter_org_memberships": ["hc"],
             "hclegacy:total_views": 103,
@@ -128,12 +128,6 @@ sample_metadata_journal_article_pdf = {
                     "person_or_org": {
                         "family_name": "Roberts",
                         "given_name": "Alexandre",
-                        "identifiers": [
-                            {
-                                "identifier": "amroberts",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Roberts, Alexandre",
                         "type": "personal",
                     },
@@ -176,7 +170,6 @@ sample_metadata_journal_article_pdf = {
                 "philologically."
             ),
             "identifiers": [
-                {"identifier": "1234567890", "scheme": "import-recid"},
                 {"identifier": "10.1163/24519197-BJA10007", "scheme": "doi"},
                 {"identifier": "2451-9197", "scheme": "issn"},
             ],
@@ -223,16 +216,12 @@ sample_metadata_journal_article_pdf = {
                 "owned_by": [
                     {
                         "email": "test@example.com",
-                        "identifiers": [
-                            {"identifier": "test", "scheme": "neh_user_id"},
-                        ],
                     },
                     {
                         "full_name": "John Doe",
                         "email": "john.doe@example.com",
                         "identifiers": [
                             {"identifier": "0000-0002-1825-0097", "scheme": "orcid"},
-                            {"identifier": "jdoe", "scheme": "kc_username"},
                         ],
                     },
                 ]
@@ -286,7 +275,7 @@ sample_metadata_journal_article_pdf = {
             "hclegacy:previously_published": "published",
             "hclegacy:record_change_date": "2023-01-23T14:20:48Z",
             "hclegacy:record_creation_date": "2020-11-25T12:35:10Z",
-            "hclegacy:submitter_affiliation": ("University of Southern California"),
+            "hclegacy:submitter_affiliation": "University of Southern California",
             "hclegacy:submitter_id": "1008812",
             "hclegacy:submitter_org_memberships": ["hc"],
             "hclegacy:total_views": 103,
@@ -369,12 +358,6 @@ sample_metadata_journal_article_pdf = {
                     "person_or_org": {
                         "family_name": "Roberts",
                         "given_name": "Alexandre",
-                        "identifiers": [
-                            {
-                                "identifier": "amroberts",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Roberts, Alexandre",
                         "type": "personal",
                     },
@@ -417,11 +400,6 @@ sample_metadata_journal_article_pdf = {
                 "philologically."
             ),
             "identifiers": [
-                {"identifier": "hc:33383", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-40298",
-                    "scheme": "hclegacy-record-id",
-                },
                 {"identifier": "10.1163/24519197-BJA10007", "scheme": "doi"},
                 {"identifier": "2451-9197", "scheme": "issn"},
             ],
@@ -507,7 +485,7 @@ sample_metadata_journal_article_pdf = {
             "hclegacy:previously_published": "published",
             "hclegacy:record_change_date": "2023-01-23T14:20:48Z",
             "hclegacy:record_creation_date": "2020-11-25T12:35:10Z",
-            "hclegacy:submitter_affiliation": ("University of Southern California"),
+            "hclegacy:submitter_affiliation": "University of Southern California",
             "hclegacy:submitter_id": "1008812",
             "hclegacy:submitter_org_memberships": ["hc"],
             "hclegacy:total_views": 103,
@@ -597,12 +575,6 @@ sample_metadata_journal_article_pdf = {
                     "person_or_org": {
                         "family_name": "Roberts",
                         "given_name": "Alexandre",
-                        "identifiers": [
-                            {
-                                "identifier": "amroberts",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Roberts, Alexandre",
                         "type": "personal",
                     },
@@ -645,11 +617,6 @@ sample_metadata_journal_article_pdf = {
                 "philologically."
             ),
             "identifiers": [
-                {"identifier": "hc:33383", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-40298",
-                    "scheme": "hclegacy-record-id",
-                },
                 {"identifier": "10.1163/24519197-BJA10007", "scheme": "doi"},
                 {"identifier": "2451-9197", "scheme": "issn"},
             ],

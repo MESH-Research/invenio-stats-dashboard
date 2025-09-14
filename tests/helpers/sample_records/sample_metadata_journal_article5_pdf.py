@@ -94,9 +94,7 @@ sample_metadata_journal_article5_pdf = {
                         "name": "Dollinger, Stefan",
                         "given_name": "Stefan",
                         "family_name": "Dollinger",
-                        "identifiers": [
-                            {"identifier": "stefand", "scheme": "kc_username"}
-                        ],
+                        "identifiers": [],
                     },
                     "role": {"id": "author", "title": {"en": "Author"}},
                     "affiliations": [{"name": "University Of British Columbia"}],

@@ -88,9 +88,6 @@ sample_metadata_journal_article2_pdf = {
                             "P. Palazzo"
                         ),  # FIXME: why is initial with family name?
                         "given_name": "Pedro",
-                        "identifiers": [
-                            {"identifier": "palazzo", "scheme": "hc_username"}
-                        ],
                         "name": (
                             "P. Palazzo, Pedro"
                         ),  # Why is name switched to family, given?
@@ -132,10 +129,7 @@ sample_metadata_journal_article2_pdf = {
                 "resilience in addressing modern housing and "
                 "urbanization requirements."
             ),
-            "identifiers": [
-                {"identifier": "hc:42615", "scheme": "hclegacy-pid"},
-                {"identifier": "1001712-776", "scheme": "hclegacy-record-id"},
-            ],
+            "identifiers": [],
             "languages": [{"id": "eng", "title": {"en": "English"}}],
             "resource_type": {"id": "textDocument-journalArticle"},
             "rights": [
@@ -305,9 +299,6 @@ sample_metadata_journal_article2_pdf = {
                             "P. Palazzo"
                         ),  # FIXME: why is initial with family name?
                         "given_name": "Pedro",
-                        "identifiers": [
-                            {"identifier": "palazzo", "scheme": "hc_username"}
-                        ],
                         "name": (
                             "P. Palazzo, Pedro"
                         ),  # Why is name switched to family, given?
@@ -349,10 +340,7 @@ sample_metadata_journal_article2_pdf = {
                 "resilience in addressing modern housing and "
                 "urbanization requirements."
             ),
-            "identifiers": [
-                {"identifier": "hc:42615", "scheme": "hclegacy-pid"},
-                {"identifier": "1001712-776", "scheme": "hclegacy-record-id"},
-            ],
+            "identifiers": [],
             "languages": [{"id": "eng", "title": {"en": "English"}}],
             "resource_type": {"id": "textDocument-journalArticle"},
             "rights": [{"id": "cc-by-nc-nd-4.0"}],
@@ -498,9 +486,6 @@ sample_metadata_journal_article2_pdf = {
                             "P. Palazzo"
                         ),  # FIXME: why is initial with family name?
                         "given_name": "Pedro",
-                        "identifiers": [
-                            {"identifier": "palazzo", "scheme": "hc_username"}
-                        ],
                         "name": (
                             "P. Palazzo, Pedro"
                         ),  # Why is name switched to family, given?
@@ -542,10 +527,7 @@ sample_metadata_journal_article2_pdf = {
                 "resilience in addressing modern housing and "
                 "urbanization requirements."
             ),
-            "identifiers": [
-                {"identifier": "hc:42615", "scheme": "hclegacy-pid"},
-                {"identifier": "1001712-776", "scheme": "hclegacy-record-id"},
-            ],
+            "identifiers": [],
             "languages": [{"id": "eng", "title": {"en": "English"}}],
             "resource_type": {
                 "id": "textDocument-journalArticle",

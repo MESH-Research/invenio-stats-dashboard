@@ -140,12 +140,6 @@ sample_metadata_thesis_pdf = {
                     "person_or_org": {
                         "family_name": "Martínez Hernández",
                         "given_name": "Alberto-Gabino",
-                        "identifiers": [
-                            {
-                                "identifier": "gabogabito123",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Martínez Hernández, Alberto-Gabino",
                         "type": "personal",
                     },
@@ -203,11 +197,6 @@ sample_metadata_thesis_pdf = {
                 "government."
             ),
             "identifiers": [
-                {"identifier": "hc:38367", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-44555",
-                    "scheme": "hclegacy-record-id",
-                },
                 {
                     "identifier": (
                         "http://132.248.9.195/ptd2018/mayo/0774053/Index.html"
@@ -338,12 +327,6 @@ sample_metadata_thesis_pdf = {
                     "person_or_org": {
                         "family_name": "Martínez Hernández",
                         "given_name": "Alberto-Gabino",
-                        "identifiers": [
-                            {
-                                "identifier": "gabogabito123",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Martínez Hernández, Alberto-Gabino",
                         "type": "personal",
                     },
@@ -468,11 +451,6 @@ sample_metadata_thesis_pdf = {
                 "government."
             ),
             "identifiers": [
-                {"identifier": "hc:38367", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-44555",
-                    "scheme": "hclegacy-record-id",
-                },
                 {
                     "identifier": (
                         "http://132.248.9.195/ptd2018/mayo/0774053/Index.html"
@@ -594,12 +572,6 @@ sample_metadata_thesis_pdf = {
                     "person_or_org": {
                         "family_name": "Martínez Hernández",
                         "given_name": "Alberto-Gabino",
-                        "identifiers": [
-                            {
-                                "identifier": "gabogabito123",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Martínez Hernández, Alberto-Gabino",
                         "type": "personal",
                     },
@@ -724,11 +696,6 @@ sample_metadata_thesis_pdf = {
                 "government."
             ),
             "identifiers": [
-                {"identifier": "hc:38367", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-44555",
-                    "scheme": "hclegacy-record-id",
-                },
                 {
                     "identifier": (
                         "http://132.248.9.195/ptd2018/mayo/0774053/Index.html"

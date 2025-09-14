@@ -146,9 +146,7 @@ sample_metadata_journal_article4_pdf = {
                         "name": "Friedman, Hal",
                         "given_name": "Hal",
                         "family_name": "Friedman",
-                        "identifiers": [
-                            {"identifier": "friedman1996", "scheme": "kc_username"}
-                        ],
+                        "identifiers": [],
                     },
                     "role": {"id": "author", "title": {"en": "Author"}},
                     "affiliations": [{"name": "Henry Ford College"}],

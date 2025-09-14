@@ -148,12 +148,6 @@ sample_metadata_book_pdf = {
                     "person_or_org": {
                         "family_name": "Wang",
                         "given_name": "Lawrence K",
-                        "identifiers": [
-                            {
-                                "identifier": "lenoxinstitute100",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Wang, Lawrence K",
                         "type": "personal",
                     },
@@ -196,13 +190,7 @@ sample_metadata_book_pdf = {
                 "soft drink production plants, bakeries and "
                 "various other food processing facilities."
             ),
-            "identifiers": [
-                {"identifier": "hc:28491", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-28455",
-                    "scheme": "hclegacy-record-id",
-                },
-            ],
+            "identifiers": [],
             "languages": [{"id": "spa", "title": {"en": "Spanish"}}],
             "publication_date": "2008",
             "resource_type": {"id": "textDocument-book"},
@@ -355,12 +343,6 @@ sample_metadata_book_pdf = {
                     "person_or_org": {
                         "family_name": "Wang",
                         "given_name": "Lawrence K",
-                        "identifiers": [
-                            {
-                                "identifier": "lenoxinstitute100",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Wang, Lawrence K",
                         "type": "personal",
                     },
@@ -403,13 +385,7 @@ sample_metadata_book_pdf = {
                 "soft drink production plants, bakeries and "
                 "various other food processing facilities."
             ),
-            "identifiers": [
-                {"identifier": "hc:28491", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-28455",
-                    "scheme": "hclegacy-record-id",
-                },
-            ],
+            "identifiers": [],
             "languages": [{"id": "spa", "title": {"en": "Spanish"}}],
             "publication_date": "2008",
             "resource_type": {"id": "textDocument-book"},
@@ -594,12 +570,6 @@ sample_metadata_book_pdf = {
                     "person_or_org": {
                         "family_name": "Wang",
                         "given_name": "Lawrence K",
-                        "identifiers": [
-                            {
-                                "identifier": "lenoxinstitute100",
-                                "scheme": "hc_username",
-                            }
-                        ],
                         "name": "Wang, Lawrence K",
                         "type": "personal",
                     },
@@ -642,13 +612,7 @@ sample_metadata_book_pdf = {
                 "soft drink production plants, bakeries and "
                 "various other food processing facilities."
             ),
-            "identifiers": [
-                {"identifier": "hc:28491", "scheme": "hclegacy-pid"},
-                {
-                    "identifier": "1000360-28455",
-                    "scheme": "hclegacy-record-id",
-                },
-            ],
+            "identifiers": [],
             "languages": [{"id": "spa", "title": {"en": "Spanish"}}],
             "publication_date": "2008",
             "resource_type": {
