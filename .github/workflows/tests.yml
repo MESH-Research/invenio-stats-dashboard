@@ -1,0 +1,59 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # schedule:
+    # * is a special character in YAML so you have to quote this string
+    # - cron: "0 3 * * 6"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason"
+        required: false
+        default: "Manual trigger"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.x'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install python dependencies
+        run: |
+          uv sync --frozen --all-extras
+
+      - name: Apply patches
+        run: |
+          chmod +x apply_patches.sh
+          ./apply_patches.sh
+
+      - name: set up docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Run tests
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,ignore::UserWarning"
+        run: |
+          chmod +x run-tests.sh
+          bash run-tests.sh
