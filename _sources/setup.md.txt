@@ -1,5 +1,9 @@
 ## Setup and Migration
 
+```{warning}
+This package is waiting for two pull requests to be merged in invenio-requests and invenio-rdm-records (see [Known Issues](./known_issues.md)). In the meantime, a provided bash script is provided to patch the required files in your local site-packages directory. Simply run `bash apply_patches.sh [environment_path]` from the root of the `invenio-stats-dashboard` package directory, where `[environment_path]` is the path to your python environment folder (the parent folder of `site-packages`). You can view the contents of the patched files in the `invenio_stats_dashboard/patches` directory.
+```
+
 In future the plan is that setup of `invenio-stats-dashboard` will involve simply installing the python package and restarting the InvenioRDM instance. For now, however, two initial setup tasks are required **only for existing InvenioRDM instances** that already have records and view/download statistics:
 
 - index community addition events for all existing records
