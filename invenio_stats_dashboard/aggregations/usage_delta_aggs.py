@@ -96,9 +96,16 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 # For global aggregator, just check if there are any events at all
                 pass
 
-            if search.count() > 0:
-                events_found = True
-                break
+            try:
+                if search.count() > 0:
+                    events_found = True
+                    break
+            except Exception:
+                # If the index doesn't exist or there's an error, assume no events
+                current_app.logger.debug(
+                    f"Could not query index {event_index}, assuming no events"
+                )
+                continue
 
         return not events_found
 
@@ -527,7 +534,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         end_date: arrow.Arrow,
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
-    ) -> Generator[dict, None, None]:
+    ) -> Generator[tuple[dict, float], None, None]:
         """Create a dictionary representing the aggregation result for indexing."""
         # Start timing the agg_iter method
         agg_iter_start_time = time.time()
@@ -603,25 +610,22 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             if self.client.exists(index=index_name, id=doc_id):
                 self.delete_aggregation(index_name, doc_id)
 
-            yield {
+            document = {
                 "_id": doc_id,
                 "_index": index_name,
                 "_source": source_content,
             }
-
-            current_iteration_date = current_iteration_date.shift(days=1)
-
             # Log timing for this iteration
             iteration_end_time = time.time()
             iteration_duration = iteration_end_time - iteration_start_time
-            if should_skip:
-                current_app.logger.debug(
-                    f"Delta day {iteration_count}: {iteration_duration:.2f}s (skipped)"
-                )
-            else:
-                current_app.logger.debug(
-                    f"Delta day {iteration_count}: {iteration_duration:.2f}s"
-                )
+            current_app.logger.debug(
+                f"Delta day {iteration_count}: {iteration_duration:.2f}s (skipped)"
+            )
+
+            yield (document, iteration_duration)
+
+            current_iteration_date = current_iteration_date.shift(days=1)
+
         # Log total timing for the main loop
         loop_end_time = time.time()
         loop_duration = loop_end_time - loop_start_time

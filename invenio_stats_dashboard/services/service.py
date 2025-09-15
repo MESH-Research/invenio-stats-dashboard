@@ -12,10 +12,13 @@ from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
+from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.search import Search
 
+from ..aggregations import register_aggregations
+from ..aggregations.bookmarks import CommunityBookmarkAPI
 from ..queries import CommunityStatsResultsQuery
-from ..tasks import CommunityStatsAggregationTask
+from ..tasks import CommunityStatsAggregationTask, aggregate_community_record_stats
 from .components import update_community_events_index
 
 
@@ -37,30 +40,53 @@ class CommunityStatsService:
     ) -> dict:
         """Aggregate statistics for a community."""
 
-        task = CommunityStatsAggregationTask["task"]
         args = CommunityStatsAggregationTask["args"]
         if eager:
-            results = task(
-                *args,
-                start_date=start_date,
-                end_date=end_date,
-                update_bookmark=update_bookmark,
-                ignore_bookmark=ignore_bookmark,
-                community_ids=community_ids,  # Pass community_ids
+            current_app.logger.error(
+                f"Aggregating stats eagerly for communities: {community_ids}"
             )
+            try:
+                # For eager execution, call the function directly
+                current_app.logger.error(
+                    f"Calling aggregate_community_record_stats with args: {args}"
+                )
+                results = aggregate_community_record_stats(
+                    *args,
+                    start_date=start_date,
+                    end_date=end_date,
+                    update_bookmark=update_bookmark,
+                    ignore_bookmark=ignore_bookmark,
+                    community_ids=community_ids,
+                )
+                current_app.logger.error(
+                    f"Stats aggregated eagerly for communities: {community_ids}, "
+                    f"results type: {type(results)}"
+                )
+            except Exception as e:
+                current_app.logger.error(
+                    f"Error during eager aggregation for communities "
+                    f"{community_ids}: {e}"
+                )
+                raise
         else:
-            task_run = task.delay(
+            current_app.logger.error(
+                f"Aggregating stats asynchronously for communities: {community_ids}"
+            )
+            # For async execution, use the Celery task
+            task_run = aggregate_community_record_stats.delay(
                 *args,
                 start_date=start_date,
                 end_date=end_date,
                 update_bookmark=update_bookmark,
                 ignore_bookmark=ignore_bookmark,
-                community_ids=community_ids,  # Pass community_ids
+                community_ids=community_ids,
             )
-            # Store task ID for CLI display
+            current_app.logger.error(
+                f"Stats aggregation task run asynchronously for communities: "
+                f"{community_ids}"
+            )
             task_id = task_run.id
             results = task_run.get()
-            # Add task ID to results for CLI access
             if isinstance(results, dict):
                 results["task_id"] = task_id
 
@@ -377,3 +403,129 @@ class CommunityStatsService:
         )
         result = query.run(community_id, start_date, end_date)
         return result if isinstance(result, dict) else {}
+
+    def get_aggregation_status(self, community_id: str | None = None) -> dict:
+        """Get aggregation status for communities.
+
+        Args:
+            community_id: Optional community ID to check. If None, checks all
+                communities.
+
+        Returns:
+            Dictionary with aggregation status information including:
+            - Current bookmark dates for all aggregators
+            - First and last dates of documents in each aggregation index
+            - Number of documents in each aggregation index
+        """
+        aggregation_types = {
+            k: v["templates"].split(".")[-1]
+            for k, v in register_aggregations.items()
+            if k != "community-events-agg"
+        }
+
+        if community_id:
+            try:
+                community = current_communities.service.read(
+                    system_identity, community_id
+                )
+                communities = [
+                    {"id": community.id, "slug": community.data.get("slug", "")}
+                ]
+            except Exception:
+                return {
+                    "communities": [],
+                    "error": f"Community {community_id} not found",
+                }
+        else:
+            try:
+                communities_result = current_communities.service.search(
+                    system_identity, size=1000
+                )
+                communities = [
+                    {"id": comm.id, "slug": comm.data.get("slug", "")}
+                    for comm in communities_result.hits
+                ]
+            except Exception as e:
+                return {
+                    "communities": [],
+                    "error": f"Failed to retrieve communities: {str(e)}",
+                }
+
+        result = {"communities": []}
+
+        for community in communities:
+            comm_id = community["id"]
+            comm_slug = community["slug"]
+
+            community_status = {
+                "community_id": comm_id,
+                "community_slug": comm_slug,
+                "aggregations": {},
+            }
+
+            for agg_type, index_pattern in aggregation_types.items():
+                agg_status = {
+                    "bookmark_date": None,
+                    "index_exists": False,
+                    "document_count": 0,
+                    "first_document_date": None,
+                    "last_document_date": None,
+                    "days_since_last_document": None,
+                    "error": None,
+                }
+
+                try:
+                    index = Index(index_pattern, using=self.client)
+                    if index.exists():
+                        agg_status["index_exists"] = True
+
+                        bookmark_api = CommunityBookmarkAPI(
+                            self.client, agg_type, "day"
+                        )
+                        bookmark = bookmark_api.get_bookmark(comm_id)
+                        if bookmark:
+                            agg_status["bookmark_date"] = bookmark.isoformat()
+
+                        search = Search(using=self.client, index=index_pattern)
+
+                        if comm_id != "global":
+                            search = search.filter("term", community_id=comm_id)
+
+                        count_search = search.extra(size=0)
+                        count_result = count_search.execute()
+                        agg_status["document_count"] = count_result.hits.total.value
+
+                        if agg_status["document_count"] > 0:
+                            date_field = "timestamp"
+                            if "snapshot" in agg_type:
+                                date_field = "snapshot_date"
+
+                            date_search = search.extra(size=0)
+                            date_search.aggs.bucket("min_date", "min", field=date_field)
+                            date_search.aggs.bucket("max_date", "max", field=date_field)
+
+                            date_result = date_search.execute()
+                            if date_result.aggregations.min_date.value:
+                                agg_status["first_document_date"] = arrow.get(
+                                    date_result.aggregations.min_date.value
+                                ).isoformat()
+                            if date_result.aggregations.max_date.value:
+                                last_doc_date = arrow.get(
+                                    date_result.aggregations.max_date.value
+                                )
+                                agg_status["last_document_date"] = (
+                                    last_doc_date.isoformat()
+                                )
+                                now = arrow.utcnow()
+                                agg_status["days_since_last_document"] = (
+                                    now - last_doc_date
+                                ).days
+
+                except Exception as e:
+                    agg_status["error"] = str(e)
+
+                community_status["aggregations"][agg_type] = agg_status
+
+            result["communities"].append(community_status)
+
+        return result

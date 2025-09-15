@@ -69,7 +69,7 @@ class CommunityAggregatorBase(StatAggregator):
         end_date: arrow.Arrow,
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
-    ) -> Generator[dict, None, None]:
+    ) -> Generator[tuple[dict, float], None, None]:
         """Create a dictionary representing the aggregation result for indexing."""
         raise NotImplementedError
 
@@ -247,7 +247,7 @@ class CommunityAggregatorBase(StatAggregator):
         update_bookmark: bool = True,
         ignore_bookmark: bool = False,
         return_results: bool = False,
-    ) -> list[tuple[int, int | list[dict]]]:
+    ) -> list[tuple[int, int | list[dict], list[dict]]]:
         """Perform an aggregation for community and global stats.
 
         This method will perform an aggregation as defined by the child class.
@@ -292,11 +292,11 @@ class CommunityAggregatorBase(StatAggregator):
             isinstance(self.record_index, str)
             and not Index(self.record_index, using=self.client).exists()
         ):
-            return [(0, [])]
+            return [(0, [], [])]
         elif isinstance(self.record_index, list):
             for _, index in self.record_index:
                 if not Index(index, using=self.client).exists():
-                    return [(0, [])]
+                    return [(0, [], [])]
 
         if self.community_ids:
             communities_to_aggregate = self.community_ids
@@ -305,7 +305,9 @@ class CommunityAggregatorBase(StatAggregator):
                 c["id"]
                 for c in current_communities.service.read_all(system_identity, [])
             ]
-        communities_to_aggregate.append("global")  # Global stats are always aggregated
+            communities_to_aggregate.append(
+                "global"
+            )  # Global stats only when no specific communities
 
         results = []
         for community_id in communities_to_aggregate:
@@ -381,18 +383,50 @@ class CommunityAggregatorBase(StatAggregator):
                 f"agg_iter {community_id}: {agg_iter_duration:.2f}s"
             )
 
+            community_docs_info: list[dict] = []
+
+            # Create a wrapper generator that collects metadata while yielding documents
+            # so that we can return the detailed information in the result
+            def document_generator_with_metadata(docs_info_list):
+                for doc, doc_generation_time in agg_iter_generator:
+                    doc_info = {
+                        "document_id": doc["_id"],
+                        "index_name": doc["_index"],
+                        "community_id": doc["_source"].get("community_id"),
+                        "date_info": {},
+                        "generation_time": doc_generation_time,
+                    }
+
+                    if (
+                        "period_start" in doc["_source"]
+                        and "period_end" in doc["_source"]
+                    ):
+                        doc_info["date_info"] = {
+                            "period_start": doc["_source"]["period_start"],
+                            "period_end": doc["_source"]["period_end"],
+                            "date_type": "delta",
+                        }
+                    elif "snapshot_date" in doc["_source"]:
+                        doc_info["date_info"] = {
+                            "snapshot_date": doc["_source"]["snapshot_date"],
+                            "date_type": "snapshot",
+                        }
+
+                    docs_info_list.append(doc_info)
+                    yield doc
+
             # Time the bulk indexing
             bulk_start_time = time.time()
             current_app.logger.debug(f"bulk {community_id}")
-            results.append(
-                bulk(
-                    self.client,
-                    agg_iter_generator,
-                    stats_only=False if return_results else True,
-                    chunk_size=50,
-                )
+            bulk_result = bulk(
+                self.client,
+                document_generator_with_metadata(community_docs_info),
+                stats_only=False if return_results else True,
+                chunk_size=50,
             )
 
+            docs_indexed, errors = bulk_result
+            results.append((docs_indexed, errors, community_docs_info))
             bulk_end_time = time.time()
             bulk_duration = bulk_end_time - bulk_start_time
             current_app.logger.debug(f"bulk {community_id}: {bulk_duration:.2f}s")
@@ -894,7 +928,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         end_date: arrow.Arrow,
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
-    ) -> Generator[dict, None, None]:
+    ) -> Generator[tuple[dict, float], None, None]:
         """Create a dictionary representing the aggregation result for indexing.
 
         Args:
@@ -905,8 +939,9 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 case the events we're looking for are delta aggregations.
 
         Returns:
-            A generator of dictionaries, where each dictionary is an aggregation
-            document for a single day to be indexed.
+            A generator of tuples, where each tuple contains:
+            - [0]: A dictionary representing an aggregation document for indexing
+            - [1]: The time taken to generate this document (in seconds)
         """
         # Start timing the agg_iter method
         agg_iter_start_time = time.time()
@@ -1003,23 +1038,25 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             if self.client.exists(index=index_name, id=document_id):
                 self.delete_aggregation(index_name, document_id)
 
-            yield {
+            document = {
                 "_id": document_id,
                 "_index": index_name,
                 "_source": source_content,
             }
-
-            previous_snapshot = source_content
-            previous_snapshot_date = current_iteration_date
-            current_iteration_date = current_iteration_date.shift(days=1)
-            current_delta_index += 1
-
             # Log timing for this iteration
             iteration_end_time = time.time()
             iteration_duration = iteration_end_time - iteration_start_time
             current_app.logger.debug(
                 f"Day {iteration_count}: {iteration_duration:.2f}s"
             )
+
+            yield (document, iteration_duration)
+
+            previous_snapshot = source_content
+            previous_snapshot_date = current_iteration_date
+            current_iteration_date = current_iteration_date.shift(days=1)
+            current_delta_index += 1
+
         # Log total timing for the main loop
         loop_end_time = time.time()
         loop_duration = loop_end_time - loop_start_time
@@ -1053,7 +1090,7 @@ class CommunityEventsIndexAggregator(CommunityAggregatorBase):
         end_date: arrow.Arrow,
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
-    ) -> Generator[dict, None, None]:
+    ) -> Generator[tuple[dict, float], None, None]:
         """This aggregator doesn't perform any aggregation."""
         # Return empty generator - no aggregation needed
         return

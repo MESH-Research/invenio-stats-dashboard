@@ -159,3 +159,192 @@ def read_stats_command(community_id, start_date, end_date):
             community_id, start_date=start_date, end_date=end_date
         )
     pprint(stats)
+
+
+@click.command(name="status")
+@click.option(
+    "--community-id",
+    type=str,
+    help="The ID of the community to check status for. If not provided, "
+    "checks all communities.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed information for each aggregation.",
+)
+def _abbreviate_agg_name(agg_type):
+    """Abbreviate aggregation type name for display."""
+    # Remove "community-records" from beginning and "-agg" from end
+    name = agg_type
+    if name.startswith("community-records-"):
+        name = name[18:]  # Remove "community-records-"
+    if name.endswith("-agg"):
+        name = name[:-4]  # Remove "-agg"
+    return name
+
+
+def _generate_completeness_bar(agg_status, start_date, total_days, bar_length=30):
+    """Generate completeness bar and related information for an aggregation.
+
+    Args:
+        agg_status: Dictionary containing aggregation status information
+        start_date: Arrow object representing the start date for the time range
+        total_days: Total number of days in the time range
+        bar_length: Length of the bar in characters (default: 30)
+
+    Returns:
+        tuple: (bar_string, percentage, days_text)
+    """
+    import arrow
+
+    if not (
+        total_days > 0
+        and agg_status.get("first_document_date")
+        and agg_status.get("last_document_date")
+    ):
+        return "[No data available]", 0, ""
+
+    # Calculate the proportion of time covered
+    agg_start = arrow.get(agg_status["first_document_date"])
+    agg_end = arrow.get(agg_status["last_document_date"])
+
+    # Calculate relative positions within the total time range
+    start_offset = max(0, (agg_start - start_date).days)
+    end_offset = (agg_end - start_date).days
+
+    # Create the bar
+    filled_length = int((end_offset - start_offset) / total_days * bar_length)
+    filled_length = max(0, min(filled_length, bar_length))
+
+    # Create the bar visualization
+    bar = "█" * filled_length + "░" * (bar_length - filled_length)
+
+    # Calculate percentage
+    percentage = (end_offset - start_offset) / total_days * 100
+    percentage = max(0, min(100, percentage))
+
+    # Show days since last document
+    days_text = ""
+    if agg_status["days_since_last_document"] is not None:
+        days = agg_status["days_since_last_document"]
+        if days == 0:
+            days_text = " (today)"
+        elif days == 1:
+            days_text = " (1d ago)"
+        else:
+            days_text = f" ({days}d ago)"
+
+    return f"[{bar}]", percentage, days_text
+
+
+@with_appcontext
+def status_command(community_id, verbose):
+    """Get aggregation status for communities."""
+    check_stats_enabled()
+
+    with Halo(text="Getting aggregation status...", spinner="dots"):
+        status = current_community_stats_service.get_aggregation_status(community_id)
+
+    if "error" in status:
+        click.echo(f"Error: {status['error']}", err=True)
+        return 1
+
+    click.echo("\n" + "=" * 80)
+    click.echo("COMMUNITY AGGREGATION STATUS")
+    click.echo("=" * 80)
+
+    for community in status["communities"]:
+        click.echo(
+            f"\nCommunity: {community['community_slug']} "
+            f"({community['community_id']})"
+        )
+        click.echo("-" * 60)
+
+        # Calculate the overall time range for completeness visualization
+        all_first_dates = []
+        for agg_status in community["aggregations"].values():
+            if agg_status.get("first_document_date") and agg_status.get(
+                "last_document_date"
+            ):
+                all_first_dates.append(agg_status["first_document_date"])
+
+        # Find the earliest first date across all aggregations
+        if all_first_dates:
+            earliest_first = min(all_first_dates)
+            start_date = arrow.get(earliest_first)
+            end_date = arrow.utcnow()
+            total_days = (end_date - start_date).days
+        else:
+            total_days = 0
+
+        for agg_type, agg_status in community["aggregations"].items():
+            if verbose:
+                # Verbose mode - show detailed information
+                click.echo(f"\n{agg_type}:")
+
+                if agg_status["error"]:
+                    click.echo(f"  Error: {agg_status['error']}")
+                    continue
+
+                if not agg_status["index_exists"]:
+                    click.echo("  Index: Does not exist")
+                    continue
+
+                click.echo("  Index: Exists")
+                click.echo(f"  Document count: {agg_status['document_count']}")
+
+                if agg_status["bookmark_date"]:
+                    click.echo(f"  Bookmark date: {agg_status['bookmark_date']}")
+                else:
+                    click.echo("  Bookmark date: None")
+
+                if agg_status["first_document_date"]:
+                    click.echo(f"  First document: {agg_status['first_document_date']}")
+                else:
+                    click.echo("  First document: None")
+
+                if agg_status["last_document_date"]:
+                    click.echo(f"  Last document: {agg_status['last_document_date']}")
+                else:
+                    click.echo("  Last document: None")
+
+                if agg_status["days_since_last_document"] is not None:
+                    days = agg_status["days_since_last_document"]
+                    if days == 0:
+                        click.echo("  Days since last document: Today")
+                    elif days == 1:
+                        click.echo("  Days since last document: 1 day")
+                    else:
+                        click.echo(f"  Days since last document: {days} days")
+                else:
+                    click.echo("  Days since last document: N/A")
+
+                bar_string, percentage, days_text = _generate_completeness_bar(
+                    agg_status, start_date, total_days, bar_length=50
+                )
+                click.echo(f"  Completeness: {bar_string} {percentage:.1f}%")
+            else:
+                # Concise mode - show one line per aggregation
+                if agg_status["error"]:
+                    click.echo(
+                        f"{_abbreviate_agg_name(agg_type):<25} "
+                        f"[ERROR: {agg_status['error']}]"
+                    )
+                    continue
+
+                if not agg_status["index_exists"]:
+                    click.echo(f"{_abbreviate_agg_name(agg_type):<25} [No index]")
+                    continue
+
+                bar_string, percentage, days_text = _generate_completeness_bar(
+                    agg_status, start_date, total_days, bar_length=30
+                )
+                click.echo(
+                    f"{_abbreviate_agg_name(agg_type):<25} "
+                    f"{bar_string} {percentage:.0f}%{days_text}"
+                )
+
+    click.echo("\n" + "=" * 80)
+    return 0

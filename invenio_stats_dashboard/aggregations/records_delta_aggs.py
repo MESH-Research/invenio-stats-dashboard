@@ -448,7 +448,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         end_date: arrow.Arrow,
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
-    ) -> Generator[dict, None, None]:
+    ) -> Generator[tuple[dict, float], None, None]:
         """Query opensearch for record counts for each day period.
 
         Args:
@@ -549,27 +549,22 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
 
                 # Process the current date even if there are no buckets
                 # so that we have a record for every day in the period
-                yield {
+                document = {
                     "_id": document_id,
                     "_index": index_name,
                     "_source": source_content,
                 }
-
                 # Log timing for this day iteration
                 day_iteration_end_time = time.time()
                 day_iteration_duration = (
                     day_iteration_end_time - day_iteration_start_time
                 )
-                if should_skip:
-                    current_app.logger.debug(
-                        f"Record day {total_days_processed}: "
-                        f"{day_iteration_duration:.2f}s (skipped)"
-                    )
-                else:
-                    current_app.logger.debug(
-                        f"Record day {total_days_processed}: "
-                        f"{day_iteration_duration:.2f}s"
-                    )
+                current_app.logger.debug(
+                    f"Record day {total_days_processed}: "
+                    f"{day_iteration_duration:.2f}s"
+                )
+
+                yield (document, day_iteration_duration)
 
             # Log timing for this year
             year_end_time = time.time()

@@ -7,6 +7,7 @@
 import time
 import uuid
 from datetime import timedelta
+from typing import TypedDict
 
 from celery import shared_task
 from celery.schedules import crontab
@@ -18,6 +19,58 @@ from invenio_stats.proxies import current_stats
 
 from .exceptions import TaskLockAcquisitionError
 from .proxies import current_event_reindexing_service as reindexing_service
+
+
+# TypedDict definitions for aggregation response objects
+class DateInfo(TypedDict, total=False):
+    """Date information for a document."""
+
+    date_type: str  # "delta" or "snapshot"
+    period_start: str | None  # For delta aggregators
+    period_end: str | None  # For delta aggregators
+    snapshot_date: str | None  # For snapshot aggregators
+
+
+class DocumentInfo(TypedDict):
+    """Information about a single document generated during aggregation."""
+
+    document_id: str
+    date_info: DateInfo
+    generation_time: float
+
+
+class CommunityDetail(TypedDict):
+    """Detailed information about a community's aggregation results."""
+
+    community_id: str
+    index_name: str
+    docs_indexed: int
+    errors: int
+    error_details: list[int | dict]
+    documents: list[DocumentInfo]
+    date_range_requested: dict
+
+
+class AggregatorResult(TypedDict):
+    """Result information for a single aggregator."""
+
+    aggregator: str
+    duration_formatted: str
+    docs_indexed: int
+    errors: int
+    communities_count: int
+    communities_processed: list[str]
+    community_details: list[CommunityDetail]
+    error_details: list[int | dict]
+
+
+class AggregationResponse(TypedDict):
+    """Complete response object from aggregation task."""
+
+    results: list[AggregatorResult]
+    total_duration: str
+    formatted_report: str
+    formatted_report_verbose: str
 
 
 def format_agg_startup_message(
@@ -70,20 +123,23 @@ def format_agg_startup_message(
     return "\n".join(lines)
 
 
-def _format_aggregation_report(result, verbose=False):
+def _format_aggregation_report(
+    result: AggregationResponse, verbose: bool = False
+) -> str:
     """Format aggregation results into a human-readable report.
 
     Args:
-        result: Dictionary containing 'timing' and 'results' keys
+        result: Dictionary containing 'results' and 'total_duration' keys
         verbose: Whether to include detailed timing breakdown
 
     Returns:
         String containing formatted report
     """
-    if not isinstance(result, dict) or "timing" not in result:
+    if not isinstance(result, dict) or "results" not in result:
         return "Aggregation completed successfully."
 
-    timing = result["timing"]
+    results = result["results"]
+    total_duration = result.get("total_duration", "unknown")
     lines = []
 
     # Header
@@ -96,13 +152,14 @@ def _format_aggregation_report(result, verbose=False):
     total_errors = 0
     total_communities = 0
 
-    for aggr_timing in timing["aggregators"]:
+    for aggr_timing in results:
         aggr_name = aggr_timing["aggregator"]
         duration = aggr_timing["duration_formatted"]
         docs_indexed = aggr_timing.get("docs_indexed", 0)
         errors = aggr_timing.get("errors", 0)
         communities_count = aggr_timing.get("communities_count", 0)
         error_details = aggr_timing.get("error_details", [])
+        community_details = aggr_timing.get("community_details", [])
 
         lines.append(f"\n{aggr_name}")
         lines.append("-" * len(aggr_name))
@@ -115,6 +172,48 @@ def _format_aggregation_report(result, verbose=False):
         total_docs_indexed += docs_indexed
         total_errors += errors
         total_communities = max(total_communities, communities_count)
+
+        # Show community details if available
+        if community_details and verbose:
+            lines.append("Community details:")
+            for comm_detail in community_details:
+                comm_id = comm_detail.get("community_id", "unknown")
+                comm_index = comm_detail.get("index_name", "unknown")
+                comm_docs = comm_detail.get("docs_indexed", 0)
+                comm_errors = comm_detail.get("errors", 0)
+                comm_docs_info = comm_detail.get("documents", [])
+
+                lines.append(f"  Community {comm_id} (index: {comm_index}):")
+                lines.append(f"    Documents: {comm_docs}, Errors: {comm_errors}")
+
+                # Show document timing details if available
+                if comm_docs_info and verbose:
+                    total_doc_time = sum(
+                        doc.get("generation_time", 0) for doc in comm_docs_info
+                    )
+                    avg_doc_time = (
+                        total_doc_time / len(comm_docs_info) if comm_docs_info else 0
+                    )
+                    lines.append(
+                        f"    Total doc generation time: {total_doc_time:.3f}s"
+                    )
+                    lines.append(
+                        f"    Average doc generation time: {avg_doc_time:.3f}s"
+                    )
+
+                    # Show individual document details (limit to first 3)
+                    for i, doc_info in enumerate(comm_docs_info[:3]):
+                        doc_id = doc_info.get("document_id", "unknown")
+                        gen_time = doc_info.get("generation_time", 0)
+                        date_info = doc_info.get("date_info", {})
+                        date_type = date_info.get("date_type", "unknown")
+                        lines.append(
+                            f"      Doc {doc_id}: {gen_time:.3f}s ({date_type})"
+                        )
+
+                    if len(comm_docs_info) > 3:
+                        remaining = len(comm_docs_info) - 3
+                        lines.append(f"      ... and {remaining} more documents")
 
         # Show error details (limit to first 3 for logging)
         if error_details:
@@ -133,20 +232,20 @@ def _format_aggregation_report(result, verbose=False):
     lines.append(f"Total documents indexed: {total_docs_indexed:,}")
     lines.append(f"Total errors: {total_errors:,}")
     lines.append(f"Total communities processed: {total_communities}")
-    lines.append(f"Total aggregation time: {timing['total_duration_formatted']}")
+    lines.append(f"Total aggregation time: {total_duration}")
     lines.append("=" * 60)
 
     # Add verbose timing details if requested
     if verbose:
         lines.append("\nIndividual aggregator timings:")
         lines.append("-" * 50)
-        for aggr_timing in timing["aggregators"]:
+        for aggr_timing in results:
             lines.append(
                 f"  {aggr_timing['aggregator']:<35} "
                 f"{aggr_timing['duration_formatted']:>15}"
             )
         lines.append("-" * 50)
-        lines.append(f"{'Total':<35} {timing['total_duration_formatted']:>15}")
+        lines.append(f"{'Total':<35} {total_duration:>15}")
         lines.append("=" * 60)
 
     return "\n".join(lines)
@@ -207,13 +306,13 @@ CommunityStatsAggregationTask = {
 
 @shared_task
 def aggregate_community_record_stats(
-    aggregations,
-    start_date=None,
-    end_date=None,
-    update_bookmark=True,
-    ignore_bookmark=False,
-    community_ids=None,  # Add community_ids parameter
-):
+    aggregations: list[str],
+    start_date: str | None = None,
+    end_date: str | None = None,
+    update_bookmark: bool = True,
+    ignore_bookmark: bool = False,
+    community_ids: list[str] | None = None,
+) -> AggregationResponse:
     """Aggregate community record stats from created records."""
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
     lock_enabled = lock_config.get("enabled", True)
@@ -242,10 +341,11 @@ def aggregate_community_record_stats(
             )
             return {
                 "results": [],
-                "timing": {
-                    "total_duration_formatted": "0:00:00",
-                    "aggregators": [],
-                },
+                "total_duration": "0:00:00",
+                "formatted_report": "Aggregation skipped - another instance running",
+                "formatted_report_verbose": (
+                    "Aggregation skipped - another instance running"
+                ),
             }
     else:
         # Run without locking
@@ -261,19 +361,18 @@ def aggregate_community_record_stats(
 
 
 def _run_aggregation(
-    aggregations,
-    start_date,
-    end_date,
-    update_bookmark,
-    community_ids=None,
-    ignore_bookmark=False,
-    verbose=False,
-):
+    aggregations: list[str],
+    start_date: str | None = None,
+    end_date: str | None = None,
+    update_bookmark: bool = True,
+    community_ids: list[str] | None = None,
+    ignore_bookmark: bool = False,
+    verbose: bool = False,
+) -> AggregationResponse:
     """Run the actual aggregation logic."""
-    start_date = dateutil_parse(start_date) if start_date else None
-    end_date = dateutil_parse(end_date) if end_date else None
-    results = []
-    timing_info = []
+    parsed_start_date = dateutil_parse(start_date) if start_date else None
+    parsed_end_date = dateutil_parse(end_date) if end_date else None
+    results: list[AggregatorResult] = []
 
     # Log startup configuration
     startup_config = format_agg_startup_message(
@@ -301,8 +400,12 @@ def _run_aggregation(
         if community_ids:
             params["community_ids"] = community_ids
         aggregator = aggr_cfg.cls(name=aggr_cfg.name, **params)
-        result = aggregator.run(start_date, end_date, update_bookmark, ignore_bookmark)
-        results.append(result)
+        raw_result = aggregator.run(
+            parsed_start_date, parsed_end_date, update_bookmark, ignore_bookmark
+        )
+
+        # Get the actual communities that were processed by the aggregator
+        processed_communities = getattr(aggregator, "communities_to_aggregate", [])
 
         if hasattr(aggregator, "aggregation_index") and aggregator.aggregation_index:
             current_search_client.indices.refresh(
@@ -311,35 +414,91 @@ def _run_aggregation(
 
         aggr_end_time = time.time()
         aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
+
         # Extract detailed results information
         aggr_docs_indexed = 0
         aggr_errors = 0
         aggr_communities: set[str] = set()
-        aggr_error_details = []
+        aggr_error_details: list[int | dict] = []
+        community_details: list[CommunityDetail] = []
 
-        if isinstance(result, list):
-            for community_result in result:
+        if isinstance(raw_result, list):
+            for i, community_result in enumerate(raw_result):
+                response_object: CommunityDetail = {
+                    "community_id": "",
+                    "index_name": "",
+                    "docs_indexed": 0,
+                    "errors": 0,
+                    "error_details": [],
+                    "documents": [],
+                    "date_range_requested": {
+                        "start_date": (
+                            str(parsed_start_date) if parsed_start_date else None
+                        ),
+                        "end_date": str(parsed_end_date) if parsed_end_date else None,
+                    },
+                }
                 if isinstance(community_result, tuple) and len(community_result) >= 2:
-                    docs_indexed = community_result[0]
-                    errors = community_result[1]
-                    aggr_docs_indexed += docs_indexed
+                    response_object["docs_indexed"] = community_result[0]
+                    response_object["errors"] = community_result[1]
+                    aggr_docs_indexed += community_result[0]
 
+                    # Get detailed document information if available
+                    docs_info = (
+                        community_result[2] if len(community_result) >= 3 else []
+                    )
+                    doc_infos: list[DocumentInfo] = [
+                        {
+                            "document_id": d["document_id"],
+                            "date_info": d["date_info"],
+                            "generation_time": d["generation_time"],
+                        }
+                        for d in docs_info
+                    ]
+                    response_object["documents"] = doc_infos
+
+                    if docs_info and len(docs_info) > 0:
+                        response_object["community_id"] = docs_info[0].get(
+                            "community_id", ""
+                        )
+                        response_object["index_name"] = docs_info[0].get(
+                            "index_name", ""
+                        )
+                    else:
+                        if i < len(processed_communities):
+                            response_object["community_id"] = processed_communities[i]
+                        else:
+                            response_object["community_id"] = f"community_{i}"
+                        response_object["index_name"] = ""
+
+                    aggr_communities.add(response_object["community_id"])
+
+                    errors = community_result[1]
                     if isinstance(errors, int):
+                        response_object["errors"] = errors
+                        response_object["error_details"] = []
                         aggr_errors += errors
                     elif isinstance(errors, list):
+                        response_object["errors"] = len(errors)
+                        response_object["error_details"] = errors
                         aggr_errors += len(errors)
                         aggr_error_details.extend(errors)
+                    else:
+                        response_object["errors"] = 0
+                        response_object["error_details"] = []
 
-        timing_info.append(
+                    community_details.append(response_object)
+
+        results.append(
             {
                 "aggregator": aggr_name,
                 "duration_formatted": aggr_duration,
                 "docs_indexed": aggr_docs_indexed,
                 "errors": aggr_errors,
                 "communities_count": len(aggr_communities),
-                "error_details": (
-                    aggr_error_details[:10] if aggr_error_details else []
-                ),  # Limit to first 10 errors
+                "communities_processed": list(aggr_communities),
+                "community_details": community_details,
+                "error_details": aggr_error_details,
             }
         )
 
@@ -351,18 +510,16 @@ def _run_aggregation(
     current_app.logger.info("Aggregation completed successfully")
     current_app.logger.info(f"Total aggregation time: {total_duration}")
 
-    # Store timing info in results for CLI access
-    result_dict = {
+    result_dict: AggregationResponse = {
         "results": results,
-        "timing": {
-            "total_duration_formatted": total_duration,
-            "aggregators": timing_info,
-        },
+        "total_duration": total_duration,
+        "formatted_report": "",
+        "formatted_report_verbose": "",
     }
 
     # Generate formatted report for both logging and CLI display
-    # Always log the non-verbose version to keep logs clean
-    report = _format_aggregation_report(result_dict, verbose=verbose)
+    # Always log the verbose version for detailed information
+    report = _format_aggregation_report(result_dict, verbose=True)
     current_app.logger.info(f"Aggregation report:\n{report}")
 
     # Add both verbose and non-verbose reports to result for CLI display

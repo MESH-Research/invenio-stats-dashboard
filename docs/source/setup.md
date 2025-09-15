@@ -97,5 +97,9 @@ To clear the bookmarks for all months, you can use the `invenio community-stats 
 
 ### Initial aggregation of historical data
 
-The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually is also provided. This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the [CLI commands](#cli-commands) section below.
+The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually is also provided: `invenio community-stats aggregate`. This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the [CLI commands](#cli-commands) section below.
+
+```{note}
+**Monitoring Progress**: You can monitor the progress of the catch-up aggregation using the `invenio community-stats status` command. This command shows the current state of all aggregation indices, including bookmark dates, document counts, and visual completeness bars. For more details, see the [CLI commands](#cli-commands) section below.
+```
 
