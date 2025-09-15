@@ -360,7 +360,11 @@
 </section>
 <section id="initial-aggregation-of-historical-data">
 <h2>Initial aggregation of historical data<a class="headerlink" href="#initial-aggregation-of-historical-data" title="Link to this heading">¶</a></h2>
-<p>The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually is also provided. This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
+<p>The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually is also provided: <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">aggregate</span></code>. This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Monitoring Progress</strong>: You can monitor the progress of the catch-up aggregation using the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">status</span></code> command. This command shows the current state of all aggregation indices, including bookmark dates, document counts, and visual completeness bars. For more details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
+</div>
 </section>
 </section>
 

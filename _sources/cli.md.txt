@@ -58,6 +58,62 @@ invenio community-stats read
 invenio community-stats read --community-id my-community --start-date 2024-01-01 --end-date 2024-01-31
 ```
 
+#### `status`
+
+Get aggregation status for communities, showing bookmark dates, document counts, and completeness visualization.
+
+```bash
+invenio community-stats status [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: The ID of the community to check status for. If not provided, checks all communities.
+- `--verbose, -v`: Show detailed information for each aggregation.
+
+**Description:**
+This command provides a comprehensive overview of the aggregation status for community statistics. It shows:
+
+- **Bookmark dates**: Current progress bookmarks for all aggregators
+- **Document counts**: Number of documents in each aggregation index
+- **Date ranges**: First and last document dates in each index
+- **Days since last document**: How recently each aggregation was updated
+- **Completeness visualization**: ASCII bar charts showing the proportion of time covered by each aggregation
+
+The command supports two output modes:
+- **Concise mode (default)**: One line per aggregation with abbreviated names and compact completeness bars
+- **Verbose mode (`--verbose`)**: Detailed information including all the information listed above.
+
+**Examples:**
+```bash
+# Check status for all communities (concise view)
+invenio community-stats status
+
+# Check status for specific community
+invenio community-stats status --community-id my-community-id
+
+# Show detailed information for all communities
+invenio community-stats status --verbose
+
+# Show detailed information for specific community
+invenio community-stats status --community-id my-community-id --verbose
+```
+
+**Output Examples:**
+
+Concise mode:
+```
+Community: my-research-community (a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+------------------------------------------------------------
+delta-created              [██████████████████████████████] 100% (today)
+delta-published            [████████████████████████████░░] 95% (1d ago)
+delta-added                [No index]
+snapshot-created           [██████████████████████████████] 100% (today)
+snapshot-published         [████████████████████████████░░] 95% (1d ago)
+snapshot-added             [No index]
+usage-delta                [██████████████████████████████] 100% (today)
+usage-snapshot             [██████████████████████████████] 100% (today)
+```
+
 ### Community Events Commands
 
 #### `community-events generate`

@@ -316,6 +316,60 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span><span clas
 </pre></div>
 </div>
 </section>
+<section id="status">
+<h3><code class="docutils literal notranslate"><span class="pre">status</span></code><a class="headerlink" href="#status" title="Link to this heading">¶</a></h3>
+<p>Get aggregation status for communities, showing bookmark dates, document counts, and completeness visualization.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--community-id</span></code>: The ID of the community to check status for. If not provided, checks all communities.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--verbose,</span> <span class="pre">-v</span></code>: Show detailed information for each aggregation.</p></li>
+</ul>
+<p><strong>Description:</strong>
+This command provides a comprehensive overview of the aggregation status for community statistics. It shows:</p>
+<ul class="simple">
+<li><p><strong>Bookmark dates</strong>: Current progress bookmarks for all aggregators</p></li>
+<li><p><strong>Document counts</strong>: Number of documents in each aggregation index</p></li>
+<li><p><strong>Date ranges</strong>: First and last document dates in each index</p></li>
+<li><p><strong>Days since last document</strong>: How recently each aggregation was updated</p></li>
+<li><p><strong>Completeness visualization</strong>: ASCII bar charts showing the proportion of time covered by each aggregation</p></li>
+</ul>
+<p>The command supports two output modes:</p>
+<ul class="simple">
+<li><p><strong>Concise mode (default)</strong>: One line per aggregation with abbreviated names and compact completeness bars</p></li>
+<li><p><strong>Verbose mode (<code class="docutils literal notranslate"><span class="pre">--verbose</span></code>)</strong>: Detailed information including all the information listed above.</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check status for all communities (concise view)</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>status
+
+<span class="c1"># Check status for specific community</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--community-id<span class="w"> </span>my-community-id
+
+<span class="c1"># Show detailed information for all communities</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--verbose
+
+<span class="c1"># Show detailed information for specific community</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--community-id<span class="w"> </span>my-community-id<span class="w"> </span>--verbose
+</pre></div>
+</div>
+<p><strong>Output Examples:</strong></p>
+<p>Concise mode:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Community: my-research-community (a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+------------------------------------------------------------
+delta-created              [██████████████████████████████] 100% (today)
+delta-published            [████████████████████████████░░] 95% (1d ago)
+delta-added                [No index]
+snapshot-created           [██████████████████████████████] 100% (today)
+snapshot-published         [████████████████████████████░░] 95% (1d ago)
+snapshot-added             [No index]
+usage-delta                [██████████████████████████████] 100% (today)
+usage-snapshot             [██████████████████████████████] 100% (today)
+</pre></div>
+</div>
+</section>
 </section>
 <section id="community-events-commands">
 <h2>Community Events Commands<a class="headerlink" href="#community-events-commands" title="Link to this heading">¶</a></h2>
@@ -750,6 +804,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>processes<
 <li><a class="reference internal" href="#core-commands">Core Commands</a><ul>
 <li><a class="reference internal" href="#aggregate"><code class="docutils literal notranslate"><span class="pre">aggregate</span></code></a></li>
 <li><a class="reference internal" href="#read"><code class="docutils literal notranslate"><span class="pre">read</span></code></a></li>
+<li><a class="reference internal" href="#status"><code class="docutils literal notranslate"><span class="pre">status</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#community-events-commands">Community Events Commands</a><ul>
