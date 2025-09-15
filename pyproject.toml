@@ -50,6 +50,7 @@ docs = [
 ]
 tests = [
     "invenio-app-rdm[opensearch2]~=13.0.0",
+    "invenio-cli",
     "pytest-invenio",
     "pytest-ruff>=0.1.0",
     "pytest-mypy>=0.10.0",
