@@ -15,13 +15,13 @@ from opensearchpy import AttrDict, AttrList
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
+from ..queries import (
+    CommunityUsageDeltaQuery,
+)
 from .base import CommunityAggregatorBase
 from .types import (
     UsageDeltaDocument,
     UsageSubcountItem,
-)
-from ..queries import (
-    CommunityUsageDeltaQuery,
 )
 
 

@@ -11,10 +11,10 @@ from opensearchpy.helpers.search import Search
 
 from .base import CommunitySnapshotAggregatorBase
 from .types import (
+    RecordDeltaDocument,
     RecordSnapshotDocument,
     RecordSnapshotSubcountItem,
     RecordSnapshotTopSubcounts,
-    RecordDeltaDocument,
 )
 
 

@@ -16,7 +16,6 @@ from opensearchpy.helpers.search import Search
 from ..queries import (
     CommunityRecordDeltaQuery,
 )
-
 from .base import CommunityAggregatorBase
 from .types import (
     RecordDeltaDocument,

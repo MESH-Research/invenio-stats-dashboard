@@ -27,10 +27,10 @@ from ..exceptions import CommunityEventIndexingError, DeltaDataGapError
 from ..proxies import current_community_stats_service
 from .bookmarks import CommunityBookmarkAPI, CommunityEventBookmarkAPI
 from .types import (
-    RecordSnapshotDocument,
     RecordDeltaDocument,
-    UsageSnapshotDocument,
+    RecordSnapshotDocument,
     UsageDeltaDocument,
+    UsageSnapshotDocument,
 )
 
 

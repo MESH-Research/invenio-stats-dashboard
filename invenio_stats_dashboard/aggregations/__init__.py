@@ -5,19 +5,20 @@
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 from invenio_search.proxies import current_search_client
-from .records_snapshot_aggs import (
-    CommunityRecordsSnapshotCreatedAggregator,
-    CommunityRecordsSnapshotAddedAggregator,
-    CommunityRecordsSnapshotPublishedAggregator,
-)
+
+from .base import CommunityEventsIndexAggregator
 from .records_delta_aggs import (
+    CommunityRecordsDeltaAddedAggregator,
     CommunityRecordsDeltaCreatedAggregator,
     CommunityRecordsDeltaPublishedAggregator,
-    CommunityRecordsDeltaAddedAggregator,
 )
-from .usage_snapshot_aggs import CommunityUsageSnapshotAggregator
+from .records_snapshot_aggs import (
+    CommunityRecordsSnapshotAddedAggregator,
+    CommunityRecordsSnapshotCreatedAggregator,
+    CommunityRecordsSnapshotPublishedAggregator,
+)
 from .usage_delta_aggs import CommunityUsageDeltaAggregator
-from .base import CommunityEventsIndexAggregator
+from .usage_snapshot_aggs import CommunityUsageSnapshotAggregator
 
 
 def register_aggregations():

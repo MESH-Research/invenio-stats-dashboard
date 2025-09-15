@@ -11,16 +11,16 @@ from flask import current_app
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 
-from .base import CommunitySnapshotAggregatorBase
 from ..queries import (
     CommunityUsageSnapshotQuery,
 )
+from .base import CommunitySnapshotAggregatorBase
 from .bookmarks import CommunityBookmarkAPI
 from .types import (
-    UsageSnapshotDocument,
     UsageDeltaDocument,
-    UsageSubcountItem,
+    UsageSnapshotDocument,
     UsageSnapshotTopCategories,
+    UsageSubcountItem,
 )
 
 

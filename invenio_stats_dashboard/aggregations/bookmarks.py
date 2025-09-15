@@ -1,9 +1,10 @@
-from invenio_stats.bookmark import BookmarkAPI
 from functools import wraps
+
+import arrow
+from invenio_stats.bookmark import BookmarkAPI
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
-import arrow
 
 
 class CommunityBookmarkAPI(BookmarkAPI):
