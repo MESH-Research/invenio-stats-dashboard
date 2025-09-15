@@ -50,11 +50,7 @@ def minimal_draft_record_factory(running_app, db, record_metadata):
         **kwargs: Any,
     ):
         """Create a minimal draft record."""
-        current_app.logger.error(
-            f"Creating draft record with metadata: {pformat(metadata)}"
-        )
         input_metadata = metadata or deepcopy(record_metadata().metadata_in)
-        current_app.logger.error(f"Input metadata: {pformat(input_metadata)}")
         identity = identity or system_identity
         draft = records_service.create(identity, input_metadata)
 
@@ -71,7 +67,9 @@ def minimal_draft_record_factory(running_app, db, record_metadata):
 
 
 @pytest.fixture(scope="function")
-def minimal_published_record_factory(running_app, db, record_metadata):
+def minimal_published_record_factory(
+    running_app, db, record_metadata, superuser_identity
+):
     """Factory for creating a minimal published record."""
 
     def _factory(
@@ -112,6 +110,9 @@ def minimal_published_record_factory(running_app, db, record_metadata):
             identity = system_identity
 
         draft = records_service.create(identity, input_metadata)
+        current_app.logger.error(
+            f"in published record factory, created draft: {pformat(draft.id)}"
+        )
 
         if file_paths:
             files_helper = FilesHelper(is_draft=True)
@@ -142,28 +143,47 @@ def minimal_published_record_factory(running_app, db, record_metadata):
                 files=file_objects,
             )
 
-        current_app.logger.error(
-            f"in published record factory, draft: {pformat(draft.to_dict())}"
-        )
-
         published = records_service.publish(system_identity, draft.id)
 
         if input_metadata.get("created"):
             record = records_service.read(system_identity, id_=published.id)._record
             record.model.created = input_metadata.get("created")
-            uow = UnitOfWork(db.session)
-            uow.register(RecordCommitOp(record))
-            uow.commit()
+            with UnitOfWork(db.session) as uow:
+                uow.register(RecordCommitOp(record))
+                uow.commit()
+                current_app.logger.error(
+                    f"in published record factory, updated record created date: {pformat(record.id)}"
+                )
 
         if community_list:
+            current_app.logger.error(
+                f"in published record factory, adding community to record: {pformat(community_list)}"
+            )
             record = published._record
-            add_community_to_record(db, record, community_list[0], default=set_default)
+            add_community_to_record(
+                db,
+                record,
+                community_list[0],
+                default=set_default,
+                identity=superuser_identity,
+            )
             for community in community_list[1:] if len(community_list) > 1 else []:
-                add_community_to_record(db, record, community, default=False)
+                current_app.logger.error(
+                    f"in published record factory, adding community to record: {pformat(community)}"
+                )
+                add_community_to_record(
+                    db, record, community, default=False, identity=superuser_identity
+                )
             # Refresh the record to get the latest state.
             published = records_service.read(system_identity, published.id)
+            current_app.logger.error(
+                f"in published record factory, refreshed record: {pformat(published.id)}"
+            )
 
         if input_metadata.get("created"):
+            current_app.logger.error(
+                f"in published record factory, updating community events created date: {pformat(published.id)}"
+            )
             try:
                 # Always update record_created_date, optionally update event_date
                 # based on the flag
