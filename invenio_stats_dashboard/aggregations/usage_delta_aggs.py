@@ -479,24 +479,30 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 label: str | dict[str, str] = str(key)
                 label_field = usage_config.get("label_field")
 
-                if label_field and view_bucket:
-                    if hasattr(view_bucket, "label") and hasattr(
-                        view_bucket.label, "hits"
-                    ):
-                        title_hits = view_bucket.label.hits.hits
-                        if title_hits and title_hits[0]._source:
-                            source: AttrDict = title_hits[0]._source
-                            # Convert AttrDict to regular dict
-                            if hasattr(source, "to_dict"):
-                                source = source.to_dict()
-                            label_result = CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
-                                source, label_field, key
-                            )
-                            label = (
-                                label_result
-                                if isinstance(label_result, str | dict)
-                                else str(key)
-                            )
+                if label_field:
+                    for bucket in [view_bucket, download_bucket]:
+                        if (
+                            bucket
+                            and hasattr(bucket, "label")
+                            and hasattr(bucket.label, "hits")
+                        ):
+                            title_hits = bucket.label.hits.hits
+                            if title_hits and title_hits[0]._source:
+                                source: AttrDict = title_hits[0]._source
+                                # Convert AttrDict to regular dict
+                                if hasattr(source, "to_dict"):
+                                    source_dict = source.to_dict()
+                                else:
+                                    source_dict = dict(source)
+                                label_result = CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
+                                    source_dict, label_field, key
+                                )
+                                if (
+                                    isinstance(label_result, str | dict)
+                                    and label_result
+                                ):
+                                    label = label_result
+                                    break  # Found valid label, stop checking
 
                 subcount_item: UsageSubcountItem = {
                     "id": str(key),
