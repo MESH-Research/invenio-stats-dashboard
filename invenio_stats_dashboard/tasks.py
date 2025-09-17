@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Celery tasks for community statistics aggregation and event reindexing."""
+
 import time
 import uuid
 from datetime import timedelta
@@ -202,7 +204,7 @@ def _format_aggregation_report(
                     )
 
                     # Show individual document details (limit to first 3)
-                    for i, doc_info in enumerate(comm_docs_info[:3]):
+                    for _i, doc_info in enumerate(comm_docs_info[:3]):
                         doc_id = doc_info.get("document_id", "unknown")
                         gen_time = doc_info.get("generation_time", 0)
                         date_info = doc_info.get("date_info", {})
@@ -252,11 +254,15 @@ def _format_aggregation_report(
 
 
 class AggregationTaskLock:
-    """
-    Simple distributed lock for aggregation tasks using invenio_cache.
-    """
+    """Simple distributed lock for aggregation tasks using invenio_cache."""
 
     def __init__(self, lock_name, timeout=86400):  # 24 hour timeout
+        """Initialize the distributed lock.
+
+        Args:
+            lock_name (str): The name of the lock to acquire.
+            timeout (int, optional): Lock timeout in seconds. Defaults to 86400 (24 hours).
+        """
         self.lock_name = f"lock:{lock_name}"
         self.timeout = timeout
         self.lock_id = str(uuid.uuid4())
@@ -275,6 +281,14 @@ class AggregationTaskLock:
         return False
 
     def __enter__(self):
+        """Enter the context manager and acquire the lock.
+
+        Returns:
+            self: The lock instance.
+
+        Raises:
+            TaskLockAcquisitionError: If the lock cannot be acquired.
+        """
         if not self.acquire():
             raise TaskLockAcquisitionError(
                 f"Could not acquire lock: {self.lock_name}. An existing task "
@@ -283,6 +297,13 @@ class AggregationTaskLock:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context manager and release the lock.
+
+        Args:
+            exc_type: Exception type if an exception occurred.
+            exc_val: Exception value if an exception occurred.
+            exc_tb: Exception traceback if an exception occurred.
+        """
         self.release()
 
 
@@ -312,6 +333,7 @@ def aggregate_community_record_stats(
     update_bookmark: bool = True,
     ignore_bookmark: bool = False,
     community_ids: list[str] | None = None,
+    verbose: bool = False,
 ) -> AggregationResponse:
     """Aggregate community record stats from created records."""
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
@@ -333,6 +355,7 @@ def aggregate_community_record_stats(
                     update_bookmark,
                     community_ids,
                     ignore_bookmark,
+                    verbose,
                 )
         except TaskLockAcquisitionError:
             # Lock acquisition failed - another task is running
@@ -357,6 +380,7 @@ def aggregate_community_record_stats(
             update_bookmark,
             community_ids,
             ignore_bookmark,
+            verbose,
         )
 
 
@@ -541,8 +565,7 @@ def reindex_usage_events_with_metadata(
     max_memory_percent=None,
     delete_old_indices=False,
 ):
-    """
-    Reindex view and download events with enriched metadata as a Celery task.
+    """Reindex view and download events with enriched metadata as a Celery task.
 
     Args:
         event_types: List of event types to process. If None, process all.
