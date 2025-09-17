@@ -11,7 +11,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import click
 import psutil
@@ -24,7 +24,7 @@ class ProcessManager:
     def __init__(
         self,
         process_name: str,
-        pid_dir: Optional[str] = None,
+        pid_dir: str | None = None,
         package_prefix: str = "invenio-community-stats",
     ):
         """Initialize process manager.
@@ -118,7 +118,7 @@ class ProcessManager:
             return False
 
         try:
-            with open(self.pid_file, "r") as f:
+            with open(self.pid_file) as f:
                 pid = int(f.read().strip())
 
             # Check if process exists and is running
@@ -133,30 +133,30 @@ class ProcessManager:
             self.cleanup()
             return False
 
-    def get_pid(self) -> Optional[int]:
+    def get_pid(self) -> int | None:
         """Get the PID of the running process."""
         if not self.pid_file.exists():
             return None
 
         try:
-            with open(self.pid_file, "r") as f:
+            with open(self.pid_file) as f:
                 return int(f.read().strip())
         except (ValueError, FileNotFoundError):
             return None
 
-    def get_status(self) -> Optional[Dict[str, Any]]:
+    def get_status(self) -> dict[str, Any] | None:
         """Get the current status of the process."""
         if not self.status_file.exists():
             return None
 
         try:
-            with open(self.status_file, "r") as f:
+            with open(self.status_file) as f:
                 result = json.load(f)
                 return result if isinstance(result, dict) else None
         except (json.JSONDecodeError, FileNotFoundError):
             return None
 
-    def update_status(self, status_update: Dict[str, Any]):
+    def update_status(self, status_update: dict[str, Any]):
         """Update the process status."""
         current_status = self.get_status() or {}
         current_status.update(status_update)
@@ -231,7 +231,7 @@ class ProcessManager:
             return "No log file found"
 
         try:
-            with open(self.log_file, "r") as f:
+            with open(self.log_file) as f:
                 all_lines = f.readlines()
                 return "".join(all_lines[-lines:])
         except Exception as e:
@@ -244,7 +244,7 @@ class ProcessMonitor:
     def __init__(
         self,
         process_name: str,
-        pid_dir: Optional[str] = None,
+        pid_dir: str | None = None,
         package_prefix: str = "invenio-community-stats",
     ):
         """Initialize process monitor.
@@ -312,13 +312,13 @@ class ProcessMonitor:
             log_tail = self._get_log_tail(log_lines)
             click.echo(log_tail)
 
-    def _get_status(self) -> Optional[Dict[str, Any]]:
+    def _get_status(self) -> dict[str, Any] | None:
         """Get the process status."""
         if not self.status_file.exists():
             return None
 
         try:
-            with open(self.status_file, "r") as f:
+            with open(self.status_file) as f:
                 result = json.load(f)
                 return result if isinstance(result, dict) else None
         except (json.JSONDecodeError, FileNotFoundError):
@@ -327,7 +327,7 @@ class ProcessMonitor:
     def _is_process_running(self) -> bool:
         """Check if the process is actually running."""
         try:
-            with open(self.pid_file, "r") as f:
+            with open(self.pid_file) as f:
                 pid = int(f.read().strip())
 
             if not psutil.pid_exists(pid):
@@ -345,7 +345,7 @@ class ProcessMonitor:
             return "No log file found"
 
         try:
-            with open(self.log_file, "r") as f:
+            with open(self.log_file) as f:
                 all_lines = f.readlines()
                 return "".join(all_lines[-lines:])
         except Exception as e:
@@ -353,13 +353,14 @@ class ProcessMonitor:
 
 
 def list_running_processes(
-    pid_dir: Optional[str] = None, package_prefix: Optional[str] = None
+    pid_dir: str | None = None, package_prefix: str | None = None
 ) -> list:
     """List running processes managed by ProcessManager.
 
     Args:
         pid_dir: Directory containing PID files
-        package_prefix: Optional prefix to filter processes (e.g., 'invenio-community-stats')
+        package_prefix: Optional prefix to filter processes
+            (e.g., 'invenio-community-stats')
 
     Returns:
         List of running process names

@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Community usage delta aggregators for tracking daily usage statistics."""
+
 import time
 from collections.abc import Generator
 from itertools import chain
@@ -26,20 +28,34 @@ from .types import (
 
 
 class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
+    """Community usage delta aggregator for tracking daily usage statistics.
+
+    This class aggregates daily usage statistics (views and downloads) for communities,
+    including both totals and subcounts for various metadata fields.
+    """
 
     def __init__(self, name, subcount_configs=None, *args, **kwargs):
+        """Initialize the community usage delta aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            subcount_configs (dict, optional): Subcount configurations. Defaults to
+                the global config.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
         # Use provided configs or fall back to class default
         self.subcount_configs = (
             subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
         )
         self.event_index: list[tuple[str, str]] = [
-            ("view", prefix_index("events-stats-record-view")),
-            ("download", prefix_index("events-stats-file-download")),
+            ("view", "events-stats-record-view"),
+            ("download", "events-stats-file-download"),
         ]
-        self.first_event_index = prefix_index("events-stats-record-view")
+        self.first_event_index = "events-stats-record-view"
         self.first_event_date_field = "timestamp"
-        self.aggregation_index = prefix_index("stats-community-usage-delta")
+        self.aggregation_index = "stats-community-usage-delta"
         self.event_date_field = "timestamp"
         self.event_community_query_term = lambda community_id: Q("match_all")
         self.query_builder = CommunityUsageDeltaQuery(client=self.client)
@@ -76,9 +92,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         # usage events in the date range for this community
         # This is much faster than the full processing pipeline
         events_found = False
-        for event_type, event_index in self.event_index:
+        for _event_type, event_index in self.event_index:
             # Quick check for any events in the date range
-            search = Search(using=self.client, index=event_index)
+            search = Search(using=self.client, index=prefix_index(event_index))
             search = search.filter(
                 "range",
                 timestamp={
@@ -267,7 +283,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         """
         combined_aggs = {}
 
-        for subcount_name, config in self.subcount_configs.items():
+        for _subcount_name, config in self.subcount_configs.items():
             # Get the usage_events configuration for this subcount
             usage_config = config.get("usage_events", {})
             if not usage_config:
@@ -478,7 +494,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                             )
                             label = (
                                 label_result
-                                if isinstance(label_result, (str, dict))
+                                if isinstance(label_result, str | dict)
                                 else str(key)
                             )
 
@@ -604,7 +620,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 source_content = combined_results
 
             index_name = prefix_index(
-                "{0}-{1}".format(self.aggregation_index, current_iteration_date.year)
+                f"{self.aggregation_index}-{current_iteration_date.year}"
             )
             doc_id = f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
             if self.client.exists(index=index_name, id=doc_id):
@@ -775,9 +791,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 if not hasattr(field_data, "__iter__"):
                     field_data = []
                 elif (
-                    isinstance(field_data, (list, AttrList))
+                    isinstance(field_data, list | AttrList)
                     and field_data
-                    and isinstance(field_data[0], (list, AttrList))
+                    and isinstance(field_data[0], list | AttrList)
                 ):
                     field_data = list(chain.from_iterable(field_data))
 
@@ -825,9 +841,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 if not hasattr(field_data, "__iter__"):
                     field_data = []
                 elif (
-                    isinstance(field_data, (list, AttrList))
+                    isinstance(field_data, list | AttrList)
                     and field_data
-                    and isinstance(field_data[0], (list, AttrList))
+                    and isinstance(field_data[0], list | AttrList)
                 ):
                     field_data = list(chain.from_iterable(field_data))
 
@@ -857,7 +873,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         value = item
         for part in parts:
             try:
-                if isinstance(value, (dict, AttrDict)) and part in value:
+                if isinstance(value, dict | AttrDict) and part in value:
                     value = value[part]
                 else:
                     return fallback
@@ -885,7 +901,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         Returns:
             Dictionary with "id" and "label" keys, or None if no matches
         """
-
         if not hasattr(field_data, "__iter__") or len(field_data) == 0:
             return None
 
@@ -993,7 +1008,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         """
         if "." not in title_field:
             result = source.get(title_field, str(bucket_key))
-            return result if isinstance(result, (str, dict)) else str(bucket_key)
+            return result if isinstance(result, str | dict) else str(bucket_key)
 
         parts = title_field.split(".")
 
@@ -1008,7 +1023,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             if len(parts) == 1:
                 return (
                     field_value
-                    if isinstance(field_value, (str, dict))
+                    if isinstance(field_value, str | dict)
                     else str(field_value)
                 )
             else:
@@ -1022,7 +1037,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         break
                 return (
                     value
-                    if isinstance(value, (str, dict)) and value
+                    if isinstance(value, str | dict) and value
                     else str(bucket_key)
                 )
 
@@ -1031,7 +1046,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             label = CommunityAggregatorBase._find_matching_item_by_key(
                 field_value, label_path_leaf, bucket_key
             )
-            if label and isinstance(label, (str, dict)):
+            if label and isinstance(label, str | dict):
                 return label
             else:
                 return str(bucket_key)

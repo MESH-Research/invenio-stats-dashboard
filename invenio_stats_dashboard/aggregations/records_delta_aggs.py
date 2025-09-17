@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Community records delta aggregators."""
+
 import time
 from collections.abc import Generator
 
@@ -30,13 +32,20 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
     """
 
     def __init__(self, name, subcount_configs=None, *args, **kwargs):
+        """Initialize the records delta aggregator base.
+
+        Args:
+            name (str): The name of the aggregator.
+            subcount_configs (dict, optional): Subcount configurations. Defaults to
+                the global config.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.first_event_index: str = prefix_index("stats-community-events")
-        self.event_index: str = prefix_index("stats-community-events")
-        self.record_index: str = prefix_index("rdmrecords-records")
-        self.aggregation_index: str = prefix_index(
-            "stats-community-records-delta-created"
-        )
+        self.first_event_index: str = "stats-community-events"
+        self.event_index: str = "stats-community-events"
+        self.record_index: str = "rdmrecords-records"
+        self.aggregation_index: str = "stats-community-records-delta-created"
         self.subcount_configs = (
             subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
         )
@@ -79,7 +88,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         # aggregator) before or on the aggregation date
         if community_id == "global":
             # For global aggregator, just check if there are any records at all
-            search = Search(using=self.client, index=self.event_index)
+            search = Search(using=self.client, index=prefix_index(self.event_index))
             count_result: int = search.count()  # type: ignore[assignment]
             return count_result == 0
         else:
@@ -360,7 +369,6 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         aggs_removed: dict,
     ) -> RecordDeltaDocument:
         """Create a dictionary representing the aggregation result for indexing."""
-
         agg_dict: RecordDeltaDocument = {
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
             "community_id": community_id,
@@ -453,15 +461,16 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
 
         Args:
             community_id (str): The community id to query.
-            community_parent_id (str): The community parent id to query.
-            start_date (str): The start date to query.
-            end_date (str): The end date to query.
-            search_domain (str, optional): The search domain to use. If provided,
-                creates a new client instance. If None, uses the default
-                current_search_client.
+            start_date (arrow.Arrow): The start date to query.
+            end_date (arrow.Arrow): The end date to query.
+            first_event_date (arrow.Arrow | None): The first event date, or None
+                if no events exist.
+            last_event_date (arrow.Arrow | None): The last event date, or None
+                if no events exist.
 
         Returns:
-            dict: A dictionary containing lists of buckets for each time period.
+            Generator[tuple[dict, float], None, None]: A generator yielding tuples of
+                (document, generation_time) for each day in the period.
         """
         # Start timing the agg_iter method
         agg_iter_start_time = time.time()
@@ -495,7 +504,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             year_start_date = max(arrow.get(f"{year}-01-01"), start_date)
             year_end_date = min(arrow.get(f"{year}-12-31"), end_date)
 
-            index_name = prefix_index("{0}-{1}".format(self.aggregation_index, year))
+            index_name = prefix_index(f"{self.aggregation_index}-{year}")
 
             # Time the day loop for this year
             days_in_year = 0
@@ -596,8 +605,15 @@ class CommunityRecordsDeltaCreatedAggregator(CommunityRecordsDeltaAggregatorBase
     """
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the records delta created aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.aggregation_index = prefix_index("stats-community-records-delta-created")
+        self.aggregation_index = "stats-community-records-delta-created"
         self.event_date_field = "record_created_date"
 
 
@@ -605,8 +621,15 @@ class CommunityRecordsDeltaAddedAggregator(CommunityRecordsDeltaAggregatorBase):
     """Aggregator for community records delta added."""
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the records delta added aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.aggregation_index = prefix_index("stats-community-records-delta-added")
+        self.aggregation_index = "stats-community-records-delta-added"
         self.event_date_field = "event_date"
 
 
@@ -614,6 +637,13 @@ class CommunityRecordsDeltaPublishedAggregator(CommunityRecordsDeltaAggregatorBa
     """Aggregator for community records delta published."""
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the records delta published aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.aggregation_index = prefix_index("stats-community-records-delta-published")
+        self.aggregation_index = "stats-community-records-delta-published"
         self.event_date_field = "record_published_date"

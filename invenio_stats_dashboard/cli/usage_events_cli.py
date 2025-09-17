@@ -1,11 +1,12 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 #
 # Copyright (C) 2025 Mesh Research
 #
 # invenio-stats-dashboard is free software; you can redistribute it
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
+
+"""Usage events CLI commands for generating and managing usage statistics events."""
 
 import arrow
 import click
@@ -320,45 +321,32 @@ def _report_validation_errors(validation_errors):
     if not validation_errors:
         return
 
-    click.echo("\n🔍 VALIDATION FAILURES:")
-    click.echo("The following migrations failed validation and can be safely retried:")
+    click.echo("    Validation Errors:")
     for validation_error in validation_errors:
-        event_type = validation_error["event_type"]
-        month = validation_error["month"]
-        click.echo(f"  • {event_type} {month}: Validation failed")
-        click.echo(f"    Source: {validation_error['source_index']}")
-        click.echo(f"    Target: {validation_error['target_index']}")
-
         # Show validation details
         validation_details = validation_error["validation_details"]
         if validation_details.get("errors"):
-            click.echo("    Validation errors:")
+            click.echo("      Validation errors:")
             errors = validation_details["errors"]
             for error in errors[:3]:  # Show first 3 errors
-                click.echo(f"      - {error}")
+                click.echo(f"        - {error}")
             if len(errors) > 3:
                 remaining = len(errors) - 3
-                click.echo(f"      ... and {remaining} more errors")
-
-        if validation_details.get("document_counts"):
-            counts = validation_details["document_counts"]
-            source_count = counts.get("source", "N/A")
-            target_count = counts.get("target", "N/A")
-            click.echo(
-                f"    Document counts: source={source_count}, " f"target={target_count}"
-            )
+                click.echo(f"        ... and {remaining} more errors")
 
         missing_ids = validation_details.get("missing_community_ids", 0)
         if missing_ids > 0:
-            click.echo(f"    Missing community_ids: {missing_ids}")
+            click.echo(f"      Missing community_ids: {missing_ids}")
 
-    click.echo("\n💡 To retry validation failures:")
-    click.echo("  The bookmark has been automatically reset, so you can safely retry:")
+    click.echo("    Retry commands:")
+    click.echo(
+        "      The bookmark has been automatically reset, so you can safely retry:"
+    )
     for validation_error in validation_errors:
         event_type = validation_error["event_type"]
         month = validation_error["month"]
         click.echo(
-            f"    invenio community-stats usage-events migrate "
+            f"        invenio community-stats usage-events migrate "
             f"--event-types {event_type} --months {month}"
         )
 
@@ -438,7 +426,6 @@ def _report_migration_results(results):
     Args:
         results: Migration results dictionary with consistent structure
     """
-
     # Count completed, interrupted, and failed months
     completed_count = 0
     interrupted_count = 0
@@ -497,17 +484,39 @@ def _report_migration_results(results):
             click.echo(f"\n{month}")
             click.echo(f"    Source Index: {month_results.get('source_index', 'N/A')}")
             click.echo(f"    Target Index: {month_results.get('target_index', 'N/A')}")
-            click.echo(f"    Processed: {month_results.get('processed', 0):,} events")
+            # Show clearer migration counts
+            processed = month_results.get("processed", 0)
+            click.echo(f"    Attempted: {processed:,} events")
+
+            # Show successful migration count if validation passed
+            if not month_results.get("validation_errors"):
+                click.echo(f"        Successfully migrated: {processed:,} events")
+            else:
+                # If validation failed, show the actual successful count
+                validation_errors = month_results.get("validation_errors")
+                if validation_errors and "document_counts" in validation_errors:
+                    target_count = validation_errors["document_counts"].get("target", 0)
+                    click.echo(
+                        f"        Validated successfully: {target_count:,} events"
+                    )
+                    failed_count = processed - target_count
+                    click.echo(f"        Failed validation: {failed_count:,} events")
+                else:
+                    click.echo("        Successfully migrated: 0 events")
+                    click.echo(f"        Failed validation: {processed:,} events")
             click.echo(
                 f"    Total Batches: {month_results.get('batches_succeeded', 0):,}"
             )
             click.echo(
-                f"    Batches Attempted: {month_results.get('batches_attempted', 0):,}"
+                f"        Batches Attempted: {month_results.get('batches_attempted', 0):,}"
             )
             completed = month_results.get("completed")
-            click.echo(f"    Completed: {completed:,}")
+            click.echo(
+                f"    Migration Status: {'Completed' if completed else 'Incomplete'}"
+            )
             interrupted = month_results.get("interrupted")
-            click.echo(f"    Interrupted: {interrupted:,}")
+            if interrupted:
+                click.echo("    Interrupted: Yes")
             click.echo(
                 f"    Last Processed ID: "
                 f"{month_results.get('last_processed_id', 'N/A')}"
@@ -517,9 +526,7 @@ def _report_migration_results(results):
                 click.echo(f"    Migration took: {month_results['total_time']}")
 
             if month_results.get("validation_errors"):
-                click.echo(
-                    f"    Validation Errors: {month_results['validation_errors']}"
-                )
+                _report_validation_errors(month_results["validation_errors"])
 
             if month_results.get("operational_errors"):
                 click.echo(
@@ -758,27 +765,6 @@ def migration_status_command(
     click.echo("\nMigration Status")
     click.echo("===============")
 
-    # Completed migrations (where old indices were deleted)
-    completed_view = counts.get("view_completed_migrations", [])
-    completed_download = counts.get("download_completed_migrations", [])
-
-    if completed_view or completed_download:
-        click.echo("\n✅ COMPLETED MIGRATIONS (Old indices deleted):")
-        if completed_view:
-            click.echo("  View Events:")
-            for migration in completed_view:
-                click.echo(
-                    f"    {migration['year_month']}: {migration['old_index']} → "
-                    f"{migration['enriched_index']}"
-                )
-        if completed_download:
-            click.echo("  Download Events:")
-            for migration in completed_download:
-                click.echo(
-                    f"    {migration['year_month']}: {migration['old_index']} → "
-                    f"{migration['enriched_index']}"
-                )
-
     # Health status
     status_icon = "✅" if health["is_healthy"] else "❌"
     click.echo(f"System Health: {status_icon} {health['reason']}")
@@ -816,8 +802,7 @@ def migration_status_command(
     click.echo("-" * 50)
     click.echo("Migration Bookmarks:")
     if show_bookmarks:
-        # Show bookmarks from enriched_indices
-        for enriched_idx in counts["enriched_indices"]:
+        for enriched_idx in counts["migrations_in_progress"]:
             if enriched_idx["bookmark"]:
                 bookmark = enriched_idx["bookmark"]
                 timestamp = arrow.get(bookmark["last_event_timestamp"])
@@ -833,25 +818,27 @@ def migration_status_command(
     # Incomplete migrations
     click.echo("-" * 50)
     click.echo("Incomplete Migrations:")
-    if not show_incomplete:
-        click.echo("  (use --show-incomplete to show details of each)")
-    _format_interrupted_migrations(
+    has_incomplete = _format_interrupted_migrations(
         progress, show_resume_commands=True, show_details=show_incomplete
     )
+    if has_incomplete and not show_incomplete:
+        click.echo("  (use --show-incomplete to show details of each)")
 
     # Completed migrations
     click.echo("-" * 50)
     click.echo("Completed Migrations:")
-    if not show_completed:
+    has_completed = _format_completed_migrations(progress, show_details=show_completed)
+    if has_completed and not show_completed:
         click.echo("  (use --show-completed to show details of each)")
-    _format_completed_migrations(progress, show_details=show_completed)
 
     # Not started migrations
     click.echo("-" * 50)
     click.echo("Migration Yet to Begin:")
-    if not show_not_started:
+    has_not_started = _format_not_started_migrations(
+        progress, show_details=show_not_started
+    )
+    if has_not_started and not show_not_started:
         click.echo("  (use --show-not-started to show details of each)")
-    _format_not_started_migrations(progress, show_details=show_not_started)
     click.echo("\n")
 
 
@@ -859,7 +846,9 @@ def _format_monthly_indices(estimates):
     """Format and display monthly indices with counts."""
     # View events
     view_indices = [
-        idx for idx in estimates["enriched_indices"] if "view" in idx["source_index"]
+        idx
+        for idx in estimates["migrations_in_progress"]
+        if "view" in idx["source_index"]
     ]
     if view_indices:
         click.echo("  View Events:")
@@ -869,7 +858,7 @@ def _format_monthly_indices(estimates):
         # Add completed migrations (deleted old indices)
         completed_view = [
             idx
-            for idx in estimates["completed_indices"]
+            for idx in estimates["migrations_old_deleted"]
             if "view" in idx["source_index"]
         ]
         for migration in completed_view:
@@ -888,7 +877,7 @@ def _format_monthly_indices(estimates):
     # Download events
     download_indices = [
         idx
-        for idx in estimates["enriched_indices"]
+        for idx in estimates["migrations_in_progress"]
         if "download" in idx["source_index"]
     ]
     if download_indices:
@@ -899,7 +888,7 @@ def _format_monthly_indices(estimates):
         # Add completed migrations (deleted old indices)
         completed_download = [
             idx
-            for idx in estimates["completed_indices"]
+            for idx in estimates["migrations_old_deleted"]
             if "download" in idx["source_index"]
         ]
         for migration in completed_download:
@@ -939,12 +928,15 @@ def _format_interrupted_migrations(
         show_resume_commands: Whether to show resume commands (default: True)
         show_details: Whether to show the details of interrupted migrations
             (default: True). If False, only show the month and source index.
+
+    Returns:
+        bool: True if there are interrupted migrations to show, False otherwise
     """
     counts = progress["counts"]
     interrupted_count = len(
         [
             idx
-            for idx in counts["enriched_indices"]
+            for idx in counts["migrations_in_progress"]
             if idx["interrupted"] and not idx["completed"]
         ]
     )
@@ -963,7 +955,7 @@ def _format_interrupted_migrations(
                 "resume all incomplete migrations."
             )
 
-    for enriched_idx in counts["enriched_indices"]:
+    for enriched_idx in counts["migrations_in_progress"]:
         if enriched_idx["interrupted"]:
 
             month = (
@@ -1014,6 +1006,8 @@ def _format_interrupted_migrations(
                     f"--months {month}"
                 )
 
+    return interrupted_count > 0
+
 
 def _format_completed_migrations(progress, show_details=True):
     """Format and display completed migrations.
@@ -1022,18 +1016,31 @@ def _format_completed_migrations(progress, show_details=True):
         progress: The reindexing progress data from the service
         show_details: Whether to show the details of completed migrations
             (default: True). If False, only show the count.
+
+    Returns:
+        bool: True if there are completed migrations to show, False otherwise
     """
     counts = progress["counts"]
     completed_found = False
     completed_count = 0
     deleted_count = 0
 
-    # Count completed migrations
-    for enriched_idx in counts["enriched_indices"]:
+    # Count completed migrations from migrations_in_progress (migrations where
+    # old indices still exist)
+    for enriched_idx in counts["migrations_in_progress"]:
         if enriched_idx["completed"] and not enriched_idx["interrupted"]:
             completed_found = True
             completed_count += 1
             if "deleted" in enriched_idx["source_index"]:
+                deleted_count += 1
+
+    # Count completed migrations from migrations_old_deleted (migrations where
+    # old indices were deleted)
+    for completed_idx in counts["migrations_old_deleted"]:
+        if completed_idx["completed"] and not completed_idx["interrupted"]:
+            completed_found = True
+            completed_count += 1
+            if "deleted" in completed_idx["source_index"]:
                 deleted_count += 1
 
     if not completed_found:
@@ -1042,13 +1049,16 @@ def _format_completed_migrations(progress, show_details=True):
     else:
         click.echo(f"  Found {completed_count} completed index migrations.")
         click.echo(f"  Found {deleted_count} deleted old indices.")
-        click.echo(
-            "\n  To delete old indices for completed migrations, run the "
-            "migrate\n  command again with the --delete-old-indices flag."
-        )
+        if deleted_count < completed_count:
+            click.echo(
+                "\n  To delete old indices for completed migrations, run the "
+                "migrate\n  command again with the --delete-old-indices flag."
+            )
 
         if show_details:
-            for enriched_idx in counts["enriched_indices"]:
+            # Show details for migrations_in_progress (migrations where old indices
+            # still exist)
+            for enriched_idx in counts["migrations_in_progress"]:
                 if enriched_idx["completed"] and not enriched_idx["interrupted"]:
                     click.echo("\n")
                     month = (
@@ -1077,6 +1087,39 @@ def _format_completed_migrations(progress, show_details=True):
                     else:
                         click.echo("      Old index deleted: No")
 
+            # Show details for migrations_old_deleted (migrations where old indices
+            # were deleted)
+            for completed_idx in counts["migrations_old_deleted"]:
+                if completed_idx["completed"] and not completed_idx["interrupted"]:
+                    click.echo("\n")
+                    # Extract month from the index name (remove -v2.0.0 suffix
+                    # first)
+                    index_name = completed_idx["index"]
+                    if index_name.endswith("-v2.0.0"):
+                        base_name = index_name[:-7]  # Remove -v2.0.0
+                    else:
+                        base_name = index_name
+                    month = base_name.split("-")[-2] + "-" + base_name.split("-")[-1]
+                    event_type = "view" if "view" in index_name else "download"
+
+                    click.echo(f"    {event_type.upper()} {month}:")
+                    click.echo(f"      Source index: {completed_idx['source_index']}")
+                    click.echo(f"      Enriched index: {completed_idx['index']}")
+                    click.echo(f"      Original count: {completed_idx['old_count']}")
+                    click.echo(
+                        f"      Migrated count: {completed_idx['migrated_count'] or 0}"
+                    )
+                    click.echo(
+                        f"      Remaining events: "
+                        f"{completed_idx['remaining_count'] or 0}"
+                    )
+                    if "deleted" in completed_idx["source_index"]:
+                        click.echo("      Old index deleted: Yes")
+                    else:
+                        click.echo("      Old index deleted: No")
+
+    return completed_found
+
 
 def _format_not_started_migrations(progress, show_details=True):
     """Format and display not-started migrations.
@@ -1085,12 +1128,15 @@ def _format_not_started_migrations(progress, show_details=True):
         progress: The reindexing progress data from the service
         show_details: Whether to show the details of not-started migrations
             (default: True). If False, only show the count.
+
+    Returns:
+        bool: True if there are not-started migrations to show, False otherwise
     """
     counts = progress["counts"]
     not_started_found = False
     not_started_count = 0
 
-    for enriched_idx in counts["enriched_indices"]:
+    for enriched_idx in counts["migrations_in_progress"]:
         if not enriched_idx["completed"] and not enriched_idx["interrupted"]:
             not_started_found = True
             not_started_count += 1
@@ -1100,22 +1146,24 @@ def _format_not_started_migrations(progress, show_details=True):
     else:
         click.echo(f"  Found {not_started_count} not-started index migrations.")
 
-        if show_details:
-            for enriched_idx in counts["enriched_indices"]:
-                if not enriched_idx["completed"] and not enriched_idx["interrupted"]:
-                    month = (
-                        enriched_idx["source_index"].split("-")[-2]
-                        + "-"
-                        + enriched_idx["source_index"].split("-")[-1]
-                    )
-                    event_type = (
-                        "view" if "view" in enriched_idx["source_index"] else "download"
-                    )
+    if show_details:
+        for enriched_idx in counts["migrations_in_progress"]:
+            if not enriched_idx["completed"] and not enriched_idx["interrupted"]:
+                month = (
+                    enriched_idx["source_index"].split("-")[-2]
+                    + "-"
+                    + enriched_idx["source_index"].split("-")[-1]
+                )
+                event_type = (
+                    "view" if "view" in enriched_idx["source_index"] else "download"
+                )
 
-                    click.echo(f"    {event_type.upper()} {month}:")
-                    click.echo(f"      Source index: {enriched_idx['source_index']}")
-                    click.echo(f"      Original count: {enriched_idx['old_count']}")
-                    click.echo("      Status: Not started")
+                click.echo(f"    {event_type.upper()} {month}:")
+                click.echo(f"      Source index: {enriched_idx['source_index']}")
+                click.echo(f"      Original count: {enriched_idx['old_count']}")
+                click.echo("      Status: Not started")
+
+    return not_started_found
 
 
 @usage_events_cli.command(name="clear-bookmarks")

@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Register the aggregations for the stats dashboard."""
+
 from invenio_search.proxies import current_search_client
 
 from .base import CommunityEventsIndexAggregator
@@ -22,6 +24,8 @@ from .usage_snapshot_aggs import CommunityUsageSnapshotAggregator
 
 
 def register_aggregations():
+    """Register the aggregations for community statistics."""
+
     return {
         "community-records-snapshot-created-agg": {
             "templates": (

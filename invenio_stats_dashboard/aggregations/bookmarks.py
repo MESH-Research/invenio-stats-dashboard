@@ -1,6 +1,15 @@
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+# Copyright (C) 2025 Mesh Research
+#
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
+# it under the terms of the MIT License; see LICENSE file for more details.
+
+"""Bookmark API for community statistics aggregators."""
+
 from functools import wraps
 
 import arrow
+from invenio_search.utils import prefix_index
 from invenio_stats.bookmark import BookmarkAPI
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
@@ -25,15 +34,22 @@ class CommunityBookmarkAPI(BookmarkAPI):
         }
     }
 
+    def __init__(self, client, agg_type, agg_interval="day"):
+        """Initialize the CommunityBookmarkAPI with a separate index."""
+        super().__init__(client, agg_type, agg_interval)
+        # Use a different index name to avoid conflicts with the original BookmarkAPI
+        self.bookmark_index = "stats-bookmarks-community"
+
     @staticmethod
     def _ensure_index_exists(func):
         """Decorator for ensuring the bookmarks index exists."""
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            if not Index(self.bookmark_index, using=self.client).exists():
+            if not Index(prefix_index(self.bookmark_index), using=self.client).exists():
                 self.client.indices.create(
-                    index=self.bookmark_index, body=CommunityBookmarkAPI.MAPPINGS
+                    index=prefix_index(self.bookmark_index),
+                    body=CommunityBookmarkAPI.MAPPINGS,
                 )
             return func(self, *args, **kwargs)
 
@@ -43,7 +59,7 @@ class CommunityBookmarkAPI(BookmarkAPI):
     def set_bookmark(self, community_id: str, value: str):
         """Set the bookmark for a community."""
         self.client.index(
-            index=self.bookmark_index,
+            index=prefix_index(self.bookmark_index),
             body={
                 "date": value,
                 "aggregation_type": self.agg_type,
@@ -57,7 +73,7 @@ class CommunityBookmarkAPI(BookmarkAPI):
         """Get last aggregation date."""
         # retrieve the oldest bookmark
         query_bookmark = (
-            Search(using=self.client, index=self.bookmark_index)
+            Search(using=self.client, index=prefix_index(self.bookmark_index))
             .query(
                 Q(
                     "bool",
@@ -85,4 +101,5 @@ class CommunityEventBookmarkAPI(CommunityBookmarkAPI):
     """
 
     def __init__(self, client, agg_interval="day"):
+        """Initialize the CommunityEventBookmarkAPI."""
         super().__init__(client, "community-events-indexing", agg_interval)

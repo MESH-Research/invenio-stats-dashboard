@@ -6,7 +6,7 @@
 
 """Test helper utilities."""
 
-from typing import Any, Union
+from typing import Any
 
 from invenio_records.dictutils import parse_lookup_key
 
@@ -38,11 +38,8 @@ def remove_value_by_path(d: dict, path: str) -> dict:
     return d
 
 
-def replace_value_in_nested_dict(
-    d: dict, path: str, new_value: Any
-) -> Union[dict, bool]:
-    """
-    Replace a value in a nested dictionary based on a bar-separated path string.
+def replace_value_in_nested_dict(d: dict, path: str, new_value: Any) -> dict | bool:
+    """Replace a value in a nested dictionary based on a bar-separated path string.
 
     Numbers in the path are treated as list indices.
 
@@ -87,7 +84,7 @@ def replace_value_in_nested_dict(
                         current[key] = []
                     else:
                         current[key] = {}
-                elif not isinstance(current[key], (dict, list)):
+                elif not isinstance(current[key], dict | list):
                     # If key not found or next level is not a dict/list
                     return False
                 current = current[key]

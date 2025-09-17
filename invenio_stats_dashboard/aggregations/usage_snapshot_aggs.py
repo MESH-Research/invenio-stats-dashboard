@@ -4,12 +4,13 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Community usage snapshot aggregators for tracking cumulative usage statistics."""
+
 import numbers
 
 import arrow
 from flask import current_app
 from invenio_search.proxies import current_search_client
-from invenio_search.utils import prefix_index
 
 from ..queries import (
     CommunityUsageSnapshotQuery,
@@ -28,11 +29,20 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
     """Aggregator for creating cumulative usage snapshots from daily delta documents."""
 
     def __init__(self, name, subcount_configs=None, *args, **kwargs):
+        """Initialize the community usage snapshot aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            subcount_configs (dict, optional): Subcount configurations. Defaults to
+                the global config.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, subcount_configs, *args, **kwargs)
-        self.event_index = prefix_index("stats-community-usage-delta")
-        self.delta_index = prefix_index("stats-community-usage-delta")
-        self.first_event_index = prefix_index("stats-community-usage-delta")
-        self.aggregation_index = prefix_index("stats-community-usage-snapshot")
+        self.event_index = "stats-community-usage-delta"
+        self.delta_index = "stats-community-usage-delta"
+        self.first_event_index = "stats-community-usage-delta"
+        self.aggregation_index = "stats-community-usage-snapshot"
         self.event_date_field = "period_start"
         self.query_builder = CommunityUsageSnapshotQuery(client=self.client)
 
@@ -77,17 +87,19 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         previous_snapshot: UsageSnapshotDocument,
         latest_delta: UsageDeltaDocument,
         deltas: list,
-        exhaustive_counts_cache: dict = {},
+        exhaustive_counts_cache: dict | None = None,
     ) -> UsageSnapshotDocument:
         """Create the final aggregation document from cumulative totals.
 
         Args:
-            current_day: The current day for the snapshot
-            previous_snapshot: The previous snapshot document
-            latest_delta: The latest delta document
-            deltas: All delta documents for top subcounts
-            exhaustive_counts_cache: The exhaustive counts cache
+            current_day (arrow.Arrow): The current day for the snapshot
+            previous_snapshot (UsageSnapshotDocument): The previous snapshot document
+            latest_delta (UsageDeltaDocument): The latest delta document
+            deltas (list): All delta documents for top subcounts
+            exhaustive_counts_cache (dict | None): The exhaustive counts cache
         """
+        if exhaustive_counts_cache is None:
+            exhaustive_counts_cache = {}
         new_dict: UsageSnapshotDocument = self._copy_snapshot_forward(
             previous_snapshot, current_day
         )  # type: ignore
@@ -126,7 +138,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         Returns:
             True if delta aggregator has caught up, False if it hasn't
         """
-
         # Get the usage delta aggregator's bookmark
         delta_bookmark_api = CommunityBookmarkAPI(
             current_search_client, "community-usage-delta-agg", "day"
@@ -176,7 +187,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
             # Find the config that matches this delta field
-            for subcount_name, config in self.subcount_configs.items():
+            for _subcount_name, config in self.subcount_configs.items():
                 usage_config = config.get("usage_events", {})
                 if not usage_config:
                     continue

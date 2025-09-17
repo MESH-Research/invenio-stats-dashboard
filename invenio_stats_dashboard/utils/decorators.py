@@ -4,9 +4,12 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Utility decorators for the stats dashboard."""
+
 import functools
 import time
-from typing import Any, Callable, Type, Union
+from collections.abc import Callable
+from typing import Any
 
 from flask import current_app
 
@@ -14,7 +17,7 @@ from flask import current_app
 def with_retry(
     max_retries: int = 3,
     base_delay: float = 1.0,
-    exceptions: Union[Type[Exception], tuple[Type[Exception], ...]] = Exception,
+    exceptions: type[Exception] | tuple[type[Exception], ...] = Exception,
     exponential_backoff: bool = True,
     logger=None,
 ):

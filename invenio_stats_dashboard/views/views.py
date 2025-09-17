@@ -73,7 +73,6 @@ def community_stats_dashboard(pid_value, community, community_ui):
 
 def create_blueprint(app):
     """Create the Invenio-Stats-Dashboard blueprint."""
-
     routes = app.config["STATS_DASHBOARD_ROUTES"]
 
     blueprint = Blueprint(

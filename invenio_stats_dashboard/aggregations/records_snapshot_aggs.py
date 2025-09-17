@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Community records snapshot aggregators for tracking cumulative record statistics."""
+
 import arrow
 from invenio_search.utils import prefix_index
 from opensearchpy.helpers.query import Q
@@ -19,16 +21,28 @@ from .types import (
 
 
 class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
+    """Base class for community records snapshot aggregators.
+
+    This class provides common functionality for creating snapshot aggregations
+    that track cumulative statistics about records in communities over time.
+    """
 
     def __init__(self, name, subcount_configs=None, *args, **kwargs):
+        """Initialize the records snapshot aggregator base.
+
+        Args:
+            name (str): The name of the aggregator.
+            subcount_configs (dict, optional): Subcount configurations. Defaults to
+                the global config.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, subcount_configs, *args, **kwargs)
-        self.record_index = prefix_index("rdmrecords-records")
-        self.event_index = prefix_index("stats-community-events")
-        self.delta_index = prefix_index("stats-community-records-delta-created")
-        self.first_event_index = prefix_index("stats-community-records-delta-created")
-        self.aggregation_index = prefix_index(
-            "stats-community-records-snapshot-created"
-        )
+        self.record_index = "rdmrecords-records"
+        self.event_index = "stats-community-events"
+        self.delta_index = "stats-community-records-delta-created"
+        self.first_event_index = "stats-community-records-delta-created"
+        self.aggregation_index = "stats-community-records-snapshot-created"
         self.event_date_field = "record_created_date"
 
     @property
@@ -71,7 +85,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         # Search 1: Look for events that occurred after the last snapshot
         # This catches new additions/removals from the community
         community_search = (
-            Search(using=self.client, index=self.event_index)
+            Search(using=self.client, index=prefix_index(self.event_index))
             .filter("term", community_id=community_id)
             .filter(
                 "range",
@@ -95,7 +109,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         # Search 2: Look for events that were marked as deleted after the last snapshot
         # This catches records that were added before the snapshot but deleted after
         deletion_search = (
-            Search(using=self.client, index=self.event_index)
+            Search(using=self.client, index=prefix_index(self.event_index))
             .filter("term", community_id=community_id)
             .filter("exists", field="deleted_date")
             .filter(
@@ -399,17 +413,20 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         previous_snapshot: RecordSnapshotDocument,
         latest_delta: RecordDeltaDocument,
         deltas: list,
-        exhaustive_counts_cache: dict = {},
+        exhaustive_counts_cache: dict | None = None,
     ) -> RecordSnapshotDocument:
         """Create a dictionary representing the aggregation result for indexing.
 
         Args:
-            current_day: The current day for the snapshot
-            previous_snapshot: The previous snapshot document to add onto
-            latest_delta: The latest delta document to add
-            deltas: All delta documents for top subcounts (from earliest date)
-            exhaustive_counts_cache: The exhaustive counts cache
+            current_day (arrow.Arrow): The current day for the snapshot
+            previous_snapshot (RecordSnapshotDocument): The previous snapshot
+                document to add onto
+            latest_delta (RecordDeltaDocument): The latest delta document to add
+            deltas (list): All delta documents for top subcounts (from earliest date)
+            exhaustive_counts_cache (dict | None): The exhaustive counts cache
         """
+        if exhaustive_counts_cache is None:
+            exhaustive_counts_cache = {}
         new_dict: RecordSnapshotDocument = self._copy_snapshot_forward(
             previous_snapshot, current_day  # type: ignore
         )
@@ -543,16 +560,21 @@ class CommunityRecordsSnapshotCreatedAggregator(CommunityRecordsSnapshotAggregat
     """
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the records snapshot created aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.aggregation_index = prefix_index(
-            "stats-community-records-snapshot-created"
-        )
-        self.event_index = prefix_index("stats-community-records-delta-created")
+        self.aggregation_index = "stats-community-records-snapshot-created"
+        self.event_index = "stats-community-records-delta-created"
         self.event_date_field = "period_start"
         self.event_community_query_term = lambda community_id: Q(
             "term", community_id=community_id
         )
-        self.first_event_index = prefix_index("stats-community-records-delta-created")
+        self.first_event_index = "stats-community-records-delta-created"
         self.first_event_date_field = "period_start"
 
 
@@ -564,12 +586,19 @@ class CommunityRecordsSnapshotAddedAggregator(CommunityRecordsSnapshotAggregator
     """
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the records snapshot added aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.aggregation_index = prefix_index("stats-community-records-snapshot-added")
-        self.event_index = prefix_index("stats-community-events")
-        self.delta_index = prefix_index("stats-community-records-delta-added")
+        self.aggregation_index = "stats-community-records-snapshot-added"
+        self.event_index = "stats-community-events"
+        self.delta_index = "stats-community-records-delta-added"
         self.event_date_field = "event_date"
-        self.first_event_index = prefix_index("stats-community-records-delta-added")
+        self.first_event_index = "stats-community-records-delta-added"
         self.first_event_date_field = "period_start"
 
     @property
@@ -588,14 +617,19 @@ class CommunityRecordsSnapshotPublishedAggregator(
     """
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the records snapshot published aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
-        self.aggregation_index = prefix_index(
-            "stats-community-records-snapshot-published"
-        )
-        self.event_index = prefix_index("stats-community-events")
-        self.delta_index = prefix_index("stats-community-records-delta-published")
+        self.aggregation_index = "stats-community-records-snapshot-published"
+        self.event_index = "stats-community-events"
+        self.delta_index = "stats-community-records-delta-published"
         self.event_date_field = "record_published_date"
-        self.first_event_index = prefix_index("stats-community-records-delta-published")
+        self.first_event_index = "stats-community-records-delta-published"
         self.first_event_date_field = "period_start"
 
     @property

@@ -8,11 +8,9 @@
 
 import json
 import os
-from typing import TYPE_CHECKING, Callable
 
 import pytest
 from flask import current_app
-from flask_sqlalchemy import SQLAlchemy
 from invenio_rdm_records.resources.stats.event_builders import (
     build_record_unique_id,
 )
@@ -327,7 +325,7 @@ def put_old_stats_templates():
             if isinstance(template_result, dict):
                 for index_name, template_file_path in template_result.items():
                     if os.path.exists(template_file_path):
-                        with open(template_file_path, "r") as f:
+                        with open(template_file_path) as f:
                             template_content = json.load(f)
 
                         prefix = current_app.config.get("SEARCH_INDEX_PREFIX", "")

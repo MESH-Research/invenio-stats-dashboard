@@ -9,7 +9,6 @@
 import random
 import time
 from functools import wraps
-from typing import Dict, List, Optional, Tuple
 
 import arrow
 import psutil
@@ -56,7 +55,7 @@ class MetadataExtractor:
     Requires the glom library to be installed.
     """
 
-    def __init__(self, subcount_configs: Dict):
+    def __init__(self, subcount_configs: dict):
         """Initialize the enricher with pre-compiled specs.
 
         Args:
@@ -91,7 +90,7 @@ class MetadataExtractor:
                         # For lambda functions, store the function directly
                         self.compiled_specs[event_field] = extraction_path
 
-    def extract_fields(self, metadata: Dict, record_id: Optional[str] = None) -> Dict:
+    def extract_fields(self, metadata: dict, record_id: str | None = None) -> dict:
         """Extract all configured fields from metadata using pre-compiled specs.
 
         Args:
@@ -137,7 +136,7 @@ class MetadataExtractor:
         self._cache_hits = 0
         self._cache_misses = 0
 
-    def get_cache_stats(self) -> Dict:
+    def get_cache_stats(self) -> dict:
         """Get cache performance statistics.
 
         Returns:
@@ -175,8 +174,13 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
     }
 
     def __init__(self, client):
+        """Initialize the usage reindexing service.
+
+        Args:
+            client: The OpenSearch client instance.
+        """
         self.client = client
-        self.bookmark_index = prefix_index("stats-bookmarks-reindexing")
+        self.bookmark_index = "stats-bookmarks-reindexing"
 
     @staticmethod
     def _ensure_index_exists(func):
@@ -184,9 +188,10 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            if not Index(self.bookmark_index, using=self.client).exists():
+            if not Index(prefix_index(self.bookmark_index), using=self.client).exists():
                 self.client.indices.create(
-                    index=self.bookmark_index, body=EventReindexingBookmarkAPI.MAPPINGS
+                    index=prefix_index(self.bookmark_index),
+                    body=EventReindexingBookmarkAPI.MAPPINGS,
                 )
             return func(self, *args, **kwargs)
 
@@ -219,7 +224,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
             raise ValueError(error_msg)
 
         self.client.index(
-            index=self.bookmark_index,
+            index=prefix_index(self.bookmark_index),
             id=task_id,  # Use task_id as document ID for upsert behavior
             body={
                 "task_id": task_id,  # The reindexing task identifier
@@ -233,7 +238,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
     def get_bookmark(self, task_id: str, refresh_time=60):
         """Get last event_id and timestamp for a reindexing task."""
         query_bookmark = (
-            Search(using=self.client, index=self.bookmark_index)
+            Search(using=self.client, index=prefix_index(self.bookmark_index))
             .query(
                 Q(
                     "bool",
@@ -258,7 +263,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
     def delete_bookmark(self, task_id: str):
         """Delete a bookmark for a given task."""
         try:
-            self.client.delete(index=self.bookmark_index, id=task_id)
+            self.client.delete(index=prefix_index(self.bookmark_index), id=task_id)
         except Exception as e:
             current_app.logger.warning(f"Failed to delete bookmark {task_id}: {e}")
 
@@ -390,8 +395,8 @@ class EventReindexingService:
             return False
 
     def get_monthly_indices(
-        self, event_type: str, month_filter: Optional[str | List[str] | tuple] = None
-    ) -> List[str]:
+        self, event_type: str, month_filter: str | list[str] | tuple | None = None
+    ) -> list[str]:
         """Get monthly indices for a given event type, optionally filtered by month.
 
         Args:
@@ -622,10 +627,10 @@ class EventReindexingService:
         self,
         source_index: str,
         target_index: str,
-        batch_document_ids: Optional[List[str]] = None,
-        last_processed_id: Optional[str] = None,
-        last_processed_timestamp: Optional[str] = None,
-        max_batches: Optional[int] = None,
+        batch_document_ids: list[str] | None = None,
+        last_processed_id: str | None = None,
+        last_processed_timestamp: str | None = None,
+        max_batches: int | None = None,
         fresh_start: bool = False,
         batches_attempted: int = 0,
         processed_count: int = 0,
@@ -743,7 +748,7 @@ class EventReindexingService:
         self,
         source_index: str,
         target_index: str,
-        batch_document_ids: List[str],
+        batch_document_ids: list[str],
     ) -> SpotCheckResult:
         """Spot-check a sample of records to ensure original fields are unchanged.
 
@@ -886,10 +891,10 @@ class EventReindexingService:
         self,
         source_index: str,
         source_count: int,
-        max_batches: Optional[int],
+        max_batches: int | None,
         fresh_start: bool,
-        last_processed_id: Optional[str],
-        last_processed_timestamp: Optional[str],
+        last_processed_id: str | None,
+        last_processed_timestamp: str | None,
     ) -> int:
         """Calculate the expected number of records based on migration context.
 
@@ -1098,7 +1103,7 @@ class EventReindexingService:
 
     def _recover_missing_events(
         self, backup_index: str, new_index: str
-    ) -> Dict[str, bool | str | None]:
+    ) -> dict[str, bool | str | None]:
         """Step 4 of current month switchover: Recover events from backup.
 
         This method runs AFTER the alias swap. It finds any events in the backup
@@ -1259,7 +1264,7 @@ class EventReindexingService:
 
     def _get_events_after_timestamp(
         self, index_name: str, after_timestamp: str
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Get events from an index that are newer than the specified timestamp.
 
         Args:
@@ -1289,7 +1294,7 @@ class EventReindexingService:
             )
             return []
 
-    def get_metadata_for_records(self, record_ids: List[str]) -> Dict[str, Dict]:
+    def get_metadata_for_records(self, record_ids: list[str]) -> dict[str, dict]:
         """Get metadata for a batch of record IDs."""
         if not record_ids:
             return {}
@@ -1329,8 +1334,8 @@ class EventReindexingService:
             return {}
 
     def get_community_membership(
-        self, record_ids: List[str], metadata_by_recid: Dict[str, Dict]
-    ) -> Dict[str, List[Tuple[str, str]]]:
+        self, record_ids: list[str], metadata_by_recid: dict[str, dict]
+    ) -> dict[str, list[tuple[str, str]]]:
         """Get community membership for a batch of record IDs.
 
         We assume that the stats-community-events index will exist and be complete.
@@ -1418,8 +1423,8 @@ class EventReindexingService:
             return fallback_result
 
     def _get_community_membership_fallback(
-        self, metadata_by_recid: Dict[str, Dict]
-    ) -> Dict[str, List[Tuple[str, str]]]:
+        self, metadata_by_recid: dict[str, dict]
+    ) -> dict[str, list[tuple[str, str]]]:
         """Fallback method to get community membership from record metadata.
 
         DEPRECATED: This method is deprecated because we now require the
@@ -1496,7 +1501,7 @@ class EventReindexingService:
             return {}
 
     def _process_and_index_events_batch(
-        self, hits: List[Dict], target_index: str, context: str = "events"
+        self, hits: list[dict], target_index: str, context: str = "events"
     ) -> BatchProcessingResult:
         """Process a batch of events and bulk index them with error handling.
 
@@ -1594,9 +1599,9 @@ class EventReindexingService:
 
     def _bulk_enrich_events(
         self,
-        hits: List[Dict],
+        hits: list[dict],
         target_index: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Bulk enrich events using pre-computed enrichment data.
 
         Args:
@@ -1659,8 +1664,8 @@ class EventReindexingService:
         return enriched_docs
 
     def _get_active_communities_for_event(
-        self, communities: List[Tuple[str, str]], event_timestamp: str, metadata: Dict
-    ) -> List[str]:
+        self, communities: list[tuple[str, str]], event_timestamp: str, metadata: dict
+    ) -> list[str]:
         """Get all communities that were active at the time of the event.
 
         This method determines which communities should be included for an event
@@ -1704,11 +1709,10 @@ class EventReindexingService:
         source_index: str,
         target_index: str,
         month: str,
-        last_processed_id: Optional[str] = None,
-        last_processed_timestamp: Optional[str] = None,
+        last_processed_id: str | None = None,
+        last_processed_timestamp: str | None = None,
     ) -> MonthlyIndexBatchResult:
-        """
-        Process a single batch of events from a monthly event index.
+        """Process a single batch of events from a monthly event index.
 
         Processes one batch of events from the monthly index, returning after
         each batch and keeping track of the progress with a bookmark and the
@@ -1884,12 +1888,11 @@ class EventReindexingService:
         event_type: str,
         source_index: str,
         month: str,
-        max_batches: Optional[int] = None,
+        max_batches: int | None = None,
         delete_old_indices: bool = False,
         fresh_start: bool = False,
     ) -> MigrationResult:
-        """
-        Migrate a single monthly index to enriched format.
+        """Migrate a single monthly index to enriched format.
 
         Args:
             event_type: The type of event (view or download)
@@ -1897,6 +1900,7 @@ class EventReindexingService:
             month: The month being migrated (YYYY-MM format)
             max_batches: Maximum number of batches to process
             delete_old_indices: Whether to delete old indices after migration
+            fresh_start: Whether to start fresh (ignore existing bookmarks)
 
         Returns:
             Dictionary with migration results and statistics.
@@ -2288,12 +2292,13 @@ class EventReindexingService:
         return results
 
     def _get_templates_to_update(self, stats_events) -> list:
-        """
+        """Check which templates need to be updated.
+
         Check which templates need to be updated (do not exist or are missing
         'community_ids'). Returns a list of template names to update.
         """
         templates_to_update = []
-        for event_type, event_config in stats_events.items():
+        for _event_type, event_config in stats_events.items():
             template_path = event_config.get("templates")
             if not template_path:
                 continue
@@ -2352,7 +2357,7 @@ class EventReindexingService:
 
         # Register and process templates that need updating
         templates = {}
-        for event_type, event_config in stats_events.items():
+        for _event_type, event_config in stats_events.items():
             template_path = event_config.get("templates", "")
             template_name = template_path.split(".")[-1]
             if template_name in templates_to_update:
@@ -2413,14 +2418,13 @@ class EventReindexingService:
 
     def reindex_events(
         self,
-        event_types: Optional[List[str]] = None,
-        max_batches: Optional[int] = None,
+        event_types: list[str] | None = None,
+        max_batches: int | None = None,
         delete_old_indices: bool = False,
         fresh_start: bool = False,
-        month_filter: Optional[str | List[str] | tuple] = None,
+        month_filter: str | list[str] | tuple | None = None,
     ) -> ReindexingResults:
-        """
-        Reindex events with enriched metadata for monthly indices.
+        """Reindex events with enriched metadata for monthly indices.
 
         Begins by verifying and (if necessary) updating the enriched view/download
         event index templates before reindexing.
@@ -2428,16 +2432,18 @@ class EventReindexingService:
         Args:
             event_types: List of event types to process. If None, process all.
             max_batches: Maximum number of batches to process per month. If None,
-            process all.
+                process all.
+            delete_old_indices: Whether to delete old indices after migration
+            fresh_start: Whether to start fresh (ignore existing bookmarks)
             month_filter: If specified, only process the specified month(s). Can be:
-                         - Single month: "2024-01"
-                         - List of specific months: ["2024-01", "2024-02", "2024-03"]
-                         - Month range: "2024-01:2024-03" (inclusive range)
-                         - Tuple of months: ("2024-01", "2024-02", "2024-03")
-                         If None, process all months.
+                - Single month: "2024-01"
+                - List of specific months: ["2024-01", "2024-02", "2024-03"]
+                - Month range: "2024-01:2024-03" (inclusive range)
+                - Tuple of months: ("2024-01", "2024-02", "2024-03")
+                If None, process all months.
 
-                         Note: The CLI can provide multiple --months options which
-                         get passed as a tuple, or a single --months with range syntax.
+                Note: The CLI can provide multiple --months options which
+                get passed as a tuple, or a single --months with range syntax.
 
         Returns:
             Dictionary with reindexing results and statistics.
@@ -2564,8 +2570,8 @@ class EventReindexingService:
             current_app.logger.info("Reindexing completed successfully")
 
         total_errors = 0
-        for event_type, event_results in results["event_types"].items():
-            for month, month_results in event_results["months"].items():
+        for _event_type, event_results in results["event_types"].items():
+            for _month, month_results in event_results["months"].items():
                 # Count operational and validation errors
                 op_error_count = len(month_results.get("operational_errors", []))
                 val_error_count = 1 if month_results.get("validation_errors") else 0
@@ -2591,12 +2597,17 @@ class EventReindexingService:
             "view_remaining": 0,
             "download_remaining": 0,
             "old_indices": [],
-            "enriched_indices": [],
-            "completed_indices": [],
+            "migrations_in_progress": [],
+            "migrations_old_deleted": [],
+            "view_completed_migrations": [],
+            "download_completed_migrations": [],
         }
 
         for event_type in ["view", "download"]:
-            all_monthly_indices = self.get_monthly_indices(event_type)
+            # Get all indices (both old and new) for this event type
+            pattern = self.index_patterns[event_type]
+            indices = self.client.indices.get(index=f"{pattern}-*")
+            all_monthly_indices = sorted(indices.keys())
             # Filter out the -v2.0.0 indices to get only old indices
             old_monthly_indices = [
                 idx for idx in all_monthly_indices if not idx.endswith("-v2.0.0")
@@ -2687,7 +2698,7 @@ class EventReindexingService:
 
                     counts["old_indices"].append(old_idx)
                     if self.client.indices.exists(index=enriched_index):
-                        counts["enriched_indices"].append(new_idx)
+                        counts["migrations_in_progress"].append(new_idx)
 
                 except Exception as e:
                     current_app.logger.error(
@@ -2718,7 +2729,7 @@ class EventReindexingService:
                     f"{event_type}-{index.split('-')[-2]}-"
                     f"{index.split('-')[-1]}-reindexing"
                 )
-                counts["completed_indices"].append(completed_idx)
+                counts["migrations_old_deleted"].append(completed_idx)
 
             # Update counts based on event type
             if event_type == "view":
@@ -2729,6 +2740,40 @@ class EventReindexingService:
                 counts["download_old"] = event_type_old_count
                 counts["download_migrated"] = event_type_migrated_count
                 counts["download_remaining"] = event_type_remaining_count
+
+        # Add counts from migrations_old_deleted to migrated counts after processing
+        # all event types
+        for completed_idx in counts["migrations_old_deleted"]:
+            if (
+                completed_idx["completed"]
+                and not completed_idx["interrupted"]
+                and completed_idx["index"]
+            ):
+                event_type = "view" if "view" in completed_idx["index"] else "download"
+                migrated_count = completed_idx["migrated_count"] or 0
+
+                # Add to migrated counts
+                if event_type == "view":
+                    counts["view_migrated"] += migrated_count
+                else:
+                    counts["download_migrated"] += migrated_count
+
+                # Add to completed_migrations for CLI display
+                year_month = (
+                    completed_idx["index"].split("-")[-2]
+                    + "-"
+                    + completed_idx["index"].split("-")[-1].replace("-v2.0.0", "")
+                )
+                migration_entry = {
+                    "year_month": year_month,
+                    "old_index": completed_idx["source_index"],
+                    "enriched_index": completed_idx["index"],
+                }
+
+                if event_type == "view":
+                    counts["view_completed_migrations"].append(migration_entry)
+                else:
+                    counts["download_completed_migrations"].append(migration_entry)
 
         return counts
 
@@ -2757,7 +2802,7 @@ class EventReindexingService:
 
         return progress
 
-    def _get_last_event_timestamp(self, index_name: str) -> Optional[str]:
+    def _get_last_event_timestamp(self, index_name: str) -> str | None:
         """Get the timestamp of the last event in an index, sorted by timestamp."""
         try:
             search_query = Search(using=self.client, index=index_name)
@@ -2802,8 +2847,8 @@ class EventReindexingService:
             return False
 
     def _parse_month_filter(
-        self, month_filter: Optional[str | List[str] | tuple]
-    ) -> List[str]:
+        self, month_filter: str | list[str] | tuple | None
+    ) -> list[str]:
         """Parse month filter to handle different formats.
 
         Args:
@@ -2819,7 +2864,7 @@ class EventReindexingService:
         if not month_filter:
             return []
 
-        if isinstance(month_filter, (list, tuple)):
+        if isinstance(month_filter, list | tuple):
             valid_months = []
             for month in month_filter:
                 try:
@@ -2860,7 +2905,7 @@ class EventReindexingService:
     def count_remaining_after_bookmark(
         self, source_index: str, last_timestamp: arrow.Arrow | str, last_id: str
     ) -> int:
-        """Count remaining documents after a bookmark position
+        """Count remaining documents after a bookmark position.
 
         This method handles the OpenSearch 10k limit by making multiple
         paginated requests until all remaining documents are counted.

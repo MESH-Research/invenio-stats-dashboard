@@ -15,12 +15,11 @@ from invenio_notifications.services.uow import NotificationOp
 from invenio_records_resources.services import RecordService, ServiceSchemaWrapper
 from invenio_records_resources.services.base.links import LinksTemplate
 from invenio_records_resources.services.uow import RecordCommitOp, unit_of_work
-from invenio_search.engine import dsl
-
 from invenio_requests.customizations import CommentEventType
 from invenio_requests.customizations.event_types import LogEventType
 from invenio_requests.records.api import RequestEventFormat
 from invenio_requests.services.results import EntityResolverExpandableField
+from invenio_search.engine import dsl
 
 from ...resolvers.registry import ResolverRegistry
 

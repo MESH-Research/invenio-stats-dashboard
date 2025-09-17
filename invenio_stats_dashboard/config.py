@@ -6,7 +6,7 @@
 
 """Configuration for Invenio Stats Dashboard."""
 
-from typing import Any, Optional
+from typing import Any
 
 from invenio_i18n import gettext as _
 from invenio_rdm_records.resources.stats.event_builders import (
@@ -598,7 +598,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_resource_types",
             "field": "resource_type.id",
-            "field_type": Optional[dict[str, Any]],
+            "field_type": dict[str, Any] | None,
             "event_field": "resource_type",
             "extraction_path_for_event": "metadata.resource_type",
             "label_field": "resource_type.title",
@@ -616,7 +616,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_access_statuses",
             "field": "access_status",
-            "field_type": Optional[str],
+            "field_type": str | None,
             "event_field": "access_status",
             "extraction_path_for_event": "access.status",
             "label_field": None,
@@ -637,7 +637,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_languages",
             "field": "languages.id",
-            "field_type": Optional[list[str]],
+            "field_type": list[str] | None,
             "event_field": "languages",
             "extraction_path_for_event": "metadata.languages",
             "label_field": "languages.title",
@@ -660,7 +660,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_subjects",
             "field": "subjects.id",
-            "field_type": Optional[list[str]],
+            "field_type": list[str] | None,
             "event_field": "subjects",
             "extraction_path_for_event": "metadata.subjects",
             "label_field": "subjects.subject",
@@ -679,7 +679,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_rights",
             "field": "rights.id",
-            "field_type": Optional[list[str]],
+            "field_type": list[str] | None,
             "event_field": "rights",
             "extraction_path_for_event": "metadata.rights",
             "label_field": "rights.title",
@@ -728,7 +728,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_periodicals",
             "field": "journal_title",
-            "field_type": Optional[str],
+            "field_type": str | None,
             "event_field": "journal_title",
             "extraction_path_for_event": "custom_fields.journal:journal.title.keyword",
             "label_field": None,
@@ -745,7 +745,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_publishers",
             "field": "publisher",
-            "field_type": Optional[str],
+            "field_type": str | None,
             "event_field": "publisher",
             "extraction_path_for_event": "metadata.publisher",
             "label_field": None,
@@ -770,7 +770,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_affiliations",
             "field": "affiliations.id",
-            "field_type": Optional[list[str]],
+            "field_type": list[str] | None,
             "event_field": "affiliations",
             "extraction_path_for_event": lambda metadata: [
                 item["affiliations"]
@@ -806,7 +806,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_countries",
             "field": "country",
-            "field_type": Optional[str],
+            "field_type": str | None,
             "event_field": None,
             "label_field": None,
             "snapshot_type": "top",
@@ -817,7 +817,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_referrers",
             "field": "referrer",
-            "field_type": Optional[str],
+            "field_type": str | None,
             "event_field": None,
             "label_field": None,
             "snapshot_type": "top",
@@ -834,7 +834,7 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
         "usage_events": {
             "delta_aggregation_name": "by_file_types",
             "field": "file_types",
-            "field_type": Optional[list[str]],
+            "field_type": list[str] | None,
             "event_field": "file_types",
             "extraction_path_for_event": lambda metadata: (
                 metadata.get("files", {}).get("types", [])

@@ -1,11 +1,12 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 #
 # Copyright (C) 2025 Mesh Research
 #
 # invenio-stats-dashboard is free software; you can redistribute it
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
+
+"""Process management CLI commands."""
 
 import click
 

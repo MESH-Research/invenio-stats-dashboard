@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# Borrowed from invenio-rdm-records
 #
 # Copyright (C) 2022 Northwestern University.
 #
@@ -113,8 +113,8 @@ class FakeDataCiteRESTClient:
             if prefix != self.prefix:
                 # Provided a DOI with the wrong prefix
                 raise ValueError(
-                    "Wrong DOI {0} prefix provided, it should be "
-                    "{1} as defined in the rest client".format(prefix, self.prefix)
+                    f"Wrong DOI {prefix} prefix provided, it should be "
+                    f"{self.prefix} as defined in the rest client"
                 )
         else:
             doi = f"{self.prefix}/{doi}"

@@ -32,6 +32,7 @@ from invenio_drafts_resources.services.records.config import (
 )
 from invenio_drafts_resources.services.records.search_params import AllVersionsParam
 from invenio_indexer.api import RecordIndexer
+from invenio_rdm_records.records.processors.tiles import TilesProcessor
 from invenio_records_resources.services import (
     FileServiceConfig as BaseFileServiceConfig,
 )
@@ -66,8 +67,6 @@ from invenio_requests.services.requests import RequestItem, RequestList
 from invenio_requests.services.requests.config import RequestSearchOptions
 from requests import Request
 from werkzeug.local import LocalProxy
-
-from invenio_rdm_records.records.processors.tiles import TilesProcessor
 
 from ..records import RDMDraft, RDMRecord
 from ..records.api import RDMDraftMediaFiles, RDMRecordMediaFiles

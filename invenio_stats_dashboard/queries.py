@@ -103,6 +103,8 @@ def get_relevant_record_ids_from_events(
             was added to the community instead of the created date.
         use_published_dates (bool, optional): Whether to use the metadata publication
             date instead of the created date.
+        event_index (str, optional): The events index to query. Defaults to
+            "stats-community-events".
         client: The OpenSearch client to use.
 
     Returns:
@@ -256,10 +258,10 @@ class CommunityStatsResultsQueryBase(Query):
         if range_clauses:
             must_clauses.append({"range": range_clauses})
         try:
-            assert Index(using=self.client, name=self.index).exists()
+            assert Index(using=self.client, name=prefix_index(self.index)).exists()
 
             agg_search = (
-                Search(using=self.client, index=self.index)
+                Search(using=self.client, index=prefix_index(self.index))
                 .query(Q("bool", must=must_clauses))
                 .extra(size=10_000)
             )
@@ -419,6 +421,10 @@ class CommunityUsageDeltaQuery:
 
         Args:
             client: The OpenSearch client to use.
+            view_index (str, optional): The view events index name. Defaults to
+                "events-stats-record-view".
+            download_index (str, optional): The download events index name. Defaults to
+                "events-stats-file-download".
         """
         if client is None:
             client = current_search_client
@@ -436,7 +442,8 @@ class CommunityUsageDeltaQuery:
 
         Args:
             community_id (str): The community ID to query for.
-            date (arrow.Arrow): The date to aggregate for.
+            start_date (arrow.Arrow | str): The start date to aggregate for.
+            end_date (arrow.Arrow | str): The end date to aggregate for.
 
         Returns:
             Search: The search object for view events.
@@ -463,7 +470,8 @@ class CommunityUsageDeltaQuery:
 
         Args:
             community_id (str): The community ID to query for.
-            date (arrow.Arrow): The date to aggregate for.
+            start_date (arrow.Arrow | str): The start date to aggregate for.
+            end_date (arrow.Arrow | str): The end date to aggregate for.
 
         Returns:
             Search: The search object for download events.
@@ -493,7 +501,9 @@ class CommunityUsageDeltaQuery:
 
         Args:
             community_id (str): The community ID to query for.
-            date (arrow.Arrow): The date to aggregate for.
+            start_date (arrow.Arrow): The start date to aggregate for.
+            end_date (arrow.Arrow): The end date to aggregate for.
+            event_type (str): The type of event (view or download).
 
         Returns:
             dict: The query dictionary for view or download events.
@@ -557,7 +567,7 @@ class CommunityUsageDeltaQuery:
 
         Args:
             field (str): The field to aggregate on.
-            label_source_includes (list[str]): The fields to include in the label.
+            event_type (str): The type of event (view or download).
         """
         return {
             "terms": {"field": field, "size": 1000},
@@ -771,13 +781,19 @@ class CommunityRecordDeltaQuery:
         """Initialize the query builder.
 
         Args:
-            client: The OpenSearch client to use.
+            client (OpenSearch | None, optional): The OpenSearch client to use.
+            event_index (str | None, optional): The events index name. Defaults to
+                "stats-community-events".
+            record_index (str | None, optional): The records index name. Defaults to
+                "rdmrecords-records".
+            subcount_configs (dict | None, optional): The subcount configurations.
+                Defaults to the global config.
         """
         if client is None:
             client = current_search_client
         self.client = client
-        self.event_index = event_index or prefix_index("stats-community-events")
-        self.record_index = record_index or prefix_index("rdmrecords-records")
+        self.event_index = event_index or "stats-community-events"
+        self.record_index = record_index or "rdmrecords-records"
         self.subcount_configs = (
             subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
         )
@@ -795,9 +811,14 @@ class CommunityRecordDeltaQuery:
 
         Args:
             start_date (str): The start date to query.
-            community_id (str, optional): The community ID. If "global", uses events index
+            end_date (str): The end date to query.
+            community_id (str): The community ID. If "global", uses events index
                 when use_published_dates=True, otherwise uses record date fields directly.
-            find_deleted (bool, optional): Whether to find deleted records.
+            find_deleted (bool): Whether to find deleted records.
+            use_included_dates (bool): Whether to use the dates when the record
+                was included to the community instead of the created date.
+            use_published_dates (bool): Whether to use the metadata publication
+                date instead of the created date.
 
         Returns:
             list: The must clauses for the query.
@@ -1087,7 +1108,7 @@ class CommunityRecordDeltaQuery:
             },
         }
 
-        search = Search(using=self.client, index=self.record_index)
+        search = Search(using=self.client, index=prefix_index(self.record_index))
         search.update_from_dict(query)
 
         return search

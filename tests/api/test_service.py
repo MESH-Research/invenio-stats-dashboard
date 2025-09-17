@@ -18,9 +18,6 @@ from tests.helpers.sample_records import (
     sample_metadata_book_pdf,
     sample_metadata_journal_article_pdf,
 )
-from tests.helpers.sample_responses.sample_agg_service_responses import (
-    MOCK_AGG_SERVICE_RESPONSE,
-)
 
 
 class TestCommunityStatsService:
@@ -186,7 +183,8 @@ class TestCommunityStatsService:
         expected_total_docs = len(records_aggregators) * expected_records_docs
         assert total_docs_indexed == expected_total_docs, (
             f"Expected {expected_total_docs} total documents "
-            f"({len(records_aggregators)} records aggregators × {expected_records_docs}), "
+            f"({len(records_aggregators)} records aggregators "
+            f"× {expected_records_docs}), "
             f"got {total_docs_indexed}"
         )
 
@@ -236,13 +234,15 @@ class TestCommunityStatsService:
                             doc_start = arrow.get(date_info["period_start"])
                             assert expected_start <= doc_start <= expected_end, (
                                 f"Document period_start {date_info['period_start']} "
-                                f"should be within requested range {expected_start_date} to {expected_end_date}"
+                                f"should be within requested range "
+                                f"{expected_start_date} to {expected_end_date}"
                             )
                         if "period_end" in date_info and date_info["period_end"]:
                             doc_end = arrow.get(date_info["period_end"])
                             assert expected_start <= doc_end <= expected_end, (
                                 f"Document period_end {date_info['period_end']} "
-                                f"should be within requested range {expected_start_date} to {expected_end_date}"
+                                f"should be within requested range "
+                                f"{expected_start_date} to {expected_end_date}"
                             )
                     elif date_info["date_type"] == "snapshot":
                         # For snapshot aggregators, check snapshot_date
@@ -250,11 +250,12 @@ class TestCommunityStatsService:
                             doc_date = arrow.get(date_info["snapshot_date"])
                             assert expected_start <= doc_date <= expected_end, (
                                 f"Document snapshot_date {date_info['snapshot_date']} "
-                                f"should be within requested range {expected_start_date} to {expected_end_date}"
+                                f"should be within requested range "
+                                f"{expected_start_date} to {expected_end_date}"
                             )
 
                     assert isinstance(
-                        doc["generation_time"], (int, float)
+                        doc["generation_time"], int | float
                     ), "generation_time should be a number"
                     assert (
                         doc["generation_time"] >= 0
@@ -295,12 +296,12 @@ class TestCommunityStatsService:
 
         synthetic_records = []
         sample_records = [
-            sample_metadata_book_pdf["input"],
-            sample_metadata_journal_article_pdf["input"],
+            sample_metadata_book_pdf,
+            sample_metadata_journal_article_pdf,
         ]
 
         for i, sample_data in enumerate(sample_records):
-            metadata = copy.deepcopy(sample_data)
+            metadata: dict = copy.deepcopy(sample_data)
             metadata["files"] = {"enabled": False}
             metadata["created"] = (
                 arrow.utcnow().shift(days=-i).format("YYYY-MM-DDTHH:mm:ssZZ")
@@ -370,16 +371,16 @@ class TestCommunityStatsService:
         # Create synthetic records
         synthetic_records = []
         sample_records = [
-            sample_metadata_book_pdf["input"],
-            sample_metadata_journal_article_pdf["input"],
+            sample_metadata_book_pdf,
+            sample_metadata_journal_article_pdf,
         ]
 
         for i, sample_data in enumerate(sample_records):
-            metadata = copy.deepcopy(sample_data)
+            metadata: dict = copy.deepcopy(sample_data)
             metadata["files"] = {"enabled": False}
             metadata["created"] = (
                 arrow.utcnow().shift(days=-i).format("YYYY-MM-DDTHH:mm:ssZZ")
-            )
+            )  # type: ignore
 
             record = minimal_published_record_factory(
                 metadata=metadata,
@@ -441,12 +442,12 @@ class TestCommunityStatsService:
         # Create synthetic records
         synthetic_records = []
         sample_records = [
-            sample_metadata_book_pdf["input"],
-            sample_metadata_journal_article_pdf["input"],
+            sample_metadata_book_pdf,
+            sample_metadata_journal_article_pdf,
         ]
 
         for i, sample_data in enumerate(sample_records):
-            metadata = copy.deepcopy(sample_data)
+            metadata: dict = copy.deepcopy(sample_data)
             metadata["files"] = {"enabled": False}
             metadata["created"] = (
                 arrow.utcnow().shift(days=-i).format("YYYY-MM-DDTHH:mm:ssZZ")
@@ -464,7 +465,7 @@ class TestCommunityStatsService:
         client.indices.refresh(index="*rdmrecords-records*")
 
         # Create service instance
-        service = CommunityStatsService(app=app)
+        service = current_community_stats_service
 
         # Test read_stats
         start_date = arrow.utcnow().shift(days=-10).format("YYYY-MM-DD")

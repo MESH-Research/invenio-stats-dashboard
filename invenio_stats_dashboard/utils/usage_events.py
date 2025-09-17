@@ -8,7 +8,6 @@
 
 import hashlib
 import random
-from typing import Optional
 
 import arrow
 from invenio_access.permissions import system_identity
@@ -256,7 +255,7 @@ class UsageEventFactory:
 
     @staticmethod
     def _get_records_for_date_range(
-        start_date: str, end_date: str, max_records: Optional[int] = None
+        start_date: str, end_date: str, max_records: int | None = None
     ) -> list:
         """Get records within a date range."""
         index_name = prefix_index("rdmrecords-records")
@@ -278,7 +277,7 @@ class UsageEventFactory:
 
     @staticmethod
     def _validate_date_range(
-        start_date: Optional[arrow.Arrow],
+        start_date: arrow.Arrow | None,
         end_date: arrow.Arrow,
         record_created: arrow.Arrow,
     ) -> tuple[arrow.Arrow, arrow.Arrow]:

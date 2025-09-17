@@ -7,7 +7,7 @@
 """TypedDict types for the EventReindexingService return values."""
 
 import types
-from typing import Any, Optional, Type, TypedDict
+from typing import Any, TypedDict
 
 
 class HealthCheckResult(TypedDict):
@@ -23,9 +23,9 @@ class SpotCheckResult(TypedDict):
     success: bool
     errors: list[str]
     details: dict[str, Any]
-    documents_verified: Optional[int]
-    field_mismatches: Optional[list[str]]
-    document_count_mismatch: Optional[dict[str, int]]
+    documents_verified: int | None
+    field_mismatches: list[str] | None
+    document_count_mismatch: dict[str, int] | None
 
 
 class ValidationResult(TypedDict):
@@ -42,15 +42,15 @@ class BatchProcessingResult(TypedDict):
     """Result of processing a batch of events."""
 
     success: bool
-    error_message: Optional[str]
+    error_message: str | None
 
 
 class MonthlyIndexBatchResult(TypedDict):
     """Result of processing a single batch from a monthly index."""
 
     processed_count: int
-    last_event_id: Optional[str]
-    last_event_timestamp: Optional[str]
+    last_event_id: str | None
+    last_event_timestamp: str | None
     should_continue: bool
     batch_document_ids: list[str]
 
@@ -61,17 +61,17 @@ class MigrationResult(TypedDict):
     month: str
     event_type: str
     source_index: str
-    target_index: Optional[str]
+    target_index: str | None
     processed: int
     interrupted: bool
     batches_succeeded: int
     completed: bool
-    last_processed_id: Optional[str]
+    last_processed_id: str | None
     batches_attempted: int
-    validation_errors: Optional[ValidationResult]
+    validation_errors: ValidationResult | None
     operational_errors: list[dict[str, str]]
     start_time: str
-    total_time: Optional[str]
+    total_time: str | None
     all_sample_document_ids: list[str]
 
 
@@ -91,7 +91,7 @@ class ReindexingResults(TypedDict):
     event_types: dict[str, EventTypeResults]
     health_issues: list[str]
     completed: bool
-    error: Optional[str]
+    error: str | None
 
 
 class OldMonthCounts(TypedDict):
@@ -99,20 +99,20 @@ class OldMonthCounts(TypedDict):
 
     index: str
     count: int
-    enriched_index: Optional[str]
+    enriched_index: str | None
 
 
 class MigratedMonthCounts(TypedDict):
     """Information about a migrated monthly index."""
 
     source_index: str
-    index: Optional[str]  # enriched index name
+    index: str | None  # enriched index name
     old_count: int
-    migrated_count: Optional[int]
-    remaining_count: Optional[int]
+    migrated_count: int | None
+    remaining_count: int | None
     completed: bool
     interrupted: bool
-    bookmark: Optional[dict[str, Any]]
+    bookmark: dict[str, Any] | None
 
 
 class ProgressCounts(TypedDict):
@@ -132,8 +132,12 @@ class ProgressCounts(TypedDict):
 
     # Detailed index information
     old_indices: list[OldMonthCounts]
-    enriched_indices: list[MigratedMonthCounts]
-    completed_indices: list[MigratedMonthCounts]
+    migrations_in_progress: list[MigratedMonthCounts]
+    migrations_old_deleted: list[MigratedMonthCounts]
+
+    # Completed migrations for CLI display
+    view_completed_migrations: list[dict[str, str]]
+    download_completed_migrations: list[dict[str, str]]
 
 
 class ProgressHealth(TypedDict):
@@ -151,9 +155,8 @@ class ReindexingProgress(TypedDict):
     health: ProgressHealth
 
 
-def create_enriched_event_type(subcount_configs: dict[str, Any]) -> Type:
-    """
-    Dynamically create an EnrichedEvent TypedDict based on subcount configuration.
+def create_enriched_event_type(subcount_configs: dict[str, Any]) -> type:
+    """Dynamically create an EnrichedEvent TypedDict based on subcount configuration.
 
     This function analyzes the COMMUNITY_STATS_SUBCOUNT_CONFIGS to determine
     which enriched fields should be included in the EnrichedEvent TypedDict.
@@ -173,19 +176,19 @@ def create_enriched_event_type(subcount_configs: dict[str, Any]) -> Type:
         "country": str,
         "unique_session_id": str,
         "community_ids": list[str],
-        "parent_recid": Optional[str],
-        "referrer": Optional[str],
-        "via_api": Optional[bool],
-        "is_machine": Optional[bool],
-        "is_robot": Optional[bool],
-        "bucket_id": Optional[str],
-        "file_id": Optional[str],
-        "file_key": Optional[str],
-        "size": Optional[int],
+        "parent_recid": str | None,
+        "referrer": str | None,
+        "via_api": bool | None,
+        "is_machine": bool | None,
+        "is_robot": bool | None,
+        "bucket_id": str | None,
+        "file_id": str | None,
+        "file_key": str | None,
+        "size": int | None,
     }
 
     # Dynamically add enriched fields based on subcount configuration
-    for subcount_key, subcount_config in subcount_configs.items():
+    for _subcount_key, subcount_config in subcount_configs.items():
         if "usage_events" in subcount_config and subcount_config["usage_events"]:
             usage_config = subcount_config["usage_events"]
             field_name = usage_config.get("field", "").split(".")[
@@ -194,7 +197,7 @@ def create_enriched_event_type(subcount_configs: dict[str, Any]) -> Type:
 
             if field_name and field_name not in fields:
                 # Get the field type from configuration
-                field_type_config = usage_config.get("field_type", Optional[str])
+                field_type_config = usage_config.get("field_type", str | None)
 
                 # Use the configured field type directly
                 fields[field_name] = field_type_config

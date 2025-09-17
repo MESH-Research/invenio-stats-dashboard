@@ -6,19 +6,13 @@
 
 """Test helper for FilesHelper."""
 
-import mimetypes
-import os
-from pathlib import Path
-from tempfile import SpooledTemporaryFile
-from typing import Optional, Union
 
 from flask import current_app as app
 from invenio_access.permissions import system_identity
 from invenio_drafts_resources.resources.records.errors import DraftNotCreatedError
-from invenio_files_rest.errors import BucketLockedError, InvalidKeyError
-from invenio_pidstore.errors import PIDDoesNotExistError, PIDUnregistered
+from invenio_files_rest.errors import BucketLockedError
+from invenio_pidstore.errors import PIDUnregistered
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
-from invenio_records_resources.services.errors import FileKeyNotFoundError
 from invenio_records_resources.services.uow import (
     RecordCommitOp,
     UnitOfWork,
@@ -33,6 +27,10 @@ class FilesHelper:
     """FilesHelper for testing purposes with actual file upload functionality."""
 
     def __init__(self, is_draft: bool):
+        """Initialize FilesHelper.
+
+        :param is_draft: Whether this is for draft records.
+        """
         self.files_service = (
             records_service.draft_files if is_draft else records_service.files
         )
@@ -44,7 +42,7 @@ class FilesHelper:
         return []
 
     @unit_of_work()
-    def set_to_metadata_only(self, draft_id: str, uow: Optional[UnitOfWork] = None):
+    def set_to_metadata_only(self, draft_id: str, uow: UnitOfWork | None = None):
         """Set record to metadata-only mode."""
         if uow:
             try:
@@ -75,7 +73,7 @@ class FilesHelper:
         key: str,
         files_service=None,
         files_type: str = "",
-        uow: Optional[UnitOfWork] = None,
+        uow: UnitOfWork | None = None,
     ) -> bool:
         """Delete a file from the record."""
         if files_service is None:
@@ -116,21 +114,25 @@ class FilesHelper:
     def handle_record_files(
         self,
         metadata: dict,
-        file_data: Union[dict, list[dict]],
-        files: list[FileData] = [],
-        existing_record: Optional[dict] = {},
-        source_filepaths: Optional[dict] = {},
-        uow: Optional[UnitOfWork] = None,
-    ) -> dict[str, list[Union[str, list[str]]]]:
+        file_data: dict | list[dict],
+        files: list[FileData] | None = None,
+        existing_record: dict | None = None,
+        source_filepaths: dict | None = None,
+        uow: UnitOfWork | None = None,
+    ) -> dict[str, list[str | list[str]]]:
         """Handle file uploads for a record."""
+        if files is None:
+            files = []
+        if existing_record is None:
+            existing_record = {}
+        if source_filepaths is None:
+            source_filepaths = {}
+
         if not files:
             return {}
 
         # Convert file_data to the expected format
-        if isinstance(file_data, list):
-            files_to_upload = {f["key"]: f for f in file_data}
-        else:
-            files_to_upload = file_data
+        # Note: file_data conversion logic removed as it was unused
 
         uploaded_files = {}
 
@@ -139,7 +141,7 @@ class FilesHelper:
             key = file_obj.filename
             try:
                 # Initialize file upload
-                initialization = self.files_service.init_files(
+                self.files_service.init_files(
                     system_identity, metadata["id"], data=[{"key": key}]
                 ).to_dict()
 

@@ -1,10 +1,14 @@
-# -*- coding: utf-8 -*-
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
+#
+# Copyright (C) 2025 Mesh Research
+#
+# Based on the original event builders from invenio-rdm-records:
 #
 # Copyright (C) 2023 TU Wien.
-# Copyright (C) 2025 MESH Research.
 #
-# Invenio Stats Dashboard is free software; you can redistribute it and/or modify
-# it under the terms of the MIT License; see LICENSE file for more details.
+# Invenio Stats Dashboard and invenio-rdm-records are free software; you
+# can redistribute and/or modify them under the terms of the MIT License;
+# see LICENSE file for more details.
 
 """Custom event builders to support advanced statistics aggregations.
 

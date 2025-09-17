@@ -1,11 +1,16 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 #
 # Copyright (C) 2025 Mesh Research
 #
 # invenio-stats-dashboard is free software; you can redistribute it
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
+
+"""Community events CLI commands for generating and managing community events.
+
+This module provides CLI commands for generating community events that track
+when records are added to or removed from communities.
+"""
 
 import click
 from flask.cli import with_appcontext
@@ -63,8 +68,7 @@ def community_events_cli():
 def generate_community_events_command(
     community_id, record_ids, start_date, end_date, show_progress
 ):
-    """
-    Generate community events for all records in the instance.
+    """Generate community events for all records in the instance.
 
     This produces "added" events indexed in the community-event-stats index
     for any records that do not already have them. If the record is part of
@@ -193,8 +197,7 @@ def generate_community_events_command(
 def community_events_status_command(
     community_id, record_ids, start_date, end_date, community_details
 ):
-    """
-    Count records that need community events created.
+    """Count records that need community events created.
 
     This command analyzes records to determine how many need "added" events
     created for their communities and for the "global" community.

@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Proxy objects for the invenio-stats-dashboard extension."""
+
 from flask import current_app
 from werkzeug.local import LocalProxy
 

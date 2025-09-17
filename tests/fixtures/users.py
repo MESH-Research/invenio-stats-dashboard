@@ -7,7 +7,6 @@
 
 """User related pytest fixtures for testing."""
 
-import os
 from collections.abc import Callable
 
 import pytest
@@ -23,7 +22,6 @@ from invenio_accounts.testutils import login_user_via_session
 from invenio_administration.permissions import administration_access_action
 from invenio_oauth2server.models import Token
 from pytest_invenio.fixtures import UserFixtureBase
-from requests_mock.adapter import _Matcher as Matcher
 
 
 def get_authenticated_identity(user: User | Identity) -> Identity:

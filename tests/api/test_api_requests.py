@@ -104,9 +104,9 @@ class TestAPIRequestRecordDeltaCreated:
     def sample_records(self) -> list:
         """List of sample record data to use for testing."""
         return [
-            sample_metadata_book_pdf["input"],
-            sample_metadata_journal_article_pdf["input"],
-            sample_metadata_thesis_pdf["input"],
+            sample_metadata_book_pdf,
+            sample_metadata_journal_article_pdf,
+            sample_metadata_thesis_pdf,
         ]
 
     def setup_community_and_records(
@@ -175,7 +175,7 @@ class TestAPIRequestRecordDeltaCreated:
             ignore_bookmark=False,
         )
 
-        client.indices.refresh(index=f"*{self.aggregator_index}*")
+        client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
     def make_api_request(self, app, community_id, start_date, end_date):
         """Make the API request to /api/stats."""
@@ -507,7 +507,7 @@ class TestAPIRequestRecordSnapshotCreated(TestAPIRequestRecordDeltaCreated):
     @property
     def aggregator_index(self) -> str:
         """The index to use in the API request."""
-        return prefix_index("stats-community-records-snapshot-created")
+        return "stats-community-records-snapshot-created"
 
     @property
     def aggregator(self) -> CommunityRecordsSnapshotCreatedAggregator:
@@ -709,7 +709,7 @@ class TestAPIRequestRecordSnapshotPublished(TestAPIRequestRecordSnapshotCreated)
     @property
     def aggregator_index(self) -> str:
         """The index to use in the API request."""
-        return prefix_index("stats-community-records-snapshot-published")
+        return "stats-community-records-snapshot-published"
 
     @property
     def aggregator(self) -> CommunityRecordsSnapshotPublishedAggregator:
@@ -764,7 +764,7 @@ class TestAPIRequestRecordSnapshotPublished(TestAPIRequestRecordSnapshotCreated)
             ignore_bookmark=False,
         )
 
-        client.indices.refresh(index=f"*{self.aggregator_index}*")
+        client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
 
 class TestAPIRequestRecordSnapshotAdded(TestAPIRequestRecordSnapshotCreated):
@@ -787,7 +787,7 @@ class TestAPIRequestRecordSnapshotAdded(TestAPIRequestRecordSnapshotCreated):
     @property
     def aggregator_index(self) -> str:
         """The index to use in the API request."""
-        return prefix_index("stats-community-records-snapshot-added")
+        return "stats-community-records-snapshot-added"
 
     @property
     def aggregator(self) -> CommunityRecordsSnapshotAddedAggregator:
@@ -843,7 +843,7 @@ class TestAPIRequestRecordSnapshotAdded(TestAPIRequestRecordSnapshotCreated):
             ignore_bookmark=False,
         )
 
-        client.indices.refresh(index=f"*{self.aggregator_index}*")
+        client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
     def validate_record_snapshots(self, record_snapshots, community_id, app):
         """Validate the record snapshots data structure."""
@@ -904,7 +904,7 @@ class TestAPIRequestUsageDelta:
     @property
     def aggregator_index(self) -> str:
         """Return the aggregator index name."""
-        return prefix_index("stats-community-usage-delta")
+        return "stats-community-usage-delta"
 
     @property
     def aggregator_instance(self) -> CommunityUsageDeltaAggregator:
@@ -937,9 +937,9 @@ class TestAPIRequestUsageDelta:
     def sample_records(self) -> list:
         """List of sample record data to use for testing."""
         return [
-            sample_metadata_book_pdf["input"],
-            sample_metadata_journal_article_pdf["input"],
-            sample_metadata_thesis_pdf["input"],
+            sample_metadata_book_pdf,
+            sample_metadata_journal_article_pdf,
+            sample_metadata_thesis_pdf,
         ]
 
     def setup_community_and_records(
@@ -1042,7 +1042,7 @@ class TestAPIRequestUsageDelta:
         )
 
         # Refresh the aggregation index
-        client.indices.refresh(index=f"*{self.aggregator_index}*")
+        client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
     def make_api_request(self, app, community_id, start_date, end_date):
         """Make the API request to /api/stats."""
@@ -1216,7 +1216,7 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
     @property
     def aggregator_index(self) -> str:
         """Return the aggregator index name."""
-        return prefix_index("stats-community-usage-snapshot")
+        return "stats-community-usage-snapshot"
 
     @property
     def aggregator_instance(self) -> CommunityUsageSnapshotAggregator:
@@ -1419,9 +1419,9 @@ class TestAPIRequestCommunityStats:
     def sample_records(self) -> list:
         """Return sample record metadata."""
         return [
-            sample_metadata_journal_article4_pdf["input"],
-            sample_metadata_journal_article5_pdf["input"],
-            sample_metadata_journal_article6_pdf["input"],
+            sample_metadata_journal_article4_pdf,
+            sample_metadata_journal_article5_pdf,
+            sample_metadata_journal_article6_pdf,
         ]
 
     def setup_community_and_records(

@@ -218,7 +218,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         ):
             rec_args = {
                 "identity": user_identity,
-                "metadata": rec["input"],
+                "metadata": rec,
                 "community_list": [community_id],
                 "set_default": True,
             }
@@ -227,7 +227,7 @@ class TestCommunityRecordCreatedDeltaQuery:
                     Path(__file__).parent.parent
                     / "helpers"
                     / "sample_files"
-                    / list(rec["input"]["files"]["entries"].keys())[0]
+                    / list(rec["files"]["entries"].keys())[0]
                 )
                 rec_args["file_paths"] = [file_path]
             rec = minimal_published_record_factory(**rec_args)
@@ -1280,7 +1280,7 @@ class TestCommunityUsageDeltaQuery:
                 sample_metadata_journal_article7_pdf,
             ]
         ):
-            metadata = deepcopy(rec["input"])
+            metadata: dict = deepcopy(rec)
             metadata["created"] = "2025-06-01T00:00:00+00:00"
 
             # Enhance metadata with funding and affiliation data
@@ -1300,7 +1300,7 @@ class TestCommunityUsageDeltaQuery:
                     Path(__file__).parent.parent
                     / "helpers"
                     / "sample_files"
-                    / list(rec["input"]["files"]["entries"].keys())[0]
+                    / list(rec["files"]["entries"].keys())[0]
                 ]
             minimal_published_record_factory(**args)
         current_search_client.indices.refresh(index="*rdmrecords-records*")

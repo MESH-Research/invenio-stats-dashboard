@@ -99,7 +99,7 @@ class TestCommunityRecordDeltaCreatedAggregator:
                 sample_metadata_journal_article7_pdf,
             ]
         ):
-            meta = deepcopy(rec["input"])
+            meta: dict = deepcopy(rec)
             meta["created"] = self.creation_dates[idx].format("YYYY-MM-DDTHH:mm:ss")
             meta["metadata"]["publication_date"] = min(self.creation_dates).format(
                 "YYYY-MM-DD"
@@ -119,7 +119,7 @@ class TestCommunityRecordDeltaCreatedAggregator:
                     Path(__file__).parent.parent
                     / "helpers"
                     / "sample_files"
-                    / list(rec["input"]["files"]["entries"].keys())[0]
+                    / list(rec["files"]["entries"].keys())[0]
                 )
                 rec_args["file_paths"] = [file_path]
             rec = minimal_published_record_factory(**rec_args)
@@ -354,10 +354,12 @@ class TestCommunityRecordDeltaCreatedAggregator:
             ignore_bookmark=False,
         )
 
-        current_search_client.indices.refresh(index=f"*{self.index_name}*")
+        current_search_client.indices.refresh(
+            index=f"*{prefix_index(self.index_name)}*"
+        )
 
         agg_documents = current_search_client.search(
-            index=self.index_name,
+            index=prefix_index(self.index_name),
             body={
                 "query": {
                     "match_all": {},
@@ -682,7 +684,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
                 sample_metadata_journal_article7_pdf,
             ]
         ):
-            metadata = deepcopy(rec["input"])
+            metadata: dict = deepcopy(rec)
             metadata["created"] = self.creation_dates[idx]
 
             enhance_metadata_with_funding_and_affiliations(metadata, idx)
@@ -702,7 +704,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
                     Path(__file__).parent.parent
                     / "helpers"
                     / "sample_files"
-                    / list(rec["input"]["files"]["entries"].keys())[0]
+                    / list(rec["files"]["entries"].keys())[0]
                 ]
             record = minimal_published_record_factory(**args)
             created_records.append(record)
@@ -753,11 +755,13 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             update_bookmark=True,
             ignore_bookmark=False,
         )
-        current_search_client.indices.refresh(index=self.delta_index_pattern)
+        current_search_client.indices.refresh(
+            index=f"*{prefix_index(self.delta_index_name)}*"
+        )
 
         # Log what's actually in the delta index
         delta_documents = current_search_client.search(
-            index=self.delta_index_name,
+            index=prefix_index(self.delta_index_name),
             body={"query": {"match_all": {}}, "size": 1000},
         )
         self.app.logger.error(
@@ -844,7 +848,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
 
         # Log what's actually in the snapshot index
         snapshot_documents = current_search_client.search(
-            index=self.snapshot_index_name,
+            index=prefix_index(self.snapshot_index_name),
             body={"query": {"match_all": {}}, "size": 1000},
         )
         self.app.logger.error(
@@ -859,7 +863,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             running_app.app.logger.error(f"Full snapshot doc: {pformat(hit)}")
 
         agg_documents = current_search_client.search(
-            index=self.snapshot_index_name,
+            index=prefix_index(self.snapshot_index_name),
             body={
                 "query": {
                     "match_all": {},
@@ -1264,7 +1268,7 @@ class TestCommunityUsageAggregators:
                 sample_metadata_journal_article7_pdf,
             ]
         ):
-            metadata = deepcopy(rec["input"])
+            metadata: dict = deepcopy(rec)
             metadata["created"] = "2025-06-01T00:00:00+00:00"
             enhance_metadata_with_funding_and_affiliations(metadata, idx)
 
@@ -1278,7 +1282,7 @@ class TestCommunityUsageAggregators:
                 "update_community_event_dates": True,
             }
             if idx != 1:
-                filename = list(rec["input"]["files"]["entries"].keys())[0]
+                filename = list(rec["files"]["entries"].keys())[0]
                 args["file_paths"] = [
                     Path(__file__).parent.parent / "helpers" / "sample_files" / filename
                 ]
@@ -1932,7 +1936,7 @@ class TestCommunityUsageAggregators:
             members={"owner": [str(user_id)]},
         )
 
-        metadata = sample_metadata_journal_article3_pdf["input"]
+        metadata: dict = sample_metadata_journal_article3_pdf
         # ensure created date is before we need events
         metadata["created"] = "2025-06-01T18:43:57.051364+00:00"
         file_paths = [
@@ -3196,12 +3200,132 @@ class TestExtractIdNameFromBucket:
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
             mock_bucket, "by_funders_id", "funders.id", "funders.name", config
         )
-        assert id_and_label["id"] == "some_key"
-        assert id_and_label["label"] == "some_key"
+        assert id_and_label["id"] == "some_key"  # type: ignore
+        assert id_and_label["label"] == "some_key"  # type: ignore
 
         # Test name bucket fallback
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
             mock_bucket, "by_funders_name", "funders.id", "funders.name", config
         )
-        assert id_and_label["id"] == "some_key"
-        assert id_and_label["label"] == "some_key"
+        assert id_and_label["id"] == "some_key"  # type: ignore
+        assert id_and_label["label"] == "some_key"  # type: ignore
+
+
+class TestAggregatorIgnoreBookmark:
+    """Test ignore_bookmark functionality of the base aggregator class."""
+
+    @property
+    def aggregator_instance(self):
+        """Get the aggregator class."""
+        return CommunityRecordsDeltaCreatedAggregator(
+            name="community-records-delta-created-agg",
+        )
+
+    @property
+    def index_name(self):
+        """Get the index name."""
+        return "stats-community-records-delta-created"
+
+    def test_ignore_bookmark_without_start_date(
+        self,
+        running_app,
+        db,
+        search_clear,
+        minimal_community_factory,
+        minimal_published_record_factory,
+    ):
+        """Test ignore_bookmark=True without start_date.
+
+        It should start from first_event_date.
+        """
+        # Create a test community
+        community = minimal_community_factory(
+            metadata={"title": "Test Community"},
+            slug="test-community",
+        )
+        community_id = community.id
+
+        # Create a test record with a specific creation date
+        test_date = arrow.utcnow().shift(days=-5)
+        record = minimal_published_record_factory(
+            metadata={
+                "metadata": {
+                    "resource_type": {"id": "textDocument-journalArticle"},
+                    "title": "Test Record",
+                    "publisher": "Test Publisher",
+                    "publication_date": test_date.format("YYYY-MM-DD"),
+                    "creators": [
+                        {
+                            "person_or_org": {
+                                "name": "Test Creator",
+                                "family_name": "Creator",
+                                "given_name": "Test",
+                                "type": "personal",
+                            }
+                        }
+                    ],
+                },
+                "files": {"enabled": False},
+            },
+            community_list=[community_id],
+        )
+
+        # Manually set the record's created date to our test date
+        record_data = record.data
+        record_data["created"] = test_date.format("YYYY-MM-DDTHH:mm:ss")
+        records_service.update_record(
+            identity=system_identity,
+            id_=record.id,
+            data=record_data,
+        )
+
+        # Refresh indices
+        current_search_client.indices.refresh(index="*rdmrecords-records*")
+        current_search_client.indices.refresh(index="*stats-community-events*")
+
+        # Set a bookmark to a later date to test that ignore_bookmark overrides it
+        later_date = arrow.utcnow().shift(days=-2)
+        aggregator = self.aggregator_instance
+        aggregator.bookmark_api.set_bookmark(
+            community_id, later_date.format("YYYY-MM-DDTHH:mm:ss")
+        )
+        aggregator.bookmark_api.set_bookmark(
+            "global", later_date.format("YYYY-MM-DDTHH:mm:ss")
+        )
+
+        # Run aggregation with ignore_bookmark=True and no start_date
+        results = aggregator.run(
+            start_date=None,
+            end_date=None,
+            update_bookmark=False,
+            ignore_bookmark=True,
+            return_results=True,
+        )
+
+        # Verify that aggregation processed data from the test date (earlier than bookmark)
+        # The results should include data from our test record created 5 days ago
+        assert len(results) > 0, "Aggregation should have produced results"
+
+        # Check that we have results for both global and community
+        community_results = [r for r in results if len(r) >= 3 and r[2]]
+        assert (
+            len(community_results) >= 2
+        ), "Should have results for both global and community"
+
+        # Verify that the aggregation processed data from our test date
+        # by checking that documents were created for the test date
+        search = Search(
+            using=current_search_client, index=prefix_index(self.index_name)
+        )
+        search = search.filter("term", community_id=community_id)
+        search = search.filter(
+            "range",
+            period_start={
+                "gte": test_date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+                "lte": test_date.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            },
+        )
+        docs = list(search.execute())
+        assert (
+            len(docs) > 0
+        ), f"Should have aggregation documents for test date {test_date.format('YYYY-MM-DD')}"

@@ -183,6 +183,7 @@ addopts = """
 --log-cli-level=DEBUG
 --ignore=docs
 --ignore=node_modules
+--ignore=invenio_stats_dashboard/patches
 --cov=invenio_stats_dashboard --cov-report=term-missing
 """
 norecursedirs = []
