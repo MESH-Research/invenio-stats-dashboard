@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Base classes for community statistics aggregators."""
+
 import datetime
 import time
 from collections.abc import Generator
@@ -38,12 +40,21 @@ class CommunityAggregatorBase(StatAggregator):
     """Base class for community statistics aggregators."""
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the base community aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments, including:
+                community_ids (list[str], optional): List of community IDs to aggregate.
+                client: OpenSearch client to use.
+        """
         self.name = name
         self.event = ""
         self.aggregation_field: str | None = None
         self.copy_fields: dict[str, str] = {}
         self.event_index: str | list[tuple[str, str]] | None = None
-        self.first_event_index: str | None = None
+        self.first_event_index: str | list[tuple[str, str]] | None = None
         self.record_index: str | list[tuple[str, str]] | None = None
         self.aggregation_index: str | None = None
         self.community_ids: list[str] = kwargs.get("community_ids", [])
@@ -74,20 +85,28 @@ class CommunityAggregatorBase(StatAggregator):
         raise NotImplementedError
 
     def _first_event_date_query(
-        self, community_id: str
+        self, community_id: str, index: str
     ) -> tuple[arrow.Arrow | None, arrow.Arrow | None]:
         """Get the first event date from a specific index.
 
+        Args:
+            community_id: The community ID
+            index: The index to use for the query (unprefixed)
+
         A min aggregation is more efficient than sorting the query.
+
+        Returns:
+            A tuple of the earliest and latest event dates. If no events are found,
+            both dates are None.
         """
-        current_search_client.indices.refresh(index=self.first_event_index)
+        current_search_client.indices.refresh(index=prefix_index(index))
         if community_id == "global":
             query = Q("match_all")
         else:
             query = self.event_community_query_term(community_id)
 
         search = (
-            Search(using=self.client, index=self.first_event_index)
+            Search(using=self.client, index=prefix_index(index))
             .query(query)
             .extra(size=0)
         )
@@ -115,22 +134,33 @@ class CommunityAggregatorBase(StatAggregator):
             A tuple of the earliest and latest event dates. If no events are found,
             both dates are None.
         """
-
         earliest_date = None
         latest_date = None
 
+        def check_index_exists(index_name: str) -> bool:
+            """Check if the index exists."""
+            return bool(self.client.indices.exists(index=prefix_index(index_name)))
+
         if isinstance(self.first_event_index, str):
-
-            if not self.client.indices.exists(index=self.first_event_index):
+            # Check if the index exists (either as alias or any matching index)
+            if not check_index_exists(self.first_event_index):
                 raise ValueError(
-                    f"Required index {self.first_event_index} does not exist. "
-                    f"Aggregator requires this index to be available."
+                    f"Required index {prefix_index(self.first_event_index)} "
+                    f"does not exist. Aggregator requires this index to be available."
                 )
-
-            earliest_date, latest_date = self._first_event_date_query(community_id)
-        elif isinstance(self.record_index, list):
-            for _, index in self.record_index:
-                early_date, late_date = self._first_event_date_query(community_id)
+            earliest_date, latest_date = self._first_event_date_query(
+                community_id, self.first_event_index
+            )
+        elif isinstance(self.first_event_index, list):
+            for _, index in self.first_event_index:
+                if not check_index_exists(index):
+                    raise ValueError(
+                        f"Required index {prefix_index(index)} "
+                        f"does not exist. Aggregator requires this index to be available."
+                    )
+                early_date, late_date = self._first_event_date_query(
+                    community_id, index
+                )
                 if not earliest_date or early_date < earliest_date:
                     earliest_date = early_date
                 if not latest_date or late_date > latest_date:
@@ -290,12 +320,12 @@ class CommunityAggregatorBase(StatAggregator):
         # If no records have been indexed there is nothing to aggregate
         if (
             isinstance(self.record_index, str)
-            and not Index(self.record_index, using=self.client).exists()
+            and not Index(prefix_index(self.record_index), using=self.client).exists()
         ):
             return [(0, [], [])]
         elif isinstance(self.record_index, list):
             for _, index in self.record_index:
-                if not Index(index, using=self.client).exists():
+                if not Index(prefix_index(index), using=self.client).exists():
                     return [(0, [], [])]
 
         if self.community_ids:
@@ -332,7 +362,12 @@ class CommunityAggregatorBase(StatAggregator):
                         first_event_date or arrow.utcnow(), arrow.utcnow()
                     )
             else:
-                lower_limit = min(start_date or arrow.utcnow(), arrow.utcnow())
+                # When ignoring bookmark, start from the earliest available data
+                # if no start_date is provided, otherwise use the provided start_date
+                if start_date:
+                    lower_limit = start_date
+                else:
+                    lower_limit = first_event_date or arrow.utcnow()
 
             # Ensure we don't aggregate more than self.catchup_interval days
             upper_limit = self._get_end_date(lower_limit, end_date)
@@ -388,7 +423,7 @@ class CommunityAggregatorBase(StatAggregator):
             # Create a wrapper generator that collects metadata while yielding documents
             # so that we can return the detailed information in the result
             def document_generator_with_metadata(docs_info_list):
-                for doc, doc_generation_time in agg_iter_generator:
+                for doc, doc_generation_time in agg_iter_generator:  # noqa: B023
                     doc_info = {
                         "document_id": doc["_id"],
                         "index_name": doc["_index"],
@@ -609,6 +644,15 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
     """
 
     def __init__(self, name, subcount_configs=None, *args, **kwargs):
+        """Initialize the snapshot aggregator base.
+
+        Args:
+            name (str): The name of the aggregator.
+            subcount_configs (dict, optional): Subcount configurations. Defaults to
+                the global config.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
         self.subcount_configs = (
             subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
@@ -664,9 +708,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         """
         previous_date = current_date.shift(days=-1)
 
-        index_name = prefix_index(
-            "{0}-{1}".format(self.aggregation_index, previous_date.year)
-        )
+        index_name = prefix_index(f"{self.aggregation_index}-{previous_date.year}")
 
         # First try: Query for snapshot with exact previous day's date
         try:
@@ -744,7 +786,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             A list of daily delta records for the community between start and end dates
         """
-        delta_search = Search(using=self.client, index=self.delta_index)
+        delta_search = Search(using=self.client, index=prefix_index(self.delta_index))
         delta_search = delta_search.query(
             "bool",
             must=[
@@ -794,8 +836,8 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         """Build exhaustive cache for a category from all delta documents.
 
         Args:
-            delta_documents: All delta documents containing both added and removed data
-            category_name: Name of the subcount category
+            deltas (list): All delta documents containing both added and removed data
+            category_name (str): Name of the subcount category
 
         Returns:
             Dictionary mapping item IDs to their cumulative totals
@@ -868,7 +910,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         new_dict: dict,
         deltas: list,
         exhaustive_counts_cache: dict,
-        latest_delta: dict = {},
+        latest_delta: dict | None = None,
     ) -> None:
         """Update top subcounts.
 
@@ -876,11 +918,13 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         logic for updating top subcounts based on their specific data structures.
 
         Args:
-            new_dict: The aggregation dictionary to modify
-            deltas: The daily delta dictionaries to update the subcounts with
-            exhaustive_counts_cache: The exhaustive counts cache
-            latest_delta: The latest delta document
+            new_dict (dict): The aggregation dictionary to modify
+            deltas (list): The daily delta dictionaries to update the subcounts with
+            exhaustive_counts_cache (dict): The exhaustive counts cache
+            latest_delta (dict | None): The latest delta document
         """
+        if latest_delta is None:
+            latest_delta = {}
         raise NotImplementedError("Subclasses must override _update_top_subcounts")
 
     def _update_cumulative_totals(self, new_dict: dict, delta_doc: dict) -> dict:
@@ -904,7 +948,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         previous_snapshot: RecordSnapshotDocument | UsageSnapshotDocument,
         latest_delta: RecordDeltaDocument | UsageDeltaDocument,
         deltas: list,
-        exhaustive_counts_cache: dict = {},
+        exhaustive_counts_cache: dict | None = None,
     ) -> RecordSnapshotDocument | UsageSnapshotDocument:
         """Create a dictionary representing the aggregation result for indexing.
 
@@ -913,12 +957,14 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         structures.
 
         Args:
-            current_day: The current day for the snapshot
-            previous_snapshot: The previous snapshot document to add onto
-            latest_delta: The latest delta document to add
-            deltas: All delta documents for top subcounts (from earliest date)
-            exhaustive_counts_cache: The exhaustive counts cache
+            current_day (arrow.Arrow): The current day for the snapshot
+            previous_snapshot (RecordSnapshotDocument | UsageSnapshotDocument): The previous snapshot document to add onto
+            latest_delta (RecordDeltaDocument | UsageDeltaDocument): The latest delta document to add
+            deltas (list): All delta documents for top subcounts (from earliest date)
+            exhaustive_counts_cache (dict | None): The exhaustive counts cache
         """
+        if exhaustive_counts_cache is None:
+            exhaustive_counts_cache = {}
         raise NotImplementedError("Subclasses must override create_agg_dict")
 
     def agg_iter(
@@ -932,10 +978,11 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         """Create a dictionary representing the aggregation result for indexing.
 
         Args:
-            community_id: The ID of the community to aggregate.
-            start_date: The start date for the aggregation.
-            end_date: The end date for the aggregation.
-            last_event_date: The last event date, or None if no events exist. In this
+            community_id (str): The ID of the community to aggregate.
+            start_date (arrow.Arrow): The start date for the aggregation.
+            end_date (arrow.Arrow): The end date for the aggregation.
+            first_event_date (arrow.Arrow | None): The first event date, or None if no events exist.
+            last_event_date (arrow.Arrow | None): The last event date, or None if no events exist. In this
                 case the events we're looking for are delta aggregations.
 
         Returns:
@@ -1080,6 +1127,13 @@ class CommunityEventsIndexAggregator(CommunityAggregatorBase):
     """
 
     def __init__(self, name, *args, **kwargs):
+        """Initialize the events index aggregator.
+
+        Args:
+            name (str): The name of the aggregator.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(name, *args, **kwargs)
         # This aggregator doesn't need any specific configuration
 
