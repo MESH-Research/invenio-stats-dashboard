@@ -6,7 +6,7 @@
 
 """Tests for the CommunityStatsService methods for generating record community events."""
 
-import copy
+from copy import deepcopy
 from pprint import pformat
 
 import arrow
@@ -44,10 +44,12 @@ def test_generate_record_community_events_with_recids(
 
     # DEBUG: Check communities service in first test
     print(
-        f"DEBUG (first test): current_communities.service object: {id(current_communities.service)}"
+        f"DEBUG (first test): current_communities.service object: "
+        f"{id(current_communities.service)}"
     )
     print(
-        f"DEBUG (first test): current_communities.service.config: {id(current_communities.service.config)}"
+        f"DEBUG (first test): current_communities.service.config: "
+        f"{id(current_communities.service.config)}"
     )
 
     community = minimal_community_factory(slug="test-community", owner=user_id)
@@ -55,13 +57,13 @@ def test_generate_record_community_events_with_recids(
 
     synthetic_records = []
     sample_records = [
-        sample_metadata_book_pdf["input"],
-        sample_metadata_journal_article_pdf["input"],
-        sample_metadata_thesis_pdf["input"],
+        sample_metadata_book_pdf,
+        sample_metadata_journal_article_pdf,
+        sample_metadata_thesis_pdf,
     ]
 
     for i, sample_data in enumerate(sample_records):
-        metadata = copy.deepcopy(sample_data)
+        metadata: dict = deepcopy(sample_data)
         metadata["files"] = {"enabled": False}
         metadata["created"] = (
             arrow.utcnow().shift(days=-i).format("YYYY-MM-DDTHH:mm:ssZZ")
@@ -279,15 +281,15 @@ def test_generate_record_community_events_all_records(
 
     # Create synthetic records
     synthetic_records = []
-    sample_records = [
-        sample_metadata_book_pdf["input"],
-        sample_metadata_journal_article_pdf["input"],
+    sample_records: list[dict] = [
+        deepcopy(sample_metadata_book_pdf),
+        deepcopy(sample_metadata_journal_article_pdf),
     ]
 
     for i, sample_data in enumerate(sample_records):
-        metadata = copy.deepcopy(sample_data)
+        metadata = deepcopy(sample_data)
         metadata["files"] = {"enabled": False}
-        metadata["created"] = (
+        metadata["created"] = (  # type: ignore
             arrow.utcnow().shift(days=-i).format("YYYY-MM-DDTHH:mm:ssZZ")
         )
 
@@ -382,13 +384,13 @@ def test_generate_record_community_events_with_dates(
 
     synthetic_records = []
     sample_records = [
-        sample_metadata_book_pdf["input"],
-        sample_metadata_journal_article_pdf["input"],
-        sample_metadata_thesis_pdf["input"],
+        sample_metadata_book_pdf,
+        sample_metadata_journal_article_pdf,
+        sample_metadata_thesis_pdf,
     ]
 
     for i, sample_data in enumerate(sample_records):
-        metadata = copy.deepcopy(sample_data)
+        metadata = deepcopy(sample_data)
         metadata["files"] = {"enabled": False}
         metadata["created"] = (
             arrow.utcnow().shift(days=-i).format("YYYY-MM-DDTHH:mm:ssZZ")
@@ -531,14 +533,14 @@ def test_generate_record_community_events_basic(
     # Create synthetic records using sample metadata
     synthetic_records = []
     sample_records = [
-        sample_metadata_book_pdf["input"],
-        sample_metadata_journal_article_pdf["input"],
-        sample_metadata_thesis_pdf["input"],
+        sample_metadata_book_pdf,
+        sample_metadata_journal_article_pdf,
+        sample_metadata_thesis_pdf,
     ]
 
     for i, sample_data in enumerate(sample_records):
         # Create a copy of the sample data and modify files to be disabled
-        metadata = copy.deepcopy(sample_data)
+        metadata = deepcopy(sample_data)
         metadata["files"] = {"enabled": False}
         # Use different creation dates for testing
         metadata["created"] = (
