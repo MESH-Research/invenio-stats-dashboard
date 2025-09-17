@@ -6,19 +6,24 @@
 
 """Service for managing statistics related to communities."""
 
+from typing import Any, cast
+
 import arrow
 from flask import Flask, current_app
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
-from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.search import Search
 
 from ..aggregations import register_aggregations
 from ..aggregations.bookmarks import CommunityBookmarkAPI
 from ..queries import CommunityStatsResultsQuery
-from ..tasks import CommunityStatsAggregationTask, aggregate_community_record_stats
+from ..tasks import (
+    AggregationResponse,
+    CommunityStatsAggregationTask,
+    aggregate_community_record_stats,
+)
 from .components import update_community_events_index
 
 
@@ -26,6 +31,11 @@ class CommunityStatsService:
     """Service for managing statistics related to communities."""
 
     def __init__(self, app: Flask):
+        """Initialize the community stats service.
+
+        Args:
+            app (Flask): The Flask application instance.
+        """
         self.client = current_search_client
         self.app = app
 
@@ -37,9 +47,21 @@ class CommunityStatsService:
         eager: bool = False,
         update_bookmark: bool = True,
         ignore_bookmark: bool = False,
-    ) -> dict:
-        """Aggregate statistics for a community."""
+        verbose: bool = False,
+        force: bool = False,
+    ) -> AggregationResponse:
+        """Aggregate statistics for a community.
 
+        Args:
+            community_ids: List of community IDs to aggregate stats for
+            start_date: Start date for aggregation
+            end_date: End date for aggregation
+            eager: Whether to run eagerly (synchronously)
+            update_bookmark: Whether to update bookmarks after aggregation
+            ignore_bookmark: Whether to ignore existing bookmarks
+            verbose: Whether to show detailed timing information
+            force: Whether to force aggregation even if scheduled tasks are disabled
+        """
         args = CommunityStatsAggregationTask["args"]
         if eager:
             current_app.logger.error(
@@ -57,6 +79,7 @@ class CommunityStatsService:
                     update_bookmark=update_bookmark,
                     ignore_bookmark=ignore_bookmark,
                     community_ids=community_ids,
+                    verbose=verbose,
                 )
                 current_app.logger.error(
                     f"Stats aggregated eagerly for communities: {community_ids}, "
@@ -80,6 +103,7 @@ class CommunityStatsService:
                 update_bookmark=update_bookmark,
                 ignore_bookmark=ignore_bookmark,
                 community_ids=community_ids,
+                verbose=verbose,
             )
             current_app.logger.error(
                 f"Stats aggregation task run asynchronously for communities: "
@@ -90,7 +114,56 @@ class CommunityStatsService:
             if isinstance(results, dict):
                 results["task_id"] = task_id
 
-        return results if isinstance(results, dict) else {}
+        if isinstance(results, dict):
+            return cast(AggregationResponse, results)
+        else:
+            return cast(
+                AggregationResponse,
+                {
+                    "results": [],
+                    "total_duration": "0:00:00",
+                    "formatted_report": "No results available",
+                    "formatted_report_verbose": "No results available",
+                },
+            )
+
+    def aggregate_stats_direct(
+        self,
+        community_ids: list[str],
+        start_date: str,
+        end_date: str,
+        eager: bool = False,
+        update_bookmark: bool = True,
+        ignore_bookmark: bool = False,
+        verbose: bool = False,
+    ) -> AggregationResponse:
+        """Aggregate statistics for a community directly, bypassing config checks.
+
+        This method allows direct aggregation even when scheduled tasks are disabled.
+        It's useful for manual aggregation or when called programmatically.
+
+        Args:
+            community_ids: List of community IDs to aggregate stats for
+            start_date: Start date for aggregation
+            end_date: End date for aggregation
+            eager: Whether to run eagerly (synchronously)
+            update_bookmark: Whether to update bookmarks after aggregation
+            ignore_bookmark: Whether to ignore existing bookmarks
+            verbose: Whether to show detailed timing information
+
+        Returns:
+            AggregationResponse with aggregation results
+        """
+        return self.aggregate_stats(
+            community_ids=community_ids,
+            start_date=start_date,
+            end_date=end_date,
+            eager=eager,
+            update_bookmark=update_bookmark,
+            ignore_bookmark=ignore_bookmark,
+            verbose=verbose,
+            force=True,
+        )
 
     def count_records_needing_events(
         self,
@@ -404,11 +477,11 @@ class CommunityStatsService:
         result = query.run(community_id, start_date, end_date)
         return result if isinstance(result, dict) else {}
 
-    def get_aggregation_status(self, community_id: str | None = None) -> dict:
+    def get_aggregation_status(self, community_ids: list[str] | None = None) -> dict:
         """Get aggregation status for communities.
 
         Args:
-            community_id: Optional community ID to check. If None, checks all
+            community_ids: Optional list of community IDs to check. If None, checks all
                 communities.
 
         Returns:
@@ -418,31 +491,33 @@ class CommunityStatsService:
             - Number of documents in each aggregation index
         """
         aggregation_types = {
-            k: v["templates"].split(".")[-1]
-            for k, v in register_aggregations.items()
+            k: v["templates"].split(".")[-1].replace("_", "-")
+            for k, v in register_aggregations().items()
             if k != "community-events-agg"
         }
 
-        if community_id:
-            try:
-                community = current_communities.service.read(
-                    system_identity, community_id
-                )
-                communities = [
-                    {"id": community.id, "slug": community.data.get("slug", "")}
-                ]
-            except Exception:
-                return {
-                    "communities": [],
-                    "error": f"Community {community_id} not found",
-                }
+        if community_ids:
+            communities = []
+            for community_id in community_ids:
+                try:
+                    community = current_communities.service.read(
+                        system_identity, community_id
+                    )
+                    communities.append(
+                        {"id": community.id, "slug": community.data.get("slug", "")}
+                    )
+                except Exception as e:
+                    return {
+                        "communities": [],
+                        "error": f"Community {community_id} not found: {str(e)}",
+                    }
         else:
             try:
                 communities_result = current_communities.service.search(
                     system_identity, size=1000
                 )
                 communities = [
-                    {"id": comm.id, "slug": comm.data.get("slug", "")}
+                    {"id": comm["id"], "slug": comm.get("slug", "")}
                     for comm in communities_result.hits
                 ]
             except Exception as e:
@@ -451,7 +526,7 @@ class CommunityStatsService:
                     "error": f"Failed to retrieve communities: {str(e)}",
                 }
 
-        result = {"communities": []}
+        result: dict[str, Any] = {"communities": []}
 
         for community in communities:
             comm_id = community["id"]
@@ -464,7 +539,7 @@ class CommunityStatsService:
             }
 
             for agg_type, index_pattern in aggregation_types.items():
-                agg_status = {
+                agg_status: dict[str, Any] = {
                     "bookmark_date": None,
                     "index_exists": False,
                     "document_count": 0,
@@ -475,8 +550,12 @@ class CommunityStatsService:
                 }
 
                 try:
-                    index = Index(index_pattern, using=self.client)
-                    if index.exists():
+                    # Check if any indices exist that match the pattern
+                    index_pattern_with_prefix = prefix_index(index_pattern)
+                    indices_exist = self.client.indices.exists(
+                        index=f"{index_pattern_with_prefix}*"
+                    )
+                    if indices_exist:
                         agg_status["index_exists"] = True
 
                         bookmark_api = CommunityBookmarkAPI(
@@ -486,19 +565,22 @@ class CommunityStatsService:
                         if bookmark:
                             agg_status["bookmark_date"] = bookmark.isoformat()
 
-                        search = Search(using=self.client, index=index_pattern)
+                        search = Search(
+                            using=self.client, index=f"{index_pattern_with_prefix}*"
+                        )
 
-                        if comm_id != "global":
-                            search = search.filter("term", community_id=comm_id)
+                        search = search.filter("term", community_id=comm_id)
 
                         count_search = search.extra(size=0)
                         count_result = count_search.execute()
-                        agg_status["document_count"] = count_result.hits.total.value
+                        document_count = count_result.hits.total.value or 0
+                        agg_status["document_count"] = document_count
 
-                        if agg_status["document_count"] > 0:
-                            date_field = "timestamp"
+                        if document_count > 0:
                             if "snapshot" in agg_type:
                                 date_field = "snapshot_date"
+                            else:  # delta aggregations
+                                date_field = "period_start"
 
                             date_search = search.extra(size=0)
                             date_search.aggs.bucket("min_date", "min", field=date_field)

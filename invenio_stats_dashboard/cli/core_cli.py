@@ -1,11 +1,12 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
+# Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 #
 # Copyright (C) 2025 Mesh Research
 #
 # invenio-stats-dashboard is free software; you can redistribute it
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
+
+"""Core CLI commands for community statistics aggregation and management."""
 
 from pprint import pprint
 
@@ -28,14 +29,17 @@ def check_stats_enabled():
         )
 
 
-def check_scheduled_tasks_enabled():
+def check_scheduled_tasks_enabled(command="aggregate"):
     """Check if scheduled tasks are enabled."""
     if not current_app.config.get("COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED", True):
-        raise click.ClickException(
+        message = (
             "Community stats scheduled tasks are disabled. "
             "Set COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED=True to enable "
             "aggregation tasks."
         )
+        if command == "aggregate":
+            message += " Use --force to bypass this check and run aggregation directly."
+        raise click.ClickException(message)
 
 
 @click.command(name="aggregate")
@@ -76,6 +80,11 @@ def check_scheduled_tasks_enabled():
     is_flag=True,
     help="Show detailed timing information for each aggregator",
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Force aggregation even if scheduled tasks are disabled",
+)
 @with_appcontext
 def aggregate_stats_command(
     community_id,
@@ -85,10 +94,20 @@ def aggregate_stats_command(
     update_bookmark,
     ignore_bookmark,
     verbose,
+    force,
 ):
     """Aggregate community record statistics."""
     check_stats_enabled()
-    check_scheduled_tasks_enabled()
+
+    # Only check scheduled tasks if not forcing the operation
+    if not force:
+        check_scheduled_tasks_enabled(command="aggregate")
+    else:
+        # Log that we're bypassing the scheduled tasks check
+        current_app.logger.info(
+            "Bypassing scheduled tasks check due to --force flag. "
+            "Running aggregation directly."
+        )
 
     community_ids = list(community_id) if community_id else None
 
@@ -113,6 +132,7 @@ def aggregate_stats_command(
             update_bookmark=update_bookmark,
             ignore_bookmark=ignore_bookmark,
             verbose=verbose,
+            force=force,
         )
 
     # Display results
@@ -161,19 +181,6 @@ def read_stats_command(community_id, start_date, end_date):
     pprint(stats)
 
 
-@click.command(name="status")
-@click.option(
-    "--community-id",
-    type=str,
-    help="The ID of the community to check status for. If not provided, "
-    "checks all communities.",
-)
-@click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    help="Show detailed information for each aggregation.",
-)
 def _abbreviate_agg_name(agg_type):
     """Abbreviate aggregation type name for display."""
     # Remove "community-records" from beginning and "-agg" from end
@@ -239,13 +246,30 @@ def _generate_completeness_bar(agg_status, start_date, total_days, bar_length=30
     return f"[{bar}]", percentage, days_text
 
 
+@click.command(name="status")
+@click.option(
+    "--community-id",
+    "-c",
+    multiple=True,
+    type=str,
+    help="The ID of the community to check status for. If not provided, "
+    "checks all communities. Can be specified multiple times to check status "
+    "for multiple communities.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed information for each aggregation.",
+)
 @with_appcontext
 def status_command(community_id, verbose):
     """Get aggregation status for communities."""
     check_stats_enabled()
 
     with Halo(text="Getting aggregation status...", spinner="dots"):
-        status = current_community_stats_service.get_aggregation_status(community_id)
+        community_ids = list(community_id) if community_id else None
+        status = current_community_stats_service.get_aggregation_status(community_ids)
 
     if "error" in status:
         click.echo(f"Error: {status['error']}", err=True)
