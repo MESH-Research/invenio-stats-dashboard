@@ -279,6 +279,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">--update-bookmark</span></code>: Update the progress bookmark after aggregation (default: True).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--ignore-bookmark</span></code>: Ignore the progress bookmark and force a full re-aggregation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--verbose</span></code>: Show detailed timing information for each aggregator.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--force</span></code>: Force aggregation even if scheduled tasks are disabled. Bypasses the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> configuration check.</p></li>
 </ul>
 <p><strong>Examples:</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Aggregate stats for all communities and the global instance</span>
@@ -292,8 +293,23 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>aggregate<
 
 <span class="c1"># Force eager aggregation with verbose output</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>aggregate<span class="w"> </span>--eager<span class="w"> </span>--ignore-bookmark<span class="w"> </span>--verbose
+
+<span class="c1"># Force aggregation when scheduled tasks are disabled</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>aggregate<span class="w"> </span>--force<span class="w"> </span>--verbose
 </pre></div>
 </div>
+<p><strong>Configuration Requirements:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">aggregate</span></code> command requires specific configuration settings to function properly:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> (default: <code class="docutils literal notranslate"><span class="pre">True</span></code>): Must be set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to enable community stats functionality. When disabled, the command will raise an error.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> (default: <code class="docutils literal notranslate"><span class="pre">True</span></code>): Controls whether scheduled aggregation tasks are enabled. When disabled, the command will require the <code class="docutils literal notranslate"><span class="pre">--force</span></code> flag to run.</p></li>
+</ul>
+<p><strong>Error Handling:</strong></p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the command will exit with an error message.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code> and <code class="docutils literal notranslate"><span class="pre">--force</span></code> is not provided, the command will exit with an error message suggesting to use <code class="docutils literal notranslate"><span class="pre">--force</span></code>.</p></li>
+<li><p>When <code class="docutils literal notranslate"><span class="pre">--force</span></code> is used, the command will log that it’s bypassing the scheduled tasks check.</p></li>
+</ul>
 </section>
 <section id="read">
 <h3><code class="docutils literal notranslate"><span class="pre">read</span></code><a class="headerlink" href="#read" title="Link to this heading">¶</a></h3>
@@ -306,6 +322,18 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>aggregate<
 <li><p><code class="docutils literal notranslate"><span class="pre">--community-id</span></code>: The ID of the community to read stats for (default: “global”).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--start-date</span></code>: The start date to read stats for (default: yesterday).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--end-date</span></code>: The end date to read stats for (default: today).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--query-type</span></code>: Specific query type to run instead of the meta-query. Available options:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-delta-created</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-delta-published</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-delta-added</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-snapshot-created</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-snapshot-published</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-record-snapshot-added</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-usage-delta</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-usage-snapshot</span></code></p></li>
+</ul>
+</li>
 </ul>
 <p><strong>Examples:</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Read global stats for yesterday</span>
@@ -313,8 +341,13 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span><span clas
 
 <span class="c1"># Read stats for specific community and date range</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span><span class="nb">read</span><span class="w"> </span>--community-id<span class="w"> </span>my-community<span class="w"> </span>--start-date<span class="w"> </span><span class="m">2024</span>-01-01<span class="w"> </span>--end-date<span class="w"> </span><span class="m">2024</span>-01-31
+
+<span class="c1"># Read specific query type for a community</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span><span class="nb">read</span><span class="w"> </span>--community-id<span class="w"> </span>my-community<span class="w"> </span>--query-type<span class="w"> </span>community-usage-delta<span class="w"> </span>--start-date<span class="w"> </span><span class="m">2024</span>-01-01
 </pre></div>
 </div>
+<p><strong>Configuration Requirements:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">read</span></code> command requires the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the command will exit with an error message.</p>
 </section>
 <section id="status">
 <h3><code class="docutils literal notranslate"><span class="pre">status</span></code><a class="headerlink" href="#status" title="Link to this heading">¶</a></h3>
@@ -358,6 +391,8 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>status<spa
 invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--community-id<span class="w"> </span>my-community-id<span class="w"> </span>--verbose
 </pre></div>
 </div>
+<p><strong>Configuration Requirements:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">status</span></code> command requires the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the command will exit with an error message.</p>
 <p><strong>Output Examples:</strong></p>
 <p>Concise mode:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Community: my-research-community (a1b2c3d4-e5f6-7890-abcd-ef1234567890)

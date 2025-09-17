@@ -294,11 +294,11 @@ an InvenioRDM instance or as environment variables.</p>
 <p>When scheduled tasks are disabled:</p>
 <ul class="simple">
 <li><p><strong>Scheduled aggregation tasks will not run</strong>: No automatic daily/weekly aggregation</p></li>
-<li><p><strong>CLI aggregation commands will fail</strong>: <code class="docutils literal notranslate"><span class="pre">aggregate-stats</span></code> command will show an error</p></li>
-<li><p><strong>Manual aggregation still works</strong>: You can still run aggregation manually via Celery tasks</p></li>
+<li><p><strong>CLI aggregation commands will fail</strong>: <code class="docutils literal notranslate"><span class="pre">aggregate</span></code> command will show an error unless <code class="docutils literal notranslate"><span class="pre">--force</span></code> is used</p></li>
+<li><p><strong>Manual aggregation with –force</strong>: You can still run aggregation manually using <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">aggregate</span> <span class="pre">--force</span></code></p></li>
 <li><p><strong>All other functionality remains</strong>: Event tracking, migration, and other features work normally</p></li>
 </ul>
-<p>This allows you to enable the module for manual operations while preventing automatic background tasks.</p>
+<p>This allows you to enable the module for manual operations while preventing automatic background tasks. The <code class="docutils literal notranslate"><span class="pre">--force</span></code> flag bypasses the scheduled tasks check and allows manual aggregation even when scheduled tasks are disabled.</p>
 </section>
 <section id="view-download-event-migration">
 <h2>View/Download event migration<a class="headerlink" href="#view-download-event-migration" title="Link to this heading">¶</a></h2>

@@ -20,6 +20,7 @@ invenio community-stats aggregate [OPTIONS]
 - `--update-bookmark`: Update the progress bookmark after aggregation (default: True).
 - `--ignore-bookmark`: Ignore the progress bookmark and force a full re-aggregation.
 - `--verbose`: Show detailed timing information for each aggregator.
+- `--force`: Force aggregation even if scheduled tasks are disabled. Bypasses the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration check.
 
 **Examples:**
 ```bash
@@ -34,7 +35,23 @@ invenio community-stats aggregate --start-date 2024-01-01 --end-date 2024-01-31
 
 # Force eager aggregation with verbose output
 invenio community-stats aggregate --eager --ignore-bookmark --verbose
+
+# Force aggregation when scheduled tasks are disabled
+invenio community-stats aggregate --force --verbose
 ```
+
+**Configuration Requirements:**
+
+The `aggregate` command requires specific configuration settings to function properly:
+
+- `COMMUNITY_STATS_ENABLED` (default: `True`): Must be set to `True` to enable community stats functionality. When disabled, the command will raise an error.
+- `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` (default: `True`): Controls whether scheduled aggregation tasks are enabled. When disabled, the command will require the `--force` flag to run.
+
+**Error Handling:**
+
+- If `COMMUNITY_STATS_ENABLED` is `False`, the command will exit with an error message.
+- If `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` is `False` and `--force` is not provided, the command will exit with an error message suggesting to use `--force`.
+- When `--force` is used, the command will log that it's bypassing the scheduled tasks check.
 
 #### `read`
 
@@ -48,6 +65,15 @@ invenio community-stats read [OPTIONS]
 - `--community-id`: The ID of the community to read stats for (default: "global").
 - `--start-date`: The start date to read stats for (default: yesterday).
 - `--end-date`: The end date to read stats for (default: today).
+- `--query-type`: Specific query type to run instead of the meta-query. Available options:
+  - `community-record-delta-created`
+  - `community-record-delta-published`
+  - `community-record-delta-added`
+  - `community-record-snapshot-created`
+  - `community-record-snapshot-published`
+  - `community-record-snapshot-added`
+  - `community-usage-delta`
+  - `community-usage-snapshot`
 
 **Examples:**
 ```bash
@@ -56,7 +82,14 @@ invenio community-stats read
 
 # Read stats for specific community and date range
 invenio community-stats read --community-id my-community --start-date 2024-01-01 --end-date 2024-01-31
+
+# Read specific query type for a community
+invenio community-stats read --community-id my-community --query-type community-usage-delta --start-date 2024-01-01
 ```
+
+**Configuration Requirements:**
+
+The `read` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
 
 #### `status`
 
@@ -100,6 +133,10 @@ invenio community-stats status --verbose
 # Show detailed information for specific community
 invenio community-stats status --community-id my-community-id --verbose
 ```
+
+**Configuration Requirements:**
+
+The `status` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
 
 **Output Examples:**
 

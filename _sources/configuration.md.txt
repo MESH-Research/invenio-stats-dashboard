@@ -35,11 +35,11 @@ COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
 
 When scheduled tasks are disabled:
 - **Scheduled aggregation tasks will not run**: No automatic daily/weekly aggregation
-- **CLI aggregation commands will fail**: `aggregate-stats` command will show an error
-- **Manual aggregation still works**: You can still run aggregation manually via Celery tasks
+- **CLI aggregation commands will fail**: `aggregate` command will show an error unless `--force` is used
+- **Manual aggregation with --force**: You can still run aggregation manually using `invenio community-stats aggregate --force`
 - **All other functionality remains**: Event tracking, migration, and other features work normally
 
-This allows you to enable the module for manual operations while preventing automatic background tasks.
+This allows you to enable the module for manual operations while preventing automatic background tasks. The `--force` flag bypasses the scheduled tasks check and allows manual aggregation even when scheduled tasks are disabled.
 
 ### View/Download event migration
 
