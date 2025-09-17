@@ -15,6 +15,7 @@ from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy.helpers.search import Search
 
+from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from invenio_stats_dashboard.utils.usage_events import UsageEventFactory
 
 
@@ -40,11 +41,12 @@ def test_synthetic_usage_event_creation(
 
     records = []
     test_dates = [
-        "2025-06-01T10:00:00.000000+00:00",
-        "2025-06-15T10:00:00.000000+00:00",
+        "2024-06-01T10:00:00.000000+00:00",
+        "2024-06-15T10:00:00.000000+00:00",
     ]
-    start_date = "2025-06-01"
-    end_date = "2025-08-07"
+    # Record creation date range for filtering
+    record_start_date = "2024-06-01"
+    record_end_date = "2024-08-07"
 
     for test_date in test_dates:
         test_metadata = copy.deepcopy(record_metadata().metadata_in)
@@ -70,16 +72,26 @@ def test_synthetic_usage_event_creation(
     client.indices.refresh(index=prefix_index("rdmrecords-records"))
 
     usage_events = UsageEventFactory().generate_and_index_repository_events(
-        start_date="2025-06-01",
-        end_date="2025-08-07",
+        start_date=record_start_date,
+        end_date=record_end_date,
         events_per_record=50,
+        event_start_date="2024-06-01",
+        event_end_date="2024-12-31",
     )
     assert usage_events["indexed"] == 200, "Should have indexed 200 events"
     assert usage_events["errors"] == 0, "Should have no indexing errors"
 
     client.indices.refresh(index="events-stats-*")
 
-    expected_months = ["2025-06", "2025-07", "2025-08"]
+    expected_months = [
+        "2024-06",
+        "2024-07",
+        "2024-08",
+        "2024-09",
+        "2024-10",
+        "2024-11",
+        "2024-12",
+    ]
     total_events = 0
 
     for month in expected_months:
@@ -133,8 +145,8 @@ def test_synthetic_usage_event_creation(
 
                 event_timestamp = arrow.get(event_data["timestamp"])
 
-                start_datetime = arrow.get(start_date)
-                end_datetime = arrow.get(end_date).ceil("day")
+                start_datetime = arrow.get("2024-06-01")
+                end_datetime = arrow.get("2024-12-31").ceil("day")
 
                 assert start_datetime <= event_timestamp <= end_datetime, (
                     f"View event timestamp {event_timestamp} should be between "
@@ -210,8 +222,8 @@ def test_synthetic_usage_event_creation(
 
                 event_timestamp = arrow.get(event_data["timestamp"])
 
-                start_datetime = arrow.get(start_date)
-                end_datetime = arrow.get(end_date).ceil("day")
+                start_datetime = arrow.get("2024-06-01")
+                end_datetime = arrow.get("2024-12-31").ceil("day")
 
                 assert start_datetime <= event_timestamp <= end_datetime, (
                     f"Download event timestamp {event_timestamp} should be between "
@@ -242,7 +254,7 @@ def test_usage_event_community_ids_with_same_day_community_added(
     community_id = community["id"]
 
     # Create a record with a specific creation date
-    test_date = "2025-06-15T10:00:00.000000+00:00"
+    test_date = "2024-06-15T10:00:00.000000+00:00"
     test_metadata = copy.deepcopy(record_metadata().metadata_in)
     test_metadata["created"] = test_date
     test_metadata["files"] = {
@@ -252,27 +264,14 @@ def test_usage_event_community_ids_with_same_day_community_added(
 
     file_path = Path(__file__).parent.parent / "helpers" / "sample_files" / "sample.pdf"
 
-    # Create record with community, but don't update community event dates
-    # This simulates the scenario where community was added on the same day
-    record = minimal_published_record_factory(
+    # Create record with community and update community event dates
+    # This will create the community "added" event with the correct date
+    minimal_published_record_factory(
         identity=user_identity,
         community_list=[community_id],
         metadata=test_metadata,
         file_paths=[file_path],
-        update_community_event_dates=False,  # Don't update community event dates
-    )
-
-    # Manually create a community "added" event for the same day
-    from invenio_stats_dashboard.services.components import (
-        update_community_events_index,
-    )
-
-    update_community_events_index(
-        record_id=str(record["id"]),
-        community_ids_to_add=[community_id],
-        timestamp=test_date,  # Same timestamp as record creation
-        record_created_date=test_date,
-        record_published_date=test_metadata.get("publication_date"),
+        update_community_event_dates=True,  # Update community event dates
     )
 
     client.indices.refresh(index=prefix_index("rdmrecords-records"))
@@ -280,9 +279,11 @@ def test_usage_event_community_ids_with_same_day_community_added(
 
     # Generate usage events for the same day (without enrichment initially)
     usage_events = UsageEventFactory().generate_and_index_repository_events(
-        start_date="2025-06-15",
-        end_date="2025-06-15",
+        start_date="2024-06-15",
+        end_date="2024-06-15",
         events_per_record=5,
+        event_start_date="2024-06-15",
+        event_end_date="2024-06-16",
         enrich_events=False,  # Don't enrich initially
     )
 
@@ -291,31 +292,24 @@ def test_usage_event_community_ids_with_same_day_community_added(
 
     client.indices.refresh(index="events-stats-*")
 
-    # Now test the migration service to enrich the events
-    from invenio_stats_dashboard.services.usage_reindexing import (
-        EventReindexingService,
-    )
-
     # FIXME: This test needs to be reworked
-    service = EventReindexingService(app=running_app.app)
+    service = current_event_reindexing_service
 
-    # Reindex events for June 2025 to add community_ids
+    # Reindex events for June 2024 to add community_ids
     results = service.reindex_events(
         event_types=["view"],
-        month_filter=["2025-06"],
+        month_filter=["2024-06"],
     )
 
     # Check that events were processed
-    june_results = results.get("2025-06", {})
-    view_results = june_results.get("view", {})
-    assert (
-        view_results.get("total_processed", 0) > 0
-    ), "Should have processed some events"
+    view_event_type = results.get("event_types", {}).get("view", {})
+    june_results = view_event_type.get("months", {}).get("2024-06", {})
+    assert june_results.get("processed", 0) > 0, "Should have processed some events"
 
     client.indices.refresh(index="events-stats-*")
 
     # Check that the events have community_ids populated
-    view_index = f"{prefix_index('events-stats-record-view')}-2025-06"
+    view_index = f"{prefix_index('events-stats-record-view')}"
     view_search = Search(using=client, index=view_index)
     view_search = view_search.query("match_all")
     view_results = view_search.execute()
