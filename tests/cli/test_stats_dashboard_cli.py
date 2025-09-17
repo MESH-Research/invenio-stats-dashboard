@@ -24,46 +24,71 @@ def cli_runner(base_app):
     return cli_invoke
 
 
-class TestGenerateEventsCommand:
-    """Test the generate-events CLI command."""
+class TestCommunityEventsGenerateCommand:
+    """Test the community-events generate CLI command."""
 
-    def test_generate_events_no_parameters(
+    def test_community_events_generate_no_parameters(
         self,
         running_app,
         db,
         search_clear,
         cli_runner,
     ):
-        """Test generate-events command with no parameters."""
+        """Test community-events generate command with no parameters."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
-            mock_service.generate_record_community_events.return_value = 5
+            # Mock count_records_needing_events to return records that need events
+            mock_service.count_records_needing_events.return_value = {
+                "total_records": 10,
+                "records_needing_events": 5,
+                "total_events_needed": 5,
+                "community_breakdown": {"global": 5},
+                "communities_checked": ["global"],
+            }
+            mock_service.generate_record_community_events.return_value = (5, 5, 0)
 
-            result = cli_runner(cli, "generate-events")
+            result = cli_runner(cli, "community-events", "generate")
 
             assert result.exit_code == 0
+            mock_service.count_records_needing_events.assert_called_once_with(
+                community_ids=None,
+                recids=None,
+                start_date=None,
+                end_date=None,
+            )
             mock_service.generate_record_community_events.assert_called_once_with(
                 community_ids=None,
                 recids=None,
+                start_date=None,
+                end_date=None,
             )
 
-    def test_generate_events_with_community_ids(
+    def test_community_events_generate_with_community_ids(
         self,
         running_app,
         db,
         search_clear,
         cli_runner,
     ):
-        """Test generate-events command with community IDs."""
+        """Test community-events generate command with community IDs."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
-            mock_service.generate_record_community_events.return_value = 3
+            # Mock count_records_needing_events to return records that need events
+            mock_service.count_records_needing_events.return_value = {
+                "total_records": 10,
+                "records_needing_events": 3,
+                "total_events_needed": 3,
+                "community_breakdown": {"comm-1": 2, "comm-2": 1},
+                "communities_checked": ["comm-1", "comm-2"],
+            }
+            mock_service.generate_record_community_events.return_value = (3, 3, 0)
 
             result = cli_runner(
                 cli,
-                "generate-events",
+                "community-events",
+                "generate",
                 "--community-id",
                 "comm-1",
                 "--community-id",
@@ -71,50 +96,89 @@ class TestGenerateEventsCommand:
             )
 
             assert result.exit_code == 0
+            mock_service.count_records_needing_events.assert_called_once_with(
+                community_ids=["comm-1", "comm-2"],
+                recids=None,
+                start_date=None,
+                end_date=None,
+            )
             mock_service.generate_record_community_events.assert_called_once_with(
                 community_ids=["comm-1", "comm-2"],
                 recids=None,
+                start_date=None,
+                end_date=None,
             )
 
-    def test_generate_events_with_record_ids(
+    def test_community_events_generate_with_record_ids(
         self,
         running_app,
         db,
         search_clear,
         cli_runner,
     ):
-        """Test generate-events command with record IDs."""
+        """Test community-events generate command with record IDs."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
-            mock_service.generate_record_community_events.return_value = 2
-
-            result = cli_runner(
-                cli, "generate-events", "--record-ids", "rec-1", "--record-ids", "rec-2"
-            )
-
-            assert result.exit_code == 0
-            mock_service.generate_record_community_events.assert_called_once_with(
-                community_ids=None,
-                recids=["rec-1", "rec-2"],
-            )
-
-    def test_generate_events_with_both_parameters(
-        self,
-        running_app,
-        db,
-        search_clear,
-        cli_runner,
-    ):
-        """Test generate-events command with both community and record IDs."""
-        with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
-        ) as mock_service:
-            mock_service.generate_record_community_events.return_value = 1
+            # Mock count_records_needing_events to return records that need events
+            mock_service.count_records_needing_events.return_value = {
+                "total_records": 2,
+                "records_needing_events": 2,
+                "total_events_needed": 2,
+                "community_breakdown": {"global": 2},
+                "communities_checked": ["global"],
+            }
+            mock_service.generate_record_community_events.return_value = (2, 2, 0)
 
             result = cli_runner(
                 cli,
-                "generate-events",
+                "community-events",
+                "generate",
+                "--record-ids",
+                "rec-1",
+                "--record-ids",
+                "rec-2",
+            )
+
+            assert result.exit_code == 0
+            mock_service.count_records_needing_events.assert_called_once_with(
+                community_ids=None,
+                recids=["rec-1", "rec-2"],
+                start_date=None,
+                end_date=None,
+            )
+            mock_service.generate_record_community_events.assert_called_once_with(
+                community_ids=None,
+                recids=["rec-1", "rec-2"],
+                start_date=None,
+                end_date=None,
+            )
+
+    def test_community_events_generate_with_both_parameters(
+        self,
+        running_app,
+        db,
+        search_clear,
+        cli_runner,
+    ):
+        """Test community-events generate command with both community and record IDs."""
+        with patch(
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
+        ) as mock_service:
+            # Mock count_records_needing_events to return records that need events
+            mock_service.count_records_needing_events.return_value = {
+                "total_records": 1,
+                "records_needing_events": 1,
+                "total_events_needed": 1,
+                "community_breakdown": {"comm-1": 1},
+                "communities_checked": ["comm-1"],
+            }
+            mock_service.generate_record_community_events.return_value = (1, 1, 0)
+
+            result = cli_runner(
+                cli,
+                "community-events",
+                "generate",
                 "--community-id",
                 "comm-1",
                 "--record-ids",
@@ -122,48 +186,65 @@ class TestGenerateEventsCommand:
             )
 
             assert result.exit_code == 0
+            mock_service.count_records_needing_events.assert_called_once_with(
+                community_ids=["comm-1"],
+                recids=["rec-1"],
+                start_date=None,
+                end_date=None,
+            )
             mock_service.generate_record_community_events.assert_called_once_with(
                 community_ids=["comm-1"],
                 recids=["rec-1"],
+                start_date=None,
+                end_date=None,
             )
 
-    def test_generate_events_service_error(
+    def test_community_events_generate_service_error(
         self,
         running_app,
         db,
         search_clear,
         cli_runner,
     ):
-        """Test generate-events command when service raises an error."""
+        """Test community-events generate command when service raises an error."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
+            # Mock count_records_needing_events to return records that need events
+            mock_service.count_records_needing_events.return_value = {
+                "total_records": 5,
+                "records_needing_events": 5,
+                "total_events_needed": 5,
+                "community_breakdown": {"global": 5},
+                "communities_checked": ["global"],
+            }
             mock_service.generate_record_community_events.side_effect = Exception(
                 "Service error"
             )
 
-            result = cli_runner(cli, "generate-events")
+            result = cli_runner(cli, "community-events", "generate")
 
             assert result.exit_code != 0
 
 
-class TestAggregateStatsCommand:
-    """Test the aggregate-stats CLI command."""
+class TestAggregateCommand:
+    """Test the aggregate CLI command."""
 
-    def test_aggregate_stats_no_parameters(
+    def test_aggregate_no_parameters(
         self,
         running_app,
         db,
         search_clear,
         cli_runner,
+        celery_worker,
     ):
-        """Test aggregate-stats command with no parameters."""
+        """Test aggregate command with no parameters."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
-            result = cli_runner(cli, "aggregate-stats")
+            result = cli_runner(cli, "aggregate")
 
             assert result.exit_code == 0
             mock_service.aggregate_stats.assert_called_once_with(
@@ -171,8 +252,10 @@ class TestAggregateStatsCommand:
                 start_date=None,
                 end_date=None,
                 eager=False,
-                update_bookmark=False,
+                update_bookmark=True,
                 ignore_bookmark=False,
+                verbose=False,
+                force=False,
             )
 
     def test_aggregate_stats_with_community_id(
@@ -181,14 +264,15 @@ class TestAggregateStatsCommand:
         db,
         search_clear,
         cli_runner,
+        celery_worker,
     ):
-        """Test aggregate-stats command with community ID."""
+        """Test aggregate command with community ID."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
-            result = cli_runner(cli, "aggregate-stats", "--community-id", "comm-1")
+            result = cli_runner(cli, "aggregate", "--community-id", "comm-1")
 
             assert result.exit_code == 0
             mock_service.aggregate_stats.assert_called_once_with(
@@ -206,16 +290,17 @@ class TestAggregateStatsCommand:
         db,
         search_clear,
         cli_runner,
+        celery_worker,
     ):
-        """Test aggregate-stats command with start and end dates."""
+        """Test aggregate command with start and end dates."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
             result = cli_runner(
                 cli,
-                "aggregate-stats",
+                "aggregate",
                 "--start-date",
                 "2024-01-01",
                 "--end-date",
@@ -239,13 +324,13 @@ class TestAggregateStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test aggregate-stats command with eager flag."""
+        """Test aggregate command with eager flag."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
-            result = cli_runner(cli, "aggregate-stats", "--eager")
+            result = cli_runner(cli, "aggregate", "--eager")
 
             assert result.exit_code == 0
             mock_service.aggregate_stats.assert_called_once_with(
@@ -263,14 +348,15 @@ class TestAggregateStatsCommand:
         db,
         search_clear,
         cli_runner,
+        celery_worker,
     ):
-        """Test aggregate-stats command with update-bookmark flag."""
+        """Test aggregate command with update-bookmark flag."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
-            result = cli_runner(cli, "aggregate-stats", "--update-bookmark")
+            result = cli_runner(cli, "aggregate", "--update-bookmark")
 
             assert result.exit_code == 0
             mock_service.aggregate_stats.assert_called_once_with(
@@ -288,14 +374,15 @@ class TestAggregateStatsCommand:
         db,
         search_clear,
         cli_runner,
+        celery_worker,
     ):
-        """Test aggregate-stats command with ignore-bookmark flag."""
+        """Test aggregate command with ignore-bookmark flag."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
-            result = cli_runner(cli, "aggregate-stats", "--ignore-bookmark")
+            result = cli_runner(cli, "aggregate", "--ignore-bookmark")
 
             assert result.exit_code == 0
             mock_service.aggregate_stats.assert_called_once_with(
@@ -313,16 +400,17 @@ class TestAggregateStatsCommand:
         db,
         search_clear,
         cli_runner,
+        celery_worker,
     ):
-        """Test aggregate-stats command with all parameters."""
+        """Test aggregate command with all parameters."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.return_value = {"status": "success"}
 
             result = cli_runner(
                 cli,
-                "aggregate-stats",
+                "aggregate",
                 "--community-id",
                 "comm-1",
                 "--start-date",
@@ -351,19 +439,19 @@ class TestAggregateStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test aggregate-stats command when service raises an error."""
+        """Test aggregate command when service raises an error."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.aggregate_stats.side_effect = Exception("Service error")
 
-            result = cli_runner(cli, "aggregate-stats")
+            result = cli_runner(cli, "aggregate")
 
             assert result.exit_code != 0
 
 
 class TestReadStatsCommand:
-    """Test the read-stats CLI command."""
+    """Test the read CLI command."""
 
     def test_read_stats_default_parameters(
         self,
@@ -372,9 +460,9 @@ class TestReadStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test read-stats command with default parameters."""
+        """Test read command with default parameters."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_stats = {
                 "community_id": "global",
@@ -383,7 +471,7 @@ class TestReadStatsCommand:
             }
             mock_service.get_community_stats.return_value = mock_stats
 
-            result = cli_runner(cli, "read-stats")
+            result = cli_runner(cli, "read")
 
             assert result.exit_code == 0
             # Check that the command printed the stats
@@ -405,9 +493,9 @@ class TestReadStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test read-stats command with custom community ID."""
+        """Test read command with custom community ID."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_stats = {
                 "community_id": "comm-1",
@@ -416,7 +504,7 @@ class TestReadStatsCommand:
             }
             mock_service.get_community_stats.return_value = mock_stats
 
-            result = cli_runner(cli, "read-stats", "--community-id", "comm-1")
+            result = cli_runner(cli, "read", "--community-id", "comm-1")
 
             assert result.exit_code == 0
             assert "Reading stats for community comm-1" in result.output
@@ -433,9 +521,9 @@ class TestReadStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test read-stats command with custom dates."""
+        """Test read command with custom dates."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_stats = {
                 "community_id": "global",
@@ -446,7 +534,7 @@ class TestReadStatsCommand:
 
             result = cli_runner(
                 cli,
-                "read-stats",
+                "read",
                 "--start-date",
                 "2024-01-01T00:00:00Z",
                 "--end-date",
@@ -469,9 +557,9 @@ class TestReadStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test read-stats command with all parameters."""
+        """Test read command with all parameters."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_stats = {
                 "community_id": "comm-1",
@@ -485,7 +573,7 @@ class TestReadStatsCommand:
 
             result = cli_runner(
                 cli,
-                "read-stats",
+                "read",
                 "--community-id",
                 "comm-1",
                 "--start-date",
@@ -513,13 +601,13 @@ class TestReadStatsCommand:
         search_clear,
         cli_runner,
     ):
-        """Test read-stats command when service raises an error."""
+        """Test read command when service raises an error."""
         with patch(
-            "invenio_stats_dashboard.cli.current_community_stats_service"
+            "invenio_stats_dashboard.proxies.current_community_stats_service"
         ) as mock_service:
             mock_service.get_community_stats.side_effect = Exception("Service error")
 
-            result = cli_runner(cli, "read-stats")
+            result = cli_runner(cli, "read")
 
             assert result.exit_code != 0
 
@@ -527,16 +615,16 @@ class TestReadStatsCommand:
 class TestCLIHelp:
     """Test CLI help functionality."""
 
-    def test_cli_help(self, running_app, db, cli_runner):
+    def test_cli_help(self, running_app, cli_runner):
         """Test that the CLI shows help information."""
         result = cli_runner(cli, "--help")
 
         assert result.exit_code == 0
         assert "generate-events" in result.output
-        assert "aggregate-stats" in result.output
-        assert "read-stats" in result.output
+        assert "aggregate" in result.output
+        assert "read" in result.output
 
-    def test_generate_events_help(self, running_app, db, cli_runner):
+    def test_generate_events_help(self, running_app, cli_runner):
         """Test generate-events command help."""
         result = cli_runner(cli, "generate-events", "--help")
 
@@ -544,9 +632,9 @@ class TestCLIHelp:
         assert "--community-id" in result.output
         assert "--record-ids" in result.output
 
-    def test_aggregate_stats_help(self, running_app, db, cli_runner):
-        """Test aggregate-stats command help."""
-        result = cli_runner(cli, "aggregate-stats", "--help")
+    def test_aggregate_stats_help(self, running_app, cli_runner):
+        """Test aggregate command help."""
+        result = cli_runner(cli, "aggregate", "--help")
 
         assert result.exit_code == 0
         assert "--community-id" in result.output
@@ -556,14 +644,110 @@ class TestCLIHelp:
         assert "--update-bookmark" in result.output
         assert "--ignore-bookmark" in result.output
 
-    def test_read_stats_help(self, running_app, db, cli_runner):
-        """Test read-stats command help."""
-        result = cli_runner(cli, "read-stats", "--help")
+    def test_read_stats_help(self, running_app, cli_runner):
+        """Test read command help."""
+        result = cli_runner(cli, "read", "--help")
 
         assert result.exit_code == 0
         assert "--community-id" in result.output
         assert "--start-date" in result.output
         assert "--end-date" in result.output
+
+
+class TestUsageEventsCommand:
+    """Test the usage-events CLI commands."""
+
+    def test_usage_events_generate_no_parameters(
+        self,
+        running_app,
+        db,
+        search_clear,
+        cli_runner,
+    ):
+        """Test usage-events generate command with no parameters."""
+        with patch(
+            "invenio_stats_dashboard.utils.usage_events.UsageEventFactory"
+        ) as mock_factory:
+            mock_instance = mock_factory.return_value
+            mock_instance.generate_and_index_repository_events.return_value = {
+                "indexed": 10,
+                "errors": 0,
+            }
+
+            result = cli_runner(cli, "usage-events", "generate")
+
+            assert result.exit_code == 0
+            mock_instance.generate_and_index_repository_events.assert_called_once()
+
+    def test_usage_events_generate_with_parameters(
+        self,
+        running_app,
+        db,
+        search_clear,
+        cli_runner,
+    ):
+        """Test usage-events generate command with parameters."""
+        with patch(
+            "invenio_stats_dashboard.utils.usage_events.UsageEventFactory"
+        ) as mock_factory:
+            mock_instance = mock_factory.return_value
+            mock_instance.generate_and_index_repository_events.return_value = {
+                "indexed": 5,
+                "errors": 0,
+            }
+
+            result = cli_runner(
+                cli,
+                "usage-events",
+                "generate",
+                "--start-date",
+                "2024-01-01",
+                "--end-date",
+                "2024-01-31",
+                "--events-per-record",
+                "10",
+            )
+
+            assert result.exit_code == 0
+            mock_instance.generate_and_index_repository_events.assert_called_once()
+
+
+class TestProcessesCommand:
+    """Test the processes CLI commands."""
+
+    def test_processes_status_no_parameters(
+        self,
+        running_app,
+        db,
+        search_clear,
+        cli_runner,
+    ):
+        """Test processes status command with no parameters."""
+        result = cli_runner(cli, "processes", "status")
+
+        # This command might fail if no process is running, but should not crash
+        assert result.exit_code in [0, 1]
+
+    def test_processes_status_with_parameters(
+        self,
+        running_app,
+        db,
+        search_clear,
+        cli_runner,
+    ):
+        """Test processes status command with parameters."""
+        result = cli_runner(
+            cli,
+            "processes",
+            "status",
+            "test-process",
+            "--show-log",
+            "--log-lines",
+            "10",
+        )
+
+        # This command might fail if no process is running, but should not crash
+        assert result.exit_code in [0, 1]
 
 
 class TestCLIIntegration:
@@ -613,7 +797,8 @@ class TestCLIIntegration:
         # Test the command
         result = cli_runner(
             cli,
-            "generate-events",
+            "community-events",
+            "generate",
             "--community-id",
             community_id,
             "--record-ids",
@@ -629,9 +814,9 @@ class TestCLIIntegration:
         search_clear,
         cli_runner,
     ):
-        """Test read-stats command with real service integration."""
+        """Test read command with real service integration."""
         # Test with default parameters
-        result = cli_runner(cli, "read-stats")
+        result = cli_runner(cli, "read")
 
         # The command should succeed even if no stats exist yet
         assert result.exit_code == 0
