@@ -53,13 +53,13 @@ describe('transformApiData', () => {
       expect(deltaData.global.records[0]).toHaveProperty('type');
       expect(deltaData.global.records[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure (all metrics for record deltas)
-      expect(deltaData).toHaveProperty('byFilePresence');
-      expect(deltaData.byFilePresence).toHaveProperty('records');
-      expect(deltaData.byFilePresence).toHaveProperty('parents');
-      expect(deltaData.byFilePresence).toHaveProperty('uploaders');
-      expect(deltaData.byFilePresence).toHaveProperty('fileCount');
-      expect(deltaData.byFilePresence).toHaveProperty('dataVolume');
+      // Check filePresence structure (all metrics for record deltas)
+      expect(deltaData).toHaveProperty('filePresence');
+      expect(deltaData.filePresence).toHaveProperty('records');
+      expect(deltaData.filePresence).toHaveProperty('parents');
+      expect(deltaData.filePresence).toHaveProperty('uploaders');
+      expect(deltaData.filePresence).toHaveProperty('fileCount');
+      expect(deltaData.filePresence).toHaveProperty('dataVolume');
 
       // Check subcount categories
       expect(deltaData).toHaveProperty('resourceTypes');
@@ -93,13 +93,13 @@ describe('transformApiData', () => {
       expect(snapshotData.global.records[0]).toHaveProperty('type');
       expect(snapshotData.global.records[0]).toHaveProperty('valueType');
 
-      // Check byFilePresence structure (only records and parents)
-      expect(snapshotData).toHaveProperty('byFilePresence');
-      expect(snapshotData.byFilePresence).toHaveProperty('records');
-      expect(snapshotData.byFilePresence).toHaveProperty('parents');
-      expect(snapshotData.byFilePresence).not.toHaveProperty('uploaders');
-      expect(snapshotData.byFilePresence).not.toHaveProperty('fileCount');
-      expect(snapshotData.byFilePresence).not.toHaveProperty('dataVolume');
+      // Check filePresence structure (only records and parents)
+      expect(snapshotData).toHaveProperty('filePresence');
+      expect(snapshotData.filePresence).toHaveProperty('records');
+      expect(snapshotData.filePresence).toHaveProperty('parents');
+      expect(snapshotData.filePresence).not.toHaveProperty('uploaders');
+      expect(snapshotData.filePresence).not.toHaveProperty('fileCount');
+      expect(snapshotData.filePresence).not.toHaveProperty('dataVolume');
     });
 
     test('should transform usage delta data correctly', () => {
@@ -120,20 +120,20 @@ describe('transformApiData', () => {
       expect(deltaData.global.views[0]).toHaveProperty('type');
       expect(deltaData.global.views[0]).toHaveProperty('valueType');
 
-      // byFilePresence is implemented for usage data
-      expect(deltaData).toHaveProperty('byFilePresence');
+      // filePresence is implemented for usage data
+      expect(deltaData).toHaveProperty('filePresence');
 
       // Check subcount categories
-      expect(deltaData).toHaveProperty('byAccessStatuses');
-      expect(deltaData).toHaveProperty('byFileTypes');
-      expect(deltaData).toHaveProperty('byLanguages');
-      expect(deltaData).toHaveProperty('byResourceTypes');
-      expect(deltaData).toHaveProperty('bySubjects');
-      expect(deltaData).toHaveProperty('byPublishers');
-      expect(deltaData).toHaveProperty('byRights');
-      expect(deltaData).toHaveProperty('byCountries');
-      expect(deltaData).toHaveProperty('byReferrers');
-      expect(deltaData).toHaveProperty('byAffiliations');
+      expect(deltaData).toHaveProperty('accessStatuses');
+      expect(deltaData).toHaveProperty('fileTypes');
+      expect(deltaData).toHaveProperty('languages');
+      expect(deltaData).toHaveProperty('resourceTypes');
+      expect(deltaData).toHaveProperty('subjects');
+      expect(deltaData).toHaveProperty('publishers');
+      expect(deltaData).toHaveProperty('rights');
+      expect(deltaData).toHaveProperty('countries');
+      expect(deltaData).toHaveProperty('referrers');
+      expect(deltaData).toHaveProperty('affiliations');
     });
 
     test('should transform usage snapshot data correctly', () => {
@@ -154,22 +154,22 @@ describe('transformApiData', () => {
       expect(snapshotData.global.views[0]).toHaveProperty('type');
       expect(snapshotData.global.views[0]).toHaveProperty('valueType');
 
-      // byFilePresence is implemented for usage data
-      expect(snapshotData).toHaveProperty('byFilePresence');
+      // filePresence is implemented for usage data
+      expect(snapshotData).toHaveProperty('filePresence');
 
       // Check separate view/download properties
-      expect(snapshotData).toHaveProperty('topCountriesByView');
-      expect(snapshotData).toHaveProperty('topCountriesByDownload');
-      expect(snapshotData).toHaveProperty('topSubjectsByView');
-      expect(snapshotData).toHaveProperty('topSubjectsByDownload');
-      expect(snapshotData).toHaveProperty('topPublishersByView');
-      expect(snapshotData).toHaveProperty('topPublishersByDownload');
-      expect(snapshotData).toHaveProperty('topRightsByView');
-      expect(snapshotData).toHaveProperty('topRightsByDownload');
-      expect(snapshotData).toHaveProperty('topReferrersByView');
-      expect(snapshotData).toHaveProperty('topReferrersByDownload');
-      expect(snapshotData).toHaveProperty('topAffiliationsByView');
-      expect(snapshotData).toHaveProperty('topAffiliationsByDownload');
+      expect(snapshotData).toHaveProperty('countriesByView');
+      expect(snapshotData).toHaveProperty('countriesByDownload');
+      expect(snapshotData).toHaveProperty('subjectsByView');
+      expect(snapshotData).toHaveProperty('subjectsByDownload');
+      expect(snapshotData).toHaveProperty('publishersByView');
+      expect(snapshotData).toHaveProperty('publishersByDownload');
+      expect(snapshotData).toHaveProperty('rightsByView');
+      expect(snapshotData).toHaveProperty('rightsByDownload');
+      expect(snapshotData).toHaveProperty('referrersByView');
+      expect(snapshotData).toHaveProperty('referrersByDownload');
+      expect(snapshotData).toHaveProperty('affiliationsByView');
+      expect(snapshotData).toHaveProperty('affiliationsByDownload');
     });
 
     test('should create correct DataPoint objects', () => {
@@ -203,15 +203,15 @@ describe('transformApiData', () => {
       expect(typeof dataSeries.valueType).toBe('string');
     });
 
-    test('should handle byFilePresence data correctly', () => {
+    test('should handle filePresence data correctly', () => {
       const deltaData = result.recordDeltaDataCreated;
-      const byFilePresence = deltaData.byFilePresence.records;
+      const filePresence = deltaData.filePresence.records;
 
-      expect(Array.isArray(byFilePresence)).toBe(true);
-      expect(byFilePresence.length).toBeGreaterThan(0);
+      expect(Array.isArray(filePresence)).toBe(true);
+      expect(filePresence.length).toBeGreaterThan(0);
 
       // Should have 'withFiles' and 'metadataOnly' series
-      const seriesNames = byFilePresence.map(series => series.name);
+      const seriesNames = filePresence.map(series => series.name);
       expect(seriesNames).toContain('withFiles');
       expect(seriesNames).toContain('metadataOnly');
     });
@@ -321,7 +321,7 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       expect(result.recordDeltaDataCreated).toHaveProperty('global');
-      expect(result.recordDeltaDataCreated).toHaveProperty('byFilePresence');
+      expect(result.recordDeltaDataCreated).toHaveProperty('filePresence');
       expect(result.recordDeltaDataCreated).toHaveProperty('resourceTypes');
       expect(result.recordDeltaDataCreated).toHaveProperty('accessStatuses');
       expect(result.recordDeltaDataCreated).toHaveProperty('languages');
@@ -342,7 +342,7 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       expect(result.recordSnapshotDataCreated).toHaveProperty('global');
-      expect(result.recordSnapshotDataCreated).toHaveProperty('byFilePresence');
+      expect(result.recordSnapshotDataCreated).toHaveProperty('filePresence');
       expect(result.recordSnapshotDataCreated).toHaveProperty('accessStatuses');
     });
 
@@ -357,23 +357,23 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       expect(result.usageSnapshotData).toHaveProperty('global');
-      expect(result.usageSnapshotData).toHaveProperty('byFilePresence');
-      expect(result.usageSnapshotData).toHaveProperty('byAccessStatuses');
-      expect(result.usageSnapshotData).toHaveProperty('byFileTypes');
-      expect(result.usageSnapshotData).toHaveProperty('byLanguages');
-      expect(result.usageSnapshotData).toHaveProperty('byResourceTypes');
-      expect(result.usageSnapshotData).toHaveProperty('topCountriesByView');
-      expect(result.usageSnapshotData).toHaveProperty('topCountriesByDownload');
-      expect(result.usageSnapshotData).toHaveProperty('topSubjectsByView');
-      expect(result.usageSnapshotData).toHaveProperty('topSubjectsByDownload');
-      expect(result.usageSnapshotData).toHaveProperty('topPublishersByView');
-      expect(result.usageSnapshotData).toHaveProperty('topPublishersByDownload');
-      expect(result.usageSnapshotData).toHaveProperty('topRightsByView');
-      expect(result.usageSnapshotData).toHaveProperty('topRightsByDownload');
-      expect(result.usageSnapshotData).toHaveProperty('topReferrersByView');
-      expect(result.usageSnapshotData).toHaveProperty('topReferrersByDownload');
-      expect(result.usageSnapshotData).toHaveProperty('topAffiliationsByView');
-      expect(result.usageSnapshotData).toHaveProperty('topAffiliationsByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('filePresence');
+      expect(result.usageSnapshotData).toHaveProperty('accessStatuses');
+      expect(result.usageSnapshotData).toHaveProperty('fileTypes');
+      expect(result.usageSnapshotData).toHaveProperty('languages');
+      expect(result.usageSnapshotData).toHaveProperty('resourceTypes');
+      expect(result.usageSnapshotData).toHaveProperty('countriesByView');
+      expect(result.usageSnapshotData).toHaveProperty('countriesByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('subjectsByView');
+      expect(result.usageSnapshotData).toHaveProperty('subjectsByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('publishersByView');
+      expect(result.usageSnapshotData).toHaveProperty('publishersByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('rightsByView');
+      expect(result.usageSnapshotData).toHaveProperty('rightsByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('referrersByView');
+      expect(result.usageSnapshotData).toHaveProperty('referrersByDownload');
+      expect(result.usageSnapshotData).toHaveProperty('affiliationsByView');
+      expect(result.usageSnapshotData).toHaveProperty('affiliationsByDownload');
     });
   });
 
@@ -476,9 +476,9 @@ describe('transformApiData', () => {
           {
             ...sampleRecordDelta,
             subcounts: {
-              by_access_statuses: [],
-              by_affiliations_contributors: [],
-              by_file_types: []
+              access_statuses: [],
+              affiliations_contributors: [],
+              file_types: []
             }
           }
         ],
@@ -505,7 +505,7 @@ describe('transformApiData', () => {
 
       const result = transformApiData(rawStats);
 
-      // Should handle both nested structure (by_access_statuses) and direct structure (by_file_types)
+      // Should handle both nested structure (access_statuses) and direct structure (file_types)
       expect(result.recordDeltaDataCreated.accessStatuses.records.length).toBeGreaterThan(0);
       expect(result.recordDeltaDataCreated.fileTypes.records.length).toBeGreaterThan(0);
     });
@@ -521,10 +521,10 @@ describe('transformApiData', () => {
       const result = transformApiData(rawStats);
 
       // Should create separate series for view and download data
-      expect(result.usageSnapshotData.topCountriesByView).toBeDefined();
-      expect(result.usageSnapshotData.topCountriesByDownload).toBeDefined();
-      expect(result.usageSnapshotData.topCountriesByView.views.length).toBeGreaterThan(0);
-      expect(result.usageSnapshotData.topCountriesByDownload.downloads.length).toBeGreaterThan(0);
+      expect(result.usageSnapshotData.countriesByView).toBeDefined();
+      expect(result.usageSnapshotData.countriesByDownload).toBeDefined();
+      expect(result.usageSnapshotData.countriesByView.views.length).toBeGreaterThan(0);
+      expect(result.usageSnapshotData.countriesByDownload.downloads.length).toBeGreaterThan(0);
     });
   });
 

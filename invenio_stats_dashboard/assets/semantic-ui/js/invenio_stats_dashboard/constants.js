@@ -101,9 +101,9 @@ const getSubcountKeyMapping = (frontendKeys, allowedSubcounts = {}) => {
     let frontendKey = backendKey.replace(/^by_/, '').replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
     console.log(`Converting ${backendKey} -> ${frontendKey}`);
 
-    // Handle special case for byFilePresence
+    // Handle special case for filePresence
     if (backendKey === 'by_file_presence') {
-      frontendKey = 'byFilePresence';
+      frontendKey = 'filePresence';
     }
 
     // Check if this frontend key exists in availableBreakdowns

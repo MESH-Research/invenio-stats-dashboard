@@ -122,7 +122,7 @@ export const extractRecordSnapshotValue = (stats, recordBasis, metric, category 
  *
  * @param {Object} stats - The transformed stats object
  * @param {string} metric - Metric name ('views', 'downloads', 'visitors', 'dataVolume')
- * @param {string} category - Data category ('global', 'byAccessStatus', etc.)
+ * @param {string} category - Data category ('global', 'accessStatuses', etc.)
  * @param {Object} dateRange - Date range object
  * @returns {number} The total value across the date range
  */
@@ -161,7 +161,7 @@ export const extractUsageDeltaValue = (stats, metric, category = 'global', dateR
  *
  * @param {Object} stats - The transformed stats object
  * @param {string} metric - Metric name ('views', 'downloads', 'visitors', 'dataVolume')
- * @param {string} category - Data category ('global', 'byAccessStatus', etc.)
+ * @param {string} category - Data category ('global', 'accessStatuses', etc.)
  * @param {Object} dateRange - Date range object
  * @returns {number} The latest value within the date range
  */

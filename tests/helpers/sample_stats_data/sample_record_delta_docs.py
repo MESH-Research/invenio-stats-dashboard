@@ -28,7 +28,7 @@ MOCK_RECORD_DELTA_DOCS = [
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
             "subcounts": {
-                "by_access_statuses": [
+                "access_statuses": [
                     {
                         "files": {
                             "added": {"data_volume": 59117831.0, "file_count": 2},
@@ -46,7 +46,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_affiliations_contributor": [
+                "affiliations_contributor": [
                     {
                         "files": {
                             "added": {"data_volume": 458036.0, "file_count": 1},
@@ -64,7 +64,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_affiliations_creator": [
+                "affiliations_creator": [
                     {
                         "files": {
                             "added": {"data_volume": 458036.0, "file_count": 1},
@@ -82,7 +82,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_file_types": [
+                "file_types": [
                     {
                         "files": {
                             "added": {"data_volume": 59117831.0, "file_count": 2},
@@ -100,8 +100,8 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_funders": [],
-                "by_languages": [
+                "funders": [],
+                "languages": [
                     {
                         "files": {
                             "added": {"data_volume": 458036.0, "file_count": 1},
@@ -119,9 +119,9 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_rights": [],
-                "by_periodicals": [],
-                "by_publishers": [
+                "rights": [],
+                "periodicals": [],
+                "publishers": [
                     {
                         "files": {
                             "added": {"data_volume": 58659795.0, "file_count": 1},
@@ -155,7 +155,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     },
                 ],
-                "by_resource_types": [
+                "resource_types": [
                     {
                         "files": {
                             "added": {"data_volume": 58659795.0, "file_count": 1},
@@ -189,7 +189,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     },
                 ],
-                "by_subjects": [
+                "subjects": [
                     {
                         "files": {
                             "added": {"data_volume": 58659795.0, "file_count": 1},
@@ -330,17 +330,17 @@ MOCK_RECORD_DELTA_DOCS = [
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
             "subcounts": {
-                "by_access_statuses": [],
-                "by_affiliations_contributor": [],
-                "by_affiliations_creator": [],
-                "by_file_types": [],
-                "by_funders": [],
-                "by_languages": [],
-                "by_rights": [],
-                "by_periodicals": [],
-                "by_publishers": [],
-                "by_resource_types": [],
-                "by_subjects": [],
+                "access_statuses": [],
+                "affiliations_contributor": [],
+                "affiliations_creator": [],
+                "file_types": [],
+                "funders": [],
+                "languages": [],
+                "rights": [],
+                "periodicals": [],
+                "publishers": [],
+                "resource_types": [],
+                "subjects": [],
             },
             "timestamp": "2025-06-05T18:45:58",
             "updated_timestamp": "2025-06-05T18:45:58",
@@ -368,17 +368,17 @@ MOCK_RECORD_DELTA_DOCS = [
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
             "subcounts": {
-                "by_access_statuses": [],
-                "by_affiliations_contributor": [],
-                "by_affiliations_creator": [],
-                "by_file_types": [],
-                "by_funders": [],
-                "by_languages": [],
-                "by_rights": [],
-                "by_periodicals": [],
-                "by_publishers": [],
-                "by_resource_types": [],
-                "by_subjects": [],
+                "access_statuses": [],
+                "affiliations_contributor": [],
+                "affiliations_creator": [],
+                "file_types": [],
+                "funders": [],
+                "languages": [],
+                "rights": [],
+                "periodicals": [],
+                "publishers": [],
+                "resource_types": [],
+                "subjects": [],
             },
             "timestamp": "2025-06-05T18:45:58",
             "updated_timestamp": "2025-06-05T18:45:58",
@@ -406,17 +406,17 @@ MOCK_RECORD_DELTA_DOCS = [
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
             "subcounts": {
-                "by_access_statuses": [],
-                "by_affiliations_contributor": [],
-                "by_affiliations_creator": [],
-                "by_file_types": [],
-                "by_funders": [],
-                "by_languages": [],
-                "by_rights": [],
-                "by_periodicals": [],
-                "by_publishers": [],
-                "by_resource_types": [],
-                "by_subjects": [],
+                "access_statuses": [],
+                "affiliations_contributor": [],
+                "affiliations_creator": [],
+                "file_types": [],
+                "funders": [],
+                "languages": [],
+                "rights": [],
+                "periodicals": [],
+                "publishers": [],
+                "resource_types": [],
+                "subjects": [],
             },
             "timestamp": "2025-06-05T18:45:58",
             "updated_timestamp": "2025-06-05T18:45:58",
@@ -444,7 +444,7 @@ MOCK_RECORD_DELTA_DOCS = [
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
             "subcounts": {
-                "by_access_statuses": [
+                "access_statuses": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -478,7 +478,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     },
                 ],
-                "by_affiliations_contributor": [
+                "affiliations_contributor": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -496,7 +496,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_affiliations_creator": [
+                "affiliations_creator": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -514,7 +514,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_file_types": [
+                "file_types": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -532,7 +532,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_funders": [
+                "funders": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -550,7 +550,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_languages": [
+                "languages": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -568,7 +568,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_rights": [
+                "rights": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -590,7 +590,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_periodicals": [
+                "periodicals": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -608,7 +608,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_publishers": [
+                "publishers": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -642,7 +642,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     },
                 ],
-                "by_resource_types": [
+                "resource_types": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -676,7 +676,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     },
                 ],
-                "by_subjects": [
+                "subjects": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -881,7 +881,7 @@ MOCK_RECORD_DELTA_DOCS = [
                 "removed": {"metadata_only": 0, "with_files": 1},
             },
             "subcounts": {
-                "by_access_statuses": [
+                "access_statuses": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -899,7 +899,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_affiliations_contributor": [
+                "affiliations_contributor": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -917,8 +917,8 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_affiliations_creator": [],
-                "by_file_types": [
+                "affiliations_creator": [],
+                "file_types": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -936,7 +936,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_funders": [
+                "funders": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -954,7 +954,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_languages": [
+                "languages": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -972,7 +972,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_rights": [
+                "rights": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -994,7 +994,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_periodicals": [
+                "periodicals": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -1012,7 +1012,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_publishers": [
+                "publishers": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -1030,7 +1030,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_resource_types": [
+                "resource_types": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -1048,7 +1048,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "by_subjects": [],
+                "subjects": [],
             },
             "timestamp": "2025-06-10T00:45:10",
             "updated_timestamp": "2025-06-10T00:45:10",

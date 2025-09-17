@@ -55,7 +55,7 @@
                 "subcounts": {
                     "type": "object",
                     "properties": {
-                        "all_resource_types": {
+                        "resource_types": {
                             "type": "nested",
                             "properties": {
                                 "id": {
@@ -87,7 +87,7 @@
                                 }
                             }
                         },
-                        "all_access_statuses": {
+                        "access_statuses": {
                             "type": "nested",
                             "properties": {
                                 "id": {
@@ -118,7 +118,7 @@
                                 }
                             }
                         },
-                        "top_languages": {
+                        "languages": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -187,7 +187,7 @@
                                 }
                             }
                         },
-                        "all_file_types": {
+                        "file_types": {
                             "type": "nested",
                             "properties": {
                                 "id": {
@@ -218,7 +218,7 @@
                                 }
                             }
                         },
-                        "top_affiliations": {
+                        "affiliations": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -285,7 +285,7 @@
                                 }
                             }
                         },
-                        "top_funders": {
+                        "funders": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -352,7 +352,7 @@
                                 }
                             }
                         },
-                        "top_subjects": {
+                        "subjects": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -419,7 +419,7 @@
                                 }
                             }
                         },
-                        "top_publishers": {
+                        "publishers": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -486,7 +486,7 @@
                                 }
                             }
                         },
-                        "top_periodicals": {
+                        "periodicals": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -553,70 +553,7 @@
                                 }
                             }
                         },
-                        "top_countries": {
-                            "type": "nested",
-                            "properties": {
-                                "by_view": {
-                                    "type": "nested",
-                                    "properties": {
-                                        "id": {
-                                            "type": "keyword"
-                                        },
-                                        "label": {
-                                            "type": "keyword"
-                                        },
-                                        "view": {
-                                            "type": "object",
-                                            "properties": {
-                                                "total_events": { "type": "integer" },
-                                                "unique_visitors": { "type": "integer" },
-                                                "unique_records": { "type": "integer" },
-                                                "unique_parents": { "type": "integer" }
-                                            }
-                                        },
-                                        "download": {
-                                            "type": "object",
-                                            "properties": {
-                                                "total_events": { "type": "integer" },
-                                                "unique_visitors": { "type": "integer" },
-                                                "unique_records": { "type": "integer" },
-                                                "unique_parents": { "type": "integer" },
-                                                "unique_files": { "type": "integer" },
-                                                "total_volume": { "type": "long" }
-                                            }
-                                        }
-                                    }
-                                },
-                                "by_download": {
-                                    "type": "nested",
-                                    "properties": {
-                                        "id": { "type": "keyword" },
-                                        "label": { "type": "keyword" },
-                                        "view": {
-                                            "type": "object",
-                                            "properties": {
-                                                "total_events": { "type": "integer" },
-                                                "unique_visitors": { "type": "integer" },
-                                                "unique_records": { "type": "integer" },
-                                                "unique_parents": { "type": "integer" }
-                                            }
-                                        },
-                                        "download": {
-                                            "type": "object",
-                                            "properties": {
-                                                "total_events": { "type": "integer" },
-                                                "unique_visitors": { "type": "integer" },
-                                                "unique_records": { "type": "integer" },
-                                                "unique_parents": { "type": "integer" },
-                                                "unique_files": { "type": "integer" },
-                                                "total_volume": { "type": "long" }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "top_user_agents": {
+                        "countries": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -679,7 +616,70 @@
                                 }
                             }
                         },
-                        "top_rights": {
+                        "user_agents": {
+                            "type": "nested",
+                            "properties": {
+                                "by_view": {
+                                    "type": "nested",
+                                    "properties": {
+                                        "id": {
+                                            "type": "keyword"
+                                        },
+                                        "label": {
+                                            "type": "keyword"
+                                        },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
+                                        }
+                                    }
+                                },
+                                "by_download": {
+                                    "type": "nested",
+                                    "properties": {
+                                        "id": { "type": "keyword" },
+                                        "label": { "type": "keyword" },
+                                        "view": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" }
+                                            }
+                                        },
+                                        "download": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total_events": { "type": "integer" },
+                                                "unique_visitors": { "type": "integer" },
+                                                "unique_records": { "type": "integer" },
+                                                "unique_parents": { "type": "integer" },
+                                                "unique_files": { "type": "integer" },
+                                                "total_volume": { "type": "long" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "rights": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {
@@ -745,7 +745,7 @@
                                 }
                             }
                         },
-                        "top_referrers": {
+                        "referrers": {
                             "type": "nested",
                             "properties": {
                                 "by_view": {

@@ -56,7 +56,7 @@
                 "subcounts": {
                     "type": "object",
                     "properties": {
-                        "by_resource_types": {
+                        "resource_types": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -86,7 +86,7 @@
                                 }
                             }
                         },
-                        "by_access_statuses": {
+                        "access_statuses": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -113,7 +113,7 @@
                                 }
                             }
                         },
-                        "by_languages": {
+                        "languages": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -143,7 +143,7 @@
                                 }
                             }
                         },
-                        "by_subjects": {
+                        "subjects": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -170,7 +170,7 @@
                                 }
                             }
                         },
-                        "by_rights": {
+                        "rights": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -200,7 +200,7 @@
                                 }
                             }
                         },
-                        "by_funders": {
+                        "funders": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -227,7 +227,7 @@
                                 }
                             }
                         },
-                        "by_periodicals": {
+                        "periodicals": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -254,7 +254,7 @@
                                 }
                             }
                         },
-                        "by_publishers": {
+                        "publishers": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -281,7 +281,7 @@
                                 }
                             }
                         },
-                        "by_affiliations": {
+                        "affiliations": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -308,7 +308,7 @@
                                 }
                             }
                         },
-                        "by_countries": {
+                        "countries": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -335,7 +335,7 @@
                                 }
                             }
                         },
-                        "by_file_types": {
+                        "file_types": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },
@@ -362,7 +362,7 @@
                                 }
                             }
                         },
-                        "by_referrers": {
+                        "referrers": {
                             "type": "nested",
                             "properties": {
                                 "id": { "type": "keyword" },

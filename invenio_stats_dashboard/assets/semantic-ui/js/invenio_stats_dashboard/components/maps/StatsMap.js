@@ -40,12 +40,12 @@ const StatsMap = ({
   console.log('StatsMap - mapData length:', mapData.length);
   console.log('StatsMap - stats structure:', {
     hasUsageSnapshotData: !!stats?.usageSnapshotData,
-    hasTopCountriesByView: !!stats.usageSnapshotData?.topCountriesByView,
-    hasTopCountriesByDownload: !!stats.usageSnapshotData?.topCountriesByDownload,
-    hasByCountries: !!stats.usageSnapshotData?.byCountries,
-    topCountriesByViewViews: stats.usageSnapshotData?.topCountriesByView?.views?.length || 0,
-    topCountriesByDownloadDownloads: stats.usageSnapshotData?.topCountriesByDownload?.downloads?.length || 0,
-    byCountriesViews: stats.usageSnapshotData?.byCountries?.views?.length || 0
+    hasTopCountriesByView: !!stats.usageSnapshotData?.countriesByView,
+    hasTopCountriesByDownload: !!stats.usageSnapshotData?.countriesByDownload,
+    hasByCountries: !!stats.usageSnapshotData?.countries,
+    countriesByViewViews: stats.usageSnapshotData?.countriesByView?.views?.length || 0,
+    countriesByDownloadDownloads: stats.usageSnapshotData?.countriesByDownload?.downloads?.length || 0,
+    countriesViews: stats.usageSnapshotData?.countries?.views?.length || 0
   });
 
   // Use the extracted map data directly

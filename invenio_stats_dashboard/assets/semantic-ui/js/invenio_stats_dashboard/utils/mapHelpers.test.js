@@ -11,7 +11,7 @@ describe('mapHelpers', () => {
     it('should extract country data from usage snapshot data with country name mapping', () => {
       const mockStats = {
         usageSnapshotData: {
-          topCountriesByView: {
+          countriesByView: {
             views: [
               {
                 id: 'US',
@@ -56,7 +56,7 @@ describe('mapHelpers', () => {
     it('should handle downloads metric', () => {
       const mockStats = {
         usageSnapshotData: {
-          topCountriesByDownload: {
+          countriesByDownload: {
             downloads: [
               {
                 id: 'US',
@@ -80,10 +80,10 @@ describe('mapHelpers', () => {
       });
     });
 
-    it('should fallback to byCountries data', () => {
+    it('should fallback to countries data', () => {
       const mockStats = {
         usageSnapshotData: {
-          byCountries: {
+          countries: {
             views: [
               {
                 id: 'US',
@@ -124,7 +124,7 @@ describe('mapHelpers', () => {
     it('should filter by date range', () => {
       const mockStats = {
         usageSnapshotData: {
-          topCountriesByView: {
+          countriesByView: {
             views: [
               {
                 id: 'US',
@@ -154,7 +154,7 @@ describe('mapHelpers', () => {
         it('should handle edge cases', () => {
       const mockStats = {
         usageSnapshotData: {
-          topCountriesByView: {
+          countriesByView: {
             views: [
               {
                 id: 'US',
@@ -177,7 +177,7 @@ describe('mapHelpers', () => {
     it('should extract and sum country data from delta data when useSnapshot is false', () => {
       const mockStats = {
         usageDeltaData: {
-          byCountries: {
+          countries: {
             views: [
               {
                 id: 'US',
@@ -236,7 +236,7 @@ describe('mapHelpers', () => {
     it('should filter delta data by date range', () => {
       const mockStats = {
         usageDeltaData: {
-          byCountries: {
+          countries: {
             views: [
               {
                 id: 'US',
@@ -267,7 +267,7 @@ describe('mapHelpers', () => {
     it('should aggregate delta data by mapped country name', () => {
       const mockStats = {
         usageDeltaData: {
-          byCountries: {
+          countries: {
             views: [
               {
                 id: 'US',
@@ -306,7 +306,7 @@ describe('mapHelpers', () => {
     it('should handle edge cases', () => {
       const mockStats = {
         usageSnapshotData: {
-          topCountriesByView: {
+          countriesByView: {
             views: [
               {
                 id: 'US',

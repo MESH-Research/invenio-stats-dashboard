@@ -13,7 +13,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
         "by_day": {
             "buckets": [
                 {
-                    "by_access_statuses": {
+                    "access_statuses": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -33,27 +33,27 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_contributor_id": {
+                    "affiliations_contributor_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_contributor_keyword": {
+                    "affiliations_contributor_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_creator_id": {
+                    "affiliations_creator_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_creator_keyword": {
+                    "affiliations_creator_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_file_types": {
+                    "file_types": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -68,12 +68,12 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_funders": {
+                    "funders": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_languages": {
+                    "languages": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -93,17 +93,17 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_rights": {
+                    "rights": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_periodicals": {
+                    "periodicals": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_publishers": {
+                    "publishers": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -123,7 +123,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_resource_types": {
+                    "resource_types": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -143,7 +143,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_subjects": {
+                    "subjects": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -244,66 +244,66 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                     "without_files": {"doc_count": 0, "unique_parents": {"value": 0}},
                 },
                 {
-                    "by_access_statuses": {
+                    "access_statuses": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_contributor": {
+                    "affiliations_contributor": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_creator": {
+                    "affiliations_creator": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_file_types": {
+                    "file_types": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_funders": {
-                        "buckets": [],
-                        "doc_count_error_upper_bound": 0,
-                        "meta": {},
-                        "sum_other_doc_count": 0,
-                    },
-                    "by_languages": {
+                    "funders": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_rights": {
+                    "languages": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_periodicals": {
+                    "rights": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_publishers": {
+                    "periodicals": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_resource_types": {
+                    "publishers": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_subjects": {
+                    "resource_types": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "subjects": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
@@ -328,66 +328,66 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                     },
                 },
                 {
-                    "by_access_statuses": {
+                    "access_statuses": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_contributor": {
+                    "affiliations_contributor": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_creator": {
+                    "affiliations_creator": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_file_types": {
+                    "file_types": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_funders": {
-                        "buckets": [],
-                        "doc_count_error_upper_bound": 0,
-                        "meta": {},
-                        "sum_other_doc_count": 0,
-                    },
-                    "by_languages": {
+                    "funders": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_rights": {
+                    "languages": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_periodicals": {
+                    "rights": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_publishers": {
+                    "periodicals": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_resource_types": {
+                    "publishers": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_subjects": {
+                    "resource_types": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "subjects": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
@@ -412,66 +412,66 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                     },
                 },
                 {
-                    "by_access_statuses": {
+                    "access_statuses": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_contributor": {
+                    "affiliations_contributor": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_creator": {
+                    "affiliations_creator": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_file_types": {
+                    "file_types": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_funders": {
-                        "buckets": [],
-                        "doc_count_error_upper_bound": 0,
-                        "meta": {},
-                        "sum_other_doc_count": 0,
-                    },
-                    "by_languages": {
+                    "funders": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_rights": {
+                    "languages": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_periodicals": {
+                    "rights": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_publishers": {
+                    "periodicals": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_resource_types": {
+                    "publishers": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "by_subjects": {
+                    "resource_types": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "subjects": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
@@ -496,7 +496,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                     },
                 },
                 {
-                    "by_access_statuses": {
+                    "access_statuses": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -530,17 +530,17 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_contributor": {
+                    "affiliations_contributor": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_affiliations_creator": {
+                    "affiliations_creator": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_file_types": {
+                    "file_types": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -553,12 +553,12 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_funders": {
+                    "funders": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_languages": {
+                    "languages": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -578,7 +578,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_rights": {
+                    "rights": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -598,7 +598,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_periodicals": {
+                    "periodicals": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -618,7 +618,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_publishers": {
+                    "publishers": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -652,7 +652,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_resource_types": {
+                    "resource_types": {
                         "buckets": [
                             {
                                 "doc_count": 1,
@@ -686,7 +686,7 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "by_subjects": {
+                    "subjects": {
                         "buckets": [
                             {
                                 "doc_count": 1,

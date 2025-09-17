@@ -26,7 +26,7 @@ const sampleRecordDelta = {
     removed: { metadata_only: 0, with_files: 0 },
   },
   subcounts: {
-    by_access_statuses: [
+    access_statuses: [
       {
         files: {
           added: { data_volume: 59117831.0, file_count: 2 },
@@ -44,8 +44,8 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_affiliations_contributor: [],
-    by_affiliations_creator: [
+    affiliations_contributor: [],
+    affiliations_creator: [
       {
         files: {
           added: { data_volume: 458036.0, file_count: 1 },
@@ -63,7 +63,7 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_file_types: [
+    file_types: [
       {
         files: {
           added: { data_volume: 59117831.0, file_count: 2 },
@@ -81,8 +81,8 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_funders: [],
-    by_languages: [
+    funders: [],
+    languages: [
       {
         files: {
           added: { data_volume: 458036.0, file_count: 1 },
@@ -100,9 +100,9 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_rights: [],
-    by_periodicals: [],
-    by_publishers: [
+    rights: [],
+    periodicals: [],
+    publishers: [
       {
         files: {
           added: { data_volume: 58659795.0, file_count: 1 },
@@ -136,7 +136,7 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_resource_types: [
+    resource_types: [
       {
         files: {
           added: { data_volume: 58659795.0, file_count: 1 },
@@ -170,7 +170,7 @@ const sampleRecordDelta = {
         },
       },
     ],
-    by_subjects: [
+    subjects: [
       {
         files: {
           added: { data_volume: 58659795.0, file_count: 1 },
@@ -299,7 +299,7 @@ const sampleRecordSnapshot = {
   community_id: "e64dee43-6bd2-4380-b4e8-2813315cb74e",
   snapshot_date: "2025-01-15",
   subcounts: {
-    all_access_statuses: [
+    access_statuses: [
       {
         files: { data_volume: 0.0, file_count: 0 },
         id: "metadata-only",
@@ -308,15 +308,15 @@ const sampleRecordSnapshot = {
         records: { metadata_only: 1, with_files: 0 },
       },
     ],
-    all_file_types: [],
-    top_languages: [],
-    all_rights: [],
-    all_resource_types: [],
-    top_affiliations: [],
-    top_funders: [],
-    top_periodicals: [],
-    top_publishers: [],
-    top_subjects: [],
+    file_types: [],
+    languages: [],
+    rights: [],
+    resource_types: [],
+    affiliations: [],
+    funders: [],
+    periodicals: [],
+    publishers: [],
+    subjects: [],
   },
   timestamp: "2025-07-02T14:37:33",
   total_files: { data_volume: 0.0, file_count: 0 },
@@ -330,7 +330,7 @@ const sampleUsageSnapshot = {
   community_id: "b6f92bbc-a4af-4240-8135-292d47563339",
   snapshot_date: "2025-06-11T23:59:59",
   subcounts: {
-    all_access_statuses: [
+    access_statuses: [
       {
         download: {
           total_events: 60,
@@ -368,7 +368,7 @@ const sampleUsageSnapshot = {
         },
       },
     ],
-    all_file_types: [
+    file_types: [
       {
         download: {
           total_events: 60,
@@ -388,7 +388,7 @@ const sampleUsageSnapshot = {
         },
       },
     ],
-    top_languages: [
+    languages: [
       {
         download: {
           total_events: 40,
@@ -408,7 +408,7 @@ const sampleUsageSnapshot = {
         },
       },
     ],
-    all_resource_types: [
+    resource_types: [
       {
         download: {
           total_events: 40,
@@ -464,7 +464,7 @@ const sampleUsageSnapshot = {
         },
       },
     ],
-    top_rights: {
+    rights: {
       by_download: [
       {
         download: {
@@ -506,7 +506,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_affiliations: {
+    affiliations: {
       by_download: [
         {
           download: {
@@ -584,7 +584,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_countries: {
+    countries: {
       by_download: [
         {
           download: {
@@ -626,7 +626,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_publishers: {
+    publishers: {
       by_download: [
         {
           download: {
@@ -740,7 +740,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_referrers: {
+    referrers: {
       by_download: [
         {
           download: {
@@ -854,7 +854,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_subjects: {
+    subjects: {
       by_download: [
         {
           download: {
@@ -1220,7 +1220,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_funders: {
+    funders: {
       by_download: [
         {
           download: {
@@ -1298,7 +1298,7 @@ const sampleUsageSnapshot = {
         },
       ],
     },
-    top_periodicals: {
+    periodicals: {
       by_download: [
         {
           download: {
@@ -1479,7 +1479,7 @@ const sampleUsageDelta = {
   period_end: "2025-05-30T23:59:59",
   period_start: "2025-05-30T00:00:00",
   subcounts: {
-    by_access_statuses: [
+    access_statuses: [
       {
         download: {
           total_events: 6,
@@ -1517,7 +1517,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_affiliations: [
+    affiliations: [
       {
         download: {
           total_events: 2,
@@ -1555,7 +1555,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_countries: [
+    countries: [
       {
         download: {
           total_events: 6,
@@ -1575,7 +1575,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_file_types: [
+    file_types: [
       {
         download: {
           total_events: 6,
@@ -1595,8 +1595,8 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_funders: [],
-    by_languages: [
+    funders: [],
+    languages: [
       {
         download: {
           total_events: 4,
@@ -1616,7 +1616,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_rights: [
+    rights: [
       {
         download: {
           total_events: 2,
@@ -1636,8 +1636,8 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_periodicals: [],
-    by_publishers: [
+    periodicals: [],
+    publishers: [
       {
         download: {
           total_events: 4,
@@ -1693,7 +1693,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_referrers: [
+    referrers: [
       {
         download: {
           total_events: 2,
@@ -1749,7 +1749,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_resource_types: [
+    resource_types: [
       {
         download: {
           total_events: 4,
@@ -1805,7 +1805,7 @@ const sampleUsageDelta = {
         },
       },
     ],
-    by_subjects: [
+    subjects: [
       {
         download: {
           total_events: 2,

@@ -15,7 +15,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
             "community_id": "global",
             "snapshot_date": "2025-08-27",
             "subcounts": {
-                "all_access_statuses": [
+                "access_statuses": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "metadata-only",
@@ -31,7 +31,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "all_file_types": [
+                "file_types": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "pdf",
@@ -40,7 +40,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "all_resource_types": [
+                "resource_types": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "textDocument-journalArticle",
@@ -56,7 +56,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 0},
                     },
                 ],
-                "top_affiliations_contributor": [
+                "affiliations_contributor": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "03rmrcq20",
@@ -65,7 +65,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_affiliations_creator": [
+                "affiliations_creator": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "03rmrcq20",
@@ -74,7 +74,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 0},
                     }
                 ],
-                "top_funders": [
+                "funders": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "00k4n6c31",
@@ -83,7 +83,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 1},
                     }
                 ],
-                "top_languages": [
+                "languages": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "eng",
@@ -92,7 +92,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_periodicals": [
+                "periodicals": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "N/A",
@@ -101,7 +101,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_publishers": [
+                "publishers": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "UBC",
@@ -117,7 +117,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "top_rights": [
+                "rights": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "cc-by-sa-4.0",
@@ -132,7 +132,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_subjects": [
+                "subjects": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "http://id.worldcat.org/fast/911979",
@@ -241,17 +241,17 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
             },
             "total_uploaders": 0,
             "subcounts": {
-                "all_access_statuses": [],
-                "all_file_types": [],
-                "all_resource_types": [],
-                "top_affiliations_contributor": [],
-                "top_affiliations_creator": [],
-                "top_funders": [],
-                "top_languages": [],
-                "top_periodicals": [],
-                "top_publishers": [],
-                "top_rights": [],
-                "top_subjects": [],
+                "access_statuses": [],
+                "file_types": [],
+                "resource_types": [],
+                "affiliations_contributor": [],
+                "affiliations_creator": [],
+                "funders": [],
+                "languages": [],
+                "periodicals": [],
+                "publishers": [],
+                "rights": [],
+                "subjects": [],
             },
             "timestamp": "2025-08-29T23:44:23",
             "updated_timestamp": "2025-08-29T23:44:23",
@@ -265,7 +265,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
             "community_id": "global",
             "snapshot_date": "2025-08-31",
             "subcounts": {
-                "all_access_statuses": [
+                "access_statuses": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "metadata-only",
@@ -281,7 +281,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 3},
                     },
                 ],
-                "all_file_types": [
+                "file_types": [
                     {
                         "files": {"data_volume": 61102780.0, "file_count": 3},
                         "id": "pdf",
@@ -290,7 +290,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 3},
                     }
                 ],
-                "all_resource_types": [
+                "resource_types": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "textDocument-journalArticle",
@@ -313,7 +313,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "top_affiliations_contributor": [
+                "affiliations_contributor": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "03rmrcq20",
@@ -322,7 +322,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_affiliations_creator": [
+                "affiliations_creator": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "03rmrcq20",
@@ -338,7 +338,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "top_funders": [
+                "funders": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "00k4n6c31",
@@ -347,7 +347,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 1},
                     }
                 ],
-                "top_languages": [
+                "languages": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "eng",
@@ -356,7 +356,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 2},
                     }
                 ],
-                "top_periodicals": [
+                "periodicals": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "N/A",
@@ -365,7 +365,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_publishers": [
+                "publishers": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "Knowledge Commons",
@@ -388,7 +388,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "top_rights": [
+                "rights": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "cc-by-sa-4.0",
@@ -403,7 +403,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_subjects": [
+                "subjects": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "http://id.worldcat.org/fast/911979",
@@ -548,7 +548,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
             "community_id": "global",
             "snapshot_date": "2025-09-01",
             "subcounts": {
-                "all_access_statuses": [
+                "access_statuses": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "metadata-only",
@@ -564,7 +564,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 2},
                     },
                 ],
-                "all_file_types": [
+                "file_types": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "pdf",
@@ -573,7 +573,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 2},
                     }
                 ],
-                "all_resource_types": [
+                "resource_types": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "textDocument-journalArticle",
@@ -596,7 +596,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 0},
                     },
                 ],
-                "top_affiliations_contributor": [
+                "affiliations_contributor": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "03rmrcq20",
@@ -605,7 +605,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_affiliations_creator": [
+                "affiliations_creator": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "03rmrcq20",
@@ -621,7 +621,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "top_funders": [
+                "funders": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "00k4n6c31",
@@ -630,7 +630,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 1},
                     }
                 ],
-                "top_languages": [
+                "languages": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "eng",
@@ -639,7 +639,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 2},
                     }
                 ],
-                "top_periodicals": [
+                "periodicals": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "N/A",
@@ -648,7 +648,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_publishers": [
+                "publishers": [
                     {
                         "files": {"data_volume": 2442985.0, "file_count": 2},
                         "id": "Knowledge Commons",
@@ -664,7 +664,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 0},
                     },
                 ],
-                "top_rights": [
+                "rights": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "cc-by-sa-4.0",
@@ -679,7 +679,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     }
                 ],
-                "top_subjects": [
+                "subjects": [
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "http://id.worldcat.org/fast/911979",

@@ -63,7 +63,7 @@
         "subcounts": {
           "type": "object",
           "properties": {
-            "all_resource_types": {
+            "resource_types": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -119,7 +119,7 @@
                 }
               }
             },
-            "all_access_statuses": {
+            "access_statuses": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -163,52 +163,7 @@
                 }
               }
             },
-            "top_rights": {
-              "type": "nested",
-              "properties": {
-                "id": {
-                  "type": "keyword"
-                },
-                "label": {
-                  "type": "object",
-                  "dynamic": true
-                },
-                "records": {
-                  "type": "object",
-                  "properties": {
-                    "metadata_only": {
-                      "type": "long"
-                    },
-                    "with_files": {
-                      "type": "long"
-                    }
-                  }
-                },
-                "parents": {
-                  "type": "object",
-                  "properties": {
-                    "metadata_only": {
-                      "type": "long"
-                    },
-                    "with_files": {
-                      "type": "long"
-                    }
-                  }
-                },
-                "files": {
-                  "type": "object",
-                  "properties": {
-                    "file_count": {
-                      "type": "long"
-                    },
-                    "data_volume": {
-                      "type": "long"
-                    }
-                  }
-                }
-              }
-            },
-            "top_languages": {
+            "rights": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -253,7 +208,52 @@
                 }
               }
             },
-            "top_affiliations_creator": {
+            "languages": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "label": {
+                  "type": "object",
+                  "dynamic": true
+                },
+                "records": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "parents": {
+                  "type": "object",
+                  "properties": {
+                    "metadata_only": {
+                      "type": "long"
+                    },
+                    "with_files": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "file_count": {
+                      "type": "long"
+                    },
+                    "data_volume": {
+                      "type": "long"
+                    }
+                  }
+                }
+              }
+            },
+            "affiliations_creator": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -297,7 +297,7 @@
                 }
               }
             },
-            "top_affiliations_contributor": {
+            "affiliations_contributor": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -341,7 +341,7 @@
                 }
               }
             },
-            "top_funders": {
+            "funders": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -385,7 +385,7 @@
                 }
               }
             },
-            "top_subjects": {
+            "subjects": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -429,7 +429,7 @@
                 }
               }
             },
-            "top_publishers": {
+            "publishers": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -473,7 +473,7 @@
                 }
               }
             },
-            "top_periodicals": {
+            "periodicals": {
               "type": "nested",
               "properties": {
                 "id": {
@@ -517,7 +517,7 @@
                 }
               }
             },
-            "all_file_types": {
+            "file_types": {
               "type": "nested",
               "properties": {
                 "id": {

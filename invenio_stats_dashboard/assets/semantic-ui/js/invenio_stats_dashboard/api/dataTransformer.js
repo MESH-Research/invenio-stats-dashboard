@@ -154,7 +154,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} RecordDeltaData
  * @property {RecordMetrics} global - Global record metrics
- * @property {FilePresenceMetrics} byFilePresence - Record metrics by file presence (records and parents only)
+ * @property {FilePresenceMetrics} filePresence - Record metrics by file presence (records and parents only)
  * @property {RecordMetrics} resourceTypes
  * @property {RecordMetrics} accessStatus
  * @property {RecordMetrics} languages
@@ -168,7 +168,7 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} RecordSnapshotData
  * @property {RecordMetrics} global - Global record metrics
- * @property {FilePresenceMetrics} byFilePresence - Record metrics by file presence (records and parents only)
+ * @property {FilePresenceMetrics} filePresence - Record metrics by file presence (records and parents only)
  * @property {RecordMetrics} resourceTypes
  * @property {RecordMetrics} accessStatus
  * @property {RecordMetrics} languages
@@ -182,41 +182,41 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number') => 
  *
  * @typedef {Object} UsageDeltaData
  * @property {UsageMetrics} global - Global usage metrics
- * @property {UsageMetrics} byAccessStatuses
- * @property {UsageMetrics} byFileTypes
- * @property {UsageMetrics} byLanguages
- * @property {UsageMetrics} byResourceTypes
- * @property {UsageMetrics} bySubjects
- * @property {UsageMetrics} byPublishers
- * @property {UsageMetrics} byRights
- * @property {UsageMetrics} byCountries
- * @property {UsageMetrics} byReferrers
- * @property {UsageMetrics} byAffiliations
+ * @property {UsageMetrics} accessStatuses
+ * @property {UsageMetrics} fileTypes
+ * @property {UsageMetrics} languages
+ * @property {UsageMetrics} resourceTypes
+ * @property {UsageMetrics} subjects
+ * @property {UsageMetrics} publishers
+ * @property {UsageMetrics} rights
+ * @property {UsageMetrics} countries
+ * @property {UsageMetrics} referrers
+ * @property {UsageMetrics} affiliations
  *
  * @typedef {Object} UsageSnapshotData
  * @property {UsageMetrics} global - Global usage metrics
- * @property {UsageMetrics} byAccessStatuses
- * @property {UsageMetrics} byFileTypes
- * @property {UsageMetrics} byLanguages
- * @property {UsageMetrics} byResourceTypes
- * @property {UsageMetrics} bySubjects
- * @property {UsageMetrics} byPublishers
- * @property {UsageMetrics} byRights
- * @property {UsageMetrics} byCountries
- * @property {UsageMetrics} byReferrers
- * @property {UsageMetrics} byAffiliations
- * @property {UsageMetrics} topCountriesByView
- * @property {UsageMetrics} topCountriesByDownload
- * @property {UsageMetrics} topSubjectsByView
- * @property {UsageMetrics} topSubjectsByDownload
- * @property {UsageMetrics} topPublishersByView
- * @property {UsageMetrics} topPublishersByDownload
- * @property {UsageMetrics} topRightsByView
- * @property {UsageMetrics} topRightsByDownload
- * @property {UsageMetrics} topReferrersByView
- * @property {UsageMetrics} topReferrersByDownload
- * @property {UsageMetrics} topAffiliationsByView
- * @property {UsageMetrics} topAffiliationsByDownload
+ * @property {UsageMetrics} accessStatuses
+ * @property {UsageMetrics} fileTypes
+ * @property {UsageMetrics} languages
+ * @property {UsageMetrics} resourceTypes
+ * @property {UsageMetrics} subjects
+ * @property {UsageMetrics} publishers
+ * @property {UsageMetrics} rights
+ * @property {UsageMetrics} countries
+ * @property {UsageMetrics} referrers
+ * @property {UsageMetrics} affiliations
+ * @property {UsageMetrics} countriesByView
+ * @property {UsageMetrics} countriesByDownload
+ * @property {UsageMetrics} subjectsByView
+ * @property {UsageMetrics} subjectsByDownload
+ * @property {UsageMetrics} publishersByView
+ * @property {UsageMetrics} publishersByDownload
+ * @property {UsageMetrics} rightsByView
+ * @property {UsageMetrics} rightsByDownload
+ * @property {UsageMetrics} referrersByView
+ * @property {UsageMetrics} referrersByDownload
+ * @property {UsageMetrics} affiliationsByView
+ * @property {UsageMetrics} affiliationsByDownload
  *
  * @typedef {Object} TransformedApiData
  * @property {RecordDeltaData} recordDeltaDataCreated - Record creation counts
@@ -245,7 +245,7 @@ const transformRecordDeltaData = (deltaDocs) => {
       fileCount: [],
       dataVolume: [],
     },
-    byFilePresence: {
+    filePresence: {
       records: [],
       parents: []
     },
@@ -323,17 +323,17 @@ const transformRecordDeltaData = (deltaDocs) => {
 
 
   const subcountTypes = {
-    'by_resource_types': 'resourceTypes',
-    'by_access_statuses': 'accessStatuses',
-    'by_languages': 'languages',
-    'by_affiliations_creators': 'affiliations',
-    'by_affiliations_contributors': 'affiliations',
-    'by_funders': 'funders',
-    'by_subjects': 'subjects',
-    'by_publishers': 'publishers',
-    'by_periodicals': 'periodicals',
-    'by_rights': 'rights',
-    'by_file_types': 'fileTypes'
+    'resource_types': 'resourceTypes',
+    'access_statuses': 'accessStatuses',
+    'languages': 'languages',
+    'affiliations_creators': 'affiliations',
+    'affiliations_contributors': 'affiliations',
+    'funders': 'funders',
+    'subjects': 'subjects',
+    'publishers': 'publishers',
+    'periodicals': 'periodicals',
+    'rights': 'rights',
+    'file_types': 'fileTypes'
   };
 
 
@@ -401,7 +401,7 @@ const transformRecordDeltaData = (deltaDocs) => {
       deltaData.global.fileCount.push(createDataPoint(date, getNetFileCount(source.files)));
       deltaData.global.dataVolume.push(createDataPoint(date, getNetDataVolume(source.files), 'filesize'));
 
-      // Collect byFilePresence data points directly into deltaData structure
+      // Collect filePresence data points directly into deltaData structure
       // but only for metrics that have both withFiles and metadataOnly
       ['records', 'parents'].forEach(key => {
         const dataPoint = { date };
@@ -415,7 +415,7 @@ const transformRecordDeltaData = (deltaDocs) => {
         dataPoint.withFiles = addedWithFiles - removedWithFiles;
         dataPoint.metadataOnly = addedMetadataOnly - removedMetadataOnly;
 
-        deltaData.byFilePresence[key].push(dataPoint);
+        deltaData.filePresence[key].push(dataPoint);
       });
 
       // Collect subcount data points for each metric type
@@ -487,12 +487,12 @@ const transformRecordDeltaData = (deltaDocs) => {
     deltaData.global.fileCount = [createGlobalSeries(deltaData.global.fileCount, 'line', 'number')];
     deltaData.global.dataVolume = [createGlobalSeries(deltaData.global.dataVolume, 'line', 'filesize')];
 
-    // Create byFilePresence series for each metric type
-    const byFilePresenceMetrics = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
-    byFilePresenceMetrics.forEach(metricType => {
-      const dataPoints = deltaData.byFilePresence[metricType];
+    // Create filePresence series for each metric type
+    const filePresenceMetrics = ['records', 'parents', 'uploaders', 'fileCount', 'dataVolume'];
+    filePresenceMetrics.forEach(metricType => {
+      const dataPoints = deltaData.filePresence[metricType];
       const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
-      deltaData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
+      deltaData.filePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
     });
 
     // Create subcount series for each metric type
@@ -536,7 +536,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       fileCount: [],
       dataVolume: [],
     },
-    byFilePresence: {
+    filePresence: {
       records: [],
       parents: []
     },
@@ -613,17 +613,17 @@ const transformRecordSnapshotData = (snapshotDocs) => {
   };
 
   const subcountTypes = {
-    'all_resource_types': 'resourceTypes',
-    'all_access_statuses': 'accessStatuses',
-    'top_languages': 'languages',
-    'top_affiliations_creator': 'affiliations',
-    'top_affiliations_contributor': 'affiliations',
-    'top_funders': 'funders',
-    'top_subjects': 'subjects',
-    'top_publishers': 'publishers',
-    'top_periodicals': 'periodicals',
-    'all_rights': 'rights',
-    'all_file_types': 'fileTypes'
+    'resource_types': 'resourceTypes',
+    'access_statuses': 'accessStatuses',
+    'languages': 'languages',
+    'affiliations_creator': 'affiliations',
+    'affiliations_contributor': 'affiliations',
+    'funders': 'funders',
+    'subjects': 'subjects',
+    'publishers': 'publishers',
+    'periodicals': 'periodicals',
+    'rights': 'rights',
+    'file_types': 'fileTypes'
   };
 
   /**
@@ -674,7 +674,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       snapshotData.global.fileCount.push(createDataPoint(date, getTotalFileCount(source.total_files)));
       snapshotData.global.dataVolume.push(createDataPoint(date, getTotalDataVolume(source.total_files), 'filesize'));
 
-      // Collect byFilePresence data points directly into snapshotData structure
+      // Collect filePresence data points directly into snapshotData structure
       // but only for metrics that have both withFiles and metadataOnly
       ['records', 'parents'].forEach(key => {
         const dataPoint = { date };
@@ -682,7 +682,7 @@ const transformRecordSnapshotData = (snapshotDocs) => {
         dataPoint.withFiles = source[`total_${key}`].with_files || 0;
         dataPoint.metadataOnly = source[`total_${key}`].metadata_only || 0;
 
-        snapshotData.byFilePresence[key].push(dataPoint);
+        snapshotData.filePresence[key].push(dataPoint);
       });
 
       // Collect subcount data points for each metric type
@@ -747,12 +747,12 @@ const transformRecordSnapshotData = (snapshotDocs) => {
       });
     });
 
-    // Create byFilePresence series for each metric type
-    const byFilePresenceMetrics = ['records', 'parents'];
-    byFilePresenceMetrics.forEach(metricType => {
-      const dataPoints = snapshotData.byFilePresence[metricType];
+    // Create filePresence series for each metric type
+    const filePresenceMetrics = ['records', 'parents'];
+    filePresenceMetrics.forEach(metricType => {
+      const dataPoints = snapshotData.filePresence[metricType];
       const valueType = metricType === 'dataVolume' ? 'filesize' : 'number';
-      snapshotData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
+      snapshotData.filePresence[metricType] = createDataSeriesArray(['withFiles', 'metadataOnly'], dataPoints, 'line', valueType);
     });
 
         // Create subcount series for each metric type
@@ -802,67 +802,67 @@ const transformUsageDeltaData = (deltaDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byFilePresence: {
+    filePresence: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byAccessStatuses: {
+    accessStatuses: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byFileTypes: {
+    fileTypes: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byLanguages: {
+    languages: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byResourceTypes: {
+    resourceTypes: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    bySubjects: {
+    subjects: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byPublishers: {
+    publishers: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byRights: {
+    rights: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byCountries: {
+    countries: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byReferrers: {
+    referrers: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byAffiliations: {
+    affiliations: {
       views: [],
       downloads: [],
       visitors: [],
@@ -871,16 +871,16 @@ const transformUsageDeltaData = (deltaDocs) => {
   };
 
   const subcountTypes = {
-    'by_access_statuses': 'byAccessStatuses',
-    'by_file_types': 'byFileTypes',
-    'by_languages': 'byLanguages',
-    'by_resource_types': 'byResourceTypes',
-    'by_subjects': 'bySubjects',
-    'by_publishers': 'byPublishers',
-    'by_rights': 'byRights',
-    'by_countries': 'byCountries',
-    'by_referrers': 'byReferrers',
-    'by_affiliations': 'byAffiliations',
+    'access_statuses': 'accessStatuses',
+    'file_types': 'fileTypes',
+    'languages': 'languages',
+    'resource_types': 'resourceTypes',
+    'subjects': 'subjects',
+    'publishers': 'publishers',
+    'rights': 'rights',
+    'countries': 'countries',
+    'referrers': 'referrers',
+    'affiliations': 'affiliations',
   };
 
   /**
@@ -932,7 +932,7 @@ const transformUsageDeltaData = (deltaDocs) => {
     // Create localization map from all documents
     const localizationMap = createLocalizationMap(deltaDocs);
 
-    const byFilePresenceDataPoints = [];
+    const filePresenceDataPoints = [];
 
     deltaDocs.forEach(doc => {
       const source = doc;
@@ -944,8 +944,8 @@ const transformUsageDeltaData = (deltaDocs) => {
       deltaData.global.visitors.push(createDataPoint(date, getNetVisitors(source.totals)));
       deltaData.global.dataVolume.push(createDataPoint(date, getNetDataVolume(source.totals), 'filesize'));
 
-      // Collect byFilePresence data points
-      byFilePresenceDataPoints.push({
+      // Collect filePresence data points
+      filePresenceDataPoints.push({
         date,
         withFiles: getNetViewEvents(source.totals.view),
         withoutFiles: getNetDownloadEvents(source.totals.download)
@@ -1009,15 +1009,15 @@ const transformUsageDeltaData = (deltaDocs) => {
       });
     });
 
-    // Create byFilePresence series for each metric type
-    const byFilePresenceMetrics = ['views', 'downloads', 'visitors', 'dataVolume'];
-    byFilePresenceMetrics.forEach(metricType => {
-      const dataPoints = byFilePresenceDataPoints.map(dp => ({
+    // Create filePresence series for each metric type
+    const filePresenceMetrics = ['views', 'downloads', 'visitors', 'dataVolume'];
+    filePresenceMetrics.forEach(metricType => {
+      const dataPoints = filePresenceDataPoints.map(dp => ({
         date: dp.date,
         withFiles: dp.withFiles,
         withoutFiles: dp.withoutFiles
       }));
-      deltaData.byFilePresence[metricType] = createDataSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
+      deltaData.filePresence[metricType] = createDataSeriesArray(['withFiles', 'withoutFiles'], dataPoints);
     });
 
     // Create subcount series for each metric type
@@ -1066,140 +1066,140 @@ const transformUsageSnapshotData = (snapshotDocs) => {
       visitors: [],
       dataVolume: [],
     },
-    byFilePresence: {
+    filePresence: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byAccessStatuses: {
+    accessStatuses: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byFileTypes: {
+    fileTypes: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byLanguages: {
+    languages: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byResourceTypes: {
+    resourceTypes: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    bySubjects: {
+    subjects: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byPublishers: {
+    publishers: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byRights: {
+    rights: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byCountries: {
+    countries: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byReferrers: {
+    referrers: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    byAffiliations: {
+    affiliations: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
     // Separate properties for view-based and download-based data
-    topCountriesByView: {
+countriesByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topCountriesByDownload: {
+    countriesByDownload: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topSubjectsByView: {
+    subjectsByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topSubjectsByDownload: {
+    subjectsByDownload: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topPublishersByView: {
+    publishersByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topPublishersByDownload: {
+    publishersByDownload: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topRightsByView: {
+    rightsByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topRightsByDownload: {
+    rightsByDownload: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topReferrersByView: {
+    referrersByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topReferrersByDownload: {
+    referrersByDownload: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topAffiliationsByView: {
+    affiliationsByView: {
       views: [],
       downloads: [],
       visitors: [],
       dataVolume: [],
     },
-    topAffiliationsByDownload: {
+    affiliationsByDownload: {
       views: [],
       downloads: [],
       visitors: [],
@@ -1208,26 +1208,26 @@ const transformUsageSnapshotData = (snapshotDocs) => {
   };
 
   const subcountTypes = {
-    'all_access_statuses': 'byAccessStatuses',
-    'all_file_types': 'byFileTypes',
-    'top_languages': 'byLanguages',
-    'all_resource_types': 'byResourceTypes',
-    'top_subjects': 'bySubjects',
-    'top_publishers': 'byPublishers',
-    'top_rights': 'byRights',
-    'top_countries': 'byCountries',
-    'top_referrers': 'byReferrers',
-    'top_affiliations': 'byAffiliations',
+    'access_statuses': 'accessStatuses',
+    'file_types': 'fileTypes',
+    'languages': 'languages',
+    'resource_types': 'resourceTypes',
+    'subjects': 'subjects',
+    'publishers': 'publishers',
+    'rights': 'rights',
+    'countries': 'countries',
+    'referrers': 'referrers',
+    'affiliations': 'affiliations',
   };
 
   // Mapping for separate view/download properties
   const separateSubcountTypes = {
-    'top_countries': { by_view: 'topCountriesByView', by_download: 'topCountriesByDownload' },
-    'top_subjects': { by_view: 'topSubjectsByView', by_download: 'topSubjectsByDownload' },
-    'top_publishers': { by_view: 'topPublishersByView', by_download: 'topPublishersByDownload' },
-    'top_rights': { by_view: 'topRightsByView', by_download: 'topRightsByDownload' },
-    'top_referrers': { by_view: 'topReferrersByView', by_download: 'topReferrersByDownload' },
-    'top_affiliations': { by_view: 'topAffiliationsByView', by_download: 'topAffiliationsByDownload' },
+    'countries': { by_view: 'countriesByView', by_download: 'countriesByDownload' },
+    'subjects': { by_view: 'subjectsByView', by_download: 'subjectsByDownload' },
+    'publishers': { by_view: 'publishersByView', by_download: 'publishersByDownload' },
+    'rights': { by_view: 'rightsByView', by_download: 'rightsByDownload' },
+    'referrers': { by_view: 'referrersByView', by_download: 'referrersByDownload' },
+    'affiliations': { by_view: 'affiliationsByView', by_download: 'affiliationsByDownload' },
   };
 
   /**
@@ -1278,7 +1278,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
     // Create localization map from all documents
     const localizationMap = createLocalizationMap(snapshotDocs);
 
-    const byFilePresenceDataPoints = [];
+    const filePresenceDataPoints = [];
 
     snapshotDocs.forEach(doc => {
       const source = doc;
@@ -1298,7 +1298,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
 
           // Handle different subcount structures
           if (Array.isArray(subcountSeries)) {
-            // Simple array structure (all_* fields)
+            // Simple array structure (unified field names)
             if (subcountSeries.length > 0) {
               // Initialize data structures for each metric type
               if (!snapshotData[`${targetKey}DataPoints`]) {
@@ -1350,7 +1350,7 @@ const transformUsageSnapshotData = (snapshotDocs) => {
               });
             }
           } else if (typeof subcountSeries === 'object' && subcountSeries !== null) {
-            // Object structure with separate view/download data (top_* fields)
+            // Object structure with separate view/download data (unified field names)
             const separateKeys = separateSubcountTypes[subcountType];
             if (separateKeys) {
               Object.keys(separateKeys).forEach(key => {

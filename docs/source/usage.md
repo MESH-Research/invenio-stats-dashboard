@@ -121,7 +121,7 @@ The "display separately" filter in each one can be configured to allow dynamic d
     "props": {
         "height": 300,
         "title": "Cumulative Content Totals",
-        "display_subcounts": ["by_resource_types", "by_file_types", "by_funders"],
+        "display_subcounts": ["resource_types", "file_types", "funders"],
     },
 }
 ```
@@ -213,7 +213,7 @@ Each component accepts various properties through the `props` dictionary:
 - `pageSize` - Number of items to display per page (for tables/lists)
 
 **Chart-Specific Properties:**
-- `display_subcounts` - Array of subcount types to display (e.g., `["by_resource_types", "by_subjects"]`)
+- `display_subcounts` - Array of subcount types to display (e.g., `["resource_types", "subjects"]`)
 
 **Multi-Display Properties:**
 - `available_views` - Array of available view types: `["pie", "bar", "list"]`

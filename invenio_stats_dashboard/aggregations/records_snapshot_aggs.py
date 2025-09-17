@@ -152,16 +152,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         for config in self.subcount_configs.values():
             if "records" in config and "delta_aggregation_name" in config["records"]:
                 delta_name = config["records"]["delta_aggregation_name"]
-                snapshot_type = config["records"].get("snapshot_type", "all")
-
-                # Remove "by_" prefix and add appropriate prefix based on snapshot_type
-                subcount_base = delta_name[3:]  # Remove "by_" prefix
-                if snapshot_type == "top":
-                    subcount_name = f"top_{subcount_base}"
-                else:
-                    subcount_name = f"all_{subcount_base}"
-
-                subcounts[subcount_name] = []
+                subcounts[delta_name] = []
 
         return {
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
@@ -195,7 +186,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
 
         These are the subcounts that only include the top N values for each field
         (where N is configured by COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
-        (E.g. top_subjects, top_publishers, etc.) We can't just add the new deltas
+        (E.g. subjects, publishers, etc.) We can't just add the new deltas
         to the current subcounts because the top N values for each field may have
         changed. We avoid performing a full recalculation from all delta documents
         for every delta document by using an exhaustive counts cache. This builds
@@ -222,10 +213,8 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         ]
 
         for config in top_configs:
-            # Use the mapped field name since delta documents have been processed
-            # by _map_delta_to_snapshot_subcounts
-            subcount_base = config["delta_aggregation_name"][3:]
-            top_subcount_name = f"top_{subcount_base}"
+            # With unified field names, use the delta_aggregation_name directly
+            top_subcount_name = config["delta_aggregation_name"]
             category_name = top_subcount_name
 
             if category_name not in exhaustive_counts_cache:
@@ -388,15 +377,12 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             if subcount_config["records"]
         ]:
             if config["snapshot_type"] == "all":
-                snap_subcount_base = config["delta_aggregation_name"][3:]
-                snap_subcount_name = f"{config['snapshot_type']}_{snap_subcount_base}"
+                snap_subcount_name = config["delta_aggregation_name"]
 
                 previous_subcounts = new_dict.get("subcounts", {}).get(
                     snap_subcount_name, []
                 )
 
-                # Use the mapped field name since delta_doc has been processed
-                # by _map_delta_to_snapshot_subcounts
                 new_dict["subcounts"][snap_subcount_name] = (
                     self._add_delta_to_subcounts(
                         previous_subcounts,
@@ -447,38 +433,6 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         )
 
         return new_dict
-
-    def _map_delta_to_snapshot_subcounts(self, delta_doc: dict) -> dict:
-        """Map delta document subcount field names to snapshot field names.
-
-        This transforms the delta aggregation field names (e.g., 'by_resource_types')
-        to the snapshot field names (e.g., 'all_resource_types', 'top_resource_types')
-        for consistent processing throughout the aggregator.
-
-        Args:
-            delta_doc: The delta document with subcounts to remap (mutated in place)
-
-        Returns:
-            The same delta document with remapped subcount field names
-        """
-        mapped_subcounts = {}
-
-        for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
-            for config in self.subcount_configs.values():
-                records_config = config.get("records", {})
-                if not records_config:
-                    continue
-
-                if records_config.get("delta_aggregation_name") == delta_field:
-                    # Use snapshot_type to determine the field name
-                    snapshot_type = records_config.get("snapshot_type", "all")
-                    subcount_base = delta_field[3:]  # Remove "by_" prefix
-                    snapshot_field = f"{snapshot_type}_{subcount_base}"
-                    mapped_subcounts[snapshot_field] = delta_items
-                    break
-
-        delta_doc["subcounts"] = mapped_subcounts
-        return delta_doc
 
     def _accumulate_category_in_place(
         self, accumulated: dict, category_items: list

@@ -11,7 +11,7 @@ MOCK_RECORD_SNAPSHOT_API_RESPONSE = [
         "community_id": "e64dee43-6bd2-4380-b4e8-2813315cb74e",
         "snapshot_date": "2025-01-15",
         "subcounts": {
-            "all_access_statuses": [
+            "access_statuses": [
                 {
                     "files": {"data_volume": 0.0, "file_count": 0},
                     "id": "metadata-only",
@@ -20,16 +20,16 @@ MOCK_RECORD_SNAPSHOT_API_RESPONSE = [
                     "records": {"metadata_only": 1, "with_files": 0},
                 }
             ],
-            "all_file_types": [],
-            "top_languages": [],
-            "all_rights": [],
-            "all_resource_types": [],
-            "top_affiliations_contributor": [],
-            "top_affiliations_creator": [],
-            "top_funders": [],
-            "top_periodicals": [],
-            "top_publishers": [],
-            "top_subjects": [],
+            "file_types": [],
+            "languages": [],
+            "rights": [],
+            "resource_types": [],
+            "affiliations_contributor": [],
+            "affiliations_creator": [],
+            "funders": [],
+            "periodicals": [],
+            "publishers": [],
+            "subjects": [],
         },
         "timestamp": "2025-07-02T14:37:33",
         "total_files": {"data_volume": 0.0, "file_count": 0},
@@ -42,7 +42,7 @@ MOCK_RECORD_SNAPSHOT_API_RESPONSE = [
         "community_id": "e64dee43-6bd2-4380-b4e8-2813315cb74e",
         "snapshot_date": "2025-01-16",
         "subcounts": {
-            "all_access_statuses": [
+            "access_statuses": [
                 {
                     "files": {"data_volume": 0.0, "file_count": 0},
                     "id": "metadata-only",
@@ -51,16 +51,16 @@ MOCK_RECORD_SNAPSHOT_API_RESPONSE = [
                     "records": {"metadata_only": 2, "with_files": 0},
                 }
             ],
-            "all_file_types": [],
-            "top_languages": [],
-            "all_rights": [],
-            "all_resource_types": [],
-            "top_affiliations_contributor": [],
-            "top_affiliations_creator": [],
-            "top_funders": [],
-            "top_periodicals": [],
-            "top_publishers": [],
-            "top_subjects": [],
+            "file_types": [],
+            "languages": [],
+            "rights": [],
+            "resource_types": [],
+            "affiliations_contributor": [],
+            "affiliations_creator": [],
+            "funders": [],
+            "periodicals": [],
+            "publishers": [],
+            "subjects": [],
         },
         "timestamp": "2025-07-02T14:37:33",
         "total_files": {"data_volume": 0.0, "file_count": 0},
@@ -73,7 +73,7 @@ MOCK_RECORD_SNAPSHOT_API_RESPONSE = [
         "community_id": "e64dee43-6bd2-4380-b4e8-2813315cb74e",
         "snapshot_date": "2025-01-17",
         "subcounts": {
-            "all_access_statuses": [
+            "access_statuses": [
                 {
                     "files": {"data_volume": 0.0, "file_count": 0},
                     "id": "metadata-only",
@@ -82,16 +82,16 @@ MOCK_RECORD_SNAPSHOT_API_RESPONSE = [
                     "records": {"metadata_only": 3, "with_files": 0},
                 }
             ],
-            "all_file_types": [],
-            "top_languages": [],
-            "all_rights": [],
-            "all_resource_types": [],
-            "top_affiliations_contributor": [],
-            "top_affiliations_creator": [],
-            "top_funders": [],
-            "top_periodicals": [],
-            "top_publishers": [],
-            "top_subjects": [],
+            "file_types": [],
+            "languages": [],
+            "rights": [],
+            "resource_types": [],
+            "affiliations_contributor": [],
+            "affiliations_creator": [],
+            "funders": [],
+            "periodicals": [],
+            "publishers": [],
+            "subjects": [],
         },
         "timestamp": "2025-07-02T14:37:33",
         "total_files": {"data_volume": 0.0, "file_count": 0},

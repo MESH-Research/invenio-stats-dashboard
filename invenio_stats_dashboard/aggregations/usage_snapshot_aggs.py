@@ -174,36 +174,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         return True
 
-    def _map_delta_to_snapshot_subcounts(  # type: ignore[override]
-        self, delta_doc: UsageDeltaDocument
-    ) -> UsageDeltaDocument:
-        """Map delta document subcount field names to snapshot field names.
-
-        This transforms the enriched aggregation field names (e.g., 'by_resource_types')
-        to the snapshot field names (e.g., 'all_resource_types') for consistent
-        processing throughout the aggregator.
-        """
-        mapped_subcounts = {}
-
-        for delta_field, delta_items in delta_doc.get("subcounts", {}).items():
-            # Find the config that matches this delta field
-            for _subcount_name, config in self.subcount_configs.items():
-                usage_config = config.get("usage_events", {})
-                if not usage_config:
-                    continue
-
-                if usage_config.get("delta_aggregation_name") == delta_field:
-                    # Use snapshot_type to determine the field name
-                    snapshot_type = usage_config.get("snapshot_type", "all")
-                    delta_aggregation_name = usage_config.get("delta_aggregation_name")
-                    subcount_base = delta_aggregation_name[3:]  # Remove "by_" prefix
-                    snapshot_field = f"{snapshot_type}_{subcount_base}"
-                    mapped_subcounts[snapshot_field] = delta_items
-                    break
-
-        delta_doc["subcounts"] = mapped_subcounts
-        return delta_doc
-
     def _accumulate_category_in_place(
         self, accumulated: dict, category_items: list
     ) -> None:
@@ -343,7 +313,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         These are the subcounts that only include the top N values for each field
         (where N is configured by COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
-        (E.g. top_subjects, top_publishers, etc.) We can't just add the new deltas
+        (E.g. subjects, publishers, etc.) We can't just add the new deltas
         to the current subcounts because the top N values for each field may have
         changed. We avoid performing a full recalculation from all delta documents
         for every delta document by using an exhaustive counts cache. This builds
@@ -370,10 +340,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         ]
 
         for config in top_configs:
-            # Use the mapped field name since delta documents have been processed
-            # by _map_delta_to_snapshot_subcounts
-            subcount_base = config["delta_aggregation_name"][3:]
-            top_subcount_name = f"top_{subcount_base}"
+            # With unified field names, use the delta_aggregation_name directly
+            top_subcount_name = config["delta_aggregation_name"]
 
             if top_subcount_name not in exhaustive_counts_cache:
                 # First time: build exhaustive cache from all delta documents
@@ -411,8 +379,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             delta_aggregation_name = usage_config.get("delta_aggregation_name")
             if not delta_aggregation_name:
                 continue
-            subcount_base = delta_aggregation_name[3:]  # Remove "by_" prefix
-            snapshot_field = f"{snapshot_type}_{subcount_base}"
+            snapshot_field = delta_aggregation_name
 
             if snapshot_type == "all":
                 subcounts[snapshot_field] = []

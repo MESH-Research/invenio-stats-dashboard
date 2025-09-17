@@ -25,16 +25,16 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, countr
 
   if (useSnapshot) {
     // Try to get country data from usage snapshot data
-    if (metric === 'views' && stats.usageSnapshotData?.topCountriesByView?.views) {
-      countriesData = stats.usageSnapshotData.topCountriesByView.views;
-    } else if (metric === 'downloads' && stats.usageSnapshotData?.topCountriesByDownload?.downloads) {
-      countriesData = stats.usageSnapshotData.topCountriesByDownload.downloads;
-    } else if (stats.usageSnapshotData?.byCountries?.[metric]) {
-      countriesData = stats.usageSnapshotData.byCountries[metric];
+    if (metric === 'views' && stats.usageSnapshotData?.countriesByView?.views) {
+      countriesData = stats.usageSnapshotData.countriesByView.views;
+    } else if (metric === 'downloads' && stats.usageSnapshotData?.countriesByDownload?.downloads) {
+      countriesData = stats.usageSnapshotData.countriesByDownload.downloads;
+    } else if (stats.usageSnapshotData?.countries?.[metric]) {
+      countriesData = stats.usageSnapshotData.countries[metric];
     }
   } else {
     // Get country data from usage delta data
-    countriesData = stats.usageDeltaData?.byCountries?.[metric];
+    countriesData = stats.usageDeltaData?.countries?.[metric];
   }
 
   if (!countriesData || !Array.isArray(countriesData)) {

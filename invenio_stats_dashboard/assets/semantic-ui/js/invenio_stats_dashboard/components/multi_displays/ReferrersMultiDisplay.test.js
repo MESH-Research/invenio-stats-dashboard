@@ -52,7 +52,7 @@ describe('TopReferrersMultiDisplay', () => {
     mockUseStatsDashboard.mockReturnValue({
       stats: {
         usageSnapshotData: {
-          topReferrersByView: {
+          referrersByView: {
             views: [
               {
                 id: 'google',
@@ -530,7 +530,7 @@ describe('TopReferrersMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           usageSnapshotData: {
-            topReferrersByView: {
+            referrersByView: {
               views: [
                 {
                   id: 'google',
@@ -601,7 +601,7 @@ describe('TopReferrersMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           usageSnapshotData: {
-            topReferrersByView: {
+            referrersByView: {
               views: []
             }
           }

@@ -668,7 +668,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         """Combine separate id and name aggregations for funders and affiliations.
 
         This method handles the case where we have separate aggregations for id and name
-        fields (e.g., by_funders_id and by_funders_name) and need to combine them into
+        fields (e.g., funders_id and funders_name) and need to combine them into
         a single list, deduplicating based on unique combinations of id and name.
 
         Args:

@@ -555,7 +555,7 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createRecordMetrics(false, dates);
     return {
       global: globalMetrics,
-      byFilePresence: createFilePresenceMetrics(false, dates),
+      filePresence: createFilePresenceMetrics(false, dates),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates),
       accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates),
       languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates),
@@ -573,7 +573,7 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createRecordMetrics(false, dates);
     return {
       global: globalMetrics,
-      byFilePresence: createFilePresenceMetrics(false, dates),
+      filePresence: createFilePresenceMetrics(false, dates),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates),
       accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates),
       languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates),
@@ -591,7 +591,7 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createRecordMetrics(false, dates);
     return {
       global: globalMetrics,
-      byFilePresence: createFilePresenceMetrics(false, dates),
+      filePresence: createFilePresenceMetrics(false, dates),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates),
       accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates),
       languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates),
@@ -610,7 +610,7 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createRecordMetrics(true, dates);
     return {
       global: globalMetrics,
-      byFilePresence: createFilePresenceMetrics(true, dates),
+      filePresence: createFilePresenceMetrics(true, dates),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates),
       accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates),
       languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates),
@@ -628,7 +628,7 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createRecordMetrics(true, dates);
     return {
       global: globalMetrics,
-      byFilePresence: createFilePresenceMetrics(true, dates),
+      filePresence: createFilePresenceMetrics(true, dates),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates),
       accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates),
       languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates),
@@ -646,7 +646,7 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createRecordMetrics(true, dates);
     return {
       global: globalMetrics,
-      byFilePresence: createFilePresenceMetrics(true, dates),
+      filePresence: createFilePresenceMetrics(true, dates),
       resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates),
       accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates),
       languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates),
@@ -665,16 +665,16 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createUsageMetrics(false, dates);
     return {
       global: globalMetrics,
-      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusesItems, false, globalMetrics, dates),
-      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypesItems, false, globalMetrics, dates),
-      byLanguages: createUsageSubcountSeries('byLanguages', languagesItems, false, globalMetrics, dates),
-      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypesItems, false, globalMetrics, dates),
-      bySubjects: createUsageSubcountSeries('bySubjects', subjectsItems, false, globalMetrics, dates),
-      byPublishers: createUsageSubcountSeries('byPublishers', publishersItems, false, globalMetrics, dates),
-      byRights: createUsageSubcountSeries('byRights', rightsItems, false, globalMetrics, dates),
-      byCountries: createUsageSubcountSeries('byCountries', countriesItems, false, globalMetrics, dates),
-      byReferrers: createUsageSubcountSeries('byReferrers', referrersItems, false, globalMetrics, dates),
-      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationsItems, false, globalMetrics, dates)
+      accessStatuses: createUsageSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates),
+      fileTypes: createUsageSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates),
+      languages: createUsageSubcountSeries('languages', languagesItems, false, globalMetrics, dates),
+      resourceTypes: createUsageSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates),
+      subjects: createUsageSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates),
+      publishers: createUsageSubcountSeries('publishers', publishersItems, false, globalMetrics, dates),
+      rights: createUsageSubcountSeries('rights', rightsItems, false, globalMetrics, dates),
+      countries: createUsageSubcountSeries('countries', countriesItems, false, globalMetrics, dates),
+      referrers: createUsageSubcountSeries('referrers', referrersItems, false, globalMetrics, dates),
+      affiliations: createUsageSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates)
     };
   })(),
 
@@ -683,25 +683,25 @@ const generateTestStatsData = async (startDate, endDate) => {
     const globalMetrics = createUsageMetrics(true, dates);
     return {
       global: globalMetrics,
-      byAccessStatus: createUsageSubcountSeries('byAccessStatus', accessStatusesItems, true, globalMetrics, dates),
-      byFileTypes: createUsageSubcountSeries('byFileTypes', fileTypesItems, true, globalMetrics, dates),
-      byLanguages: createUsageSubcountSeries('byLanguages', languagesItems, true, globalMetrics, dates),
-      byResourceTypes: createUsageSubcountSeries('byResourceTypes', resourceTypesItems, true, globalMetrics, dates),
-      bySubjects: createUsageSubcountSeries('bySubjects', subjectsItems, true, globalMetrics, dates),
-      byPublishers: createUsageSubcountSeries('byPublishers', publishersItems, true, globalMetrics, dates),
-      byRights: createUsageSubcountSeries('byRights', rightsItems, true, globalMetrics, dates),
-      byCountries: createUsageSubcountSeries('byCountries', countriesItems, true, globalMetrics, dates),
-      byReferrers: createUsageSubcountSeries('byReferrers', referrersItems, true, globalMetrics, dates),
-      byAffiliations: createUsageSubcountSeries('byAffiliations', affiliationsItems, true, globalMetrics, dates),
-      topCountriesByView: createUsageSubcountSeries('topCountriesByView', countriesItems, true, globalMetrics, dates),
-      topCountriesByDownload: createUsageSubcountSeries('topCountriesByDownload', countriesItems, true, globalMetrics, dates),
-      topSubjectsByView: createUsageSubcountSeries('topSubjectsByView', subjectsItems, true, globalMetrics, dates),
-      topSubjectsByDownload: createUsageSubcountSeries('topSubjectsByDownload', subjectsItems, true, globalMetrics, dates),
-      topPublishersByView: createUsageSubcountSeries('topPublishersByView', publishersItems, true, globalMetrics, dates),
-      topPublishersByDownload: createUsageSubcountSeries('topPublishersByDownload', publishersItems, true, globalMetrics, dates),
-      topRightsByView: createUsageSubcountSeries('topRightsByView', rightsItems, true, globalMetrics, dates),
-      topRightsByDownload: createUsageSubcountSeries('topRightsByDownload', rightsItems, true, globalMetrics, dates),
-      topReferrersByView: createUsageSubcountSeries('topReferrersByView', referrersItems, true, globalMetrics, dates)
+      accessStatuses: createUsageSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates),
+      fileTypes: createUsageSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates),
+      languages: createUsageSubcountSeries('languages', languagesItems, true, globalMetrics, dates),
+      resourceTypes: createUsageSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates),
+      subjects: createUsageSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates),
+      publishers: createUsageSubcountSeries('publishers', publishersItems, true, globalMetrics, dates),
+      rights: createUsageSubcountSeries('rights', rightsItems, true, globalMetrics, dates),
+      countries: createUsageSubcountSeries('countries', countriesItems, true, globalMetrics, dates),
+      referrers: createUsageSubcountSeries('referrers', referrersItems, true, globalMetrics, dates),
+      affiliations: createUsageSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates),
+      countriesByView: createUsageSubcountSeries('countriesByView', countriesItems, true, globalMetrics, dates),
+      countriesByDownload: createUsageSubcountSeries('countriesByDownload', countriesItems, true, globalMetrics, dates),
+      subjectsByView: createUsageSubcountSeries('subjectsByView', subjectsItems, true, globalMetrics, dates),
+      subjectsByDownload: createUsageSubcountSeries('subjectsByDownload', subjectsItems, true, globalMetrics, dates),
+      publishersByView: createUsageSubcountSeries('publishersByView', publishersItems, true, globalMetrics, dates),
+      publishersByDownload: createUsageSubcountSeries('publishersByDownload', publishersItems, true, globalMetrics, dates),
+      rightsByView: createUsageSubcountSeries('rightsByView', rightsItems, true, globalMetrics, dates),
+      rightsByDownload: createUsageSubcountSeries('rightsByDownload', rightsItems, true, globalMetrics, dates),
+      referrersByView: createUsageSubcountSeries('referrersByView', referrersItems, true, globalMetrics, dates)
     };
   })(),
 

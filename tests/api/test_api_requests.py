@@ -1110,18 +1110,18 @@ class TestAPIRequestUsageDelta:
         assert "unique_visitors" in day_data["totals"]["view"]
 
         assert "subcounts" in day_data
-        assert "by_access_statuses" in day_data["subcounts"]
-        assert "by_affiliations" in day_data["subcounts"]
-        assert "by_countries" in day_data["subcounts"]
-        assert "by_file_types" in day_data["subcounts"]
-        assert "by_funders" in day_data["subcounts"]
-        assert "by_languages" in day_data["subcounts"]
-        assert "by_rights" in day_data["subcounts"]
-        assert "by_periodicals" in day_data["subcounts"]
-        assert "by_publishers" in day_data["subcounts"]
-        assert "by_referrers" in day_data["subcounts"]
-        assert "by_resource_types" in day_data["subcounts"]
-        assert "by_subjects" in day_data["subcounts"]
+        assert "access_statuses" in day_data["subcounts"]
+        assert "affiliations" in day_data["subcounts"]
+        assert "countries" in day_data["subcounts"]
+        assert "file_types" in day_data["subcounts"]
+        assert "funders" in day_data["subcounts"]
+        assert "languages" in day_data["subcounts"]
+        assert "rights" in day_data["subcounts"]
+        assert "periodicals" in day_data["subcounts"]
+        assert "publishers" in day_data["subcounts"]
+        assert "referrers" in day_data["subcounts"]
+        assert "resource_types" in day_data["subcounts"]
+        assert "subjects" in day_data["subcounts"]
 
         assert "timestamp" in day_data
 
@@ -1253,18 +1253,18 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
         assert "unique_visitors" in day_data["totals"]["view"]
 
         assert "subcounts" in day_data
-        assert "all_access_statuses" in day_data["subcounts"]
-        assert "top_affiliations" in day_data["subcounts"]
-        assert "top_countries" in day_data["subcounts"]
-        assert "all_file_types" in day_data["subcounts"]
-        assert "top_funders" in day_data["subcounts"]
-        assert "top_languages" in day_data["subcounts"]
-        assert "top_rights" in day_data["subcounts"]
-        assert "top_periodicals" in day_data["subcounts"]
-        assert "top_publishers" in day_data["subcounts"]
-        assert "top_referrers" in day_data["subcounts"]
-        assert "all_resource_types" in day_data["subcounts"]
-        assert "top_subjects" in day_data["subcounts"]
+        assert "access_statuses" in day_data["subcounts"]
+        assert "affiliations" in day_data["subcounts"]
+        assert "countries" in day_data["subcounts"]
+        assert "file_types" in day_data["subcounts"]
+        assert "funders" in day_data["subcounts"]
+        assert "languages" in day_data["subcounts"]
+        assert "rights" in day_data["subcounts"]
+        assert "periodicals" in day_data["subcounts"]
+        assert "publishers" in day_data["subcounts"]
+        assert "referrers" in day_data["subcounts"]
+        assert "resource_types" in day_data["subcounts"]
+        assert "subjects" in day_data["subcounts"]
 
         assert "timestamp" in day_data
 

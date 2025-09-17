@@ -72,20 +72,20 @@ class TestCommunityRecordCreatedDeltaQuery:
             print("Method: teardown_method")
 
     SUB_AGGS = [
-        "by_access_statuses",
-        "by_affiliations_contributor_id",
-        "by_affiliations_contributor_keyword",
-        "by_affiliations_creator_id",
-        "by_affiliations_creator_keyword",
-        "by_file_types",
-        "by_funders_id",
-        "by_funders_keyword",
-        "by_languages",
-        "by_rights",
-        "by_periodicals",
-        "by_publishers",
-        "by_resource_types",
-        "by_subjects",
+        "access_statuses",
+        "affiliations_contributor_id",
+        "affiliations_contributor_keyword",
+        "affiliations_creator_id",
+        "affiliations_creator_keyword",
+        "file_types",
+        "funders_id",
+        "funders_keyword",
+        "languages",
+        "rights",
+        "periodicals",
+        "publishers",
+        "resource_types",
+        "subjects",
     ]
 
     @property
@@ -269,7 +269,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         assert result["uploaders"]["value"] == 1
         # Find access statuses by key since order is not guaranteed
         access_statuses = {
-            bucket["key"]: bucket for bucket in result["by_access_statuses"]["buckets"]
+            bucket["key"]: bucket for bucket in result["access_statuses"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -279,14 +279,14 @@ class TestCommunityRecordCreatedDeltaQuery:
             count_without_files=0,
             expected_bytes=59117831.0,
         )
-        assert result["by_affiliations_contributor_id"]["buckets"] == []
-        assert result["by_affiliations_contributor_keyword"]["buckets"] == []
-        assert result["by_affiliations_creator_keyword"]["buckets"] == []
+        assert result["affiliations_contributor_id"]["buckets"] == []
+        assert result["affiliations_contributor_keyword"]["buckets"] == []
+        assert result["affiliations_creator_keyword"]["buckets"] == []
 
         # Find affiliations by key since order is not guaranteed
         affiliations = {
             bucket["key"]: bucket
-            for bucket in result["by_affiliations_creator_id"]["buckets"]
+            for bucket in result["affiliations_creator_id"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -309,7 +309,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         )
         # Find file types by key since order is not guaranteed
         file_types = {
-            bucket["key"]: bucket for bucket in result["by_file_types"]["buckets"]
+            bucket["key"]: bucket for bucket in result["file_types"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -319,13 +319,11 @@ class TestCommunityRecordCreatedDeltaQuery:
             count_without_files=0,
             expected_bytes=59117831.0,
         )
-        assert result["by_funders_id"]["buckets"] == []
-        assert result["by_funders_keyword"]["buckets"] == []
+        assert result["funders_id"]["buckets"] == []
+        assert result["funders_keyword"]["buckets"] == []
 
         # Find languages by key since order is not guaranteed
-        languages = {
-            bucket["key"]: bucket for bucket in result["by_languages"]["buckets"]
-        }
+        languages = {bucket["key"]: bucket for bucket in result["languages"]["buckets"]}
 
         self._check_query_subcount_results(
             languages["eng"],
@@ -335,12 +333,12 @@ class TestCommunityRecordCreatedDeltaQuery:
                 "metadata": {"languages": [{"id": "eng", "title": {"en": "English"}}]}
             },
         )
-        assert result["by_rights"]["buckets"] == []
-        assert result["by_periodicals"]["buckets"] == []
+        assert result["rights"]["buckets"] == []
+        assert result["periodicals"]["buckets"] == []
 
         # Find publishers by key since aggregation order is not guaranteed
         publishers = {
-            bucket["key"]: bucket for bucket in result["by_publishers"]["buckets"]
+            bucket["key"]: bucket for bucket in result["publishers"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -355,7 +353,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         )
         # Find resource types by key since aggregation order is not guaranteed
         resource_types = {
-            bucket["key"]: bucket for bucket in result["by_resource_types"]["buckets"]
+            bucket["key"]: bucket for bucket in result["resource_types"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -385,9 +383,7 @@ class TestCommunityRecordCreatedDeltaQuery:
             },
         )
         # Find subjects by key since order is not guaranteed
-        subjects = {
-            bucket["key"]: bucket for bucket in result["by_subjects"]["buckets"]
-        }
+        subjects = {bucket["key"]: bucket for bucket in result["subjects"]["buckets"]}
 
         assert [c["doc_count"] for c in subjects.values()] == [1] * 7
         assert [c["file_count"]["value"] for c in subjects.values()] == [1] * 7
@@ -418,9 +414,7 @@ class TestCommunityRecordCreatedDeltaQuery:
             c["without_files"]["unique_parents"]["value"] for c in subjects.values()
         ] == [0] * 7
         # Find subjects by key since order is not guaranteed
-        subjects = {
-            bucket["key"]: bucket for bucket in result["by_subjects"]["buckets"]
-        }
+        subjects = {bucket["key"]: bucket for bucket in result["subjects"]["buckets"]}
         first_subject_key = list(subjects.keys())[0]  # Get the first subject key
 
         assert [
@@ -471,17 +465,17 @@ class TestCommunityRecordCreatedDeltaQuery:
             for a in self.SUB_AGGS
             if a
             not in [
-                "by_affiliations_creator_id",
-                "by_affiliations_contributor_id",
-                "by_affiliations_creator_keyword",
-                "by_affiliations_contributor_keyword",
+                "affiliations_creator_id",
+                "affiliations_contributor_id",
+                "affiliations_creator_keyword",
+                "affiliations_contributor_keyword",
             ]
         ]:
             assert result[agg]["buckets"] == []
-        assert result["by_affiliations_creator_id"]["buckets"] == []
-        assert result["by_affiliations_contributor_id"]["buckets"] == []
-        assert result["by_affiliations_creator_keyword"]["buckets"] == []
-        assert result["by_affiliations_contributor_keyword"]["buckets"] == []
+        assert result["affiliations_creator_id"]["buckets"] == []
+        assert result["affiliations_contributor_id"]["buckets"] == []
+        assert result["affiliations_creator_keyword"]["buckets"] == []
+        assert result["affiliations_contributor_keyword"]["buckets"] == []
 
     def _check_result_day2(self, result):
         """Check the results for day 2."""
@@ -513,7 +507,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         }
         # Find access statuses by key since order is not guaranteed
         access_statuses = {
-            bucket["key"]: bucket for bucket in result["by_access_statuses"]["buckets"]
+            bucket["key"]: bucket for bucket in result["access_statuses"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -528,12 +522,12 @@ class TestCommunityRecordCreatedDeltaQuery:
             expected_key="open",
             expected_bytes=1984949.0,
         )
-        assert result["by_affiliations_contributor_keyword"]["buckets"] == []
+        assert result["affiliations_contributor_keyword"]["buckets"] == []
 
         # Find affiliations by key since order is not guaranteed
         affiliations = {
             bucket["key"]: bucket
-            for bucket in result["by_affiliations_creator_id"]["buckets"]
+            for bucket in result["affiliations_creator_id"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -548,7 +542,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         )
         # Find file types by key since order is not guaranteed
         file_types = {
-            bucket["key"]: bucket for bucket in result["by_file_types"]["buckets"]
+            bucket["key"]: bucket for bucket in result["file_types"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -558,14 +552,12 @@ class TestCommunityRecordCreatedDeltaQuery:
             count_without_files=0,
             expected_bytes=1984949.0,
         )
-        assert result["by_funders_id"]["buckets"] == []
-        assert result["by_funders_keyword"]["buckets"] == []
+        assert result["funders_id"]["buckets"] == []
+        assert result["funders_keyword"]["buckets"] == []
 
         # Find languages and rights by key since order is not guaranteed
-        languages = {
-            bucket["key"]: bucket for bucket in result["by_languages"]["buckets"]
-        }
-        rights = {bucket["key"]: bucket for bucket in result["by_rights"]["buckets"]}
+        languages = {bucket["key"]: bucket for bucket in result["languages"]["buckets"]}
+        rights = {bucket["key"]: bucket for bucket in result["rights"]["buckets"]}
 
         self._check_query_subcount_results(
             languages["eng"],
@@ -597,13 +589,13 @@ class TestCommunityRecordCreatedDeltaQuery:
         )
         # Find aggregations by key since order is not guaranteed
         periodicals = {
-            bucket["key"]: bucket for bucket in result["by_periodicals"]["buckets"]
+            bucket["key"]: bucket for bucket in result["periodicals"]["buckets"]
         }
         publishers = {
-            bucket["key"]: bucket for bucket in result["by_publishers"]["buckets"]
+            bucket["key"]: bucket for bucket in result["publishers"]["buckets"]
         }
         resource_types = {
-            bucket["key"]: bucket for bucket in result["by_resource_types"]["buckets"]
+            bucket["key"]: bucket for bucket in result["resource_types"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -652,9 +644,7 @@ class TestCommunityRecordCreatedDeltaQuery:
             },
         )
         # Find subjects by key since order is not guaranteed
-        subjects = {
-            bucket["key"]: bucket for bucket in result["by_subjects"]["buckets"]
-        }
+        subjects = {bucket["key"]: bucket for bucket in result["subjects"]["buckets"]}
 
         assert [c["doc_count"] for c in subjects.values()] == [1] * 11
         assert [c["file_count"]["value"] for c in subjects.values()] == [0] * 11
@@ -681,9 +671,7 @@ class TestCommunityRecordCreatedDeltaQuery:
             c["without_files"]["unique_parents"]["value"] for c in subjects.values()
         ] == [1] * 11
         # Find subjects by key since order is not guaranteed
-        subjects = {
-            bucket["key"]: bucket for bucket in result["by_subjects"]["buckets"]
-        }
+        subjects = {bucket["key"]: bucket for bucket in result["subjects"]["buckets"]}
         first_subject_key = list(subjects.keys())[0]  # Get the first subject key
 
         assert subjects[first_subject_key]["label"]["hits"]["hits"][0]["_source"][
@@ -1436,7 +1424,7 @@ class TestCommunityUsageDeltaQuery:
 
     def _check_referrers(self, actual_aggs, event_type):
         """Check the referrers."""
-        actual_referrers = actual_aggs["by_referrers"]
+        actual_referrers = actual_aggs["referrers"]
         total_actual_events = 0
         for bucket in actual_referrers["buckets"]:
             total_actual_events += bucket["total_events"]["value"]
@@ -1452,7 +1440,7 @@ class TestCommunityUsageDeltaQuery:
 
         These need more flexible assertions since IP addresses are generated dynamically
         """
-        actual_agg = actual_aggs["by_countries"]
+        actual_agg = actual_aggs["countries"]
 
         # Check basic structure
         assert "buckets" in actual_agg
@@ -1524,10 +1512,10 @@ class TestCommunityUsageDeltaQuery:
         assert 20 <= actual_aggs["unique_visitors"]["value"] <= expected["visitors"]
 
         for agg_name in [
-            "by_access_statuses",
-            "by_file_types",
-            "by_periodicals",
-            "by_publishers",
+            "access_statuses",
+            "file_types",
+            "periodicals",
+            "publishers",
         ]:
             for idx, agg_item in enumerate(actual_aggs[agg_name]["buckets"]):
                 self._compare_aggregation(
@@ -1535,14 +1523,14 @@ class TestCommunityUsageDeltaQuery:
                 )
 
         for agg_name in [
-            "by_subjects",
-            "by_affiliations_id",
-            "by_affiliations_name",
-            "by_funders_id",
-            "by_funders_name",
-            "by_languages",
-            "by_rights",
-            "by_resource_types",
+            "subjects",
+            "affiliations_id",
+            "affiliations_name",
+            "funders_id",
+            "funders_name",
+            "languages",
+            "rights",
+            "resource_types",
         ]:
             self._compare_aggregation_ignoring_ids(
                 actual_aggs[agg_name],

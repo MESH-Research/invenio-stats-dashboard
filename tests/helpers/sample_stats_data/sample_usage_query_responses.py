@@ -8,7 +8,7 @@
 
 MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
     "aggregations": {
-        "by_access_statuses": {
+        "access_statuses": {
             "buckets": [
                 {
                     "doc_count": 60,
@@ -30,7 +30,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_affiliations_id": {
+        "affiliations_id": {
             "buckets": [
                 {
                     "key": "013v4ng57",
@@ -110,7 +110,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_affiliations_name": {
+        "affiliations_name": {
             "buckets": [
                 {
                     "key": "Henry Ford College",
@@ -285,7 +285,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_countries": {
+        "countries": {
             "buckets": [
                 {
                     "doc_count": 44,
@@ -331,7 +331,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_file_types": {
+        "file_types": {
             "buckets": [
                 {
                     "doc_count": 60,
@@ -345,7 +345,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_funders_id": {
+        "funders_id": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -379,7 +379,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_funders_name": {
+        "funders_name": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -413,7 +413,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_languages": {
+        "languages": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -447,7 +447,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_rights": {
+        "rights": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -492,7 +492,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_periodicals": {
+        "periodicals": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -506,7 +506,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_publishers": {
+        "publishers": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -536,7 +536,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_referrers": {
+        "referrers": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -574,7 +574,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_resource_types": {
+        "resource_types": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -667,7 +667,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_subjects": {
+        "subjects": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -2253,7 +2253,7 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
 
 MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
     "aggregations": {
-        "by_access_statuses": {
+        "access_statuses": {
             "buckets": [
                 {
                     "doc_count": 60,
@@ -2269,7 +2269,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_affiliations_id": {
+        "affiliations_id": {
             "buckets": [
                 {
                     "key": "013v4ng57",
@@ -2312,7 +2312,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_affiliations_name": {
+        "affiliations_name": {
             "buckets": [
                 {
                     "key": "Henry Ford College",
@@ -2415,7 +2415,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_countries": {
+        "countries": {
             "buckets": [
                 {
                     "doc_count": 35,
@@ -2471,7 +2471,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_file_types": {
+        "file_types": {
             "buckets": [
                 {
                     "doc_count": 60,
@@ -2487,7 +2487,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_funders_id": {
+        "funders_id": {
             "buckets": [
                 {
                     "key": "00k4n6c31",
@@ -2523,7 +2523,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_funders_name": {
+        "funders_name": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -2559,7 +2559,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_languages": {
+        "languages": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -2595,7 +2595,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_rights": {
+        "rights": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -2642,7 +2642,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_periodicals": {
+        "periodicals": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -2658,7 +2658,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_publishers": {
+        "publishers": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -2684,7 +2684,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_referrers": {
+        "referrers": {
             "buckets": [
                 {
                     "doc_count": 20,
@@ -2720,7 +2720,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_resource_types": {
+        "resource_types": {
             "buckets": [
                 {
                     "doc_count": 40,
@@ -2788,7 +2788,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
             "doc_count_error_upper_bound": 0,
             "sum_other_doc_count": 0,
         },
-        "by_subjects": {
+        "subjects": {
             "buckets": [
                 {
                     "doc_count": 20,

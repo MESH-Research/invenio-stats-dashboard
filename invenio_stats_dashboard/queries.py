@@ -170,7 +170,12 @@ class CommunityStatsResultsQueryBase(Query):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
 
-    def run(self, community_id="global", start_date=None, end_date=None):
+    def run(
+        self,
+        community_id: str = "global",
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[dict[str, Any]] | dict[str, Any]:
         """Run the query.
 
         Args:
@@ -290,7 +295,12 @@ class CommunityStatsResultsQuery(Query):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
 
-    def run(self, community_id="global", start_date=None, end_date=None):
+    def run(
+        self,
+        community_id: str = "global",
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, Any]:
         """Run the query."""
         results = {}
         record_deltas_created = CommunityRecordDeltaResultsQuery(

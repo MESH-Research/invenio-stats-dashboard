@@ -493,17 +493,19 @@ class CommunityStatsService:
                     raise ValueError(f"Unknown query type: {query_type}")
 
                 # Get the query class and index name from the config
-                query_config = COMMUNITY_STATS_QUERIES[query_type]
-                query_class = query_config["cls"]
-                index_name = query_config["params"]["index"]
+                query_config: dict[str, Any] = COMMUNITY_STATS_QUERIES[query_type]
+                query_class: type[CommunityStatsResultsQuery] = query_config["cls"]
+                index_name: str = query_config["params"]["index"]
 
                 # Create and run the specific query
-                query = query_class(
+                query: CommunityStatsResultsQuery = query_class(
                     name=query_type,
                     index=index_name,
                     client=self.client._get_current_object(),
                 )
-                result = query.run(community_id, start_date, end_date)
+                result: list[dict[str, Any]] = query.run(
+                    community_id, start_date, end_date
+                )
                 return True, result if isinstance(result, list) else []
             else:
                 # Run the meta-query
@@ -523,7 +525,7 @@ class CommunityStatsService:
                 if query_type:
                     return False, []
                 else:
-                    empty_response = {}
+                    empty_response: dict[str, Any] = {}
                     for query_name in COMMUNITY_STATS_QUERIES.keys():
                         key = (
                             query_name.replace("community-record-", "")

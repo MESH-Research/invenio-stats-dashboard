@@ -52,7 +52,7 @@ describe('TopCountriesMultiDisplay', () => {
     mockUseStatsDashboard.mockReturnValue({
       stats: {
         usageSnapshotData: {
-          topCountriesByView: {
+          countriesByView: {
             views: [
               {
                 id: 'united-states',
@@ -530,7 +530,7 @@ describe('TopCountriesMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           usageSnapshotData: {
-            topCountriesByView: {
+            countriesByView: {
               views: [
                 {
                   id: 'united-states',
@@ -601,7 +601,7 @@ describe('TopCountriesMultiDisplay', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: {
           usageSnapshotData: {
-            topCountriesByView: {
+            countriesByView: {
               views: []
             }
           }

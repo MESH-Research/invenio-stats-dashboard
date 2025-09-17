@@ -496,7 +496,7 @@ class TestCommunityRecordDeltaAddedAggregator(
                         assert doc["records"]["removed"]["metadata_only"] == 0
                         a = [
                             i
-                            for i in doc["subcounts"]["by_access_statuses"]
+                            for i in doc["subcounts"]["access_statuses"]
                             if i["id"] == "metadata-only"
                         ][0]
                         assert a["id"] == "metadata-only"
@@ -513,7 +513,7 @@ class TestCommunityRecordDeltaAddedAggregator(
                         assert a["records"]["added"]["metadata_only"] == 1
                         assert a["records"]["removed"]["with_files"] == 0
                         assert a["records"]["removed"]["metadata_only"] == 0
-                        f = doc["subcounts"]["by_file_types"][0]
+                        f = doc["subcounts"]["file_types"][0]
                         assert f["id"] == "pdf"
                         assert f["label"] == ""
                         assert f["files"]["added"]["file_count"] == 3
@@ -1490,18 +1490,18 @@ class TestCommunityUsageAggregators:
             # Check subcounts structure
             subcounts = doc["subcounts"]
             expected_subcounts = [
-                "by_resource_types",
-                "by_access_statuses",
-                "by_languages",
-                "by_subjects",
-                "by_rights",
-                "by_funders",
-                "by_periodicals",
-                "by_publishers",
-                "by_affiliations",
-                "by_countries",
-                "by_file_types",
-                "by_referrers",
+                "resource_types",
+                "access_statuses",
+                "languages",
+                "subjects",
+                "rights",
+                "funders",
+                "periodicals",
+                "publishers",
+                "affiliations",
+                "countries",
+                "file_types",
+                "referrers",
             ]
             for expected_subcount in expected_subcounts:
                 assert expected_subcount in subcounts.keys()
@@ -1670,9 +1670,9 @@ class TestCommunityUsageAggregators:
     def _check_all_snap_subcounts(self, last_day_snap, delta_results):
         """Check subcounts for all_subcount_type categories."""
         for all_subcount_type in [
-            "all_file_types",
-            "all_access_statuses",
-            "all_resource_types",
+            "file_types",
+            "access_statuses",
+            "resource_types",
         ]:
             for item in last_day_snap["_source"]["subcounts"][all_subcount_type]:
                 delta_agg_name = all_subcount_type.replace("all_", "by_")
@@ -1700,15 +1700,15 @@ class TestCommunityUsageAggregators:
     def _check_top_subcounts(self, last_day_snap, delta_results):
         """Check subcounts for top_subcount_type categories."""
         for top_subcount_type in [
-            "top_subjects",
-            "top_publishers",
-            "top_funders",
-            "top_periodicals",
-            "top_affiliations",
-            "top_languages",
-            "top_countries",
-            "top_referrers",
-            "top_rights",
+            "subjects",
+            "publishers",
+            "funders",
+            "periodicals",
+            "affiliations",
+            "languages",
+            "countries",
+            "referrers",
+            "rights",
         ]:
             for angle in ["by_view", "by_download"]:
                 for item in last_day_snap["_source"]["subcounts"][top_subcount_type][
@@ -3033,7 +3033,7 @@ class TestExtractIdNameFromBucket:
         }
 
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
-            mock_bucket, "by_funders_id", "funders.id", "funders.name", config
+            mock_bucket, "funders_id", "funders.id", "funders.name", config
         )
 
         assert id_and_label["id"] == "00k4n6c31"
@@ -3077,7 +3077,7 @@ class TestExtractIdNameFromBucket:
         }
 
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
-            mock_bucket, "by_funders_name", "funders.id", "funders.name", config
+            mock_bucket, "funders_name", "funders.id", "funders.name", config
         )
 
         assert id_and_label["id"] == "00k4n6c31"
@@ -3128,7 +3128,7 @@ class TestExtractIdNameFromBucket:
         }
 
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
-            mock_bucket, "by_funders_id", "funders.id", "funders.name", config
+            mock_bucket, "funders_id", "funders.id", "funders.name", config
         )
 
         assert id_and_label["id"] == "00k4n6c31"
@@ -3179,7 +3179,7 @@ class TestExtractIdNameFromBucket:
         }
 
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
-            mock_bucket, "by_funders_name", "funders.id", "funders.name", config
+            mock_bucket, "funders_name", "funders.id", "funders.name", config
         )
 
         assert id_and_label["id"] == "00k4n6c31"
@@ -3198,14 +3198,14 @@ class TestExtractIdNameFromBucket:
 
         # Test ID bucket fallback
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
-            mock_bucket, "by_funders_id", "funders.id", "funders.name", config
+            mock_bucket, "funders_id", "funders.id", "funders.name", config
         )
         assert id_and_label["id"] == "some_key"  # type: ignore
         assert id_and_label["label"] == "some_key"  # type: ignore
 
         # Test name bucket fallback
         id_and_label = CommunityUsageDeltaAggregator._extract_id_name_from_bucket(
-            mock_bucket, "by_funders_name", "funders.id", "funders.name", config
+            mock_bucket, "funders_name", "funders.id", "funders.name", config
         )
         assert id_and_label["id"] == "some_key"  # type: ignore
         assert id_and_label["label"] == "some_key"  # type: ignore

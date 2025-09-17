@@ -807,30 +807,9 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         delta_results = delta_search.execute()
         delta_documents = delta_results.to_dict()["hits"]["hits"]
 
-        # Extract _source and remap subcount field names for easier access
-        remapped_documents = []
-        for doc in delta_documents:
-            delta_dict = doc["_source"]
-            mapped_delta_dict = self._map_delta_to_snapshot_subcounts(delta_dict)
-            remapped_documents.append(mapped_delta_dict)
-
-        return remapped_documents
-
-    def _map_delta_to_snapshot_subcounts(self, delta_doc: dict) -> dict:
-        """Map delta document subcount field names to snapshot field names.
-
-        This method should be overridden by subclasses to provide the appropriate
-        mapping logic for their specific data structures.
-
-        Args:
-            delta_doc: The delta document with subcounts to remap (mutated in place)
-
-        Returns:
-            The same delta document with remapped subcount field names
-        """
-        raise NotImplementedError(
-            "Subclasses must override _map_delta_to_snapshot_subcounts"
-        )
+        # With unified field names, no field mapping is needed
+        # Return delta documents directly
+        return [doc["_source"] for doc in delta_documents]
 
     def _build_exhaustive_cache(self, deltas: list, category_name: str) -> dict:
         """Build exhaustive cache for a category from all delta documents.
