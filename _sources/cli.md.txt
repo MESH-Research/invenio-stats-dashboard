@@ -67,7 +67,7 @@ invenio community-stats status [OPTIONS]
 ```
 
 **Options:**
-- `--community-id`: The ID of the community to check status for. If not provided, checks all communities.
+- `--community-id, -c`: The ID of the community to check status for. Can be specified multiple times to check status for multiple communities. If not provided, checks all communities.
 - `--verbose, -v`: Show detailed information for each aggregation.
 
 **Description:**
@@ -90,6 +90,9 @@ invenio community-stats status
 
 # Check status for specific community
 invenio community-stats status --community-id my-community-id
+
+# Check status for multiple communities
+invenio community-stats status --community-id comm1 --community-id comm2
 
 # Show detailed information for all communities
 invenio community-stats status --verbose

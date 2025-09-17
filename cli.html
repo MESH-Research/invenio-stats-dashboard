@@ -324,7 +324,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span><span clas
 </div>
 <p><strong>Options:</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--community-id</span></code>: The ID of the community to check status for. If not provided, checks all communities.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--community-id,</span> <span class="pre">-c</span></code>: The ID of the community to check status for. Can be specified multiple times to check status for multiple communities. If not provided, checks all communities.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--verbose,</span> <span class="pre">-v</span></code>: Show detailed information for each aggregation.</p></li>
 </ul>
 <p><strong>Description:</strong>
@@ -347,6 +347,9 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>status
 
 <span class="c1"># Check status for specific community</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--community-id<span class="w"> </span>my-community-id
+
+<span class="c1"># Check status for multiple communities</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--community-id<span class="w"> </span>comm1<span class="w"> </span>--community-id<span class="w"> </span>comm2
 
 <span class="c1"># Show detailed information for all communities</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>status<span class="w"> </span>--verbose
