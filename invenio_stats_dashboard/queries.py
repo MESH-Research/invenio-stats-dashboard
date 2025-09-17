@@ -14,68 +14,8 @@ from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
-from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
-
-NESTED_AGGREGATIONS = {
-    "resource_type": [
-        "metadata.resource_type.id",
-        ["metadata.resource_type.title.en", "metadata.resource_type.id"],
-    ],
-    "access_status": ["access.status"],
-    "language": [
-        "metadata.languages.id",
-        ["metadata.languages.title.en", "metadata.languages.id"],
-    ],
-    "affiliation_creator_id": [
-        "metadata.creators.affiliations.id",
-        [
-            "metadata.creators.affiliations.name.keyword",
-            "metadata.creators.affiliations.id",
-        ],
-    ],
-    "affiliation_creator_name": [
-        "metadata.creators.affiliations.name.keyword",
-        [
-            "metadata.creators.affiliations.name.keyword",
-            "metadata.creators.affiliations.id",
-        ],
-    ],
-    "affiliation_contributor_id": [
-        "metadata.contributors.affiliations.id",
-        [
-            "metadata.contributors.affiliations.name.keyword",
-            "metadata.contributors.affiliations.id",
-        ],
-    ],
-    "affiliation_contributor_name": [
-        "metadata.contributors.affiliations.name.keyword",
-        [
-            "metadata.contributors.affiliations.name.keyword",
-            "metadata.contributors.affiliations.id",
-        ],
-    ],
-    "funder": [
-        "metadata.funding.funder.id",
-        ["metadata.funding.funder.title.en", "metadata.funding.funder.id"],
-    ],
-    "subject": [
-        "metadata.subjects.id",
-        [
-            "metadata.subjects.subject",
-            "metadata.subjects.id",
-            "metadata.subjects.scheme",
-        ],
-    ],
-    "publisher": ["metadata.publisher.keyword"],
-    "periodical": ["custom_fields.journal:journal.title.keyword"],
-    "file_type": ["files.entries.ext"],
-    "rights": [
-        "metadata.rights.id",
-        ["metadata.rights.title.en", "metadata.rights.id"],
-    ],
-}
 
 
 def get_relevant_record_ids_from_events(
@@ -257,11 +197,25 @@ class CommunityStatsResultsQueryBase(Query):
             )
         if range_clauses:
             must_clauses.append({"range": range_clauses})
+
+        # The parent Query class has already applied prefix_index to self.index
+        alias_name = self.index
+        index_pattern = f"{alias_name}-*"
+
         try:
-            assert Index(using=self.client, name=prefix_index(self.index)).exists()
+            if self.client.indices.exists_alias(name=alias_name):
+                search_index = alias_name
+            else:
+                indices = self.client.indices.get(index_pattern)
+                if not indices:
+                    raise AssertionError(
+                        f"No indices found for alias '{alias_name}' or pattern "
+                        f"{index_pattern}'"
+                    )
+                search_index = index_pattern
 
             agg_search = (
-                Search(using=self.client, index=prefix_index(self.index))
+                Search(using=self.client, index=search_index)
                 .query(Q("bool", must=must_clauses))
                 .extra(size=10_000)
             )
@@ -341,7 +295,7 @@ class CommunityStatsResultsQuery(Query):
         results = {}
         record_deltas_created = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-created",
-            index=prefix_index("stats-community-records-delta-created"),
+            index="stats-community-records-delta-created",
             client=self.client,
         )
         results["record_deltas_created"] = record_deltas_created.run(

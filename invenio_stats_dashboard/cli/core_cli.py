@@ -8,7 +8,7 @@
 
 """Core CLI commands for community statistics aggregation and management."""
 
-from pprint import pprint
+from pprint import pformat
 
 import arrow
 import click
@@ -169,16 +169,53 @@ def aggregate_stats_command(
     default=arrow.get().isoformat(),
     help="The end date to read stats for.",
 )
+@click.option(
+    "--query-type",
+    type=click.Choice(
+        [
+            "community-record-delta-created",
+            "community-record-delta-published",
+            "community-record-delta-added",
+            "community-record-snapshot-created",
+            "community-record-snapshot-published",
+            "community-record-snapshot-added",
+            "community-usage-delta",
+            "community-usage-snapshot",
+        ]
+    ),
+    help="Specific query type to run instead of the meta-query.",
+)
 @with_appcontext
-def read_stats_command(community_id, start_date, end_date):
+def read_stats_command(community_id, start_date, end_date, query_type):
     """Read stats for a community."""
     check_stats_enabled()
-    print(f"Reading stats for community {community_id} from {start_date} to {end_date}")
-    with Halo(text="Reading stats...", spinner="dots"):
-        stats = current_community_stats_service.read_stats(
-            community_id, start_date=start_date, end_date=end_date
+
+    if query_type:
+        click.echo(
+            f"Reading {query_type} stats for community {community_id} "
+            f"from {start_date} to {end_date}"
         )
-    pprint(stats)
+        with Halo(text=f"Reading {query_type} stats...", spinner="dots"):
+            success, stats = current_community_stats_service.read_stats(
+                community_id,
+                start_date=start_date,
+                end_date=end_date,
+                query_type=query_type,
+            )
+    else:
+        click.echo(
+            f"Reading stats for community {community_id} "
+            f"from {start_date} to {end_date}"
+        )
+        with Halo(text="Reading stats...", spinner="dots"):
+            success, stats = current_community_stats_service.read_stats(
+                community_id, start_date=start_date, end_date=end_date
+            )
+
+    if not success:
+        click.echo("No data found for the specified date range.")
+
+    click.echo(pformat(stats))
 
 
 def _abbreviate_agg_name(agg_type):

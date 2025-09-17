@@ -18,6 +18,7 @@ from opensearchpy.helpers.search import Search
 
 from ..aggregations import register_aggregations
 from ..aggregations.bookmarks import CommunityBookmarkAPI
+from ..config import COMMUNITY_STATS_QUERIES
 from ..queries import CommunityStatsResultsQuery
 from ..tasks import (
     AggregationResponse,
@@ -467,15 +468,72 @@ class CommunityStatsService:
         current_app.logger.info(f"Total records processed: {records_processed}")
         return records_processed, new_events_created, old_events_found
 
-    def read_stats(self, community_id: str, start_date: str, end_date: str) -> dict:
-        """Read statistics for a community."""
-        query = CommunityStatsResultsQuery(
-            name="community-stats",
-            index="stats-community-stats",
-            client=self.client._get_current_object(),
-        )
-        result = query.run(community_id, start_date, end_date)
-        return result if isinstance(result, dict) else {}
+    def read_stats(
+        self,
+        community_id: str,
+        start_date: str,
+        end_date: str,
+        query_type: str | None = None,
+    ) -> tuple[bool, dict | list]:
+        """Read statistics for a community.
+
+        Args:
+            community_id: The ID of the community to read stats for
+            start_date: The start date to read stats for
+            end_date: The end date to read stats for
+            query_type: Optional specific query type to run instead of the meta-query
+
+        Returns:
+            Tuple of (success, result) where success indicates if data was found
+        """
+        try:
+            if query_type:
+                # Run a specific query type
+                if query_type not in COMMUNITY_STATS_QUERIES:
+                    raise ValueError(f"Unknown query type: {query_type}")
+
+                # Get the query class and index name from the config
+                query_config = COMMUNITY_STATS_QUERIES[query_type]
+                query_class = query_config["cls"]
+                index_name = query_config["params"]["index"]
+
+                # Create and run the specific query
+                query = query_class(
+                    name=query_type,
+                    index=index_name,
+                    client=self.client._get_current_object(),
+                )
+                result = query.run(community_id, start_date, end_date)
+                return True, result if isinstance(result, list) else []
+            else:
+                # Run the meta-query
+                query = CommunityStatsResultsQuery(
+                    name="community-stats",
+                    index="stats-community-stats",
+                    client=self.client._get_current_object(),
+                )
+                result = query.run(community_id, start_date, end_date)
+                return True, result if isinstance(result, dict) else {}
+        except ValueError as e:
+            if "No results found for community" in str(e):
+                current_app.logger.info(
+                    f"No {query_type or 'stats'} data found for community {community_id} "
+                    f"from {start_date} to {end_date}"
+                )
+                if query_type:
+                    return False, []
+                else:
+                    empty_response = {}
+                    for query_name in COMMUNITY_STATS_QUERIES.keys():
+                        key = (
+                            query_name.replace("community-record-", "")
+                            .replace("community-", "")
+                            .replace("-", "_")
+                        )
+                        empty_response[key] = []
+                    return False, empty_response
+            else:
+                raise
 
     def get_aggregation_status(self, community_ids: list[str] | None = None) -> dict:
         """Get aggregation status for communities.
