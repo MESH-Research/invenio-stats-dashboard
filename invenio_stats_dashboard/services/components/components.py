@@ -4,6 +4,8 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
+"""Service components for community statistics and event management."""
+
 from typing import Any
 
 import arrow
@@ -366,7 +368,6 @@ def update_community_events_index(
         is_deleted: bool,
     ):
         """Create a new community event in the appropriate annual index."""
-
         event_doc = {
             "record_id": record_id,
             "community_id": community_id,
@@ -435,6 +436,18 @@ def update_community_events_index(
                         record_id, community_id, event_type, timestamp, is_deleted
                     )
             else:
+                if event_type == "removed":
+                    # No prior events found, create an addition event first
+                    # 1 second before the removal
+                    removal_timestamp = arrow.get(timestamp)
+                    addition_timestamp = removal_timestamp.shift(seconds=-1)
+                    create_new_event(
+                        record_id,
+                        community_id,
+                        "added",
+                        addition_timestamp.format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                        is_deleted,
+                    )
                 create_new_event(
                     record_id, community_id, event_type, timestamp, is_deleted
                 )
@@ -493,7 +506,7 @@ class CommunityAcceptedEventComponent(ServiceComponent):
             request_data["type"] == request_type
             and event.get("payload", {}).get("event") == request_status
             for request_type, request_status in zip(
-                valid_request_types, valid_request_statuses
+                valid_request_types, valid_request_statuses, strict=True
             )
         )
 
@@ -643,7 +656,6 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         uow: UnitOfWork,
     ) -> None:
         """Record addition of each record in the community events index."""
-
         for record_id in record_ids:
             record = current_rdm_records_service.record_cls.pid.resolve(record_id)
 
