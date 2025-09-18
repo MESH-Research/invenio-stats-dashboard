@@ -365,7 +365,6 @@ def _report_validation_errors(validation_result):
 
     click.echo("    Validation Errors:")
 
-    # Show validation details
     if validation_result.get("errors"):
         click.echo("      Validation errors:")
         errors = validation_result["errors"]

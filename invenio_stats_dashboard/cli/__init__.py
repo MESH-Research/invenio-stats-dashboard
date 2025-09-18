@@ -23,17 +23,13 @@ def cli():
     pass
 
 
-# Register the core commands
 cli.add_command(aggregate_stats_command)
 cli.add_command(read_stats_command)
 cli.add_command(status_command)
 cli.add_command(destroy_indices_command)
 
-# Register the community-events subcommand group
 cli.add_command(community_events_cli)
 
-# Register the usage-events subcommand group
 cli.add_command(usage_events_cli)
 
-# Register the processes subcommand group
 cli.add_command(processes_cli)

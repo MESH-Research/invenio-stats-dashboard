@@ -53,6 +53,8 @@ class MonthlyIndexBatchResult(TypedDict):
     last_event_timestamp: str | None
     should_continue: bool
     batch_document_ids: list[str]
+    previous_batch_ids: set[str] | None
+    search_after_point: list[str] | None
 
 
 class MigrationResult(TypedDict):

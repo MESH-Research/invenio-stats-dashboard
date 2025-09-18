@@ -269,37 +269,21 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
 
     @_ensure_index_exists
     def reset_bookmark_to_beginning(self, task_id: str, source_index: str):
-        """Reset a bookmark to point to the beginning of the data.
+        """Reset a bookmark by deleting it, allowing migration to start fresh.
 
         This is used when a migration fails to preserve failure information
         while indicating that the enriched index data is unreliable.
+        Deleting the bookmark ensures we start from the very beginning.
         """
         try:
-            search = Search(using=self.client, index=source_index)
-            search = search.sort("timestamp", "_id")
-            search = search.extra(size=1)
-            response = search.execute()
-
-            if response.hits:
-                first_doc = response.hits[0]
-                first_timestamp = first_doc.timestamp
-                first_id = first_doc.meta.id
-
-                self.set_bookmark(task_id, first_id, first_timestamp)
-                current_app.logger.info(
-                    f"Reset bookmark for {task_id} to beginning: {first_id} "
-                    f"at {first_timestamp}"
-                )
-            else:
-                current_app.logger.warning(
-                    f"No documents found in {source_index} to reset bookmark"
-                )
+            self.delete_bookmark(task_id)
+            current_app.logger.info(
+                f"Reset bookmark for {task_id} by deletion - will start from beginning"
+            )
         except Exception as e:
             current_app.logger.warning(
-                f"Failed to reset bookmark {task_id} to beginning: {e}"
+                f"Failed to reset bookmark {task_id} by deletion: {e}"
             )
-            # Fallback to deletion if reset fails
-            self.delete_bookmark(task_id)
 
 
 class EventReindexingService:
@@ -412,7 +396,11 @@ class EventReindexingService:
             indices = self.client.indices.get(index=f"{pattern}-*")
             all_indices = sorted(indices.keys())
 
-            old_indices = [idx for idx in all_indices if not idx.endswith("-v2.0.0")]
+            old_indices = [
+                idx
+                for idx in all_indices
+                if not idx.endswith("-v2.0.0") and not idx.endswith("-backup")
+            ]
 
             if not month_filter:
                 return old_indices
@@ -1400,7 +1388,6 @@ class EventReindexingService:
 
                         if event_type == "added":
                             membership[record_id].append((community_id, event_date))
-            current_app.logger.error(f"Membership: {membership}")
 
             # Fallback for records without community event index records
             missing_records = [rid for rid in record_ids if rid not in membership]
@@ -1711,6 +1698,8 @@ class EventReindexingService:
         month: str,
         last_processed_id: str | None = None,
         last_processed_timestamp: str | None = None,
+        previous_batch_ids: set | None = None,
+        search_after_point: list | None = None,
     ) -> MonthlyIndexBatchResult:
         """Process a single batch of events from a monthly event index.
 
@@ -1747,6 +1736,8 @@ class EventReindexingService:
                     "last_event_timestamp": last_processed_timestamp,
                     "should_continue": False,
                     "batch_document_ids": [],
+                    "previous_batch_ids": set(),
+                    "search_after_point": None,
                 }
 
             # Check if source index exists and has documents
@@ -1761,18 +1752,24 @@ class EventReindexingService:
             # when multiple documents have the same timestamp
             search = search.sort("timestamp", "_id")
 
-            if last_processed_timestamp and last_processed_id:
-                # Use search_after with both timestamp and _id to handle identical
-                # timestamps.
-                # Note: search_after works for pagination because batch_size <= 10,000
-                # (OpenSearch's hard limit), but cannot be used for counting remaining
-                # documents beyond the 10,000 limit.
-                search = search.extra(
-                    search_after=[last_processed_timestamp, last_processed_id]
-                )
+            if search_after_point:
+                # Use the search_after_point from the previous batch to avoid missing
+                # documents
+                search = search.extra(search_after=search_after_point)
 
             response = search.execute()
             hits = response.to_dict()["hits"]["hits"]
+            original_hits_count = len(hits)
+
+            # Filter out already-processed IDs if we have them from the previous batch
+            if previous_batch_ids:
+                hits_before_filter = len(hits)
+                hits = [hit for hit in hits if hit["_id"] not in previous_batch_ids]
+                filtered_count = hits_before_filter - len(hits)
+                current_app.logger.info(
+                    f"Filtered out {filtered_count} already-processed IDs, "
+                    f"remaining: {len(hits)} documents"
+                )
 
             if not hits:
                 current_app.logger.info(
@@ -1784,6 +1781,8 @@ class EventReindexingService:
                     "last_event_timestamp": last_processed_timestamp,
                     "should_continue": False,
                     "batch_document_ids": [],
+                    "previous_batch_ids": set(),
+                    "search_after_point": None,
                 }
 
             current_app.logger.info(
@@ -1806,10 +1805,30 @@ class EventReindexingService:
                     "last_event_timestamp": last_processed_timestamp,
                     "should_continue": False,
                     "batch_document_ids": [],
+                    "previous_batch_ids": set(),
+                    "search_after_point": None,
                 }
 
             last_event_id = hits[-1]["_id"]
             last_event_timestamp = hits[-1]["_source"]["timestamp"]
+
+            # Collect all IDs that share the last timestamp to avoid lexicographic
+            # ordering issues
+            last_timestamp = last_event_timestamp
+            same_timestamp_ids = set()
+            for hit in hits:
+                if hit["_source"]["timestamp"] == last_timestamp:
+                    same_timestamp_ids.add(hit["_id"])
+
+            # Use second-to-last timestamp for search_after to avoid missing
+            # documents
+            if len(hits) >= 2:
+                second_to_last_timestamp = hits[-2]["_source"]["timestamp"]
+                second_to_last_id = hits[-2]["_id"]
+                search_after_point = [second_to_last_timestamp, second_to_last_id]
+            else:
+                # Handle edge case where batch has only one document
+                search_after_point = [last_event_timestamp, last_event_id]
 
             # Set the bookmark with current position
             self.reindexing_bookmark_api.set_bookmark(
@@ -1817,21 +1836,37 @@ class EventReindexingService:
             )
             # Check if there are more documents available after this batch
             # Only continue if we got a full batch AND there are more docs
-            batch_was_full = len(hits) == self.batch_size
+            # Use original_hits_count to determine if this was a full batch before
+            # filtering
+            batch_was_full = original_hits_count == self.batch_size
             if batch_was_full:
                 try:
                     count_search = Search(using=self.client, index=source_index)
                     count_search = count_search.sort("timestamp", "_id")
                     count_search = count_search.extra(
-                        size=2, search_after=[last_event_timestamp, last_event_id]
+                        size=2, search_after=search_after_point
                     )
                     # Use execute() instead of count() to allow search_after
                     response = count_search.execute()
-                    has_more_docs = len(response.hits) > 0
+                    # Filter out already-processed IDs to avoid overlap issues
+                    if previous_batch_ids:
+                        filtered_hits = [
+                            hit
+                            for hit in response.hits
+                            if hit["_id"] not in previous_batch_ids
+                        ]
+                        has_more_docs = len(filtered_hits) > 0
+                    else:
+                        has_more_docs = len(response.hits) > 0
 
+                    timestamp_for_log = (
+                        second_to_last_timestamp
+                        if len(hits) >= 2
+                        else last_event_timestamp
+                    )
                     current_app.logger.info(
                         f"Batch was full ({len(hits)} docs), count after timestamp "
-                        f"{last_event_timestamp} shows more documents"
+                        f"{timestamp_for_log} shows more documents"
                     )
                     return {
                         "processed_count": len(hits),
@@ -1839,6 +1874,8 @@ class EventReindexingService:
                         "last_event_timestamp": last_event_timestamp,
                         "should_continue": has_more_docs,
                         "batch_document_ids": batch_document_ids,
+                        "previous_batch_ids": same_timestamp_ids,
+                        "search_after_point": search_after_point,
                     }
                 except Exception as e:
                     current_app.logger.error(f"Error checking count for more docs: {e}")
@@ -1849,6 +1886,8 @@ class EventReindexingService:
                         "last_event_timestamp": last_event_timestamp,
                         "should_continue": True,
                         "batch_document_ids": batch_document_ids,
+                        "previous_batch_ids": same_timestamp_ids,
+                        "search_after_point": search_after_point,
                     }
             else:
                 # Partial batch means we're at the end
@@ -1861,6 +1900,8 @@ class EventReindexingService:
                     "last_event_timestamp": last_event_timestamp,
                     "should_continue": False,
                     "batch_document_ids": batch_document_ids,
+                    "previous_batch_ids": same_timestamp_ids,
+                    "search_after_point": search_after_point,
                 }
 
         except (ConnectionTimeout, ConnectionError, RequestError) as e:
@@ -1871,6 +1912,8 @@ class EventReindexingService:
                 "last_event_timestamp": last_processed_timestamp,
                 "should_continue": False,
                 "batch_document_ids": [],
+                "same_timestamp_ids": set(),
+                "search_after_point": None,
             }
         except Exception as e:
             current_app.logger.error(f"Unexpected error during batch processing: {e}")
@@ -1880,6 +1923,8 @@ class EventReindexingService:
                 "last_event_timestamp": last_processed_timestamp,
                 "should_continue": False,
                 "batch_document_ids": [],
+                "same_timestamp_ids": set(),
+                "search_after_point": None,
             }
 
     @time_operation
@@ -2006,6 +2051,8 @@ class EventReindexingService:
 
             batch_count = 0
             should_continue = True
+            previous_batch_ids = set()
+            search_after_point = None
 
             while should_continue:
                 # Check max batches limit
@@ -2027,12 +2074,16 @@ class EventReindexingService:
                     month,
                     last_processed_id,
                     last_processed_timestamp,
+                    previous_batch_ids,
+                    search_after_point,
                 )
                 processed_count = batch_result["processed_count"]
                 last_id = batch_result["last_event_id"]
                 last_timestamp = batch_result["last_event_timestamp"]
                 continue_processing = batch_result["should_continue"]
                 batch_document_ids = batch_result.get("batch_document_ids", [])
+                previous_batch_ids = batch_result.get("previous_batch_ids", set())
+                search_after_point = batch_result.get("search_after_point", None)
 
                 current_app.logger.info(
                     f"Batch {batch_count + 1} result: processed={processed_count}, "
@@ -2047,6 +2098,8 @@ class EventReindexingService:
                 if processed_count > 0:
                     results["processed"] += processed_count
                     results["batches_succeeded"] += 1
+                    # Always use the actual last document from the batch for bookmarking
+                    # search_after_point is for pagination, not for bookmarking
                     last_processed_id = last_id
                     last_processed_timestamp = last_timestamp
 
@@ -2608,9 +2661,11 @@ class EventReindexingService:
             pattern = self.index_patterns[event_type]
             indices = self.client.indices.get(index=f"{pattern}-*")
             all_monthly_indices = sorted(indices.keys())
-            # Filter out the -v2.0.0 indices to get only old indices
+            # Filter out the -v2.0.0 indices and backup indices to get only old indices
             old_monthly_indices = [
-                idx for idx in all_monthly_indices if not idx.endswith("-v2.0.0")
+                idx
+                for idx in all_monthly_indices
+                if not idx.endswith("-v2.0.0") and not idx.endswith("-backup")
             ]
 
             event_type_old_count = 0
