@@ -328,7 +328,8 @@ def generate_community_events_background_command(
 
     This command provides the same functionality as `community-events generate` but runs
     in the background with full process management capabilities. It allows you to
-    start long-running community event generation processes without blocking the terminal.
+    start long-running community event generation processes without blocking the
+    terminal.
 
     Examples:
 
@@ -343,7 +344,7 @@ def generate_community_events_background_command(
     - Monitor progress: invenio community-stats processes status community-event-generation
     - Cancel process: invenio community-stats processes cancel community-event-generation
     - View logs: invenio community-stats processes status community-event-generation --show-log
-    """
+    """  # noqa: E501
     check_stats_enabled()
 
     # Build the command to run

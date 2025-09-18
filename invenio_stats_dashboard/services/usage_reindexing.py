@@ -1912,7 +1912,7 @@ class EventReindexingService:
                 "last_event_timestamp": last_processed_timestamp,
                 "should_continue": False,
                 "batch_document_ids": [],
-                "same_timestamp_ids": set(),
+                "previous_batch_ids": set(),
                 "search_after_point": None,
             }
         except Exception as e:
@@ -1923,7 +1923,7 @@ class EventReindexingService:
                 "last_event_timestamp": last_processed_timestamp,
                 "should_continue": False,
                 "batch_document_ids": [],
-                "same_timestamp_ids": set(),
+                "previous_batch_ids": set(),
                 "search_after_point": None,
             }
 

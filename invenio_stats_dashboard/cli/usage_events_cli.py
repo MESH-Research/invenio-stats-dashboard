@@ -286,7 +286,7 @@ def generate_usage_events_background_command(
     - Cancel process: invenio community-stats processes cancel usage-event-generation
     - View logs: invenio community-stats processes status usage-event-generation --show-log
 
-    """
+    """  # noqa: E501
     check_stats_enabled()
 
     if not yes_i_know:
@@ -339,7 +339,8 @@ def generate_usage_events_background_command(
         click.echo("\nMonitor progress:")
         click.echo("  invenio community-stats processes status usage-event-generation")
         click.echo(
-            "  invenio community-stats processes status usage-event-generation --show-log"
+            "  invenio community-stats processes status usage-event-generation "
+            "--show-log"
         )
 
         click.echo("\nCancel if needed:")
@@ -544,7 +545,8 @@ def _report_migration_results(results):
                 f"    Total Batches: {month_results.get('batches_succeeded', 0):,}"
             )
             click.echo(
-                f"        Batches Attempted: {month_results.get('batches_attempted', 0):,}"
+                "        Batches Attempted: "
+                f"{month_results.get('batches_attempted', 0):,}"
             )
             completed = month_results.get("completed")
             click.echo(
@@ -584,8 +586,8 @@ def _report_migration_results(results):
 
         if interrupted_count > 0:
             click.echo(
-                f"\n⏸️  {interrupted_count:,} migration(s) were interrupted or unfinished "
-                f"and can be resumed:"
+                f"\n⏸️  {interrupted_count:,} migration(s) were interrupted or "
+                "unfinished and can be resumed:"
             )
             click.echo("   • The bookmark system automatically tracks progress")
             click.echo("   • Resume with the same command (bookmarks are preserved)")
@@ -933,7 +935,6 @@ def _format_monthly_indices(estimates):
                 f"(completed)"
             )
             # Extract the original source index name by removing -v2.0.0 suffix
-            # Note: The enriched index name should already have the -v2.0.0 suffix from the template
             original_source = migration["index"].replace("-v2.0.0", "")
             click.echo(
                 f"      [{original_source}](deleted) → "
@@ -963,7 +964,6 @@ def _format_monthly_indices(estimates):
                 f"(completed)"
             )
             # Extract the original source index name by removing -v2.0.0 suffix
-            # Note: The enriched index name should already have the -v2.0.0 suffix from the template
             original_source = migration["index"].replace("-v2.0.0", "")
             click.echo(
                 f"      [{original_source}](deleted) → "
@@ -1008,7 +1008,7 @@ def _format_interrupted_migrations(
     )
 
     if not interrupted_count:
-        click.echo("\n  No interrupted migrations found.")
+        click.echo("  No interrupted migrations found.")
         click.echo("  All migrations that have begun appear to be complete.")
     else:
         click.echo(
