@@ -68,13 +68,23 @@ def community_events_cli():
 def generate_community_events_command(
     community_id, record_ids, start_date, end_date, show_progress
 ):
-    """Generate community events for all records in the instance.
+    """Generate community add/remove events for records.
 
-    This produces "added" events indexed in the community-event-stats index
-    for any records that do not already have them. If the record is part of
-    a community it will add an "added" event for each community it belongs to.
-    It will also add an "added" event for the "global" community_id, representing
-    all records across the entire instance.
+    This command creates "added" events in the community-event-stats index
+    for records that do not already have them. Events are created for each
+    community a record belongs to, plus a "global" community event for all
+    records across the entire instance.
+
+
+    Examples:
+
+    \b
+    - invenio community-stats community-events generate
+    - invenio community-stats community-events generate --community-id my-community
+    - invenio community-stats community-events generate --record-ids abc123 def456
+    - invenio community-stats community-events generate --start-date 2024-01-01
+
+    Note:
 
     Since we cannot establish when a record was originally added to a community,
     the record "created" date is used as the event date.
@@ -200,7 +210,16 @@ def community_events_status_command(
     """Count records that need community events created.
 
     This command analyzes records to determine how many need "added" events
-    created for their communities and for the "global" community.
+    created for their communities and for the "global" community. It provides
+    detailed status information about community event indexing progress.
+
+    Examples:
+
+    \b
+    - invenio community-stats community-events status
+    - invenio community-stats community-events status --community-id my-community
+    - invenio community-stats community-events status --community-details
+    - invenio community-stats community-events status --start-date 2024-01-01
     """
     check_stats_enabled()
 
@@ -306,7 +325,22 @@ def generate_community_events_background_command(
     """Start community event generation in the background with process management.
 
     This command provides the same functionality as `community-events generate` but runs
-    in the background with full process management capabilities.
+    in the background with full process management capabilities. It allows you to
+    start long-running community event generation processes without blocking the terminal.
+
+    Examples:
+
+    \b
+    - invenio community-stats community-events generate-background
+    - invenio community-stats community-events generate-background --community-id my-community
+    - invenio community-stats community-events generate-background --pid-dir /var/run/invenio-community-stats
+
+    Process management:
+
+    \b
+    - Monitor progress: invenio community-stats processes status community-event-generation
+    - Cancel process: invenio community-stats processes cancel community-event-generation
+    - View logs: invenio community-stats processes status community-event-generation --show-log
     """
     check_stats_enabled()
 

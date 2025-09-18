@@ -138,6 +138,59 @@ invenio community-stats status --community-id my-community-id --verbose
 
 The `status` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
 
+#### `destroy-indices`
+
+Destroy all search indices created by the invenio-stats-dashboard package.
+
+```bash
+invenio community-stats destroy-indices [OPTIONS]
+```
+
+**Options:**
+- `--yes-i-know`: Skip confirmation prompt (required for non-interactive use).
+- `--force`: Force deletion even if some indices don't exist (ignore 404 errors).
+
+**Description:**
+This command permanently deletes all search indices created by the invenio-stats-dashboard package. This includes:
+
+- **Community events indices**: `stats-community-events-*`
+- **Aggregation indices for community statistics**:
+  - `stats-community-records-delta-*` (created, published, added)
+  - `stats-community-records-snapshot-*` (created, published, added)
+  - `stats-community-usage-delta-*`
+  - `stats-community-usage-snapshot-*`
+- **Enriched/migrated view and download indices (v2.0.0 versions only)**:
+  - `events-stats-record-view-*-v2.0.0`
+  - `events-stats-file-download-*-v2.0.0`
+
+```{warning}
+This will permanently delete all statistics data stored in OpenSearch. This data cannot be recovered once deleted. Only run this when you know what you are doing.
+```
+
+```{note}
+This command will NOT destroy:
+- View and download events in non-migrated indices (original usage events)
+- Per-record view and download aggregations used for individual record stats
+
+However, if the original view/download indices have been deleted after migration, the raw event data will be lost.
+```
+
+**Examples:**
+```bash
+# Destroy all invenio-stats-dashboard indices (interactive)
+invenio community-stats destroy-indices
+
+# Destroy all indices non-interactively
+invenio community-stats destroy-indices --yes-i-know
+
+# Force deletion even if some indices don't exist
+invenio community-stats destroy-indices --yes-i-know --force
+```
+
+**Configuration Requirements:**
+
+The `destroy-indices` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
+
 **Output Examples:**
 
 Concise mode:

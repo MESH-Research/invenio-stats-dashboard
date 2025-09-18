@@ -96,7 +96,20 @@ def aggregate_stats_command(
     verbose,
     force,
 ):
-    """Aggregate community record statistics."""
+    """Aggregate community record statistics.
+
+    This command manually triggers the aggregation of statistics for one or more
+    communities or the global instance. Aggregation processes usage events and
+    community events to generate daily statistics.
+
+
+    Examples:
+
+    \b
+    - invenio community-stats aggregate
+    - invenio community-stats aggregate --community-id my-community-id
+    - invenio community-stats aggregate --start-date 2024-01-01 --end-date 2024-01-31
+    """
     check_stats_enabled()
 
     # Only check scheduled tasks if not forcing the operation
@@ -187,7 +200,32 @@ def aggregate_stats_command(
 )
 @with_appcontext
 def read_stats_command(community_id, start_date, end_date, query_type):
-    """Read stats for a community."""
+    """Read and display statistics data for a community or instance.
+
+    This command retrieves and displays aggregated statistics data for a
+    specific community or the global instance. It can show various types of
+    statistics including record counts and usage metrics.
+
+    Available query types:
+
+    \b
+    - community-record-delta-created
+    - community-record-delta-published
+    - community-record-delta-added
+    - community-record-snapshot-created
+    - community-record-snapshot-published
+    - community-record-snapshot-added
+    - community-usage-delta
+    - community-usage-snapshot
+
+    Examples:
+
+    \b
+    - invenio community-stats read
+    - invenio community-stats read --community-id my-community
+    - invenio community-stats read --start-date 2024-01-01 --end-date 2024-01-31
+    - invenio community-stats read --query-type community-usage-delta
+    """
     check_stats_enabled()
 
     if query_type:
@@ -301,7 +339,30 @@ def _generate_completeness_bar(agg_status, start_date, total_days, bar_length=30
 )
 @with_appcontext
 def status_command(community_id, verbose):
-    """Get aggregation status for communities."""
+    """Get aggregation status for communities.
+
+    This command provides a comprehensive overview of the aggregation status
+    for community statistics. It shows bookmark dates, document counts, and
+    completeness visualization for all aggregators.
+
+    The command displays:
+
+    \b
+    - Bookmark dates: Current progress bookmarks for all aggregators
+    - Document counts: Number of documents in each aggregation index
+    - Date ranges: First and last document dates in each index
+    - Days since last document: How recently each aggregation was updated
+    - Completeness visualization: ASCII bar charts showing the proportion of
+      time covered by each aggregation
+
+    Examples:
+
+    \b
+    - invenio community-stats status
+    - invenio community-stats status --community-id my-community-id
+    - invenio community-stats status --verbose
+    - invenio community-stats status --community-id comm1 --community-id comm2
+    """
     check_stats_enabled()
 
     with Halo(text="Getting aggregation status...", spinner="dots"):

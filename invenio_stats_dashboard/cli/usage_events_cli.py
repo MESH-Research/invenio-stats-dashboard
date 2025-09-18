@@ -96,7 +96,26 @@ def generate_usage_events_command(
     yes_i_know,
     use_migrated_indices,
 ):
-    """Generate synthetic usage events (view/download) for testing purposes."""
+    """Generate synthetic usage events (view/download) for testing purposes.
+
+    This command creates synthetic view and download events for testing the
+    statistics system. It generates events with configurable parameters and
+    can enrich them with additional metadata fields.
+
+
+    Examples:
+
+    \b
+    - invenio community-stats usage-events generate
+    - invenio community-stats usage-events generate --events-per-record 10
+    - invenio community-stats usage-events generate --dry-run
+    - invenio community-stats usage-events generate --max-records 100 --enrich-events
+
+    Warning:
+    This will generate synthetic usage events in your search indices. These
+    events are intended for testing purposes only and cannot be easily removed
+    without deleting the indices and losing any genuine usage events.
+    """
     check_stats_enabled()
 
     # Show configuration and ask for confirmation
@@ -243,7 +262,30 @@ def generate_usage_events_background_command(
     """Start usage event generation in the background with process management.
 
     This command provides the same functionality as `usage-events generate` but runs
-    in the background with full process management capabilities.
+    in the background with full process management capabilities. It allows you to
+    start long-running usage event generation processes without blocking the terminal.
+
+    WARNING:
+
+    This will generate synthetic usage events in your search indices. These
+    events are intended for testing purposes only and cannot be easily removed
+    without deleting the indices and losing any genuine usage events.
+
+    Examples:
+
+    \b
+    - invenio community-stats usage-events generate-background
+    - invenio community-stats usage-events generate-background --events-per-record 10
+    - invenio community-stats usage-events generate-background --enrich-events
+    - invenio community-stats usage-events generate-background --pid-dir /var/run/invenio-community-stats
+
+    Process management:
+
+    \b
+    - Monitor progress: invenio community-stats processes status usage-event-generation
+    - Cancel process: invenio community-stats processes cancel usage-event-generation
+    - View logs: invenio community-stats processes status usage-event-generation --show-log
+
     """
     check_stats_enabled()
 
@@ -312,43 +354,38 @@ def generate_usage_events_background_command(
         return 1
 
 
-def _report_validation_errors(validation_errors):
+def _report_validation_errors(validation_result):
     """Report validation errors in a consistent format.
 
     Args:
-        validation_errors: List of validation error dictionaries
+        validation_result: ValidationResult dictionary containing validation details
     """
-    if not validation_errors:
+    if not validation_result:
         return
 
     click.echo("    Validation Errors:")
-    for validation_error in validation_errors:
-        # Show validation details
-        validation_details = validation_error["validation_details"]
-        if validation_details.get("errors"):
-            click.echo("      Validation errors:")
-            errors = validation_details["errors"]
-            for error in errors[:3]:  # Show first 3 errors
-                click.echo(f"        - {error}")
-            if len(errors) > 3:
-                remaining = len(errors) - 3
-                click.echo(f"        ... and {remaining} more errors")
 
-        missing_ids = validation_details.get("missing_community_ids", 0)
-        if missing_ids > 0:
-            click.echo(f"      Missing community_ids: {missing_ids}")
+    # Show validation details
+    if validation_result.get("errors"):
+        click.echo("      Validation errors:")
+        errors = validation_result["errors"]
+        for error in errors[:3]:  # Show first 3 errors
+            click.echo(f"        - {error}")
+        if len(errors) > 3:
+            remaining = len(errors) - 3
+            click.echo(f"        ... and {remaining} more errors")
+
+    missing_ids = validation_result.get("missing_community_ids", 0)
+    if missing_ids > 0:
+        click.echo(f"      Missing community_ids: {missing_ids}")
 
     click.echo("    Retry commands:")
     click.echo(
         "      The bookmark has been automatically reset, so you can safely retry:"
     )
-    for validation_error in validation_errors:
-        event_type = validation_error["event_type"]
-        month = validation_error["month"]
-        click.echo(
-            f"        invenio community-stats usage-events migrate "
-            f"--event-types {event_type} --months {month}"
-        )
+    # Note: We don't have event_type and month in the validation_result,
+    # so we'll provide a generic retry command
+    click.echo("        invenio community-stats usage-events migrate")
 
 
 def _report_interrupted_migrations(interrupted_migrations):
@@ -643,6 +680,21 @@ def migrate_events_command(
 ):
     """Migrate events to enriched indices with monthly index support.
 
+    This command migrates existing usage (view and download) events to enriched
+    indices with community and record metadata. It processes events in batches
+    and can be run incrementally with bookmark tracking.
+
+    Examples:
+
+    \b
+    - invenio community-stats usage-events migrate
+    - invenio community-stats usage-events migrate --dry-run
+    - invenio community-stats usage-events migrate --event-types view
+    - invenio community-stats usage-events migrate --max-batches 10
+    - invenio community-stats usage-events migrate --months 2024-01 --months 2024-02
+
+    Note:
+
     The --fresh-start flag will delete any existing bookmarks for each month
     and start the migration from the beginning, ignoring any previous progress.
     """
@@ -753,7 +805,20 @@ def migration_status_command(
     show_completed,
     show_not_started,
 ):
-    """Show the current migration status and progress."""
+    """Show the current migration status and progress.
+
+    This command displays the current status of event migration processes across
+    all monthly indices. It shows progress, health status, and detailed information
+    about completed, interrupted, and pending migrations.
+
+    Examples:
+
+    \b
+    - invenio community-stats usage-events status
+    - invenio community-stats usage-events status --show-bookmarks
+    - invenio community-stats usage-events status --show-incomplete
+    - invenio community-stats usage-events status --show-completed --show-indices
+    """
     check_stats_enabled()
 
     service = current_event_reindexing_service
@@ -1190,7 +1255,20 @@ def _format_not_started_migrations(progress, show_details=True):
 )
 @with_appcontext
 def clear_bookmarks_command(event_type, month, confirm):
-    """Clear reindexing bookmarks for event migration."""
+    """Clear reindexing bookmarks for event migration.
+
+    This command clears migration bookmarks for specific months or all months.
+    Bookmarks track the progress of event migration and can be cleared to
+    restart migration from the beginning.
+
+    Examples:
+
+    \b
+    - invenio community-stats usage-events clear-bookmarks
+    - invenio community-stats usage-events clear-bookmarks --event-type view
+    - invenio community-stats usage-events clear-bookmarks --month 2024-01
+    - invenio community-stats usage-events clear-bookmarks --confirm
+    """
     check_stats_enabled()
 
     if not event_type:
@@ -1331,7 +1409,23 @@ def migrate_events_background_command(
     """Start event migration in the background with process management.
 
     This command provides the same functionality as the migrate command but runs
-    in the background with full process management capabilities.
+    in the background with full process management capabilities. It allows you to
+    start long-running event migration processes without blocking the terminal.
+
+    Examples:
+
+    \b
+    - invenio community-stats usage-events migrate-background
+    - invenio community-stats usage-events migrate-background --event-types view
+    - invenio community-stats usage-events migrate-background --batch-size 500
+    - invenio community-stats usage-events migrate-background --months 2024-01
+
+    Process management:
+
+    \b
+    - Monitor progress: invenio community-stats processes status event-migration
+    - Cancel process: invenio community-stats processes cancel event-migration
+    - View logs: invenio community-stats processes status event-migration --show-log
     """
     check_stats_enabled()
 

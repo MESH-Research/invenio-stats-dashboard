@@ -43,7 +43,22 @@ def processes_cli():
     help="Directory containing PID and status files.",
 )
 def process_status_command(process_name, show_log, log_lines, pid_dir):
-    """Show the status of a background process."""
+    """Show the status of a background process.
+
+    This command monitors and displays the status of a running background
+    process. It can show process information, recent logs, and current status.
+
+    Arguments:
+
+    \n
+    - process_name: Name of the process to monitor (e.g., event-migration,
+      community-event-generation, usage-event-generation).
+
+    Examples:
+    - invenio community-stats processes status event-migration
+    - invenio community-stats processes status event-migration --show-log
+    - invenio community-stats processes status event-migration --log-lines 50
+    """
     monitor = ProcessMonitor(process_name, pid_dir)
     monitor.show_status(show_log=show_log, log_lines=log_lines)
 
@@ -63,7 +78,20 @@ def process_status_command(process_name, show_log, log_lines, pid_dir):
     help="Directory containing PID and status files.",
 )
 def cancel_process_command(process_name, timeout, pid_dir):
-    """Cancel a running background process."""
+    """Cancel a running background process.
+
+    This command gracefully cancels a running background process. It sends
+    a termination signal and waits for the process to shut down gracefully
+    before force killing if necessary.
+
+    Arguments:
+    - process_name: Name of the process to cancel (e.g., event-migration,
+      community-event-generation, usage-event-generation).
+
+    Examples:
+    - invenio community-stats processes cancel event-migration
+    - invenio community-stats processes cancel event-migration --timeout 60
+    """
     process_manager = ProcessManager(process_name, pid_dir)
 
     if process_manager.cancel_process(timeout=timeout):
@@ -86,7 +114,16 @@ def cancel_process_command(process_name, timeout, pid_dir):
     help="Only show processes managed by invenio-stats-dashboard.",
 )
 def list_processes_command(pid_dir, package_only):
-    """List running background processes."""
+    """List running background processes.
+
+    This command displays all currently running background processes managed
+    by the invenio-stats-dashboard package. It shows process information
+    including PID, start time, and command details.
+
+    Examples:
+    - invenio community-stats processes list
+    - invenio community-stats processes list --package-only
+    """
     # Filter to only show invenio-stats-dashboard processes if requested
     package_prefix = "invenio-community-stats" if package_only else None
     running_processes = list_running_processes(pid_dir, package_prefix)

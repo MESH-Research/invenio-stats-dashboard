@@ -12,6 +12,7 @@ import click
 
 from .community_events_cli import community_events_cli
 from .core_cli import aggregate_stats_command, read_stats_command, status_command
+from .destroy_indices_cli import destroy_indices_command
 from .processes_cli import processes_cli
 from .usage_events_cli import usage_events_cli
 
@@ -26,6 +27,7 @@ def cli():
 cli.add_command(aggregate_stats_command)
 cli.add_command(read_stats_command)
 cli.add_command(status_command)
+cli.add_command(destroy_indices_command)
 
 # Register the community-events subcommand group
 cli.add_command(community_events_cli)
