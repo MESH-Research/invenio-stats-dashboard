@@ -605,11 +605,11 @@ def _report_migration_results(results):
     click.echo("NEXT STEPS:")
 
     click.echo("\n📈  Check progress of event migrations:")
-    click.echo("   invenio community-stats migration-status")
+    click.echo("   invenio community-stats usage-events status")
 
     click.echo("\n🗑️  Clear bookmarks to start fresh:")
     click.echo(
-        "   invenio community-stats clear-bookmarks "
+        "   invenio community-stats usage-events clear-bookmarks "
         "[--event-type TYPE] [--month MONTH]"
     )
     click.echo("\n")
@@ -741,7 +741,9 @@ def migrate_events_command(
             fresh_start=fresh_start,
         )
         click.echo(f"Task ID: {task.id}")
-        click.echo("Use 'invenio community-stats migration-status' to check progress")
+        click.echo(
+            "Use 'invenio community-stats usage-events status' to check progress"
+        )
     else:
         click.echo("Running synchronously...")
         try:

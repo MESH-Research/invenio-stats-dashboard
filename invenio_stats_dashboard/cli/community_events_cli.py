@@ -163,8 +163,10 @@ def generate_community_events_command(
     click.echo("  • Check the stats-community-events index for the new events")
     click.echo("  • Use `invenio community-stats community-events status` for ")
     click.echo("      updated counts of records needing events")
-    click.echo("  • Run `invenio community-stats usage-events --help` to see how ")
-    click.echo("      to migrate view and download events the the enriched format")
+    click.echo(
+        "  • Run `invenio community-stats usage-events migrate --help` to see how "
+    )
+    click.echo("      to migrate view and download events to the enriched format")
     click.echo("  • Run `invenio community-stats aggregate --help` to see how to ")
     click.echo("      update community statistics")
 
