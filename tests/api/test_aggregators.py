@@ -3266,17 +3266,10 @@ class TestAggregatorIgnoreBookmark:
                     ],
                 },
                 "files": {"enabled": False},
+                "created": test_date.format("YYYY-MM-DDTHH:mm:ss"),
             },
             community_list=[community_id],
-        )
-
-        # Manually set the record's created date to our test date
-        record_data = record.data
-        record_data["created"] = test_date.format("YYYY-MM-DDTHH:mm:ss")
-        records_service.update_record(
-            identity=system_identity,
-            id_=record.id,
-            data=record_data,
+            update_community_event_dates=True,
         )
 
         # Refresh indices

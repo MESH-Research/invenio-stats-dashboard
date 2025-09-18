@@ -503,10 +503,11 @@ class CommunityStatsService:
                     index=index_name,
                     client=self.client._get_current_object(),
                 )
-                result: list[dict[str, Any]] = query.run(
-                    community_id, start_date, end_date
-                )
-                return True, result if isinstance(result, list) else []
+                result = query.run(community_id, start_date, end_date)
+                if isinstance(result, list):
+                    return True, result
+                else:
+                    return True, []
             else:
                 # Run the meta-query
                 query = CommunityStatsResultsQuery(
@@ -515,7 +516,10 @@ class CommunityStatsService:
                     client=self.client._get_current_object(),
                 )
                 result = query.run(community_id, start_date, end_date)
-                return True, result if isinstance(result, dict) else {}
+                if isinstance(result, dict):
+                    return True, result
+                else:
+                    return True, {}
         except ValueError as e:
             if "No results found for community" in str(e):
                 current_app.logger.info(
