@@ -409,16 +409,16 @@ may also want to display a time series of a community’s contents based on when
 <li><p><code class="docutils literal notranslate"><span class="pre">uploaders</span></code> (integer): Number of unique users who uploaded records</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): breakdowns by configurable metadata fields, by default including:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_resource_types</span></code> (array[object]): breakdown by resource type (journal articles, datasets, etc.)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> (array[object]): breakdown by access status (open, restricted, etc.)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_languages</span></code> (array[object]): breakdown by deposit language (English, French, etc.)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_affiliations_contributor</span></code> (array[object]): breakdown by contributor affiliations</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_affiliations_creator</span></code> (array[object]): breakdown by creator affiliations</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_funders</span></code> (array[object]): breakdown by funding organizations</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_subjects</span></code> (array[object]): breakdown by subject classifications</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_publishers</span></code> (array[object]): breakdown by publisher</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_periodicals</span></code> (array[object]): breakdown by journal/periodical</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_file_types</span></code> (array[object]): breakdown by file types (PDF, CSV, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resource_types</span></code> (array[object]): breakdown by resource type (journal articles, datasets, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> (array[object]): breakdown by access status (open, restricted, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">languages</span></code> (array[object]): breakdown by deposit language (English, French, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_contributor</span></code> (array[object]): breakdown by contributor affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_creator</span></code> (array[object]): breakdown by creator affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">funders</span></code> (array[object]): breakdown by funding organizations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subjects</span></code> (array[object]): breakdown by subject classifications</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">publishers</span></code> (array[object]): breakdown by publisher</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">periodicals</span></code> (array[object]): breakdown by journal/periodical</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file_types</span></code> (array[object]): breakdown by file types (PDF, CSV, etc.)</p></li>
 </ul>
 </li>
 </ul>
@@ -432,7 +432,7 @@ may also want to display a time series of a community’s contents based on when
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Each subcount array will include objects for only those subcount values that appear in that day’s added or removed records. For example, if there are no records with the “open” access status on a given day, the <code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> subcount array will not include an object for “open”.</p>
+<p>Each subcount array will include objects for only those subcount values that appear in that day’s added or removed records. For example, if there are no records with the “open” access status on a given day, the <code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> subcount array will not include an object for “open”.</p>
 </div>
 <p>These aggregation documents are stored in a set of annual indices:</p>
 <ul class="simple">
@@ -481,7 +481,7 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">    </span><span class="nt">&quot;period_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;uploaders&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;by_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">                </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dataset&quot;</span><span class="p">,</span>
 <span class="w">                </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dataset&quot;</span><span class="p">,</span>
@@ -503,14 +503,14 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">                </span><span class="p">}</span>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">],</span>
-<span class="w">        </span><span class="nt">&quot;by_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;by_file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">          </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -547,25 +547,25 @@ may also want to display a time series of a community’s contents based on when
 <li><p><code class="docutils literal notranslate"><span class="pre">total_uploaders</span></code> (integer): Total number of unique uploaders</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes. By default these include:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_access_statuses</span></code> (array[object]): Total number of records by access status</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_file_types</span></code> (array[object]): Total number of records by file type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_rights</span></code> (array[object]): Total number of records by rights</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_languages</span></code> (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_affiliations_contributor</span></code> (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_affiliations_creator</span></code> (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_funders</span></code> (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_periodicals</span></code> (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_publishers</span></code> (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_subjects</span></code> (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> (array[object]): Total number of records by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file_types</span></code> (array[object]): Total number of records by file type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rights</span></code> (array[object]): Total number of records by rights</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">languages</span></code> (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_contributor</span></code> (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_creator</span></code> (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">funders</span></code> (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">periodicals</span></code> (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">publishers</span></code> (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subjects</span></code> (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
 </ul>
 </li>
 </ul>
-<p>The subcount properties are named slightly differently from the delta aggregations. Instead of the <code class="docutils literal notranslate"><span class="pre">by_</span></code> prefix, the subcount properties will be prefixed with either <code class="docutils literal notranslate"><span class="pre">all_</span></code> or <code class="docutils literal notranslate"><span class="pre">top_</span></code>. The <code class="docutils literal notranslate"><span class="pre">all_</span></code> prefix indicates that the subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">all_access_statuses</span></code> subcount will provide a number for all access status values that appear in any record. The <code class="docutils literal notranslate"><span class="pre">top_</span></code> prefix indicates that the subcount includes only the top values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">top_affiliations_contributor</span></code> subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
+<p>The subcount properties are named slightly differently from the delta aggregations. With unified field names, the subcount properties use the same names across delta and snapshot documents. The subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> subcount will provide a number for all access status values that appear in any record. The <code class="docutils literal notranslate"><span class="pre">affiliations_contributor</span></code> subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
 <p>Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">top_</span></code> subcounts provide the top values over the whole history of the community/instance, even if it does not appear in records added on the snapshot date.</p>
+<p>The subcounts provide the top values over the whole history of the community/instance, even if it does not appear in records added on the snapshot date.</p>
 </div>
 <p>These aggregation documents are stored in the indices:</p>
 <ul class="simple">
@@ -607,7 +607,7 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="nt">&quot;total_uploaders&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;all_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">          </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
@@ -627,7 +627,7 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">            </span><span class="p">}</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">],</span>
-<span class="w">        </span><span class="nt">&quot;all_file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="nt">&quot;file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">          </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PDF&quot;</span><span class="p">,</span>
@@ -641,14 +641,14 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">            </span><span class="p">}</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">],</span>
-<span class="w">        </span><span class="nt">&quot;top_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;all_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_affiliations_contributor&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_affiliations_creator&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">        </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;affiliations_contributor&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;affiliations_creator&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
 <span class="p">}</span>
@@ -656,7 +656,7 @@ may also want to display a time series of a community’s contents based on when
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The subcounts will in practice never be empty after the first few snapshots, since even the “top_” subcounts will include the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
+<p>The subcounts will in practice never be empty after the first few snapshots, since even the subcounts will include the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
 </div>
 </section>
 <section id="usage-deltas">
@@ -688,24 +688,24 @@ may also want to display a time series of a community’s contents based on when
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): Detailed breakdowns by configurable metadata fields, by default including:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> (array[object]): Usage by access status</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_resource_types</span></code> (array[object]): Usage by resource type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_rights</span></code> (array[object]): Usage by rights type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_funders</span></code> (array[object]): Usage by funding organization</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_periodicals</span></code> (array[object]): Usage by journal/periodical</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_languages</span></code> (array[object]): Usage by language</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_subjects</span></code> (array[object]): Usage by subject classification</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_publishers</span></code> (array[object]): Usage by publisher</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_affiliations</span></code> (array[object]): Usage by creator/contributor affiliations</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_file_types</span></code> (array[object]): Usage by file type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_countries</span></code> (array[object]): Usage by visitor country</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">by_referrers</span></code> (array[object]): Usage by referrer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> (array[object]): Usage by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resource_types</span></code> (array[object]): Usage by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rights</span></code> (array[object]): Usage by rights type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">funders</span></code> (array[object]): Usage by funding organization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">periodicals</span></code> (array[object]): Usage by journal/periodical</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">languages</span></code> (array[object]): Usage by language</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subjects</span></code> (array[object]): Usage by subject classification</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">publishers</span></code> (array[object]): Usage by publisher</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations</span></code> (array[object]): Usage by creator/contributor affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file_types</span></code> (array[object]): Usage by file type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">countries</span></code> (array[object]): Usage by visitor country</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">referrers</span></code> (array[object]): Usage by referrer</p></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
-<p>Each of the subcount arrays will include objects for only those subcount values that appear in that day’s view or download events. For example, if no records with the “open” access status are viewed or downloaded on a given day, the <code class="docutils literal notranslate"><span class="pre">by_access_statuses</span></code> subcount array will not include an object for “open”.</p>
+<p>Each of the subcount arrays will include objects for only those subcount values that appear in that day’s view or download events. For example, if no records with the “open” access status are viewed or downloaded on a given day, the <code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> subcount array will not include an object for “open”.</p>
 <p>Each object in the subcount arrays will have the following fields:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
@@ -753,7 +753,7 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;by_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
 <span class="w">          </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
@@ -773,17 +773,17 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">],</span>
-<span class="w">      </span><span class="nt">&quot;by_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">      </span><span class="nt">&quot;by_referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">      </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -820,18 +820,18 @@ document includes:</p>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subcounts</span></code> (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes, by default including:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_access_statuses</span></code> (array[object]): Total number of records by access status</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_file_types</span></code> (array[object]): Total number of records by file type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_rights</span></code> (array[object]): Total number of records by rights type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">all_resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_languages</span></code> (array[object]): Top N languages, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_affiliations</span></code> (array[object]): Top N contributor affiliations, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_funders</span></code> (array[object]): Top N funders, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_periodicals</span></code> (array[object]): Top N journals/periodicals, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_publishers</span></code> (array[object]): Top N publishers, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_subjects</span></code> (array[object]): Top N subjects, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_countries</span></code> (array[object]): Top N countries, calculated both by number of views and number of downloads</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">top_referrers</span></code> (array[object]): Top N referrers, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> (array[object]): Total number of records by access status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file_types</span></code> (array[object]): Total number of records by file type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rights</span></code> (array[object]): Total number of records by rights type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">languages</span></code> (array[object]): Top N languages, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations</span></code> (array[object]): Top N contributor affiliations, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">funders</span></code> (array[object]): Top N funders, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">periodicals</span></code> (array[object]): Top N journals/periodicals, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">publishers</span></code> (array[object]): Top N publishers, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subjects</span></code> (array[object]): Top N subjects, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">countries</span></code> (array[object]): Top N countries, calculated both by number of views and number of downloads</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">referrers</span></code> (array[object]): Top N referrers, calculated both by number of views and number of downloads</p></li>
 </ul>
 </li>
 </ul>
@@ -839,16 +839,16 @@ document includes:</p>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Each of the <code class="docutils literal notranslate"><span class="pre">top_</span></code> subcount arrays will include objects for the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT), even if they do not appear in the records added on the snapshot date.</p>
+<p>Each of the subcount arrays will include objects for the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT), even if they do not appear in the records added on the snapshot date.</p>
 </div>
-<p>Each object in the <code class="docutils literal notranslate"><span class="pre">all_</span></code> subcount arrays will have the following fields:</p>
+<p>Each object in the subcount arrays will have the following fields:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> (string): The identifier for the subcount (e.g., “open”, “eng”, etc.)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">label</span></code> (string): The label for the subcount (e.g., “Open”, “English”, etc.)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">view</span></code> (object): The number of views for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">view</span></code> object</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">download</span></code> (object): The number of downloads for records with the subcount item, structured as in the top-level <code class="docutils literal notranslate"><span class="pre">download</span></code> object</p></li>
 </ul>
-<p>Each object in the <code class="docutils literal notranslate"><span class="pre">top_</span></code> subcount arrays will have the following fields:</p>
+<p>Each object in the subcount arrays will have the following fields:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">by_view</span></code> (array[object]): The top N views for the subcount item, each with the fields:</p>
 <ul>
@@ -902,7 +902,7 @@ document includes:</p>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;all_access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">          </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
@@ -922,10 +922,10 @@ document includes:</p>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">],</span>
-<span class="w">        </span><span class="nt">&quot;top_languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;all_rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;all_resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">          </span><span class="nt">&quot;by_view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">              </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;013v4ng57&quot;</span><span class="p">,</span>
@@ -967,12 +967,12 @@ document includes:</p>
 <span class="w">            </span><span class="p">}</span>
 <span class="w">          </span><span class="p">]</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;top_funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;top_referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">        </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>

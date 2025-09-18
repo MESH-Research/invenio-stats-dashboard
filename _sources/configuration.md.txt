@@ -252,12 +252,12 @@ This variable defines the configuration for different subcount breakdown types, 
 
 ```python
 COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
-    "by_resource_types": {
+    "resource_types": {
         "field": "metadata.resource_type.id",
         "label": "Resource Type",
         "display_field": "metadata.resource_type.title",
     },
-    "by_subjects": {
+    "subjects": {
         "field": "metadata.subjects.subject",
         "label": "Subject",
         "display_field": "metadata.subjects.subject",
@@ -272,20 +272,20 @@ This variable controls which subcount breakdowns are available in the UI and how
 
 ```python
 STATS_DASHBOARD_UI_SUBCOUNTS = {
-    "by_resource_types": {},
-    "by_subjects": {},
-    "by_languages": {},
-    "by_rights": {},
-    "by_funders": {},
-    "by_periodicals": {},
-    "by_publishers": {},
-    "by_affiliations": {
-        "combine": ["by_affiliations_creator", "by_affiliations_contributor"]
+    "resource_types": {},
+    "subjects": {},
+    "languages": {},
+    "rights": {},
+    "funders": {},
+    "periodicals": {},
+    "publishers": {},
+    "affiliations": {
+        "combine": ["affiliations_creator", "affiliations_contributor"]
     },
-    "by_countries": {},
-    "by_referrers": {},
-    "by_file_types": {},
-    "by_access_statuses": {},
+    "countries": {},
+    "referrers": {},
+    "file_types": {},
+    "access_statuses": {},
 }
 ```
 

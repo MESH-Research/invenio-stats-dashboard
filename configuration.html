@@ -490,12 +490,12 @@ range for each granularity level.</p>
 <h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code><a class="headerlink" href="#community-stats-subcount-configs" title="Link to this heading">¶</a></h3>
 <p>This variable defines the configuration for different subcount breakdown types, including field mappings and display options.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;by_resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
         <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Resource Type&quot;</span><span class="p">,</span>
         <span class="s2">&quot;display_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
     <span class="p">},</span>
-    <span class="s2">&quot;by_subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
         <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
         <span class="s2">&quot;display_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
@@ -509,20 +509,20 @@ range for each granularity level.</p>
 <h3><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code><a class="headerlink" href="#stats-dashboard-ui-subcounts" title="Link to this heading">¶</a></h3>
 <p>This variable controls which subcount breakdowns are available in the UI and how they are displayed.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;by_resource_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_subjects&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_languages&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_rights&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_funders&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_affiliations&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;combine&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;by_affiliations_creator&quot;</span><span class="p">,</span> <span class="s2">&quot;by_affiliations_contributor&quot;</span><span class="p">]</span>
+    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;languages&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;rights&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;funders&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;affiliations&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;combine&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;affiliations_creator&quot;</span><span class="p">,</span> <span class="s2">&quot;affiliations_contributor&quot;</span><span class="p">]</span>
     <span class="p">},</span>
-    <span class="s2">&quot;by_countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_file_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;by_access_statuses&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;file_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;access_statuses&quot;</span><span class="p">:</span> <span class="p">{},</span>
 <span class="p">}</span>
 </pre></div>
 </div>
