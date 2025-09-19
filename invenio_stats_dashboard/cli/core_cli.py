@@ -399,6 +399,7 @@ def status_command(community_id, verbose):
             end_date = arrow.utcnow()
             total_days = (end_date - start_date).days
         else:
+            start_date = arrow.utcnow()
             total_days = 0
 
         for agg_type, agg_status in community["aggregations"].items():
