@@ -12,7 +12,8 @@ setup
 usage
 configuration
 cli
-api
+api_requests
+reference
 changelog
 ```
 
