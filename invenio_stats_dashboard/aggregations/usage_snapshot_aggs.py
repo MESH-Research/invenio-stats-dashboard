@@ -100,6 +100,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         """
         if exhaustive_counts_cache is None:
             exhaustive_counts_cache = {}
+
         new_dict: UsageSnapshotDocument = self._copy_snapshot_forward(
             previous_snapshot, current_day
         )  # type: ignore
@@ -113,7 +114,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         self._update_cumulative_totals(new_dict, latest_delta)
 
-        # Add top aggregations based on cumulative delta documents
         self._update_top_subcounts(
             new_dict, deltas, exhaustive_counts_cache, latest_delta
         )
@@ -263,8 +263,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         ) -> None:
             """Update cumulative totals with values from a daily delta document."""
             for k, value in delta_doc[key].items():  # type: ignore[literal-required]
-                # Skip keys that start with "top_" in subcounts
-                if k.startswith("top_"):
+                # Skip "top" type subcounts - they're handled by _update_top_subcounts
+                if key == "subcounts" and self._is_top_subcount(k):
                     continue
 
                 if k in new_dict[key]:  # type: ignore[literal-required]
@@ -272,6 +272,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                         update_totals(new_dict[key], delta_doc[key], k)  # type: ignore[literal-required] # noqa: E501
                     elif isinstance(value, list):
                         for item in value:
+                            current_app.logger.debug(
+                                f"Updating subcount {k} with item {item}"
+                            )
                             matching_item = next(
                                 (
                                     existing_item
@@ -344,12 +347,10 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             top_subcount_name = config["delta_aggregation_name"]
 
             if top_subcount_name not in exhaustive_counts_cache:
-                # First time: build exhaustive cache from all delta documents
                 exhaustive_counts_cache[top_subcount_name] = (
                     self._build_exhaustive_cache(deltas, top_subcount_name)
                 )
             else:
-                # Update existing cache with only the latest delta document
                 self._update_exhaustive_cache(
                     top_subcount_name, latest_delta, exhaustive_counts_cache
                 )
@@ -386,3 +387,10 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             elif snapshot_type == "top":
                 subcounts[snapshot_field] = {"by_view": [], "by_download": []}
         return subcounts
+
+    def _is_top_subcount(self, subcount_name: str) -> bool:
+        """Check if a subcount is configured as 'top' type."""
+        config = self.subcount_configs.get(subcount_name, {})
+        usage_config = config.get("usage_events", {})
+        snapshot_type = usage_config.get("snapshot_type", "all")
+        return snapshot_type == "top"

@@ -6,9 +6,9 @@
 
 """Community usage delta aggregators for tracking daily usage statistics."""
 
-import time
 from collections.abc import Generator
 from itertools import chain
+import time
 
 import arrow
 from flask import current_app
@@ -406,7 +406,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 "unique_files": download_results.aggregations.unique_files.value,
                 "total_volume": download_results.aggregations.total_volume.value,
             }
-
         # Process subcounts for each category
         for subcount_name, config in self.subcount_configs.items():
             # Get the usage_events configuration for this subcount
@@ -558,9 +557,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         last_event_date: arrow.Arrow | None,
     ) -> Generator[tuple[dict, float], None, None]:
         """Create a dictionary representing the aggregation result for indexing."""
-        # Start timing the agg_iter method
-        agg_iter_start_time = time.time()
-        current_app.logger.debug(f"Delta agg_iter {community_id}")
         # Check if we should skip aggregation due to no events after start_date
         should_skip = self._should_skip_aggregation(
             start_date, last_event_date, community_id, end_date=end_date
@@ -576,8 +572,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         current_iteration_date = start_date
 
-        # Time the main aggregation loop
-        loop_start_time = time.time()
         iteration_count = 0
 
         while current_iteration_date <= end_date:
@@ -629,8 +623,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 f"{self.aggregation_index}-{current_iteration_date.year}"
             )
             doc_id = f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
-            if self.client.exists(index=index_name, id=doc_id):
-                self.delete_aggregation(index_name, doc_id)
 
             document = {
                 "_id": doc_id,
@@ -640,27 +632,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             # Log timing for this iteration
             iteration_end_time = time.time()
             iteration_duration = iteration_end_time - iteration_start_time
-            current_app.logger.debug(
-                f"Delta day {iteration_count}: {iteration_duration:.2f}s (skipped)"
-            )
-
             yield (document, iteration_duration)
 
             current_iteration_date = current_iteration_date.shift(days=1)
-
-        # Log total timing for the main loop
-        loop_end_time = time.time()
-        loop_duration = loop_end_time - loop_start_time
-        current_app.logger.debug(
-            f"Delta loop: {iteration_count} days, {loop_duration:.2f}s"
-        )
-
-        # Log total timing for agg_iter
-        agg_iter_end_time = time.time()
-        agg_iter_duration = agg_iter_end_time - agg_iter_start_time
-        current_app.logger.debug(
-            f"Delta agg_iter {community_id}: {agg_iter_duration:.2f}s"
-        )
 
     def _combine_split_aggregations(
         self, view_results, download_results, config, subcount_name
@@ -697,13 +671,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             name_agg_name = agg_names[1]
         else:
             return []
-
-        # Get buckets from both aggregations
         buckets = self._get_id_name_buckets(
             view_results, download_results, id_agg_name, name_agg_name
         )
-
-        # Combine and deduplicate
         combined_items = {}
         for bucket_type, bucket, agg_type in buckets:
             id_field_path = next(

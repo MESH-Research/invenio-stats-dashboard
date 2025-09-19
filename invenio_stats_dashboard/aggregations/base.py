@@ -6,6 +6,7 @@
 
 """Base classes for community statistics aggregators."""
 
+import copy
 import datetime
 import time
 from collections.abc import Generator
@@ -156,7 +157,8 @@ class CommunityAggregatorBase(StatAggregator):
                 if not check_index_exists(index):
                     raise ValueError(
                         f"Required index {prefix_index(index)} "
-                        f"does not exist. Aggregator requires this index to be available."
+                        f"does not exist. Aggregator requires this index to be "
+                        f"available."
                     )
                 early_date, late_date = self._first_event_date_query(
                     community_id, index
@@ -311,9 +313,6 @@ class CommunityAggregatorBase(StatAggregator):
             records indexed and the second element is a list of dictionaries, where
             each dictionary describes an error.
         """
-        # Start timing the entire run method
-        run_start_time = time.time()
-        current_app.logger.debug(f"Starting {self.name}")
         start_date = arrow.get(start_date) if start_date else None
         end_date = arrow.get(end_date) if end_date else None
 
@@ -341,8 +340,6 @@ class CommunityAggregatorBase(StatAggregator):
 
         results = []
         for community_id in communities_to_aggregate:
-            community_start_time = time.time()
-            current_app.logger.debug(f"Community {community_id}")
             try:
                 first_event_date, last_event_date = self._find_first_event_date(
                     community_id
@@ -401,21 +398,12 @@ class CommunityAggregatorBase(StatAggregator):
 
             next_bookmark = arrow.get(upper_limit).format("YYYY-MM-DDTHH:mm:ss.SSS")
 
-            # Time the agg_iter call
-            agg_iter_start_time = time.time()
-            current_app.logger.debug(f"agg_iter {community_id}")
             agg_iter_generator = self.agg_iter(
                 community_id,
                 lower_limit,
                 upper_limit,
                 first_event_date_safe,
                 last_event_date_safe,
-            )
-
-            agg_iter_end_time = time.time()
-            agg_iter_duration = agg_iter_end_time - agg_iter_start_time
-            current_app.logger.debug(
-                f"agg_iter {community_id}: {agg_iter_duration:.2f}s"
             )
 
             community_docs_info: list[dict] = []
@@ -450,9 +438,6 @@ class CommunityAggregatorBase(StatAggregator):
                     docs_info_list.append(doc_info)
                     yield doc
 
-            # Time the bulk indexing
-            bulk_start_time = time.time()
-            current_app.logger.debug(f"bulk {community_id}")
             bulk_result = bulk(
                 self.client,
                 document_generator_with_metadata(community_docs_info),
@@ -462,23 +447,42 @@ class CommunityAggregatorBase(StatAggregator):
 
             docs_indexed, errors = bulk_result
             results.append((docs_indexed, errors, community_docs_info))
-            bulk_end_time = time.time()
-            bulk_duration = bulk_end_time - bulk_start_time
-            current_app.logger.debug(f"bulk {community_id}: {bulk_duration:.2f}s")
+
+            # Validate aggregation success before updating bookmark
             if update_bookmark:
+                if errors:
+                    current_app.logger.error(
+                        f"Bulk indexing errors for {community_id}: "
+                        f"{len(errors)} errors. Skipping bookmark update."
+                    )
+                    continue
+
+                expected_days = (upper_limit - lower_limit).days + 1
+
+                # For snapshot aggregators, we expect at least the expected number
+                # of days (they may index more due to catch-up processing)
+                if docs_indexed < expected_days:
+                    current_app.logger.error(
+                        f"Insufficient documents for {community_id}: "
+                        f"expected at least {expected_days} days, indexed "
+                        f"{docs_indexed} documents. Skipping bookmark update."
+                    )
+                    continue
+
+                # Validate that we have document info for all indexed documents
+                if len(community_docs_info) != docs_indexed:
+                    current_app.logger.error(
+                        f"Document info count mismatch for {community_id}: "
+                        f"indexed {docs_indexed} documents, got "
+                        f"{len(community_docs_info)} document info entries. "
+                        f"Skipping bookmark update."
+                    )
+                    continue
+
                 self.bookmark_api.set_bookmark(community_id, next_bookmark)
 
-            # Log total time for this community
-            community_end_time = time.time()
-            community_duration = community_end_time - community_start_time
-            current_app.logger.debug(
-                f"Community {community_id}: {community_duration:.2f}s"
-            )
-
-        # Log total time for the entire run method
-        run_end_time = time.time()
-        run_duration = run_end_time - run_start_time
-        current_app.logger.debug(f"Completed {self.name}: {run_duration:.2f}s")
+        # Refresh all indices to make documents available for subsequent aggregators
+        self.client.indices.refresh(index=f"{self.aggregation_index}-*")
         return results
 
     def delete_aggregation(
@@ -683,7 +687,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             A new snapshot document with updated dates but same cumulative data
         """
-        new_snapshot = previous_snapshot.copy()
+        new_snapshot = copy.deepcopy(previous_snapshot)
 
         new_snapshot["snapshot_date"] = current_date.format("YYYY-MM-DDTHH:mm:ss")
         new_snapshot["timestamp"] = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss")
@@ -937,8 +941,10 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
 
         Args:
             current_day (arrow.Arrow): The current day for the snapshot
-            previous_snapshot (RecordSnapshotDocument | UsageSnapshotDocument): The previous snapshot document to add onto
-            latest_delta (RecordDeltaDocument | UsageDeltaDocument): The latest delta document to add
+            previous_snapshot (RecordSnapshotDocument | UsageSnapshotDocument):
+                The previous snapshot document to add onto
+            latest_delta (RecordDeltaDocument | UsageDeltaDocument):
+                The latest delta document to add
             deltas (list): All delta documents for top subcounts (from earliest date)
             exhaustive_counts_cache (dict | None): The exhaustive counts cache
         """
@@ -960,21 +966,19 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             community_id (str): The ID of the community to aggregate.
             start_date (arrow.Arrow): The start date for the aggregation.
             end_date (arrow.Arrow): The end date for the aggregation.
-            first_event_date (arrow.Arrow | None): The first event date, or None if no events exist.
-            last_event_date (arrow.Arrow | None): The last event date, or None if no events exist. In this
-                case the events we're looking for are delta aggregations.
+            first_event_date (arrow.Arrow | None): The first event date, or None if
+                no events exist.
+            last_event_date (arrow.Arrow | None): The last event date, or None if no
+                events exist. In this case the events we're looking for are delta
+                aggregations.
 
         Returns:
             A generator of tuples, where each tuple contains:
             - [0]: A dictionary representing an aggregation document for indexing
             - [1]: The time taken to generate this document (in seconds)
         """
-        # Start timing the agg_iter method
-        agg_iter_start_time = time.time()
-        current_app.logger.debug(f"Snapshot agg_iter {community_id}")
         current_iteration_date = arrow.get(start_date)
 
-        exhaustive_counts_cache: dict[str, Any] = {}
         previous_snapshot, is_zero_placeholder = self._get_previous_snapshot(
             community_id, current_iteration_date
         )
@@ -1013,6 +1017,8 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             # No delta documents exist, return empty generator
             return
 
+        exhaustive_counts_cache: dict[str, Any] = {}
+
         # Don't try to aggregate beyond the last delta date
         last_delta_date = arrow.get(all_delta_documents[-1]["period_start"])
         end_date = min(end_date, last_delta_date.ceil("day"))
@@ -1021,12 +1027,11 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             all_delta_documents, current_iteration_date
         )
 
-        # Time the main aggregation loop
-        loop_start_time = time.time()
         iteration_count = 0
         while current_iteration_date <= end_date:
             iteration_start_time = time.time()
             iteration_count += 1
+
             sliced_delta_documents = all_delta_documents[: current_delta_index + 1]
             try:
                 latest_delta = sliced_delta_documents[-1]
@@ -1043,7 +1048,6 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 )
                 break
 
-            # Time the create_agg_dict call
             source_content = self.create_agg_dict(
                 current_iteration_date,
                 previous_snapshot,
@@ -1059,43 +1063,20 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
             )
 
-            # Check if an aggregation already exists for this date
-            # If it does, delete it (we'll re-create it below)
-            if self.client.exists(index=index_name, id=document_id):
-                self.delete_aggregation(index_name, document_id)
-
             document = {
                 "_id": document_id,
                 "_index": index_name,
                 "_source": source_content,
             }
-            # Log timing for this iteration
+
             iteration_end_time = time.time()
             iteration_duration = iteration_end_time - iteration_start_time
-            current_app.logger.debug(
-                f"Day {iteration_count}: {iteration_duration:.2f}s"
-            )
-
             yield (document, iteration_duration)
 
             previous_snapshot = source_content
             previous_snapshot_date = current_iteration_date
             current_iteration_date = current_iteration_date.shift(days=1)
             current_delta_index += 1
-
-        # Log total timing for the main loop
-        loop_end_time = time.time()
-        loop_duration = loop_end_time - loop_start_time
-        current_app.logger.debug(
-            f"Snapshot loop: {iteration_count} days, {loop_duration:.2f}s"
-        )
-
-        # Log total timing for agg_iter
-        agg_iter_end_time = time.time()
-        agg_iter_duration = agg_iter_end_time - agg_iter_start_time
-        current_app.logger.debug(
-            f"Snapshot agg_iter {community_id}: {agg_iter_duration:.2f}s"
-        )
 
 
 class CommunityEventsIndexAggregator(CommunityAggregatorBase):

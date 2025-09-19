@@ -413,9 +413,11 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         """
         if exhaustive_counts_cache is None:
             exhaustive_counts_cache = {}
+
         new_dict: RecordSnapshotDocument = self._copy_snapshot_forward(
             previous_snapshot, current_day  # type: ignore
         )
+
         records = latest_delta.get("records", {})
         if (
             records.get("added", {}).get("with_files", 0) == 0

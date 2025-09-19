@@ -266,6 +266,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         combined_keys = list(
             set(b["key"] for b in added_items) | set(b["key"] for b in removed_items)
         )
+
         subcount_list: list[RecordDeltaSubcountItem] = []
 
         # Handle case where no items found
@@ -359,6 +360,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                     },
                 }
             )
+
         return subcount_list
 
     def create_agg_dict(
@@ -472,10 +474,6 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             Generator[tuple[dict, float], None, None]: A generator yielding tuples of
                 (document, generation_time) for each day in the period.
         """
-        # Start timing the agg_iter method
-        agg_iter_start_time = time.time()
-        current_app.logger.debug(f"Record delta agg_iter {community_id}")
-
         # Check if we should skip aggregation due to no events after start_date
         # If so, we index a zero document for the community for each day
         should_skip = self._should_skip_aggregation(
@@ -496,17 +494,13 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             record_index=self.record_index,
         )
 
-        # Time the main year loop
-        year_loop_start_time = time.time()
         total_days_processed = 0
         for year in range(start_date.year, end_date.year + 1):
-            year_start_time = time.time()
             year_start_date = max(arrow.get(f"{year}-01-01"), start_date)
             year_end_date = min(arrow.get(f"{year}-12-31"), end_date)
 
             index_name = prefix_index(f"{self.aggregation_index}-{year}")
 
-            # Time the day loop for this year
             days_in_year = 0
             for day in arrow.Arrow.range("day", year_start_date, year_end_date):
                 day_iteration_start_time = time.time()
@@ -550,14 +544,8 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                         community_id, day_start_date, aggs_added, aggs_removed
                     )
 
-                # Check if an aggregation already exists for this date
-                # If it does, delete it (we'll re-create it below)
                 document_id = f"{community_id}-{day_start_date.format('YYYY-MM-DD')}"
-                if self.client.exists(index=index_name, id=document_id):
-                    self.delete_aggregation(index_name, document_id)
 
-                # Process the current date even if there are no buckets
-                # so that we have a record for every day in the period
                 document = {
                     "_id": document_id,
                     "_index": index_name,
@@ -574,28 +562,6 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 )
 
                 yield (document, day_iteration_duration)
-
-            # Log timing for this year
-            year_end_time = time.time()
-            year_duration = year_end_time - year_start_time
-            current_app.logger.debug(
-                f"Year {year}: {days_in_year} days, {year_duration:.2f}s"
-            )
-
-        # Log total timing for the year loop
-        year_loop_end_time = time.time()
-        year_loop_duration = year_loop_end_time - year_loop_start_time
-        current_app.logger.debug(
-            f"Record delta total: {total_days_processed} days, "
-            f"{year_loop_duration:.2f}s"
-        )
-
-        # Log total timing for agg_iter
-        agg_iter_end_time = time.time()
-        agg_iter_duration = agg_iter_end_time - agg_iter_start_time
-        current_app.logger.debug(
-            f"Record delta agg_iter {community_id}: {agg_iter_duration:.2f}s"
-        )
 
 
 class CommunityRecordsDeltaCreatedAggregator(CommunityRecordsDeltaAggregatorBase):
