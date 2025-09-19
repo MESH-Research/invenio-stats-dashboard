@@ -81,6 +81,7 @@ class CommunityStatsService:
                     ignore_bookmark=ignore_bookmark,
                     community_ids=community_ids,
                     verbose=verbose,
+                    eager=eager,
                 )
                 current_app.logger.error(
                     f"Stats aggregated eagerly for communities: {community_ids}, "
@@ -105,6 +106,7 @@ class CommunityStatsService:
                 ignore_bookmark=ignore_bookmark,
                 community_ids=community_ids,
                 verbose=verbose,
+                eager=eager,
             )
             current_app.logger.error(
                 f"Stats aggregation task run asynchronously for communities: "
@@ -523,8 +525,8 @@ class CommunityStatsService:
         except ValueError as e:
             if "No results found for community" in str(e):
                 current_app.logger.info(
-                    f"No {query_type or 'stats'} data found for community {community_id} "
-                    f"from {start_date} to {end_date}"
+                    f"No {query_type or 'stats'} data found for community "
+                    f"{community_id} from {start_date} to {end_date}"
                 )
                 if query_type:
                     return False, []

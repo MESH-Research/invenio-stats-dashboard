@@ -42,7 +42,7 @@ def _ensure_templates_registered(app: Flask) -> None:
         templates = {}
 
         results = []
-        for _, agg_config in aggregations.items():
+        for agg_config in aggregations.values():
             template_path = agg_config.get("templates")
             if template_path:
                 try:

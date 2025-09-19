@@ -261,7 +261,8 @@ class AggregationTaskLock:
 
         Args:
             lock_name (str): The name of the lock to acquire.
-            timeout (int, optional): Lock timeout in seconds. Defaults to 86400 (24 hours).
+            timeout (int, optional): Lock timeout in seconds.
+                Defaults to 86400 (24 hours).
         """
         self.lock_name = f"lock:{lock_name}"
         self.timeout = timeout
@@ -334,6 +335,7 @@ def aggregate_community_record_stats(
     ignore_bookmark: bool = False,
     community_ids: list[str] | None = None,
     verbose: bool = False,
+    eager: bool = False,
 ) -> AggregationResponse:
     """Aggregate community record stats from created records."""
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
@@ -356,6 +358,7 @@ def aggregate_community_record_stats(
                     community_ids,
                     ignore_bookmark,
                     verbose,
+                    eager,
                 )
         except TaskLockAcquisitionError:
             # Lock acquisition failed - another task is running
@@ -381,6 +384,7 @@ def aggregate_community_record_stats(
             community_ids,
             ignore_bookmark,
             verbose,
+            eager,
         )
 
 
@@ -392,6 +396,7 @@ def _run_aggregation(
     community_ids: list[str] | None = None,
     ignore_bookmark: bool = False,
     verbose: bool = False,
+    eager: bool = False,
 ) -> AggregationResponse:
     """Run the actual aggregation logic."""
     parsed_start_date = dateutil_parse(start_date) if start_date else None
@@ -403,10 +408,10 @@ def _run_aggregation(
         community_ids=community_ids,
         start_date=str(start_date) if start_date else None,
         end_date=str(end_date) if end_date else None,
-        eager=False,  # This is always False when called from task
+        eager=eager,
         update_bookmark=update_bookmark,
         ignore_bookmark=ignore_bookmark,
-        verbose=False,
+        verbose=verbose,
     )
     current_app.logger.info(f"Aggregation startup configuration:\n{startup_config}")
 
