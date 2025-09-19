@@ -7,14 +7,11 @@
 """Queries for the stats dashboard."""
 
 from typing import Any
-
 import arrow
 from flask import current_app
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
-from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
-from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 
@@ -59,7 +56,8 @@ def get_relevant_record_ids_from_events(
         client = current_search_client
 
     # Validate that community_id is not "global" unless use_published_dates=True
-    # Global queries are only supported for published dates since we now have global events
+    # Global queries are only supported for published dates since we now have
+    # global events
     if community_id == "global" and not use_published_dates:
         raise ValueError(
             "get_relevant_record_ids_from_events should not be called with "
@@ -104,7 +102,8 @@ def get_relevant_record_ids_from_events(
         }
         should_clauses.append(deleted_event_clause)
     else:
-        # For non-deleted records, we need to find records that were created/added/published
+        # For non-deleted records, we need to find records that were
+        # created/added/published
         # in the given period and are still active (not deleted)
         must_clauses = [
             {"range": {date_field: {"gte": start_date, "lte": end_date}}},
@@ -155,217 +154,6 @@ def get_relevant_record_ids_from_events(
         record_ids.add(record_id)
 
     return record_ids
-
-
-class CommunityStatsResultsQueryBase(Query):
-    """Base class for the stats dashboard API requests."""
-
-    date_field: (
-        str  # Type annotation to indicate this attribute will be set by child classes
-    )
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-
-    def run(
-        self,
-        community_id: str = "global",
-        start_date: str | None = None,
-        end_date: str | None = None,
-    ) -> list[dict[str, Any]] | dict[str, Any]:
-        """Run the query.
-
-        Args:
-            community_id (str): The community ID. If "global", the query will be run
-                for the entire repository. Default is "global".
-            start_date (str): The start date.
-            end_date (str): The end date.
-
-        Returns:
-            list: The results of the query.
-        """
-        results = []
-        must_clauses: list[dict] = [
-            {"term": {"community_id": community_id}},
-        ]
-        range_clauses: dict[str, dict[str, str]] = {self.date_field: {}}
-        if start_date:
-            range_clauses[self.date_field]["gte"] = (
-                arrow.get(start_date).floor("day").format("YYYY-MM-DDTHH:mm:ss")
-            )
-        if end_date:
-            range_clauses[self.date_field]["lte"] = (
-                arrow.get(end_date).ceil("day").format("YYYY-MM-DDTHH:mm:ss")
-            )
-        if range_clauses:
-            must_clauses.append({"range": range_clauses})
-
-        # The parent Query class has already applied prefix_index to self.index
-        alias_name = self.index
-        index_pattern = f"{alias_name}-*"
-
-        try:
-            if self.client.indices.exists_alias(name=alias_name):
-                search_index = alias_name
-            else:
-                indices = self.client.indices.get(index_pattern)
-                if not indices:
-                    raise AssertionError(
-                        f"No indices found for alias '{alias_name}' or pattern "
-                        f"{index_pattern}'"
-                    )
-                search_index = index_pattern
-
-            agg_search = (
-                Search(using=self.client, index=search_index)
-                .query(Q("bool", must=must_clauses))
-                .extra(size=10_000)
-            )
-            agg_search.sort(self.date_field)
-
-            count = agg_search.count()
-            current_app.logger.error(f"Count: {count}")
-            if count == 0:
-                raise ValueError(
-                    f"No results found for community {community_id}"
-                    f" for the period {start_date} to {end_date}"
-                )
-            response = agg_search.execute()
-            results = [h["_source"].to_dict() for h in response.hits.hits]
-        except AssertionError as e:
-            current_app.logger.error(f"Index does not exist: {self.index} {e}")
-        return results
-
-
-class CommunityRecordDeltaResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for community record delta results."""
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-        self.date_field = "period_start"
-
-
-class CommunityRecordSnapshotResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for community record snapshot results."""
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-        self.date_field = "snapshot_date"
-
-
-class CommunityUsageDeltaResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for community usage delta results."""
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-        self.date_field = "period_start"
-
-
-class CommunityUsageSnapshotResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for community usage snapshot results."""
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-        self.date_field = "snapshot_date"
-
-
-class CommunityStatsResultsQuery(Query):
-    """Collected query for all stats dashboard API requests."""
-
-    client: OpenSearch | None  # Type annotation to indicate the client type
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-
-    def run(
-        self,
-        community_id: str = "global",
-        start_date: str | None = None,
-        end_date: str | None = None,
-    ) -> dict[str, Any]:
-        """Run the query."""
-        results = {}
-        record_deltas_created = CommunityRecordDeltaResultsQuery(
-            name="community-record-delta-created",
-            index="stats-community-records-delta-created",
-            client=self.client,
-        )
-        results["record_deltas_created"] = record_deltas_created.run(
-            community_id, start_date, end_date
-        )
-        record_deltas_published = CommunityRecordDeltaResultsQuery(
-            name="community-record-delta-published",
-            index="stats-community-records-delta-published",
-            client=self.client,
-        )
-        results["record_deltas_published"] = record_deltas_published.run(
-            community_id, start_date, end_date
-        )
-        record_deltas_added = CommunityRecordDeltaResultsQuery(
-            name="community-record-delta-added",
-            index="stats-community-records-delta-added",
-            client=self.client,
-        )
-        results["record_deltas_added"] = record_deltas_added.run(
-            community_id, start_date, end_date
-        )
-        record_snapshots_created = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot-created",
-            index="stats-community-records-snapshot-created",
-            client=self.client,
-        )
-        results["record_snapshots_created"] = record_snapshots_created.run(
-            community_id, start_date, end_date
-        )
-        record_snapshots_published = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot-published",
-            index="stats-community-records-snapshot-published",
-            client=self.client,
-        )
-        results["record_snapshots_published"] = record_snapshots_published.run(
-            community_id, start_date, end_date
-        )
-        record_snapshots_added = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot-added",
-            index="stats-community-records-snapshot-added",
-            client=self.client,
-        )
-        results["record_snapshots_added"] = record_snapshots_added.run(
-            community_id, start_date, end_date
-        )
-        usage_deltas = CommunityUsageDeltaResultsQuery(
-            name="community-usage-delta",
-            index="stats-community-usage-delta",
-            client=self.client,
-        )
-        results["usage_deltas"] = usage_deltas.run(community_id, start_date, end_date)
-        usage_snapshots = CommunityUsageSnapshotResultsQuery(
-            name="community-usage-snapshot",
-            index="stats-community-usage-snapshot",
-            client=self.client,
-        )
-        results["usage_snapshots"] = usage_snapshots.run(
-            community_id, start_date, end_date
-        )
-        return results
 
 
 class CommunityUsageDeltaQuery:
@@ -754,7 +542,7 @@ class CommunityRecordDeltaQuery:
                 Defaults to the global config.
         """
         if client is None:
-            client = current_search_client
+            client = current_search_client  # type: ignore
         self.client = client
         self.event_index = event_index or "stats-community-events"
         self.record_index = record_index or "rdmrecords-records"
@@ -777,7 +565,8 @@ class CommunityRecordDeltaQuery:
             start_date (str): The start date to query.
             end_date (str): The end date to query.
             community_id (str): The community ID. If "global", uses events index
-                when use_published_dates=True, otherwise uses record date fields directly.
+                when use_published_dates=True, otherwise uses record date
+                fields directly.
             find_deleted (bool): Whether to find deleted records.
             use_included_dates (bool): Whether to use the dates when the record
                 was included to the community instead of the created date.
@@ -862,13 +651,14 @@ class CommunityRecordDeltaQuery:
         Args:
             start_date (str): The start date to query.
             end_date (str): The end date to query.
-            community_id (str, optional): The community ID. If "global", uses events index
-                when use_published_dates=True, otherwise uses record date fields directly.
+            community_id (str, optional): The community ID. If "global", uses
+                events index when use_published_dates=True, otherwise uses record date
+                fields directly.
             find_deleted (bool, optional): Whether to find deleted records.
-            use_included_dates (bool, optional): Whether to use the dates when the record
-                was included to the community instead of the created date.
-            use_published_dates (bool, optional): Whether to use the metadata publication
-                date instead of the created date.
+            use_included_dates (bool, optional): Whether to use the dates when
+                the record was included to the community instead of the created date.
+            use_published_dates (bool, optional): Whether to use the metadata
+                publication date instead of the created date.
 
         Returns:
             dict: The sub aggregations for the query.
@@ -886,7 +676,8 @@ class CommunityRecordDeltaQuery:
                 # Handle combined queries (like affiliations)
                 if records_config.get("combine_queries"):
                     current_app.logger.error(
-                        f"Creating combine_queries aggregations for {subcount_key}: {records_config['combine_queries']}"
+                        f"Creating combine_queries aggregations for {subcount_key}: "
+                        f"{records_config['combine_queries']}"
                     )
                     # For combined queries, we need to create separate aggregations
                     for field in records_config["combine_queries"]:
@@ -1012,20 +803,22 @@ class CommunityRecordDeltaQuery:
 
         For global community queries (community_id="global"), this function uses
         the events index when use_published_dates=True (since we now have global
-        events with parsed publication dates), otherwise uses record date fields directly.
+        events with parsed publication dates), otherwise uses record date fields
+        directly.
 
         Args:
             start_date (str): The start date to query.
             end_date (str): The end date to query.
-            community_id (str, optional): The community ID. If "global", uses events index
-                when use_published_dates=True, otherwise uses record date fields directly.
-            find_deleted (bool, optional): Whether to find deleted records.
-            use_included_dates (bool, optional): Whether to use the dates when the record
-                was included to the community instead of the created date.
+            community_id (str, optional): The community ID. If "global", uses
+                events index when use_published_dates=True, otherwise uses record date
+                fields directly.
                 (Ignored for global queries)
-            use_published_dates (bool, optional): Whether to use the metadata publication
-                date instead of the created date.
-            client: The OpenSearch client to use.
+            find_deleted (bool, optional): Whether to find deleted records.
+            use_included_dates (bool, optional): Whether to use the dates when
+                the record was included to the community instead of the created date.
+                (Ignored for global queries)
+            use_published_dates (bool, optional): Whether to use the metadata
+                publication date instead of the created date.
 
         Returns:
             dict: The query for the daily record delta counts.

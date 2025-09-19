@@ -79,7 +79,7 @@ class SubcountItemDict(TypedDict):
     label: str | dict[str, str]
 
 
-class SubcountSeriesDict(TypedDict):
+class SubcountSeriesDict(TypedDict, total=False):
     """Type definition for a subcount series."""
 
     id: str
@@ -93,7 +93,7 @@ class SubcountSeriesDict(TypedDict):
     download: dict[str, Any] | None
 
 
-class AggregationDocumentDict(TypedDict):
+class AggregationDocumentDict(TypedDict, total=False):
     """Type definition for an aggregation document."""
 
     period_start: str | None
@@ -110,12 +110,18 @@ class AggregationDocumentDict(TypedDict):
     subcounts: dict[str, list[SubcountSeriesDict]] | None
 
 
-# For now, let's use a simpler approach with dict[str, Any] for the main result types
-# This avoids the reserved keyword issue with 'global' and keeps the implementation working
-RecordDeltaResultDict = dict[str, Any]
-RecordSnapshotResultDict = dict[str, Any]
-UsageDeltaResultDict = dict[str, Any]
-UsageSnapshotResultDict = dict[str, Any]
+RecordDeltaResultDict = dict[
+    str, GlobalMetricsDict | FilePresenceDict | SubcountMetricsDict
+]
+RecordSnapshotResultDict = dict[
+    str, GlobalMetricsDict | FilePresenceDict | SubcountMetricsDict
+]
+UsageDeltaResultDict = dict[
+    str, UsageMetricsDict | FilePresenceUsageDict | SubcountMetricsDict
+]
+UsageSnapshotResultDict = dict[
+    str, UsageMetricsDict | FilePresenceUsageDict | SubcountMetricsDict
+]
 
 # Union type for all possible transformation results
 TransformationResult = (

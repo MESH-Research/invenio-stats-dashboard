@@ -7,7 +7,7 @@
 """Base classes and utilities for data series transformers."""
 
 import json
-from abc import ABC, abstractmethod
+from abc import ABC
 from datetime import datetime
 from typing import Any
 
@@ -63,30 +63,150 @@ class DataPoint:
 
 
 class DataSeries:
-    """Represents a complete data series for charting."""
+    """Represents a complete data series for charting.
+
+    This is the primary interface for creating data series. When instantiated
+    with raw data, it automatically generates data points using the appropriate
+    transformer class.
+    """
 
     def __init__(
         self,
         series_id: str,
         name: str,
-        data_points: list[DataPoint],
+        raw_documents: list[AggregationDocumentDict] | None = None,
         chart_type: str = "line",
         value_type: str = "number",
+        category: str = "global",
+        metric: str = "views",
+        subcount_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        transformer_config: dict[str, Any] | None = None,
     ):
         """Initialize a data series.
 
         Args:
             series_id: Unique identifier for the series
             name: Display name for the series
-            data_points: List of data points in the series
+            raw_documents: Raw aggregation documents to process
             chart_type: Type of chart ('line', 'bar', etc.)
             value_type: Type of values in the series
+            category: Category of the series ('global', 'access_statuses', etc.)
+            metric: Metric type ('views', 'downloads', 'visitors', 'dataVolume')
+            subcount_id: Specific subcount item ID (for subcount series)
+            start_date: Start date for filtering (YYYY-MM-DD format)
+            end_date: End date for filtering (YYYY-MM-DD format)
+            transformer_config: Configuration for the transformer
         """
         self.id = series_id
         self.name = name
-        self.data = data_points
         self.type = chart_type
         self.value_type = value_type
+        self.category = category
+        self.metric = metric
+        self.subcount_id = subcount_id
+        self.start_date = start_date
+        self.end_date = end_date
+        self.transformer_config = transformer_config or {}
+
+        # Generate data points from raw documents
+        if raw_documents is not None:
+            self.data = self._generate_data_points(raw_documents)
+        else:
+            self.data = []
+
+    def _get_transformer_class(self):
+        """Get the appropriate transformer class for this data series type.
+
+        Subclasses should override this method to return the correct transformer.
+        """
+        raise NotImplementedError("Subclasses must implement _get_transformer_class")
+
+    def _generate_data_points(
+        self, raw_documents: list[AggregationDocumentDict]
+    ) -> list[DataPoint]:
+        """Generate data points from raw documents using the appropriate transformer."""
+        transformer_class = self._get_transformer_class()
+        transformer = transformer_class(self.transformer_config)
+
+        # Filter documents by date range if specified
+        filtered_docs = self._filter_documents_by_date(raw_documents)
+
+        # Extract data points using the transformer
+        return transformer._extract_series_data(
+            filtered_docs, self.category, self.metric, self.subcount_id
+        )
+
+    def _filter_documents_by_date(
+        self, documents: list[AggregationDocumentDict]
+    ) -> list[AggregationDocumentDict]:
+        """Filter documents by date range if start_date/end_date are specified."""
+        if not self.start_date and not self.end_date:
+            return documents
+
+        filtered = []
+        for doc in documents:
+            doc_date = self._extract_document_date(doc)
+            if not doc_date:
+                continue
+
+            if self.start_date and doc_date < self.start_date:
+                continue
+            if self.end_date and doc_date > self.end_date:
+                continue
+
+            filtered.append(doc)
+        return filtered
+
+    def _extract_document_date(self, doc: AggregationDocumentDict) -> str | None:
+        """Extract date from document in YYYY-MM-DD format."""
+        # Try different date fields
+        date_str = doc.get("snapshot_date") or doc.get("period_start")
+        if not date_str:
+            return None
+
+        # Extract date part (before 'T' if present)
+        return date_str.split("T")[0]
+
+    def filter_by_date_range(self, start_date: str, end_date: str) -> "DataSeries":
+        """Create a new series filtered to the specified date range."""
+        # Filter the data points by date range
+        filtered_data = []
+        for dp in self.data:
+            if start_date <= dp.date <= end_date:
+                filtered_data.append(dp)
+
+        # Create a new series with the filtered data
+        new_series = self.__class__(
+            series_id=self.id,
+            name=self.name,
+            raw_documents=None,
+            chart_type=self.type,
+            value_type=self.value_type,
+            category=self.category,
+            metric=self.metric,
+            subcount_id=self.subcount_id,
+            start_date=start_date,
+            end_date=end_date,
+            transformer_config=self.transformer_config,
+        )
+        new_series.data = filtered_data
+        return new_series
+
+    def get_summary_stats(self) -> dict[str, Any]:
+        """Get summary statistics for the series."""
+        if not self.data:
+            return {"count": 0, "total": 0, "min": 0, "max": 0, "avg": 0}
+
+        values = [dp.value for dp in self.data]
+        return {
+            "count": len(values),
+            "total": sum(values),
+            "min": min(values),
+            "max": max(values),
+            "avg": sum(values) / len(values) if values else 0,
+        }
 
     def to_dict(self) -> DataSeriesDict:
         """Convert to dictionary format matching JavaScript output."""
@@ -97,6 +217,20 @@ class DataSeries:
             "type": self.type,
             "valueType": self.value_type,
         }
+
+    def for_json(self) -> dict[str, Any]:
+        """Convert to dictionary format for JSON serialization."""
+        result = dict(self.to_dict())
+
+        if self.category != "global":
+            result["category"] = self._to_camel_case(self.category)
+
+        return result
+
+    def _to_camel_case(self, snake_str: str) -> str:
+        """Convert snake_case string to camelCase."""
+        components = snake_str.split("_")
+        return components[0] + "".join(word.capitalize() for word in components[1:])
 
 
 class BaseDataSeriesTransformer(ABC):
@@ -114,19 +248,25 @@ class BaseDataSeriesTransformer(ABC):
         )
         self.ui_subcounts = current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {})
 
-    @abstractmethod
-    def transform(
-        self, documents: list[AggregationDocumentDict]
-    ) -> TransformationResult:
-        """Transform documents into data series.
+    def _extract_series_data(
+        self,
+        documents: list[AggregationDocumentDict],
+        category: str,
+        metric: str,
+        subcount_id: str | None = None,
+    ) -> list[DataPoint]:
+        """Extract data points for a specific series.
 
         Args:
-            documents: List of indexed documents to transform
+            documents: List of aggregation documents
+            category: Series category ('global', 'accessStatuses', etc.)
+            metric: Metric type ('views', 'downloads', 'visitors', 'dataVolume')
+            subcount_id: Specific subcount item ID (for subcount series)
 
         Returns:
-            Dictionary containing transformed data series
+            List of DataPoint objects
         """
-        pass
+        raise NotImplementedError("Subclasses must implement _extract_series_data")
 
     def create_data_point(
         self,
@@ -145,114 +285,6 @@ class BaseDataSeriesTransformer(ABC):
             DataPoint object
         """
         return DataPoint(date, value, value_type)
-
-    def create_global_series(
-        self,
-        data_points: list[DataPoint],
-        chart_type: str = "line",
-        value_type: str = "number",
-    ) -> DataSeries:
-        """Create a global data series.
-
-        Args:
-            data_points: List of data points
-            chart_type: Type of chart
-            value_type: Type of values
-
-        Returns:
-            DataSeries object with id "global"
-        """
-        return DataSeries("global", "Global", data_points, chart_type, value_type)
-
-    def create_data_series_array(
-        self,
-        series_names: list[str],
-        data_points_array: list[dict[str, Any]] | None = None,
-        chart_type: str = "line",
-        value_type: str = "number",
-    ) -> list[DataSeries]:
-        """Create an array of data series from named properties.
-
-        Args:
-            series_names: List of property names to extract as separate series
-            data_points_array: Array of data points with named properties
-            chart_type: Chart type for all series
-            value_type: Value type for all series
-
-        Returns:
-            List of DataSeries objects
-        """
-        if data_points_array is None:
-            data_points_array = []
-
-        series_array = []
-        for name in series_names:
-            series = DataSeries(name, name, [], chart_type, value_type)
-            series_array.append(series)
-
-        for point_obj in data_points_array:
-            date = point_obj.get("date")
-            if not date:
-                continue
-
-            for name in series_names:
-                if name in point_obj:
-                    target_series: DataSeries | None = next(
-                        (s for s in series_array if s.name == name), None
-                    )
-                    if target_series is not None:
-                        data_point = self.create_data_point(
-                            date, point_obj[name], value_type
-                        )
-                        target_series.data.append(data_point)
-
-        return series_array
-
-    def create_data_series_from_items(
-        self,
-        subcount_items: list[dict[str, Any]],
-        data_points_array: list[dict[str, Any]] | None = None,
-        chart_type: str = "line",
-        value_type: str = "number",
-        localization_map: dict[str, str] | None = None,
-    ) -> list[DataSeries]:
-        """Create data series from subcount items.
-
-        Args:
-            subcount_items: List of subcount items with id and optional label
-            data_points_array: Array of data points mapping subcount id to value
-            chart_type: Chart type for all series
-            value_type: Value type for all series
-            localization_map: Map of subcount id to localized label
-
-        Returns:
-            List of DataSeries objects
-        """
-        if data_points_array is None:
-            data_points_array = []
-        if localization_map is None:
-            localization_map = {}
-
-        series_array = []
-        for item in subcount_items:
-            series_id = item.get("id", "")
-            series_name = localization_map.get(series_id, series_id)
-            series = DataSeries(series_id, series_name, [], chart_type, value_type)
-            series_array.append(series)
-
-        for point_obj in data_points_array:
-            date = point_obj.get("date")
-            if not date:
-                continue
-
-            for series in series_array:
-                if series.id in point_obj:
-                    data_point = self.create_data_point(
-                        date, point_obj[series.id], value_type
-                    )
-                    series.data.append(data_point)
-
-        return series_array
 
     def create_localization_map(
         self, documents: list[AggregationDocumentDict]
@@ -332,37 +364,41 @@ class BaseDataSeriesTransformer(ABC):
         return json.dumps(convert_to_json_serializable(data), indent=2)
 
 
-def create_transformer(
-    transformer_type: str, config: dict[str, Any] | None = None
-) -> BaseDataSeriesTransformer:
-    """Create a transformer instance based on type.
+class UsageSnapshotDataSeries(DataSeries):
+    """Data series for usage snapshot data."""
 
-    Args:
-        transformer_type: Type of transformer ('record_delta', 'record_snapshot',
-                         'usage_delta', 'usage_snapshot')
-        config: Optional configuration dictionary
+    def _get_transformer_class(self):
+        """Return the usage snapshot transformer class."""
+        from .usage_snapshot import UsageSnapshotDataSeriesTransformer
 
-    Returns:
-        Appropriate transformer instance
+        return UsageSnapshotDataSeriesTransformer
 
-    Raises:
-        ValueError: If transformer_type is not recognized
-    """
-    from .record_delta import RecordDeltaDataSeriesTransformer
-    from .record_snapshot import RecordSnapshotDataSeriesTransformer
-    from .usage_delta import UsageDeltaDataSeriesTransformer
-    from .usage_snapshot import UsageSnapshotDataSeriesTransformer
 
-    transformers = {
-        "record_delta": RecordDeltaDataSeriesTransformer,
-        "record_snapshot": RecordSnapshotDataSeriesTransformer,
-        "usage_delta": UsageDeltaDataSeriesTransformer,
-        "usage_snapshot": UsageSnapshotDataSeriesTransformer,
-    }
+class UsageDeltaDataSeries(DataSeries):
+    """Data series for usage delta data."""
 
-    if transformer_type not in transformers:
-        raise ValueError(f"Unknown transformer type: {transformer_type}")
+    def _get_transformer_class(self):
+        """Return the usage delta transformer class."""
+        from .usage_delta import UsageDeltaDataSeriesTransformer
 
-    transformer_class = transformers[transformer_type]
-    # All classes in transformers dict are concrete implementations, not abstract
-    return transformer_class(config)  # type: ignore[abstract]
+        return UsageDeltaDataSeriesTransformer
+
+
+class RecordSnapshotDataSeries(DataSeries):
+    """Data series for record snapshot data."""
+
+    def _get_transformer_class(self):
+        """Return the record snapshot transformer class."""
+        from .record_snapshot import RecordSnapshotDataSeriesTransformer
+
+        return RecordSnapshotDataSeriesTransformer
+
+
+class RecordDeltaDataSeries(DataSeries):
+    """Data series for record delta data."""
+
+    def _get_transformer_class(self):
+        """Return the record delta transformer class."""
+        from .record_delta import RecordDeltaDataSeriesTransformer
+
+        return RecordDeltaDataSeriesTransformer

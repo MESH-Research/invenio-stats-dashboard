@@ -10,7 +10,6 @@ from .base import (
     BaseDataSeriesTransformer,
     DataPoint,
     DataSeries,
-    create_transformer,
 )
 from .types import (
     AggregationDocumentDict,
@@ -43,5 +42,4 @@ __all__ = [
     "UsageDeltaResultDict",
     "UsageSnapshotDataSeriesTransformer",
     "UsageSnapshotResultDict",
-    "create_transformer",
 ]

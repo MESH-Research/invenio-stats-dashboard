@@ -8,9 +8,10 @@
 
 from typing import Any
 
-from .base import BaseDataSeriesTransformer
+from .base import BaseDataSeriesTransformer, DataPoint
 from .types import (
     AggregationDocumentDict,
+    SubcountSeriesDict,
     UsageSnapshotResultDict,
 )
 
@@ -247,25 +248,217 @@ class UsageSnapshotDataSeriesTransformer(BaseDataSeriesTransformer):
             },
         }
 
-    def _get_total_view_events(self, item: dict[str, Any]) -> int:
+    def _get_total_view_events(
+        self, item: dict[str, Any] | SubcountSeriesDict | None
+    ) -> int:
         """Extract total view events count from a usage snapshot item."""
-        return item.get("total_events", 0) if item else 0
+        if not item:
+            return 0
+        if isinstance(item, dict):
+            return item.get("total_events", 0)
+        return 0
 
-    def _get_total_download_events(self, item: dict[str, Any]) -> int:
+    def _get_total_download_events(
+        self, item: dict[str, Any] | SubcountSeriesDict | None
+    ) -> int:
         """Extract total download events count from a usage snapshot item."""
-        return item.get("total_events", 0) if item else 0
+        if not item:
+            return 0
+        if isinstance(item, dict):
+            return item.get("total_events", 0)
+        return 0
 
-    def _get_total_visitors(self, item: dict[str, Any]) -> int:
+    def _get_total_visitors(
+        self, item: dict[str, Any] | SubcountSeriesDict | None
+    ) -> int:
         """Extract total unique visitors count from a usage snapshot item."""
         if not item:
             return 0
-        view_visitors = item.get("unique_visitors", 0)
-        download_visitors = item.get("unique_visitors", 0)
-        return int(max(view_visitors, download_visitors))
+        if isinstance(item, dict):
+            view_visitors = item.get("unique_visitors", 0)
+            download_visitors = item.get("unique_visitors", 0)
+            return int(max(view_visitors, download_visitors))
+        return 0
 
-    def _get_total_data_volume(self, item: dict[str, Any]) -> int:
+    def _get_total_data_volume(
+        self, item: dict[str, Any] | SubcountSeriesDict | None
+    ) -> int:
         """Extract total data volume from a usage snapshot item."""
-        return item.get("total_volume", 0) if item else 0
+        if not item:
+            return 0
+        if isinstance(item, dict):
+            return item.get("total_volume", 0)
+        return 0
+
+    def _extract_series_data(
+        self,
+        documents: list[AggregationDocumentDict],
+        category: str,
+        metric: str,
+        subcount_id: str | None = None,
+    ) -> list[DataPoint]:
+        """Extract data points for a specific usage snapshot series.
+
+        Args:
+            documents: List of usage snapshot aggregation documents
+            category: Series category ('global', 'accessStatuses', etc.)
+            metric: Metric type ('views', 'downloads', 'visitors', 'dataVolume')
+            subcount_id: Specific subcount item ID (for subcount series)
+
+        Returns:
+            List of DataPoint objects
+        """
+        data_points = []
+
+        for doc in documents:
+            snapshot_date = doc.get("snapshot_date")
+            if snapshot_date is None:
+                continue
+            date = snapshot_date.split("T")[0]
+            if not date:
+                continue
+
+            value = self._extract_value_for_series(doc, category, metric, subcount_id)
+            if value is not None:
+                value_type = "filesize" if metric == "dataVolume" else "number"
+                data_points.append(self.create_data_point(date, value, value_type))
+
+        return data_points
+
+    def _extract_value_for_series(
+        self,
+        doc: AggregationDocumentDict,
+        category: str,
+        metric: str,
+        subcount_id: str | None = None,
+    ) -> int | float | None:
+        """Extract value for a specific series from a document."""
+        if category == "global":
+            return self._extract_global_value(doc, metric)
+        else:
+            return self._extract_subcount_value(doc, category, metric, subcount_id)
+
+    def _extract_global_value(
+        self, doc: AggregationDocumentDict, metric: str
+    ) -> int | float | None:
+        """Extract value from global totals."""
+        totals = doc.get("totals")
+        if not totals:
+            return None
+
+        if metric == "views":
+            view_data = totals.get("view")
+            return self._get_total_view_events(view_data) if view_data else 0
+        elif metric == "downloads":
+            download_data = totals.get("download")
+            return (
+                self._get_total_download_events(download_data) if download_data else 0
+            )
+        elif metric == "visitors":
+            view_data = totals.get("view")
+            return self._get_total_visitors(view_data) if view_data else 0
+        elif metric == "dataVolume":
+            download_data = totals.get("download")
+            return self._get_total_data_volume(download_data) if download_data else 0
+
+        return None
+
+    def _extract_subcount_value(
+        self,
+        doc: AggregationDocumentDict,
+        category: str,
+        metric: str,
+        subcount_id: str | None = None,
+    ) -> int | float | None:
+        """Extract value from subcount data."""
+        subcounts = doc.get("subcounts")
+        if not subcounts:
+            return None
+
+        # Map category to subcount type
+        subcount_type = self._get_subcount_type_for_category(category)
+        if not subcount_type:
+            return None
+
+        subcount_series = subcounts.get(subcount_type)
+        if not subcount_series:
+            return None
+
+        # Handle different subcount structures
+        if isinstance(subcount_series, list):
+            return self._extract_from_simple_subcount(
+                subcount_series, metric, subcount_id
+            )
+        elif isinstance(subcount_series, dict):
+            return self._extract_from_separate_subcount(
+                subcount_series, metric, subcount_id
+            )
+
+        return None
+
+    def _get_subcount_type_for_category(self, category: str) -> str | None:
+        """Get subcount type for a category."""
+        # Reverse lookup in subcount_types
+        for subcount_type, target_key in self.subcount_types.items():
+            if target_key == category:
+                return subcount_type
+
+        # Check separate subcount types
+        for subcount_type, separate_keys in self.separate_subcount_types.items():
+            for key, separate_key in separate_keys.items():
+                if separate_key == category:
+                    return subcount_type
+
+        return None
+
+    def _extract_from_simple_subcount(
+        self,
+        subcount_series: list[SubcountSeriesDict],
+        metric: str,
+        subcount_id: str | None = None,
+    ) -> int | float | None:
+        """Extract value from simple subcount structure."""
+        if subcount_id:
+            # Find specific subcount item
+            for item in subcount_series:
+                if item.get("id") == subcount_id:
+                    return self._extract_metric_from_item(item, metric)
+        else:
+            # Sum all items
+            total = 0
+            for item in subcount_series:
+                value = self._extract_metric_from_item(item, metric)
+                if value is not None:
+                    total += value
+            return total if total > 0 else None
+
+        return None
+
+    def _extract_from_separate_subcount(
+        self,
+        subcount_series: dict[str, Any],
+        metric: str,
+        subcount_id: str | None = None,
+    ) -> int | float | None:
+        """Extract value from separate view/download subcount structure."""
+        # This would need more complex logic based on the specific structure
+        # For now, return None as this requires more detailed implementation
+        return None
+
+    def _extract_metric_from_item(
+        self, item: SubcountSeriesDict, metric: str
+    ) -> int | float | None:
+        """Extract specific metric value from a subcount item."""
+        if metric == "views":
+            return self._get_total_view_events(item)
+        elif metric == "downloads":
+            return self._get_total_download_events(item)
+        elif metric == "visitors":
+            return self._get_total_visitors(item)
+        elif metric == "dataVolume":
+            return self._get_total_data_volume(item)
+
+        return None
 
     def _process_global_data(
         self,

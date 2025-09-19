@@ -22,12 +22,22 @@ from invenio_stats.processors import (
 
 from .aggregations import register_aggregations
 from .permissions import CommunityStatsPermissionFactory
-from .queries import (
+from .resources.api_queries import (
     CommunityRecordDeltaResultsQuery,
     CommunityRecordSnapshotResultsQuery,
     CommunityStatsResultsQuery,
     CommunityUsageDeltaResultsQuery,
     CommunityUsageSnapshotResultsQuery,
+)
+from .resources.data_series_queries import (
+    UsageSnapshotDataSeriesQuery,
+    UsageDeltaDataSeriesQuery,
+    RecordSnapshotDataSeriesQuery,
+    RecordDeltaDataSeriesQuery,
+    UsageSnapshotCategoryQuery,
+    UsageDeltaCategoryQuery,
+    RecordSnapshotCategoryQuery,
+    RecordDeltaCategoryQuery,
 )
 from .tasks import CommunityStatsAggregationTask
 
@@ -532,6 +542,72 @@ COMMUNITY_STATS_QUERIES = {
             "doc_type": "community-record-delta-agg",
         },
     },
+    # Single data series queries
+    "usage-snapshot-series": {
+        "cls": UsageSnapshotDataSeriesQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-usage-snapshot",
+            "doc_type": "community-usage-snapshot-agg",
+        },
+    },
+    "usage-delta-series": {
+        "cls": UsageDeltaDataSeriesQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-usage-delta",
+            "doc_type": "community-usage-delta-agg",
+        },
+    },
+    "record-snapshot-series": {
+        "cls": RecordSnapshotDataSeriesQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-records-snapshot",
+            "doc_type": "community-record-snapshot-agg",
+        },
+    },
+    "record-delta-series": {
+        "cls": RecordDeltaDataSeriesQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-records-delta",
+            "doc_type": "community-record-delta-agg",
+        },
+    },
+    # Category-wide queries
+    "usage-snapshot-category": {
+        "cls": UsageSnapshotCategoryQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-usage-snapshot",
+            "doc_type": "community-usage-snapshot-agg",
+        },
+    },
+    "usage-delta-category": {
+        "cls": UsageDeltaCategoryQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-usage-delta",
+            "doc_type": "community-usage-delta-agg",
+        },
+    },
+    "record-snapshot-category": {
+        "cls": RecordSnapshotCategoryQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-records-snapshot",
+            "doc_type": "community-record-snapshot-agg",
+        },
+    },
+    "record-delta-category": {
+        "cls": RecordDeltaCategoryQuery,
+        "permission_factory": CommunityStatsPermissionFactory,
+        "params": {
+            "index": "stats-community-records-delta",
+            "doc_type": "community-record-delta-agg",
+        },
+    },
 }
 
 STATS_EVENTS = {
@@ -846,5 +922,101 @@ COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
             "label_field": None,
             "snapshot_type": "all",
         },
+    },
+}
+
+# Content negotiation configuration for community stats API requests
+COMMUNITY_STATS_SERIALIZERS = {
+    "application/json": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.serializers:StatsJSONSerializer"
+        ),
+        "enabled_for": [
+            "community-record-delta-created",
+            "community-record-delta-published",
+            "community-record-delta-added",
+            "community-record-snapshot-created",
+            "community-record-snapshot-published",
+            "community-record-snapshot-added",
+            "community-usage-delta",
+            "community-usage-snapshot",
+            "community-stats",
+            "global-stats",
+        ],
+    },
+    "application/json+gzip": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.data_series_serializers:CompressedStatsJSONSerializer"
+        ),
+        "enabled_for": [
+            "usage-snapshot-series",
+            "usage-delta-series",
+            "record-snapshot-series",
+            "record-delta-series",
+            "usage-snapshot-category",
+            "usage-delta-category",
+            "record-snapshot-category",
+            "record-delta-category",
+        ],
+    },
+    "text/csv": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.data_series_serializers:DataSeriesCSVSerializer"
+        ),
+        "enabled_for": [
+            "usage-snapshot-series",
+            "usage-delta-series",
+            "record-snapshot-series",
+            "record-delta-series",
+            "usage-snapshot-category",
+            "usage-delta-category",
+            "record-snapshot-category",
+            "record-delta-category",
+        ],
+    },
+    "application/xml": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.data_series_serializers:DataSeriesXMLSerializer"
+        ),
+        "enabled_for": [
+            "usage-snapshot-series",
+            "usage-delta-series",
+            "record-snapshot-series",
+            "record-delta-series",
+            "usage-snapshot-category",
+            "usage-delta-category",
+            "record-snapshot-category",
+            "record-delta-category",
+        ],
+    },
+    "text/html": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.data_series_serializers:DataSeriesHTMLSerializer"
+        ),
+        "enabled_for": [
+            "usage-snapshot-series",
+            "usage-delta-series",
+            "record-snapshot-series",
+            "record-delta-series",
+            "usage-snapshot-category",
+            "usage-delta-category",
+            "record-snapshot-category",
+            "record-delta-category",
+        ],
+    },
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.data_series_serializers:DataSeriesExcelSerializer"
+        ),
+        "enabled_for": [
+            "usage-snapshot-series",
+            "usage-delta-series",
+            "record-snapshot-series",
+            "record-delta-series",
+            "usage-snapshot-category",
+            "usage-delta-category",
+            "record-snapshot-category",
+            "record-delta-category",
+        ],
     },
 }
