@@ -14,22 +14,20 @@ from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
-
 from .content_negotiation import ContentNegotiationMixin
-from ..transformers.base import (
-    DataSeries,
-    UsageSnapshotDataSeries,
-    UsageDeltaDataSeries,
-    RecordSnapshotDataSeries,
-    RecordDeltaDataSeries,
-)
+from ..transformers.base import DataSeriesSet
+from ..transformers.types import DataSeriesDict
+from ..transformers.usage_snapshots import UsageSnapshotDataSeriesSet
+from ..transformers.usage_deltas import UsageDeltaDataSeriesSet
+from ..transformers.record_snapshots import RecordSnapshotDataSeriesSet
+from ..transformers.record_deltas import RecordDeltaDataSeriesSet
 
 
 class DataSeriesQueryBase(Query, ContentNegotiationMixin):
     """Base class for data series API queries."""
 
     date_field: str  # Type annotation for child classes
-    transformer_class: type[DataSeries]  # Type annotation for transformer class
+    transformer_class: type[DataSeriesSet]  # Type annotation for transformer class
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
@@ -45,7 +43,7 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
         category: str = "global",
         metric: str = "views",
         subcount_id: str | None = None,
-    ) -> Response | DataSeries | dict:
+    ) -> Response | list[DataSeriesDict] | dict | list:
         """Run the query to generate a single data series.
 
         Args:
@@ -123,23 +121,38 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
             current_app.logger.error(f"Index does not exist: {self.index} {e}")
             documents = []
 
-        # Create data series
-        series = self.transformer_class(
-            series_id=f"{community_id}_{category}_{metric}",
-            name=f"{category.title()} {metric.title()}",
-            raw_documents=documents,
-            category=category,
-            metric=metric,
-            subcount_id=subcount_id,
-            start_date=start_date,
-            end_date=end_date,
+        # Create data series set
+        # For single series queries, we need to include the specific category
+        if category == "global":
+            series_keys = ["global"]
+        else:
+            series_keys = [category]
+        series_set = self.transformer_class(
+            documents=documents, series_keys=series_keys
         )
+
+        # Get the complete data series set with camelCase conversion
+        json_result = series_set.for_json()
+
+        # Extract the requested data series
+        if category == "global":
+            # For global, get the specific metric from the global section
+            if "global" in json_result and metric in json_result["global"]:
+                series_data = json_result["global"][metric]
+            else:
+                series_data = []
+        else:
+            # For subcount, get the specific category and metric
+            if category in json_result and metric in json_result[category]:
+                series_data = json_result[category][metric]
+            else:
+                series_data = []
 
         # Handle content negotiation
         if self.should_use_content_negotiation(self.name):
-            return self.serialize_response(series.for_json(), query_name=self.name)
+            return self.serialize_response(series_data, query_name=self.name)
         else:
-            return series
+            return series_data
 
 
 class UsageSnapshotDataSeriesQuery(DataSeriesQueryBase):
@@ -151,7 +164,7 @@ class UsageSnapshotDataSeriesQuery(DataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
-        self.transformer_class = UsageSnapshotDataSeries
+        self.transformer_class = UsageSnapshotDataSeriesSet
 
 
 class UsageDeltaDataSeriesQuery(DataSeriesQueryBase):
@@ -163,7 +176,7 @@ class UsageDeltaDataSeriesQuery(DataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
-        self.transformer_class = UsageDeltaDataSeries
+        self.transformer_class = UsageDeltaDataSeriesSet
 
 
 class RecordSnapshotDataSeriesQuery(DataSeriesQueryBase):
@@ -175,7 +188,7 @@ class RecordSnapshotDataSeriesQuery(DataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
-        self.transformer_class = RecordSnapshotDataSeries
+        self.transformer_class = RecordSnapshotDataSeriesSet
 
 
 class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
@@ -187,14 +200,14 @@ class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
-        self.transformer_class = RecordDeltaDataSeries
+        self.transformer_class = RecordDeltaDataSeriesSet
 
 
 class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
     """Base class for category-wide data series queries."""
 
     date_field: str  # Type annotation for child classes
-    transformer_class: type[DataSeries]  # Type annotation for transformer class
+    transformer_class: type[DataSeriesSet]  # Type annotation for transformer class
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
@@ -207,7 +220,7 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
         community_id: str = "global",
         start_date: str | None = None,
         end_date: str | None = None,
-    ) -> Response | dict[str, DataSeries] | dict:
+    ) -> Response | dict[str, dict[str, list[DataSeriesDict]]] | dict | list:
         """Run the query to generate all data series for a category.
 
         Args:
@@ -282,57 +295,20 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
             current_app.logger.error(f"Index does not exist: {self.index} {e}")
             documents = []
 
-        # Create data series for all metrics and categories
-        series_dict = {}
-        # Global series
-        for metric in ["views", "downloads", "visitors", "dataVolume"]:
-            series = self.transformer_class(
-                series_id=f"{community_id}_global_{metric}",
-                name=f"Global {metric.title()}",
-                raw_documents=documents,
-                category="global",
-                metric=metric,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            series_dict[f"global_{metric}"] = series
+        # Create data series set with all available categories
+        # Let the transformer discover all available categories dynamically
+        series_set = self.transformer_class(
+            documents=documents, series_keys=None  # None means use all available
+        )
 
-        # Subcount series for each category
-        subcount_categories = [
-            "access_statuses",
-            "resource_types",
-            "subjects",
-            "languages",
-            "rights",
-            "funders",
-            "affiliations",
-            "countries",
-            "referrers",
-            "file_types",
-        ]
-
-        for category in subcount_categories:
-            for metric in ["views", "downloads", "visitors", "dataVolume"]:
-                series = self.transformer_class(
-                    series_id=f"{community_id}_{category}_{metric}",
-                    name=f"{category.title()} {metric.title()}",
-                    raw_documents=documents,
-                    category=category,
-                    metric=metric,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
-                series_dict[f"{category}_{metric}"] = series
+        # Get the complete data series set with camelCase conversion
+        json_result = series_set.for_json()
 
         # Handle content negotiation
         if self.should_use_content_negotiation(self.name):
-            # Convert DataSeries objects to dicts for serialization
-            serializable_dict = {}
-            for key, series in series_dict.items():
-                serializable_dict[key] = series.for_json()
-            return self.serialize_response(serializable_dict, query_name=self.name)
+            return self.serialize_response(json_result, query_name=self.name)
         else:
-            return series_dict
+            return json_result
 
 
 class UsageSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
@@ -344,7 +320,7 @@ class UsageSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
-        self.transformer_class = UsageSnapshotDataSeries
+        self.transformer_class = UsageSnapshotDataSeriesSet
 
 
 class UsageDeltaCategoryQuery(CategoryDataSeriesQueryBase):
@@ -356,7 +332,7 @@ class UsageDeltaCategoryQuery(CategoryDataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
-        self.transformer_class = UsageDeltaDataSeries
+        self.transformer_class = UsageDeltaDataSeriesSet
 
 
 class RecordSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
@@ -368,7 +344,7 @@ class RecordSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
-        self.transformer_class = RecordSnapshotDataSeries
+        self.transformer_class = RecordSnapshotDataSeriesSet
 
 
 class RecordDeltaCategoryQuery(CategoryDataSeriesQueryBase):
@@ -380,4 +356,4 @@ class RecordDeltaCategoryQuery(CategoryDataSeriesQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
-        self.transformer_class = RecordDeltaDataSeries
+        self.transformer_class = RecordDeltaDataSeriesSet

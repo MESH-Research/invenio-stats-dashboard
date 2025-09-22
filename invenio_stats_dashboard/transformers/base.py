@@ -7,18 +7,15 @@
 """Base classes and utilities for data series transformers."""
 
 import json
-from abc import ABC
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
-from flask import current_app
 
 from .types import (
     AggregationDocumentDict,
     DataPointDict,
     DataSeriesDict,
-    SubcountSeriesDict,
-    TransformationResult,
 )
 
 
@@ -48,357 +45,553 @@ class DataPoint:
     def to_dict(self) -> DataPointDict:
         """Convert to dictionary format matching JavaScript output."""
         return {
-            "value": [self.date, self.value],
-            "readableDate": self._format_readable_date(),
+            "value": [self.value],
+            "readableDate": self.date,
             "valueType": self.value_type,
         }
 
-    def _format_readable_date(self) -> str:
-        """Format date for human readability."""
-        try:
-            dt = datetime.strptime(self.date, "%Y-%m-%d")
-            return dt.strftime("%b %d, %Y")
-        except ValueError:
-            return self.date
 
-
-class DataSeries:
-    """Represents a complete data series for charting.
-
-    This is the primary interface for creating data series. When instantiated
-    with raw data, it automatically generates data points using the appropriate
-    transformer class.
-    """
+class DataSeries(ABC):
+    """Represents a complete data series for charting."""
 
     def __init__(
         self,
         series_id: str,
-        name: str,
-        raw_documents: list[AggregationDocumentDict] | None = None,
+        series_name: str,
+        metric: str,
         chart_type: str = "line",
         value_type: str = "number",
-        category: str = "global",
-        metric: str = "views",
-        subcount_id: str | None = None,
-        start_date: str | None = None,
-        end_date: str | None = None,
-        transformer_config: dict[str, Any] | None = None,
+        **kwargs,
     ):
         """Initialize a data series.
 
         Args:
-            series_id: Unique identifier for the series
-            name: Display name for the series
-            raw_documents: Raw aggregation documents to process
+            series_id: Unique identifier for this series
+            series_name: Display name for this series
+            metric: Specific metric to extract (e.g., "views", "downloads", "records")
             chart_type: Type of chart ('line', 'bar', etc.)
-            value_type: Type of values in the series
-            category: Category of the series ('global', 'access_statuses', etc.)
-            metric: Metric type ('views', 'downloads', 'visitors', 'dataVolume')
-            subcount_id: Specific subcount item ID (for subcount series)
-            start_date: Start date for filtering (YYYY-MM-DD format)
-            end_date: End date for filtering (YYYY-MM-DD format)
-            transformer_config: Configuration for the transformer
+            value_type: Type of values ('number', 'filesize', etc.)
+            **kwargs: Additional parameters for subclasses
         """
-        self.id = series_id
-        self.name = name
-        self.type = chart_type
-        self.value_type = value_type
-        self.category = category
+        self.series_id = series_id
+        self.series_name = series_name
         self.metric = metric
-        self.subcount_id = subcount_id
-        self.start_date = start_date
-        self.end_date = end_date
-        self.transformer_config = transformer_config or {}
+        self.chart_type = chart_type
+        self.value_type = value_type
+        self.data: list[DataPoint] = []
 
-        # Generate data points from raw documents
-        if raw_documents is not None:
-            self.data = self._generate_data_points(raw_documents)
-        else:
-            self.data = []
+        # Additional attributes expected by serializers
+        self.id = series_id
+        self.name = series_name
+        self.category = "unknown"  # Default category
+        self.type = chart_type
 
-    def _get_transformer_class(self):
-        """Get the appropriate transformer class for this data series type.
+    @abstractmethod
+    def add(self, doc: dict[str, Any]) -> None:
+        """Add data from a document to this series.
 
-        Subclasses should override this method to return the correct transformer.
+        Must be implemented by subclasses.
         """
-        raise NotImplementedError("Subclasses must implement _get_transformer_class")
+        pass
 
-    def _generate_data_points(
-        self, raw_documents: list[AggregationDocumentDict]
-    ) -> list[DataPoint]:
-        """Generate data points from raw documents using the appropriate transformer."""
-        transformer_class = self._get_transformer_class()
-        transformer = transformer_class(self.transformer_config)
+    def add_data_point(
+        self, date: str, value: int | float, value_type: str | None = None
+    ) -> None:
+        """Add a data point to this series.
 
-        # Filter documents by date range if specified
-        filtered_docs = self._filter_documents_by_date(raw_documents)
-
-        # Extract data points using the transformer
-        return transformer._extract_series_data(
-            filtered_docs, self.category, self.metric, self.subcount_id
-        )
-
-    def _filter_documents_by_date(
-        self, documents: list[AggregationDocumentDict]
-    ) -> list[AggregationDocumentDict]:
-        """Filter documents by date range if start_date/end_date are specified."""
-        if not self.start_date and not self.end_date:
-            return documents
-
-        filtered = []
-        for doc in documents:
-            doc_date = self._extract_document_date(doc)
-            if not doc_date:
-                continue
-
-            if self.start_date and doc_date < self.start_date:
-                continue
-            if self.end_date and doc_date > self.end_date:
-                continue
-
-            filtered.append(doc)
-        return filtered
-
-    def _extract_document_date(self, doc: AggregationDocumentDict) -> str | None:
-        """Extract date from document in YYYY-MM-DD format."""
-        # Try different date fields
-        date_str = doc.get("snapshot_date") or doc.get("period_start")
-        if not date_str:
-            return None
-
-        # Extract date part (before 'T' if present)
-        return date_str.split("T")[0]
-
-    def filter_by_date_range(self, start_date: str, end_date: str) -> "DataSeries":
-        """Create a new series filtered to the specified date range."""
-        # Filter the data points by date range
-        filtered_data = []
-        for dp in self.data:
-            if start_date <= dp.date <= end_date:
-                filtered_data.append(dp)
-
-        # Create a new series with the filtered data
-        new_series = self.__class__(
-            series_id=self.id,
-            name=self.name,
-            raw_documents=None,
-            chart_type=self.type,
-            value_type=self.value_type,
-            category=self.category,
-            metric=self.metric,
-            subcount_id=self.subcount_id,
-            start_date=start_date,
-            end_date=end_date,
-            transformer_config=self.transformer_config,
-        )
-        new_series.data = filtered_data
-        return new_series
-
-    def get_summary_stats(self) -> dict[str, Any]:
-        """Get summary statistics for the series."""
-        if not self.data:
-            return {"count": 0, "total": 0, "min": 0, "max": 0, "avg": 0}
-
-        values = [dp.value for dp in self.data]
-        return {
-            "count": len(values),
-            "total": sum(values),
-            "min": min(values),
-            "max": max(values),
-            "avg": sum(values) / len(values) if values else 0,
-        }
+        Args:
+            date: Date string (YYYY-MM-DD)
+            value: Numeric value for this data point
+            value_type: Type of value (uses series default if None)
+        """
+        if value_type is None:
+            value_type = self.value_type
+        self.data.append(DataPoint(date, value, value_type))
 
     def to_dict(self) -> DataSeriesDict:
         """Convert to dictionary format matching JavaScript output."""
         return {
-            "id": self.id,
-            "name": self.name,
+            "id": self.series_id,
+            "name": self.series_name,
             "data": [dp.to_dict() for dp in self.data],
-            "type": self.type,
+            "type": self.chart_type,
             "valueType": self.value_type,
         }
 
-    def for_json(self) -> dict[str, Any]:
+    def for_json(self) -> DataSeriesDict:
         """Convert to dictionary format for JSON serialization."""
-        result = dict(self.to_dict())
-
-        if self.category != "global":
-            result["category"] = self._to_camel_case(self.category)
-
-        return result
-
-    def _to_camel_case(self, snake_str: str) -> str:
-        """Convert snake_case string to camelCase."""
-        components = snake_str.split("_")
-        return components[0] + "".join(word.capitalize() for word in components[1:])
+        return self.to_dict()
 
 
-class BaseDataSeriesTransformer(ABC):
-    """Base class for transforming indexed documents into data series."""
+class DataSeriesArray:
+    """Manages either a single DataSeries (global) or an array of DataSeries."""
 
-    def __init__(self, config: dict[str, Any] | None = None):
-        """Initialize the transformer.
+    def __init__(
+        self,
+        series_type: str,
+        data_series_class: type[DataSeries],
+        metric: str,
+        is_global: bool = False,
+        chart_type: str = "line",
+        value_type: str = "number",
+    ):
+        """Initialize the data series array.
 
         Args:
-            config: Optional configuration dictionary
+            series_type: Type of series ('global' or subcount type
+                like 'resource_types')
+            data_series_class: Class to use for creating DataSeries objects
+            metric: Specific metric to extract (e.g., "views", "downloads", "records")
+            is_global: Whether this is a global series (single) or subcount
+                series (array)
+            chart_type: Chart type for subcount series ('line', 'bar', etc.)
+            value_type: Value type for subcount series ('number', 'filesize', etc.)
         """
-        self.config = config or {}
-        self.subcount_configs = current_app.config.get(
-            "COMMUNITY_STATS_SUBCOUNT_CONFIGS", {}
-        )
-        self.ui_subcounts = current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {})
+        self.series_type = series_type
+        self.data_series_class = data_series_class
+        self.metric = metric
+        self.is_global = is_global
+        self.chart_type = chart_type
+        self.value_type = value_type
+        self.series: DataSeries | list[DataSeries] | None = None
+        self._initialized = False
 
-    def _extract_series_data(
+    def add(self, doc: dict[str, Any]) -> None:
+        """Add data from a document to the series array."""
+        if not self._initialized:
+            if self.is_global:
+                # Create the single global DataSeries
+                self.series = self.data_series_class(
+                    "global", "Global", self.metric, "bar", "number"
+                )
+            else:
+                # Initialize as empty list for subcount series
+                self.series = []
+            self._initialized = True
+
+        if self.is_global:
+            # For global series, add data directly to the single series
+            if self.series is not None and not isinstance(self.series, list):
+                self.series.add(doc)
+        else:
+            # Create individual DataSeries as we encounter items
+            self._create_series_from_doc(doc)
+
+            # Add data to all existing series
+            if isinstance(self.series, list):
+                for data_series in self.series:
+                    # Get the item data for this specific series
+                    item_data = self._get_item_data_for_series(doc, data_series)
+                    if item_data:
+                        data_series.add(item_data)
+
+    def _create_series_from_doc(self, doc: dict[str, Any]) -> None:
+        """Create individual DataSeries from document for subcount series."""
+        if self.is_global:
+            return
+
+        subcounts = doc.get("subcounts")
+        if subcounts is None:
+            return
+
+        # Process the specific subcount type
+        if self.series_type.endswith("_by_view"):
+            # For by_view series, look at subcounts[base_type]["by_view"]
+            base_type = self.series_type.replace("_by_view", "")
+            subcount_data = subcounts.get(base_type)
+            if not isinstance(subcount_data, dict):
+                return
+            subcount_series = subcount_data.get("by_view", [])
+        elif self.series_type.endswith("_by_download"):
+            # For by_download series, look at subcounts[base_type]["by_download"]
+            base_type = self.series_type.replace("_by_download", "")
+            subcount_data = subcounts.get(base_type)
+            if not isinstance(subcount_data, dict):
+                return
+            subcount_series = subcount_data.get("by_download", [])
+        else:
+            # For regular series, look at subcounts[series_type] (direct array)
+            subcount_series = subcounts.get(self.series_type)
+
+        if not isinstance(subcount_series, list):
+            return
+
+        for item in subcount_series:
+            item_id = item.get("id", "")
+            item_label = item.get("label", item_id)
+
+            # Preserve the full label object (string or multilingual dict)
+            if not isinstance(item_label, (str, dict)):
+                item_label = str(item_label)
+
+            # Create series for this item if it doesn't exist
+            series_id = f"{self.series_type}_{item_id}"
+            if isinstance(self.series, list) and not any(
+                s.series_id == series_id for s in self.series
+            ):
+                # Convert label to string for series_name parameter
+                series_name = (
+                    str(item_label) if isinstance(item_label, dict) else item_label
+                )
+                self.series.append(
+                    self.data_series_class(
+                        series_id,
+                        series_name,
+                        self.metric,
+                        self.chart_type,
+                        self.value_type,
+                    )
+                )
+
+    def _get_item_data_for_series(
+        self, doc: dict[str, Any], data_series: DataSeries
+    ) -> dict[str, Any] | None:
+        """Get the specific item data for a DataSeries from the document."""
+        if self.is_global:
+            # Return global document without subcounts
+            global_doc = dict(doc)
+            global_doc.pop("subcounts", None)
+            return global_doc
+
+        # Parse the series_id to get subcount_type and item_id
+        parts = data_series.series_id.split("_", 2)
+        if len(parts) < 2:
+            return None
+
+        subcounts = doc.get("subcounts")
+        if subcounts is None:
+            return None
+
+        if len(parts) == 2:
+            # Regular subcount: "subcount_type_item_id"
+            subcount_type = parts[0]
+            item_id = parts[1]
+            subcount_series = subcounts.get(subcount_type)
+        else:
+            # By view/download: "subcount_type_by_view_item_id"
+            # or "subcount_type_by_download_item_id"
+            subcount_type = parts[0]
+            item_id = parts[2]
+            subcount_data = subcounts.get(subcount_type)
+            if not isinstance(subcount_data, dict):
+                return None
+            if parts[1] == "by_view":
+                subcount_series = subcount_data.get("by_view", [])
+            elif parts[1] == "by_download":
+                subcount_series = subcount_data.get("by_download", [])
+            else:
+                return None
+
+        if not isinstance(subcount_series, list):
+            return None
+
+        # Find the specific item
+        for item in subcount_series:
+            if item.get("id") == item_id:
+                # Return only the specific metric data with the document date
+                item_data = {
+                    "id": item.get("id"),
+                    "label": item.get("label"),
+                    "period_start": doc.get("period_start"),
+                    "snapshot_date": doc.get("snapshot_date"),
+                    self.metric: item.get(self.metric),
+                }
+                return item_data
+
+        return None
+
+    def to_dict(self) -> list[DataSeriesDict]:
+        """Convert to dictionary format."""
+        if isinstance(self.series, list):
+            return [s.to_dict() for s in self.series]
+        elif self.series is not None:
+            return [self.series.to_dict()]  # Wrap single DataSeries in array
+        else:
+            return []
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+class DataSeriesSet(ABC):
+    """Base class for creating sets of data series from aggregation documents."""
+
+    @property
+    @abstractmethod
+    def config_key(self) -> str:
+        """Return the configuration key for this data series set.
+
+        Should return either "records" or "usage_events".
+        Must be implemented by subclasses.
+        """
+        pass
+
+    def __init__(
         self,
         documents: list[AggregationDocumentDict],
-        category: str,
-        metric: str,
-        subcount_id: str | None = None,
-    ) -> list[DataPoint]:
-        """Extract data points for a specific series.
+        series_keys: list[str] | None = None,
+    ):
+        """Initialize the data series set.
 
         Args:
             documents: List of aggregation documents
-            category: Series category ('global', 'accessStatuses', etc.)
-            metric: Metric type ('views', 'downloads', 'visitors', 'dataVolume')
-            subcount_id: Specific subcount item ID (for subcount series)
+            series_keys: Optional list of subcount names. If None, automatically creates
+                series for all available subcounts and metrics.
+                Example: ["global", "countries", "institutions"]
+        """
+        self.documents = documents
+        self.series_keys = series_keys or self._get_default_series_keys()
+        self.series_arrays: dict[str, DataSeriesArray] = {}
+        self._built_result: dict[str, dict[str, list[DataSeriesDict]]] | None = None
+
+    def _get_default_series_keys(self) -> list[str]:
+        """Get the default series keys for this document category."""
+        from flask import current_app
+
+        # Get subcount configurations from Flask config
+        subcount_configs = current_app.config.get(
+            "COMMUNITY_STATS_SUBCOUNT_CONFIGS", {}
+        )
+
+        # Create series keys - one per subcount, metrics will be generated automatically
+        series_keys = []
+
+        # Add global subcount
+        series_keys.append("global")
+
+        # Add subcount configurations
+        for subcount_name, config in subcount_configs.items():
+            # Check if this subcount has the appropriate configuration
+            if self.config_key in config:
+                subcount_config = config[self.config_key]
+
+                # Use delta_aggregation_name for both snapshot and delta data
+                if "delta_aggregation_name" in subcount_config:
+                    # Add the main subcount
+                    series_keys.append(subcount_name)
+
+                    # For usage snapshots, add by_view and by_download
+                    # series for "top" type
+                    if (
+                        self.config_key == "usage_events"
+                        and subcount_config.get("snapshot_type") == "top"
+                    ):
+                        series_keys.append(f"{subcount_name}_by_view")
+                        series_keys.append(f"{subcount_name}_by_download")
+                else:
+                    # Fall back to just the subcount key
+                    series_keys.append(subcount_name)
+
+        # Add special subcounts defined by subclasses
+        series_keys.extend(self.special_subcounts)
+
+        return series_keys
+
+    @property
+    def special_subcounts(self) -> list[str]:
+        """Get special subcounts defined by subclasses.
+
+        Override this property to add subcounts that extract data from global metrics
+        or other special sources.
 
         Returns:
-            List of DataPoint objects
+            List of special subcount names
         """
-        raise NotImplementedError("Subclasses must implement _extract_series_data")
+        return []
 
-    def create_data_point(
-        self,
-        date: str | datetime,
-        value: int | float,
-        value_type: str = "number",
-    ) -> DataPoint:
-        """Create a data point object.
+    def build(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
+        """Build all data series from the documents.
 
-        Args:
-            date: Date string or datetime object
-            value: Numeric value
-            value_type: Type of value
+        Automatically discovers available metrics from document structures and creates
+        series for all discovered metrics in each subcount category.
 
         Returns:
-            DataPoint object
+            Dictionary with nested structure: {subcount: {metric: [DataSeries]}}
         """
-        return DataPoint(date, value, value_type)
+        # Return cached result if available
+        if self._built_result is not None:
+            return self._built_result
 
-    def create_localization_map(
-        self, documents: list[AggregationDocumentDict]
-    ) -> dict[str, str]:
-        """Create a localization map from documents.
+        # Discover available metrics from document structures
+        discovered_metrics = self._discover_metrics_from_documents()
 
-        Args:
-            documents: List of documents containing subcount data
-
-        Returns:
-            Dictionary mapping subcount id to localized label
-        """
-        localization_map = {}
-
-        # Collect all unique subcount items from all documents
-        all_subcount_items: dict[str, list[SubcountSeriesDict]] = {}
-
-        for doc in documents:
-            subcounts = doc.get("subcounts")
-            if subcounts is None:
-                continue
-            for subcount_type, subcount_series in subcounts.items():
-                if isinstance(subcount_series, list):
-                    if subcount_type not in all_subcount_items:
-                        all_subcount_items[subcount_type] = []
-
-                    for item in subcount_series:
-                        if not any(
-                            existing.get("id") == item.get("id")
-                            for existing in all_subcount_items[subcount_type]
-                        ):
-                            all_subcount_items[subcount_type].append(item)
-
-        # Process each subcount category to create the localization map
-        for category_key, subcount_items in all_subcount_items.items():
-            for item in subcount_items:
-                item_id = item.get("id")
-                item_label = item.get("label")
-
-                if item_id and item_label:
-                    # Handle both string and object labels
-                    if isinstance(item_label, str):
-                        localized_label = item_label
-                    elif isinstance(item_label, dict):
-                        # Use English as fallback, or first available language
-                        localized_label = item_label.get(
-                            "en", next(iter(item_label.values()), "")
-                        )
-                    else:
-                        localized_label = str(item_label)
-
-                    localization_map[item_id] = localized_label
-
-        return localization_map
-
-    def to_json(self, data: TransformationResult) -> str:
-        """Convert data to JSON string matching JavaScript output format.
-
-        Args:
-            data: Transformed data dictionary
-
-        Returns:
-            JSON string
-        """
-
-        def convert_to_json_serializable(obj):
-            """Recursively convert objects to JSON-serializable format."""
-            if hasattr(obj, "to_dict"):
-                return obj.to_dict()
-            elif isinstance(obj, dict):
-                return {k: convert_to_json_serializable(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_to_json_serializable(item) for item in obj]
+        # Create ALL DataSeriesArray objects upfront
+        for subcount in self.series_keys:
+            # Check if this is a special subcount
+            if subcount in self.special_subcounts:
+                # Handle special subcounts
+                special_metrics = self._get_special_subcount_metrics(subcount)
+                for metric in special_metrics:
+                    series_key = f"{subcount}_{metric}"
+                    self.series_arrays[series_key] = self._create_special_series_array(
+                        subcount, metric
+                    )
             else:
-                return obj
+                # Get metrics for this subcount
+                if subcount == "global":
+                    metrics = discovered_metrics["global"]
+                else:
+                    metrics = discovered_metrics["subcount"]
 
-        return json.dumps(convert_to_json_serializable(data), indent=2)
+                # Create series array for each metric
+                for metric in metrics:
+                    series_key = f"{subcount}_{metric}"
+                    self.series_arrays[series_key] = self._create_series_array(
+                        subcount, metric
+                    )
 
+        # Process each document
+        for doc in self.documents:
+            # Add data to ALL DataSeriesArray objects
+            for series_array in self.series_arrays.values():
+                series_array.add(dict(doc))
 
-class UsageSnapshotDataSeries(DataSeries):
-    """Data series for usage snapshot data."""
+        # Convert to nested format matching dataTransformer structure
+        result: dict[str, dict[str, list[DataSeriesDict]]] = {}
+        for subcount in self.series_keys:
+            # Initialize subcount if not exists
+            if subcount not in result:
+                result[subcount] = {}
 
-    def _get_transformer_class(self):
-        """Return the usage snapshot transformer class."""
-        from .usage_snapshot import UsageSnapshotDataSeriesTransformer
+            # Check if this is a special subcount
+            if subcount in self.special_subcounts:
+                # Handle special subcounts
+                special_metrics = self._get_special_subcount_metrics(subcount)
+                for metric in special_metrics:
+                    series_key = f"{subcount}_{metric}"
+                    series_array = self.series_arrays[series_key]
 
-        return UsageSnapshotDataSeriesTransformer
+                    # Add metric data - use DataSeriesArray.to_dict()
+                    result[subcount][metric] = series_array.to_dict()
+            else:
+                # Get metrics for this subcount
+                if subcount == "global":
+                    metrics = discovered_metrics["global"]
+                else:
+                    metrics = discovered_metrics["subcount"]
 
+                # Add all metrics for this subcount
+                for metric in metrics:
+                    series_key = f"{subcount}_{metric}"
+                    series_array = self.series_arrays[series_key]
 
-class UsageDeltaDataSeries(DataSeries):
-    """Data series for usage delta data."""
+                    # Add metric data - use DataSeriesArray.to_dict()
+                    result[subcount][metric] = series_array.to_dict()
 
-    def _get_transformer_class(self):
-        """Return the usage delta transformer class."""
-        from .usage_delta import UsageDeltaDataSeriesTransformer
+        # Cache the result
+        self._built_result = result
+        return result
 
-        return UsageDeltaDataSeriesTransformer
+    def for_json(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
+        """Convert to dictionary format for JSON serialization with camelCase keys."""
+        result = self.build()
+        return self._convert_to_camelcase(result)
 
+    def _convert_to_camelcase(
+        self, data: dict[str, dict[str, list[DataSeriesDict]]]
+    ) -> dict[str, dict[str, list[DataSeriesDict]]]:
+        """Convert snake_case keys to camelCase for JSON serialization."""
+        result: dict[str, dict[str, list[DataSeriesDict]]] = {}
+        for subcount_key, subcount_data in data.items():
+            # Convert subcount key (e.g., "access_statuses" -> "accessStatuses")
+            camel_subcount_key = self._to_camelcase(subcount_key)
+            result[camel_subcount_key] = {}
 
-class RecordSnapshotDataSeries(DataSeries):
-    """Data series for record snapshot data."""
+            for metric_key, metric_data in subcount_data.items():
+                # Convert metric key (e.g., "data_volume" -> "dataVolume")
+                camel_metric_key = self._to_camelcase(metric_key)
+                # metric_data is already a list[DataSeriesDict] with correct camelCase keys
+                result[camel_subcount_key][camel_metric_key] = metric_data
 
-    def _get_transformer_class(self):
-        """Return the record snapshot transformer class."""
-        from .record_snapshot import RecordSnapshotDataSeriesTransformer
+        return result
 
-        return RecordSnapshotDataSeriesTransformer
+    def _to_camelcase(self, snake_str: str) -> str:
+        """Convert snake_case string to camelCase."""
+        components = snake_str.split("_")
+        return components[0] + "".join(x.capitalize() for x in components[1:])
 
+    def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
+        """Discover available metrics by examining document structures.
 
-class RecordDeltaDataSeries(DataSeries):
-    """Data series for record delta data."""
+        Returns:
+            Dictionary with "global" and "subcount" keys, each containing a list of
+            metric names.
+        """
+        global_metrics = set()
+        subcount_metrics = set()
 
-    def _get_transformer_class(self):
-        """Return the record delta transformer class."""
-        from .record_delta import RecordDeltaDataSeriesTransformer
+        for doc in self.documents:
+            # Discover global metrics - take all top-level keys except "subcounts"
+            for key, value in doc.items():
+                if key != "subcounts" and isinstance(value, (dict, int, float)):
+                    global_metrics.add(key)
 
-        return RecordDeltaDataSeriesTransformer
+            # Discover subcount metrics - look at keys in the first available
+            # subcount item
+            if "subcounts" in doc:
+                subcounts_data = doc["subcounts"]
+                if isinstance(subcounts_data, dict):
+                    for _subcount_name, subcount_data in subcounts_data.items():
+                        if isinstance(subcount_data, list) and subcount_data:
+                            # Look at the first item to discover available metrics
+                            first_item = subcount_data[0]
+                            if isinstance(first_item, dict):
+                                for key, value in first_item.items():
+                                    if key not in ["id", "label"] and isinstance(
+                                        value, (dict, int, float)
+                                    ):
+                                        subcount_metrics.add(key)
+                        elif isinstance(subcount_data, dict):
+                            # Handle "all" type subcounts (direct metric access)
+                            for key, value in subcount_data.items():
+                                if key not in ["id", "label"] and isinstance(
+                                    value, (dict, int, float)
+                                ):
+                                    subcount_metrics.add(key)
+
+        return {
+            "global": sorted(list(global_metrics)),
+            "subcount": sorted(list(subcount_metrics)),
+        }
+
+    @abstractmethod
+    def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
+        """Create a data series array for the given subcount and metric.
+
+        Must be implemented by subclasses.
+        """
+        pass
+
+    def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
+        """Get the metrics for a special subcount.
+
+        Override this method to define metrics for special subcounts.
+
+        Args:
+            subcount: The special subcount name
+
+        Returns:
+            List of metric names for this special subcount
+        """
+        return []
+
+    def _create_special_series_array(
+        self, subcount: str, metric: str
+    ) -> DataSeriesArray:
+        """Create a data series array for a special subcount and metric.
+
+        Override this method to handle special subcounts.
+
+        Args:
+            subcount: The special subcount name
+            metric: The metric name
+
+        Returns:
+            DataSeriesArray for the special subcount and metric
+        """
+        raise NotImplementedError("Special subcounts not implemented")
+
+    def to_json(self) -> str:
+        """Convert all series to JSON string."""
+        return json.dumps(self.for_json(), indent=2)

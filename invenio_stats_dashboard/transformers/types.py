@@ -27,6 +27,10 @@ class DataSeriesDict(TypedDict):
     valueType: str
 
 
+# Type alias for flexible data storage during transformation
+DataPointOrSeries = DataPointDict | "DataPoint"
+
+
 class GlobalMetricsDict(TypedDict):
     """Type definition for global metrics."""
 
@@ -51,6 +55,15 @@ class SubcountMetricsDict(TypedDict):
     parents: list[DataSeriesDict]
     uploaders: list[DataSeriesDict]
     fileCount: list[DataSeriesDict]
+    dataVolume: list[DataSeriesDict]
+
+
+class SubcountUsageMetricsDict(TypedDict):
+    """Type definition for subcount usage metrics."""
+
+    views: list[DataSeriesDict]
+    downloads: list[DataSeriesDict]
+    visitors: list[DataSeriesDict]
     dataVolume: list[DataSeriesDict]
 
 
@@ -117,10 +130,10 @@ RecordSnapshotResultDict = dict[
     str, GlobalMetricsDict | FilePresenceDict | SubcountMetricsDict
 ]
 UsageDeltaResultDict = dict[
-    str, UsageMetricsDict | FilePresenceUsageDict | SubcountMetricsDict
+    str, UsageMetricsDict | FilePresenceUsageDict | SubcountUsageMetricsDict
 ]
 UsageSnapshotResultDict = dict[
-    str, UsageMetricsDict | FilePresenceUsageDict | SubcountMetricsDict
+    str, UsageMetricsDict | FilePresenceUsageDict | SubcountUsageMetricsDict
 ]
 
 # Union type for all possible transformation results

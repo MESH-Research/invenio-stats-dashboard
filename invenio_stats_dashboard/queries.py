@@ -12,6 +12,7 @@ from flask import current_app
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy import OpenSearch
+from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 

@@ -19,7 +19,7 @@ from opensearchpy.helpers.search import Search
 from ..aggregations import register_aggregations
 from ..aggregations.bookmarks import CommunityBookmarkAPI
 from ..config import COMMUNITY_STATS_QUERIES
-from ..queries import CommunityStatsResultsQuery
+from ..resources.api_queries import CommunityStatsResultsQuery
 from ..tasks import (
     AggregationResponse,
     CommunityStatsAggregationTask,
