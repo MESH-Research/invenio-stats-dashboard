@@ -142,10 +142,10 @@ class ContentNegotiationMixin:
                         query_name
                     )
                     if content_type in available_types:
-                        return content_type
+                        return str(content_type)
                 else:
                     if content_type in current_app.config.get("STATS_SERIALIZERS", {}):
-                        return content_type
+                        return str(content_type)
 
         # If no Accept header or no acceptable types found, return JSON as default
         return "application/json"

@@ -8,6 +8,7 @@
 
 import time
 from collections.abc import Generator
+from typing import Any
 
 import arrow
 from flask import current_app
@@ -15,9 +16,8 @@ from invenio_search.utils import prefix_index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
-from ..queries import (
-    CommunityRecordDeltaQuery,
-)
+from ..queries import CommunityRecordDeltaQuery
+from ..config import get_subcount_field, get_subcount_combine_subfields
 from .base import CommunityAggregatorBase
 from .types import (
     RecordDeltaDocument,
@@ -47,7 +47,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         self.record_index: str = "rdmrecords-records"
         self.aggregation_index: str = "stats-community-records-delta-created"
         self.subcount_configs = (
-            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNTS"]
         )
         # Default to using record creation dates
         self.first_event_date_field = "record_created_date"
@@ -163,11 +163,9 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             },
             "uploaders": 0,
             "subcounts": {
-                config["records"]["delta_aggregation_name"]: []
-                for config in self.subcount_configs.values()
+                subcount_key: []
+                for subcount_key, config in self.subcount_configs.items()
                 if "records" in config
-                and "delta_aggregation_name" in config["records"]
-                and not config["records"].get("merge_aggregation_with")
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
@@ -215,42 +213,42 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
 
         return [b for b in buckets if b["key"] not in label_values]
 
-    def _make_subcount_list(self, subcount_type, aggs_added, aggs_removed):
+    def _make_subcount_list(self, subcount_name, aggs_added, aggs_removed):
         """Make a subcount list for a given subcount type."""
-        config = None
-        for cfg in self.subcount_configs.values():
-            if (
-                "records" in cfg
-                and cfg["records"].get("delta_aggregation_name") == subcount_type
-            ):
-                config = cfg["records"]
-                break
+        config = self.subcount_configs.get(subcount_name, {}).get("records", {})
 
-        # If no config found, return empty list
         if not config:
-            current_app.logger.warning(
-                f"No configuration found for subcount type: {subcount_type}"
-            )
-            return []
-
-        # Validate required config fields
-        if "field" not in config:
             current_app.logger.error(
-                f"Missing 'field' in config for subcount type: {subcount_type}"
+                f"No configuration found for subcount type: {subcount_name}"
             )
             return []
 
-        # Use centralized configuration
-        if config.get("combine_queries"):
-            # Handle combined queries (like affiliations)
+        source_fields = config.get("source_fields", [])
 
-            # Collect all buckets from different aggregations
+        if len(source_fields) > 1:
+            return self._process_multi_field_subcount(
+                subcount_name, aggs_added, aggs_removed, config
+            )
+        else:
+            return self._process_single_field_subcount(
+                subcount_name, aggs_added, aggs_removed, config, 0
+            )
+
+    def _process_single_field_subcount(
+        self, subcount_name, aggs_added, aggs_removed, config, field_index
+    ):
+        """Process subcount with single source field."""
+        combine_subfields = get_subcount_combine_subfields(config, field_index)
+        if combine_subfields:
             all_added_buckets = []
             all_removed_buckets = []
 
-            for field in config["combine_queries"]:
+            for field in combine_subfields:
                 field_name = field.split(".")[-1]
-                lookup_name = f"{config['delta_aggregation_name']}_{field_name}"
+                if field_index > 0:
+                    lookup_name = f"{subcount_name}_{field_index}_{field_name}"
+                else:
+                    lookup_name = f"{subcount_name}_{field_name}"
                 added_buckets = aggs_added.get(lookup_name, {}).get("buckets", [])
                 removed_buckets = aggs_removed.get(lookup_name, {}).get("buckets", [])
                 all_added_buckets.extend(added_buckets)
@@ -260,9 +258,52 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             added_items = self._deduplicate_and_merge_buckets(all_added_buckets)
             removed_items = self._deduplicate_and_merge_buckets(all_removed_buckets)
         else:
-            added_items = aggs_added.get(subcount_type, {}).get("buckets", [])
-            removed_items = aggs_removed.get(subcount_type, {}).get("buckets", [])
+            added_items = aggs_added.get(subcount_name, {}).get("buckets", [])
+            removed_items = aggs_removed.get(subcount_name, {}).get("buckets", [])
 
+        return self._process_single_field_results(
+            added_items, removed_items, config, field_index
+        )
+
+    def _process_multi_field_subcount(
+        self, subcount_type, aggs_added, aggs_removed, config
+    ):
+        """Process subcount with multiple source fields."""
+        source_fields = config.get("source_fields", [])
+        agg_results = []
+
+        agg_names = []
+        for field_index, source_field in enumerate(source_fields):
+            field = get_subcount_field(config, "field", field_index)
+            if not field:
+                continue
+            if field_index > 0:
+                agg_names.append(f"{subcount_type}_{field_index}")
+            else:
+                agg_names.append(subcount_type)
+
+        for agg_name in agg_names:
+            field_added = aggs_added.get(agg_name, {}).get("buckets", [])
+            field_removed = aggs_removed.get(agg_name, {}).get("buckets", [])
+
+            agg_results.append(
+                self._process_single_field_results(
+                    field_added, field_removed, config, field_index
+                )
+            )
+
+        combined_results = self._merge_field_results(agg_results)
+
+        return list(combined_results.values())
+
+    def _process_single_field_results(
+        self,
+        added_items: list[dict],
+        removed_items: list[dict],
+        config: dict,
+        field_index: int,
+    ) -> list[RecordDeltaSubcountItem]:
+        """Process results for a single field."""
         combined_keys = list(
             set(b["key"] for b in added_items) | set(b["key"] for b in removed_items)
         )
@@ -284,11 +325,12 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             removed = removed_filtered[0] if removed_filtered else {}
 
             path_strings: list[str] = []
-            if config.get("label_field"):
-                path_strings.append(config["field"])
-                path_strings.append(config["label_field"])
-            else:
-                path_strings.append(config["field"])
+            field = get_subcount_field(config, "field", field_index)
+            label_field = get_subcount_field(config, "label_field", field_index)
+            if field:
+                path_strings.append(field)
+                if label_field:
+                    path_strings.append(label_field)
 
             label: str | dict[str, str] = (
                 CommunityRecordsDeltaAggregatorBase._find_item_label(
@@ -363,6 +405,35 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
 
         return subcount_list
 
+    def _merge_field_results(
+        self, result_lists: list[list[dict[str, Any]]]
+    ) -> dict[str, Any]:
+        """Merge results from multiple fields."""
+        all_result_items = [
+            item for result_list in result_lists for item in result_list
+        ]
+
+        if not all_result_items:
+            return {}
+
+        merged_results: dict[str, Any] = {}
+        for item in all_result_items:
+            for key, value in item.items():
+                if key not in merged_results:
+                    merged_results[key] = value
+                elif isinstance(value, dict):
+                    if isinstance(merged_results[key], dict) and not merged_results[
+                        key
+                    ].get("label"):
+                        merged_results[key]["label"] = value.get("label")
+                    merged_results[key] = self._merge_field_results(
+                        [[merged_results[key]], [value]]
+                    )
+                elif isinstance(value, int | float):
+                    merged_results[key] += value
+
+        return merged_results
+
     def create_agg_dict(
         self,
         community_id: str,
@@ -433,18 +504,13 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             "uploaders": aggs_added.get("uploaders", {}).get("value", 0),
             "subcounts": {
                 **{
-                    config["records"][
-                        "delta_aggregation_name"
-                    ]: self._make_subcount_list(
-                        config["records"].get("delta_aggregation_name"),
+                    name: self._make_subcount_list(
+                        name,
                         aggs_added,
                         aggs_removed,
                     )
-                    for config in self.subcount_configs.values()
-                    if (
-                        "records" in config
-                        and "delta_aggregation_name" in config["records"]
-                    )
+                    for name, config in self.subcount_configs.items()
+                    if config.get("records", {})
                 },
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),

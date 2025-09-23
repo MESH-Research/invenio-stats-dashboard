@@ -56,23 +56,21 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 1, "with_files": 0},
                     },
                 ],
-                "affiliations_contributor": [
+                "affiliations": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "03rmrcq20",
                         "label": "",
                         "parents": {"metadata_only": 0, "with_files": 1},
                         "records": {"metadata_only": 0, "with_files": 1},
-                    }
-                ],
-                "affiliations_creator": [
+                    },
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "03rmrcq20",
                         "label": "",
                         "parents": {"metadata_only": 1, "with_files": 0},
                         "records": {"metadata_only": 1, "with_files": 0},
-                    }
+                    },
                 ],
                 "funders": [
                     {
@@ -244,8 +242,7 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                 "access_statuses": [],
                 "file_types": [],
                 "resource_types": [],
-                "affiliations_contributor": [],
-                "affiliations_creator": [],
+                "affiliations": [],
                 "funders": [],
                 "languages": [],
                 "periodicals": [],
@@ -313,16 +310,14 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 1},
                     },
                 ],
-                "affiliations_contributor": [
+                "affiliations": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "03rmrcq20",
                         "label": "",
                         "parents": {"metadata_only": 0, "with_files": 1},
                         "records": {"metadata_only": 0, "with_files": 1},
-                    }
-                ],
-                "affiliations_creator": [
+                    },
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "03rmrcq20",
@@ -596,16 +591,14 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "records": {"metadata_only": 0, "with_files": 0},
                     },
                 ],
-                "affiliations_contributor": [
+                "affiliations": [
                     {
                         "files": {"data_volume": 1984949.0, "file_count": 1},
                         "id": "03rmrcq20",
                         "label": "",
                         "parents": {"metadata_only": 0, "with_files": 1},
                         "records": {"metadata_only": 0, "with_files": 1},
-                    }
-                ],
-                "affiliations_creator": [
+                    },
                     {
                         "files": {"data_volume": 0.0, "file_count": 0},
                         "id": "03rmrcq20",

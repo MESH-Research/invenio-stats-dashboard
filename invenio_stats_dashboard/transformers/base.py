@@ -10,7 +10,8 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
-
+from babel.dates import format_date
+from flask import current_app
 
 from .types import (
     AggregationDocumentDict,
@@ -45,10 +46,21 @@ class DataPoint:
     def to_dict(self) -> DataPointDict:
         """Convert to dictionary format matching JavaScript output."""
         return {
-            "value": [self.value],
-            "readableDate": self.date,
+            "value": [self.date, self.value],
+            "readableDate": self._format_readable_date(),
             "valueType": self.value_type,
         }
+
+    def _format_readable_date(self) -> str:
+        """Format date as localized human-readable string matching JavaScript output."""
+        try:
+            date_obj = datetime.strptime(self.date, "%Y-%m-%d")
+
+            locale = current_app.config.get("BABEL_DEFAULT_LOCALE", "en")
+
+            return str(format_date(date_obj, format="medium", locale=locale))
+        except (ImportError, ValueError, Exception):
+            return str(self.date)
 
 
 class DataSeries(ABC):
@@ -350,9 +362,7 @@ class DataSeriesSet(ABC):
         from flask import current_app
 
         # Get subcount configurations from Flask config
-        subcount_configs = current_app.config.get(
-            "COMMUNITY_STATS_SUBCOUNT_CONFIGS", {}
-        )
+        subcount_configs = current_app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
 
         # Create series keys - one per subcount, metrics will be generated automatically
         series_keys = []
@@ -366,8 +376,8 @@ class DataSeriesSet(ABC):
             if self.config_key in config:
                 subcount_config = config[self.config_key]
 
-                # Use delta_aggregation_name for both snapshot and delta data
-                if "delta_aggregation_name" in subcount_config:
+                # Process subcount if it has the required config
+                if subcount_config:
                     # Add the main subcount
                     series_keys.append(subcount_name)
 
@@ -501,7 +511,8 @@ class DataSeriesSet(ABC):
             for metric_key, metric_data in subcount_data.items():
                 # Convert metric key (e.g., "data_volume" -> "dataVolume")
                 camel_metric_key = self._to_camelcase(metric_key)
-                # metric_data is already a list[DataSeriesDict] with correct camelCase keys
+                # metric_data is already a list[DataSeriesDict] with correct
+                # camelCase keys
                 result[camel_subcount_key][camel_metric_key] = metric_data
 
         return result

@@ -253,51 +253,7 @@
                 }
               }
             },
-            "affiliations_creator": {
-              "type": "nested",
-              "properties": {
-                "id": {
-                  "type": "keyword"
-                },
-                "label": {
-                  "type": "keyword"
-                },
-                "records": {
-                  "type": "object",
-                  "properties": {
-                    "metadata_only": {
-                      "type": "long"
-                    },
-                    "with_files": {
-                      "type": "long"
-                    }
-                  }
-                },
-                "parents": {
-                  "type": "object",
-                  "properties": {
-                    "metadata_only": {
-                      "type": "long"
-                    },
-                    "with_files": {
-                      "type": "long"
-                    }
-                  }
-                },
-                "files": {
-                  "type": "object",
-                  "properties": {
-                    "file_count": {
-                      "type": "long"
-                    },
-                    "data_volume": {
-                      "type": "long"
-                    }
-                  }
-                }
-              }
-            },
-            "affiliations_contributor": {
+            "affiliations": {
               "type": "nested",
               "properties": {
                 "id": {

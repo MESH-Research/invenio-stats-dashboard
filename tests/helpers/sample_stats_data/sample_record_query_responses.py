@@ -33,22 +33,22 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_contributor_id": {
+                    "affiliations_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_contributor_keyword": {
+                    "affiliations_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_creator_id": {
+                    "affiliations_1_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_creator_keyword": {
+                    "affiliations_1_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
@@ -68,7 +68,12 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "funders": {
+                    "funders_id": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "sum_other_doc_count": 0,
+                    },
+                    "funders_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
@@ -250,13 +255,25 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_contributor": {
+                    "affiliations_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_creator": {
+                    "affiliations_keyword": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_id": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
@@ -334,13 +351,25 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_contributor": {
+                    "affiliations_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_creator": {
+                    "affiliations_keyword": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_id": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
@@ -418,13 +447,25 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_contributor": {
+                    "affiliations_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_creator": {
+                    "affiliations_keyword": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_id": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "meta": {},
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "meta": {},
@@ -530,12 +571,22 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_contributor": {
+                    "affiliations_id": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "affiliations_creator": {
+                    "affiliations_keyword": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_id": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "sum_other_doc_count": 0,
+                    },
+                    "affiliations_1_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
@@ -553,7 +604,12 @@ MOCK_RECORD_DELTA_QUERY_RESPONSE = {
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,
                     },
-                    "funders": {
+                    "funders_id": {
+                        "buckets": [],
+                        "doc_count_error_upper_bound": 0,
+                        "sum_other_doc_count": 0,
+                    },
+                    "funders_keyword": {
                         "buckets": [],
                         "doc_count_error_upper_bound": 0,
                         "sum_other_doc_count": 0,

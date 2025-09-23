@@ -9,6 +9,7 @@
 from collections.abc import Generator
 from itertools import chain
 import time
+from typing import Any
 
 import arrow
 from flask import current_app
@@ -17,8 +18,11 @@ from opensearchpy import AttrDict, AttrList
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
-from ..queries import (
-    CommunityUsageDeltaQuery,
+from ..queries import CommunityUsageDeltaQuery
+from ..config import (
+    get_subcount_field,
+    get_subcount_label_includes,
+    get_subcount_combine_subfields,
 )
 from .base import CommunityAggregatorBase
 from .types import (
@@ -47,7 +51,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         super().__init__(name, *args, **kwargs)
         # Use provided configs or fall back to class default
         self.subcount_configs = (
-            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNTS"]
         )
         self.event_index: list[tuple[str, str]] = [
             ("view", "events-stats-record-view"),
@@ -159,11 +163,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 },
             },
             "subcounts": {
-                config.get("usage_events", {}).get(
-                    "delta_aggregation_name", subcount_name
-                ): []
+                subcount_name: []
                 for subcount_name, config in self.subcount_configs.items()
-                if config.get("usage_events", {}).get("delta_aggregation_name")
+                if config.get("usage_events", {}).get("source_fields")
             },
         }
 
@@ -207,30 +209,79 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             if not usage_config:
                 continue
 
-            field = usage_config.get("field")
-            if not field:
-                continue  # Skip subcounts that don't have fields
+            source_fields = usage_config.get("source_fields", [])
+            if not source_fields:
+                continue
 
-            # Build the base aggregation
-            agg_config = {
-                "terms": {"field": field, "size": 1000},
-                "aggs": self._get_view_metrics_dict(),
-            }
+            # Process each source field
+            for field_index, source_field in enumerate(source_fields):
+                field = get_subcount_field(usage_config, "field", field_index)
+                if not field:
+                    continue  # Skip fields that don't exist
 
-            # Add label aggregation if label_field is specified
-            label_field = usage_config.get("label_field")
-            if label_field:
-                label_source_includes = usage_config.get(
-                    "label_source_includes", [field]
+                # Handle combined subfields (like affiliations.id and affiliations.name)
+                combine_subfields = get_subcount_combine_subfields(
+                    usage_config, field_index
                 )
-                agg_config["aggs"]["label"] = {
-                    "top_hits": {
-                        "size": 1,
-                        "_source": {"includes": label_source_includes},
-                    }
-                }
+                if combine_subfields:
+                    for field in combine_subfields:
+                        field_name = field.split(".")[-1]
+                        if field_index > 0:
+                            agg_name = f"{subcount_name}_{field_index}_{field_name}"
+                        else:
+                            agg_name = f"{subcount_name}_{field_name}"
 
-            aggregations[subcount_name] = agg_config
+                        # Build the base aggregation
+                        agg_config = {
+                            "terms": {"field": field, "size": 1000},
+                            "aggs": self._get_view_metrics_dict(),
+                        }
+
+                        # Add label aggregation if label_field is specified
+                        label_field = get_subcount_field(
+                            usage_config, "label_field", field_index
+                        )
+                        if label_field:
+                            label_source_includes = get_subcount_label_includes(
+                                usage_config, field_index
+                            ) or [field]
+                            agg_config["aggs"]["label"] = {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {"includes": label_source_includes},
+                                }
+                            }
+
+                        aggregations[agg_name] = agg_config
+                else:
+                    # Standard single field aggregation
+                    if field_index > 0:
+                        agg_name = f"{subcount_name}_{field_index}"
+                    else:
+                        agg_name = subcount_name
+
+                    # Build the base aggregation
+                    agg_config = {
+                        "terms": {"field": field, "size": 1000},
+                        "aggs": self._get_view_metrics_dict(),
+                    }
+
+                    # Add label aggregation if label_field is specified
+                    label_field = get_subcount_field(
+                        usage_config, "label_field", field_index
+                    )
+                    if label_field:
+                        label_source_includes = get_subcount_label_includes(
+                            usage_config, field_index
+                        ) or [field]
+                        agg_config["aggs"]["label"] = {
+                            "top_hits": {
+                                "size": 1,
+                                "_source": {"includes": label_source_includes},
+                            }
+                        }
+
+                    aggregations[agg_name] = agg_config
 
         return aggregations
 
@@ -248,30 +299,79 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             if not usage_config:
                 continue
 
-            field = usage_config.get("field")
-            if not field:
-                continue  # Skip subcounts that don't have download fields
+            source_fields = usage_config.get("source_fields", [])
+            if not source_fields:
+                continue
 
-            # Build the base aggregation
-            agg_config = {
-                "terms": {"field": field, "size": 1000},
-                "aggs": self._get_download_metrics_dict(),
-            }
+            # Process each source field
+            for field_index, source_field in enumerate(source_fields):
+                field = get_subcount_field(usage_config, "field", field_index)
+                if not field:
+                    continue  # Skip fields that don't exist
 
-            # Add label aggregation if label_field is specified
-            label_field = usage_config.get("label_field")
-            if label_field:
-                label_source_includes = usage_config.get(
-                    "label_source_includes", [field]
+                # Handle combined subfields (like affiliations.id and affiliations.name)
+                combine_subfields = get_subcount_combine_subfields(
+                    usage_config, field_index
                 )
-                agg_config["aggs"]["label"] = {
-                    "top_hits": {
-                        "size": 1,
-                        "_source": {"includes": label_source_includes},
-                    }
-                }
+                if combine_subfields:
+                    for field in combine_subfields:
+                        field_name = field.split(".")[-1]
+                        if field_index > 0:
+                            agg_name = f"{subcount_name}_{field_index}_{field_name}"
+                        else:
+                            agg_name = f"{subcount_name}_{field_name}"
 
-            aggregations[subcount_name] = agg_config
+                        # Build the base aggregation
+                        agg_config = {
+                            "terms": {"field": field, "size": 1000},
+                            "aggs": self._get_download_metrics_dict(),
+                        }
+
+                        # Add label aggregation if label_field is specified
+                        label_field = get_subcount_field(
+                            usage_config, "label_field", field_index
+                        )
+                        if label_field:
+                            label_source_includes = get_subcount_label_includes(
+                                usage_config, field_index
+                            ) or [field]
+                            agg_config["aggs"]["label"] = {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {"includes": label_source_includes},
+                                }
+                            }
+
+                        aggregations[agg_name] = agg_config
+                else:
+                    # Standard single field aggregation
+                    if field_index > 0:
+                        agg_name = f"{subcount_name}_{field_index}"
+                    else:
+                        agg_name = subcount_name
+
+                    # Build the base aggregation
+                    agg_config = {
+                        "terms": {"field": field, "size": 1000},
+                        "aggs": self._get_download_metrics_dict(),
+                    }
+
+                    # Add label aggregation if label_field is specified
+                    label_field = get_subcount_field(
+                        usage_config, "label_field", field_index
+                    )
+                    if label_field:
+                        label_source_includes = get_subcount_label_includes(
+                            usage_config, field_index
+                        ) or [field]
+                        agg_config["aggs"]["label"] = {
+                            "top_hits": {
+                                "size": 1,
+                                "_source": {"includes": label_source_includes},
+                            }
+                        }
+
+                    aggregations[agg_name] = agg_config
 
         return aggregations
 
@@ -283,38 +383,51 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         """
         combined_aggs = {}
 
-        for _subcount_name, config in self.subcount_configs.items():
+        for subcount_name, config in self.subcount_configs.items():
             # Get the usage_events configuration for this subcount
             usage_config = config.get("usage_events", {})
             if not usage_config:
                 continue
 
-            # Check if this subcount has combine_queries configuration
-            combine_queries = usage_config.get("combine_queries")
-            if not combine_queries or len(combine_queries) <= 1:
+            source_fields = usage_config.get("source_fields", [])
+            if not source_fields:
                 continue
 
-            # Build aggregations for each combined query field
-            for query_field in combine_queries:
-                subfield = query_field.split(".")[-1]
-                query_name = f"{usage_config['delta_aggregation_name']}_{subfield}"
+            # Process each source field
+            for field_index, source_field in enumerate(source_fields):
+                # Check if this source field has combine_subfields configuration
+                combine_subfields = get_subcount_combine_subfields(
+                    usage_config, field_index
+                )
+                if not combine_subfields or len(combine_subfields) <= 1:
+                    continue
 
-                label_source_includes = usage_config.get("label_source_includes", [])
-                if subfield not in label_source_includes:
-                    label_source_includes.append(subfield)
+                # Build aggregations for each combined subfield
+                for field in combine_subfields:
+                    field_name = field.split(".")[-1]
+                    if field_index > 0:
+                        query_name = f"{subcount_name}_{field_index}_{field_name}"
+                    else:
+                        query_name = f"{subcount_name}_{field_name}"
 
-                combined_aggs[query_name] = {
-                    "terms": {"field": query_field, "size": 1000},
-                    "aggs": {
-                        **self._get_view_metrics_dict(),
-                        "label": {
-                            "top_hits": {
-                                "size": 1,
-                                "_source": {"includes": label_source_includes},
-                            }
+                    label_source_includes = get_subcount_label_includes(
+                        usage_config, field_index
+                    )
+                    if field not in label_source_includes:
+                        label_source_includes.append(field)
+
+                    combined_aggs[query_name] = {
+                        "terms": {"field": field, "size": 1000},
+                        "aggs": {
+                            **self._get_view_metrics_dict(),
+                            "label": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "_source": {"includes": label_source_includes},
+                                }
+                            },
                         },
-                    },
-                }
+                    }
 
         return combined_aggs
 
@@ -337,20 +450,14 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         return all_aggs
 
-    def create_agg_dict(
-        self, view_results, download_results, community_id: str, date: arrow.Arrow
+    def _make_top_level_results(
+        self,
+        community_id: str,
+        date: arrow.Arrow,
+        view_results: AttrList | None,
+        download_results: AttrList | None,
     ) -> UsageDeltaDocument:
-        """Combine results from separate view and download queries.
-
-        Args:
-            view_results: Results from view query (or None).
-            download_results: Results from download query (or None).
-            community_id (str): The community ID.
-            date (arrow.Arrow): The date for the aggregation.
-
-        Returns:
-            UsageDeltaDocument: Combined aggregation document.
-        """
+        """Make the top level results for the usage delta document."""
         combined_results: UsageDeltaDocument = {
             "community_id": community_id,
             "period_start": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
@@ -406,145 +513,203 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 "unique_files": download_results.aggregations.unique_files.value,
                 "total_volume": download_results.aggregations.total_volume.value,
             }
-        # Process subcounts for each category
-        for subcount_name, config in self.subcount_configs.items():
-            # Get the usage_events configuration for this subcount
-            usage_config = config.get("usage_events", {})
-            if not usage_config:
-                continue
+        return combined_results
 
-            # Use the delta_aggregation_name as the key in the results
-            delta_aggregation_name = usage_config.get("delta_aggregation_name")
-            if not delta_aggregation_name:
-                continue
+    def _assemble_subcount_items(
+        self,
+        view_results: AttrList | None,
+        download_results: AttrList | None,
+        usage_config: dict,
+        subcount_name: str,
+        index: int = 0,
+    ) -> list[UsageSubcountItem]:
+        """Assemble subcount items from view and download results."""
+        assembled_results: list[UsageSubcountItem] = []
 
-            combined_results["subcounts"][delta_aggregation_name] = []
+        view_buckets = []
+        if view_results and hasattr(view_results.aggregations, subcount_name):
+            view_agg = getattr(view_results.aggregations, subcount_name)
+            view_buckets = view_agg.buckets
 
-            # Handle combined aggregations (funders and affiliations)
-            if (
-                usage_config.get("combine_queries")
-                and len(usage_config["combine_queries"]) > 1
-            ):
-                combined_results["subcounts"][delta_aggregation_name] = (
-                    self._combine_split_aggregations(
-                        view_results, download_results, usage_config, subcount_name
-                    )
-                )
-                continue
+        download_buckets = []
+        if download_results and hasattr(download_results.aggregations, subcount_name):
+            download_agg = getattr(download_results.aggregations, subcount_name)
+            download_buckets = download_agg.buckets
 
-            # Get view buckets for this subcount
-            view_buckets = []
-            if (
-                view_results
-                and delta_aggregation_name
-                and hasattr(view_results.aggregations, delta_aggregation_name)
-            ):
-                view_agg = getattr(view_results.aggregations, delta_aggregation_name)
-                view_buckets = view_agg.buckets
+        all_keys = set()
+        for bucket in view_buckets + download_buckets:
+            all_keys.add(bucket.key)
 
-            # Get download buckets for this subcount
-            download_buckets = []
-            if (
-                download_results
-                and delta_aggregation_name
-                and hasattr(download_results.aggregations, delta_aggregation_name)
-            ):
-                download_agg = getattr(
-                    download_results.aggregations, delta_aggregation_name
-                )
-                download_buckets = download_agg.buckets
-
-            # Combine buckets by key
-            all_keys = set()
+        for key in all_keys:
+            view_bucket = None
             for bucket in view_buckets:
-                all_keys.add(bucket.key)
+                if bucket.key == key:
+                    view_bucket = bucket
+                    break
+
+            download_bucket = None
             for bucket in download_buckets:
-                all_keys.add(bucket.key)
+                if bucket.key == key:
+                    download_bucket = bucket
+                    break
 
-            for key in all_keys:
-                view_bucket = None
-                for bucket in view_buckets:
-                    if bucket.key == key:
-                        view_bucket = bucket
-                        break
+            label: str | dict[str, str] = str(key)
+            label_field = get_subcount_field(usage_config, "label_field", index)
 
-                download_bucket = None
-                for bucket in download_buckets:
-                    if bucket.key == key:
-                        download_bucket = bucket
-                        break
+            if label_field:
+                for bucket in [view_bucket, download_bucket]:
+                    if (
+                        bucket
+                        and hasattr(bucket, "label")
+                        and hasattr(bucket.label, "hits")
+                    ):
+                        title_hits = bucket.label.hits.hits
+                        if title_hits and title_hits[0]._source:
+                            source: AttrDict = title_hits[0]._source
+                            # Convert AttrDict to regular dict
+                            if hasattr(source, "to_dict"):
+                                source_dict = source.to_dict()
+                            else:
+                                source_dict = dict(source)
+                            label_result = CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
+                                source_dict, label_field, key
+                            )
+                            if isinstance(label_result, str | dict) and label_result:
+                                label = label_result
+                                break  # Found valid label, stop checking
 
-                # Extract label from title aggregation or use key as default
-                label: str | dict[str, str] = str(key)
-                label_field = usage_config.get("label_field")
+            subcount_item: UsageSubcountItem = {
+                "id": str(key),
+                "label": label,
+                "view": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                },
+                "download": {
+                    "total_events": 0,
+                    "unique_visitors": 0,
+                    "unique_records": 0,
+                    "unique_parents": 0,
+                    "unique_files": 0,
+                    "total_volume": 0,
+                },
+            }
 
-                if label_field:
-                    for bucket in [view_bucket, download_bucket]:
-                        if (
-                            bucket
-                            and hasattr(bucket, "label")
-                            and hasattr(bucket.label, "hits")
-                        ):
-                            title_hits = bucket.label.hits.hits
-                            if title_hits and title_hits[0]._source:
-                                source: AttrDict = title_hits[0]._source
-                                # Convert AttrDict to regular dict
-                                if hasattr(source, "to_dict"):
-                                    source_dict = source.to_dict()
-                                else:
-                                    source_dict = dict(source)
-                                label_result = CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
-                                    source_dict, label_field, key
-                                )
-                                if (
-                                    isinstance(label_result, str | dict)
-                                    and label_result
-                                ):
-                                    label = label_result
-                                    break  # Found valid label, stop checking
-
-                subcount_item: UsageSubcountItem = {
-                    "id": str(key),
-                    "label": label,
-                    "view": {
-                        "total_events": 0,
-                        "unique_visitors": 0,
-                        "unique_records": 0,
-                        "unique_parents": 0,
-                    },
-                    "download": {
-                        "total_events": 0,
-                        "unique_visitors": 0,
-                        "unique_records": 0,
-                        "unique_parents": 0,
-                        "unique_files": 0,
-                        "total_volume": 0,
-                    },
+            if view_bucket:
+                subcount_item["view"] = {
+                    "total_events": view_bucket.doc_count,
+                    "unique_visitors": view_bucket.unique_visitors.value,
+                    "unique_records": view_bucket.unique_records.value,
+                    "unique_parents": view_bucket.unique_parents.value,
                 }
 
-                # Extract view metrics from the bucket
-                if view_bucket:
-                    subcount_item["view"] = {
-                        "total_events": view_bucket.doc_count,
-                        "unique_visitors": view_bucket.unique_visitors.value,
-                        "unique_records": view_bucket.unique_records.value,
-                        "unique_parents": view_bucket.unique_parents.value,
-                    }
+            if download_bucket:
+                subcount_item["download"] = {
+                    "total_events": download_bucket.doc_count,
+                    "unique_visitors": download_bucket.unique_visitors.value,
+                    "unique_records": download_bucket.unique_records.value,
+                    "unique_parents": download_bucket.unique_parents.value,
+                    "unique_files": download_bucket.unique_files.value,
+                    "total_volume": download_bucket.total_volume.value,
+                }
 
-                # Extract download metrics from the bucket
-                if download_bucket:
-                    subcount_item["download"] = {
-                        "total_events": download_bucket.doc_count,
-                        "unique_visitors": download_bucket.unique_visitors.value,
-                        "unique_records": download_bucket.unique_records.value,
-                        "unique_parents": download_bucket.unique_parents.value,
-                        "unique_files": download_bucket.unique_files.value,
-                        "total_volume": download_bucket.total_volume.value,
-                    }
+            assembled_results.append(subcount_item)
 
-                combined_results["subcounts"][delta_aggregation_name].append(
-                    subcount_item
+        return assembled_results
+
+    def _merge_field_results(
+        self, item_sets: list[list[dict[str, Any]]]
+    ) -> list[dict[str, Any]]:
+        """Merge results from multiple fields."""
+        all_result_items = [item for item_set in item_sets for item in item_set]
+
+        if not all_result_items:
+            return []
+
+        merged_results: dict[str, Any] = {}
+        for item in all_result_items:
+            for key, value in item.items():
+                if key not in merged_results:
+                    merged_results[key] = value
+                elif isinstance(value, dict):
+                    if isinstance(merged_results[key], dict) and not merged_results[
+                        key
+                    ].get("label"):
+                        merged_results[key]["label"] = value.get("label")
+                    merged_results[key] = self._merge_field_results(
+                        [[merged_results[key]], [value]]
+                    )
+                elif isinstance(value, int | float):
+                    merged_results[key] += value
+
+        return list(merged_results.values())
+
+    def create_agg_dict(
+        self,
+        view_results: AttrList | None,
+        download_results: AttrList | None,
+        community_id: str,
+        date: arrow.Arrow,
+        index: int = 0,
+    ) -> UsageDeltaDocument:
+        """Combine results from separate view and download queries.
+
+        Args:
+            view_results: Results from view query (or None).
+            download_results: Results from download query (or None).
+            community_id (str): The community ID.
+            date (arrow.Arrow): The date for the aggregation.
+
+        Returns:
+            UsageDeltaDocument: Combined aggregation document.
+        """
+        combined_results = self._make_top_level_results(
+            community_id, date, view_results, download_results
+        )
+
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            source_fields = usage_config.get("source_fields", [])
+            if not source_fields:
+                continue
+            item_sets: list[list[UsageSubcountItem]] = []
+
+            for field_index, _source_field in enumerate(source_fields):
+
+                if field_index > 0:
+                    subcount_name = f"{subcount_key}_{field_index}"
+                else:
+                    subcount_name = subcount_key
+
+                combine_subfields = get_subcount_combine_subfields(config, field_index)
+                if combine_subfields:
+                    item_sets.append(  # type: ignore
+                        self._combine_split_aggregations(
+                            view_results,
+                            download_results,
+                            usage_config,
+                            subcount_name,
+                            field_index,
+                        )
+                    )
+                else:
+                    item_sets.append(  # type: ignore
+                        self._assemble_subcount_items(
+                            view_results,
+                            download_results,
+                            usage_config,
+                            subcount_name,
+                            index,
+                        )
+                    )
+            if len(item_sets) > 1:
+                combined_results["subcounts"][subcount_name] = (  # type: ignore
+                    self._merge_field_results(item_sets)  # type: ignore
                 )
+            else:
+                combined_results["subcounts"][subcount_name] = item_sets[0]  # type: ignore  # noqa: E501
 
         return combined_results
 
@@ -637,7 +802,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             current_iteration_date = current_iteration_date.shift(days=1)
 
     def _combine_split_aggregations(
-        self, view_results, download_results, config, subcount_name
+        self, view_results, download_results, config, subcount_name, field_index=0
     ):
         """Combine separate id and name aggregations for funders and affiliations.
 
@@ -650,20 +815,19 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             download_results: Results from download query (or None).
             config: Configuration for the subcount.
             subcount_name: Name of the subcount being processed.
+            field_index: Index of the source_fields entry being processed.
 
         Returns:
             list: Combined and deduplicated subcount items.
         """
-        combine_queries = config.get("combine_queries", [])
-        delta_aggregation_name = config.get("delta_aggregation_name")
+        combine_subfields = get_subcount_combine_subfields(config, field_index)
 
-        if not combine_queries or len(combine_queries) <= 1:
+        if not combine_subfields or len(combine_subfields) <= 1:
             return []
 
         agg_names = []
-        for query_field in combine_queries:
-            subfield = query_field.split(".")[-1]
-            agg_name = f"{delta_aggregation_name}_{subfield}"
+        for subfield in combine_subfields:
+            agg_name = f"{subcount_name}_{subfield.split('.')[-1]}"
             agg_names.append(agg_name)
 
         if len(agg_names) >= 2:
@@ -679,7 +843,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             id_field_path = next(
                 (
                     path
-                    for path in config.get("label_source_includes", [])
+                    for path in get_subcount_label_includes(config, 0)
                     if "id" in path
                 ),
                 "id",
@@ -687,7 +851,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             name_field_path = next(
                 (
                     path
-                    for path in config.get("label_source_includes", [])
+                    for path in get_subcount_label_includes(config, 0)
                     if "id" not in path
                 ),
                 "name",

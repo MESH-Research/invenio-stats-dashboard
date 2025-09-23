@@ -149,10 +149,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         subcounts: dict[
             str, list[RecordSnapshotSubcountItem] | RecordSnapshotTopSubcounts
         ] = {}
-        for config in self.subcount_configs.values():
-            if "records" in config and "delta_aggregation_name" in config["records"]:
-                delta_name = config["records"]["delta_aggregation_name"]
-                subcounts[delta_name] = []
+        for subcount_key, config in self.subcount_configs.items():
+            if "records" in config and config["records"].get("source_fields"):
+                subcounts[subcount_key] = []
 
         return {
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
@@ -206,29 +205,22 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         Returns:
             The updated aggregation dictionary with the new top subcounts.
         """
-        top_configs = [
-            config.get("records", {})
-            for config in self.subcount_configs.values()
-            if config.get("records", {}).get("snapshot_type") == "top"
-        ]
+        for subcount_key, config in self.subcount_configs.items():
+            records_config = config.get("records", {})
+            if records_config.get("snapshot_type") == "top":
 
-        for config in top_configs:
-            # With unified field names, use the delta_aggregation_name directly
-            top_subcount_name = config["delta_aggregation_name"]
-            category_name = top_subcount_name
+                if subcount_key not in exhaustive_counts_cache:
+                    exhaustive_counts_cache[subcount_key] = (
+                        self._build_exhaustive_cache(deltas, subcount_key)
+                    )
+                else:
+                    self._update_exhaustive_cache(
+                        subcount_key, latest_delta, exhaustive_counts_cache
+                    )
 
-            if category_name not in exhaustive_counts_cache:
-                exhaustive_counts_cache[category_name] = self._build_exhaustive_cache(
-                    deltas, category_name
+                new_dict["subcounts"][subcount_key] = self._select_top_n_from_cache(
+                    exhaustive_counts_cache[subcount_key]
                 )
-            else:
-                self._update_exhaustive_cache(
-                    category_name, latest_delta, exhaustive_counts_cache
-                )
-
-            new_dict["subcounts"][top_subcount_name] = self._select_top_n_from_cache(
-                exhaustive_counts_cache[category_name]
-            )
 
     def _add_delta_to_subcounts(
         self,
@@ -371,24 +363,16 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         )
 
         # Update "all" subcounts by adding latest delta onto previous snapshot
-        for config in [
-            subcount_config["records"]
-            for subcount_config in self.subcount_configs.values()
-            if subcount_config["records"]
-        ]:
-            if config["snapshot_type"] == "all":
-                snap_subcount_name = config["delta_aggregation_name"]
+        for subcount_key, config in self.subcount_configs.items():
+            records_config = config.get("records", {})
+            if records_config and records_config.get("snapshot_type") == "all":
 
-                previous_subcounts = new_dict.get("subcounts", {}).get(
-                    snap_subcount_name, []
-                )
+                previous_subcounts = new_dict.get("subcounts", {}).get(subcount_key, [])
 
-                new_dict["subcounts"][snap_subcount_name] = (
-                    self._add_delta_to_subcounts(
-                        previous_subcounts,
-                        delta_doc,
-                        snap_subcount_name,
-                    )
+                new_dict["subcounts"][subcount_key] = self._add_delta_to_subcounts(
+                    previous_subcounts,
+                    delta_doc,
+                    subcount_key,
                 )
 
         return new_dict

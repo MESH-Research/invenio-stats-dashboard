@@ -12,7 +12,7 @@ from typing import Any, TypedDict
 class DataPointDict(TypedDict):
     """Type definition for a data point dictionary."""
 
-    value: list[str | int | float]
+    value: list[str | int | float]  # [date, value] array matching JavaScript format
     readableDate: str
     valueType: str
 
@@ -25,10 +25,6 @@ class DataSeriesDict(TypedDict):
     data: list[DataPointDict]
     type: str
     valueType: str
-
-
-# Type alias for flexible data storage during transformation
-DataPointOrSeries = DataPointDict | "DataPoint"
 
 
 class GlobalMetricsDict(TypedDict):

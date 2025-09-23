@@ -13,7 +13,7 @@ The following table provides a complete reference of all available configuration
 | `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
 | `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
 | `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
-| `COMMUNITY_STATS_SUBCOUNT_CONFIGS` | `{...}` | Configuration for subcount breakdowns and field mappings |
+| `COMMUNITY_STATS_SUBCOUNTS` | `{...}` | Configuration for subcount breakdowns and field mappings |
 | `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
 | `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
 | `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |
@@ -319,7 +319,7 @@ The following table provides a complete reference of all available configuration
 | `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
 | `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
 | `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
-| `COMMUNITY_STATS_SUBCOUNT_CONFIGS` | `{...}` | Configuration for subcount breakdowns and field mappings |
+| `COMMUNITY_STATS_SUBCOUNTS` | `{...}` | Configuration for subcount breakdowns and field mappings |
 | `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
 | `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
 | `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |

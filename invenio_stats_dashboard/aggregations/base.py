@@ -659,7 +659,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         """
         super().__init__(name, *args, **kwargs)
         self.subcount_configs = (
-            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNTS"]
         )
         self.top_subcount_limit = current_app.config.get(
             "COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT", 20

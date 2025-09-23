@@ -57,8 +57,8 @@ def delete_indices_with_progress(
     Returns:
         tuple[list[str], list[str]]: A tuple of (succeeded_indices, failed_indices).
     """
-    succeeded_indices = []
-    failed_indices = []
+    succeeded_indices: list[str] = []
+    failed_indices: list[str] = []
 
     if not indices:
         return succeeded_indices, failed_indices

@@ -46,7 +46,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "affiliations_contributor": [
+                "affiliations": [
                     {
                         "files": {
                             "added": {"data_volume": 458036.0, "file_count": 1},
@@ -62,9 +62,7 @@ MOCK_RECORD_DELTA_DOCS = [
                             "added": {"metadata_only": 0, "with_files": 1},
                             "removed": {"metadata_only": 0, "with_files": 0},
                         },
-                    }
-                ],
-                "affiliations_creator": [
+                    },
                     {
                         "files": {
                             "added": {"data_volume": 458036.0, "file_count": 1},
@@ -80,7 +78,7 @@ MOCK_RECORD_DELTA_DOCS = [
                             "added": {"metadata_only": 0, "with_files": 1},
                             "removed": {"metadata_only": 0, "with_files": 0},
                         },
-                    }
+                    },
                 ],
                 "file_types": [
                     {
@@ -331,8 +329,7 @@ MOCK_RECORD_DELTA_DOCS = [
             },
             "subcounts": {
                 "access_statuses": [],
-                "affiliations_contributor": [],
-                "affiliations_creator": [],
+                "affiliations": [],
                 "file_types": [],
                 "funders": [],
                 "languages": [],
@@ -369,8 +366,7 @@ MOCK_RECORD_DELTA_DOCS = [
             },
             "subcounts": {
                 "access_statuses": [],
-                "affiliations_contributor": [],
-                "affiliations_creator": [],
+                "affiliations": [],
                 "file_types": [],
                 "funders": [],
                 "languages": [],
@@ -407,8 +403,7 @@ MOCK_RECORD_DELTA_DOCS = [
             },
             "subcounts": {
                 "access_statuses": [],
-                "affiliations_contributor": [],
-                "affiliations_creator": [],
+                "affiliations": [],
                 "file_types": [],
                 "funders": [],
                 "languages": [],
@@ -478,7 +473,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     },
                 ],
-                "affiliations_contributor": [
+                "affiliations": [
                     {
                         "files": {
                             "added": {"data_volume": 1984949.0, "file_count": 1},
@@ -487,29 +482,11 @@ MOCK_RECORD_DELTA_DOCS = [
                         "id": "03rmrcq20",
                         "label": "",
                         "parents": {
-                            "added": {"metadata_only": 0, "with_files": 1},
+                            "added": {"metadata_only": 1, "with_files": 1},
                             "removed": {"metadata_only": 0, "with_files": 0},
                         },
                         "records": {
-                            "added": {"metadata_only": 0, "with_files": 1},
-                            "removed": {"metadata_only": 0, "with_files": 0},
-                        },
-                    }
-                ],
-                "affiliations_creator": [
-                    {
-                        "files": {
-                            "added": {"data_volume": 0.0, "file_count": 0},
-                            "removed": {"data_volume": 0.0, "file_count": 0},
-                        },
-                        "id": "03rmrcq20",
-                        "label": "",
-                        "parents": {
-                            "added": {"metadata_only": 1, "with_files": 0},
-                            "removed": {"metadata_only": 0, "with_files": 0},
-                        },
-                        "records": {
-                            "added": {"metadata_only": 1, "with_files": 0},
+                            "added": {"metadata_only": 1, "with_files": 1},
                             "removed": {"metadata_only": 0, "with_files": 0},
                         },
                     }
@@ -577,7 +554,8 @@ MOCK_RECORD_DELTA_DOCS = [
                         "id": "cc-by-sa-4.0",
                         "label": {
                             "en": (
-                                "Creative Commons Attribution-ShareAlike 4.0 International"
+                                "Creative Commons Attribution-ShareAlike 4.0"
+                                " International"
                             )
                         },
                         "parents": {
@@ -899,7 +877,7 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "affiliations_contributor": [
+                "affiliations": [
                     {
                         "files": {
                             "added": {"data_volume": 0.0, "file_count": 0},
@@ -917,7 +895,6 @@ MOCK_RECORD_DELTA_DOCS = [
                         },
                     }
                 ],
-                "affiliations_creator": [],
                 "file_types": [
                     {
                         "files": {
@@ -981,7 +958,8 @@ MOCK_RECORD_DELTA_DOCS = [
                         "id": "cc-by-sa-4.0",
                         "label": {
                             "en": (
-                                "Creative Commons Attribution-ShareAlike 4.0 International"
+                                "Creative Commons Attribution-ShareAlike 4.0"
+                                " International"
                             )
                         },
                         "parents": {

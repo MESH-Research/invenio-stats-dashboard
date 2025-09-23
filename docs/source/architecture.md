@@ -146,8 +146,7 @@ Each daily record delta document includes these fields:
   - `resource_types` (array[object]): breakdown by resource type (journal articles, datasets, etc.)
   - `access_statuses` (array[object]): breakdown by access status (open, restricted, etc.)
   - `languages` (array[object]): breakdown by deposit language (English, French, etc.)
-  - `affiliations_contributor` (array[object]): breakdown by contributor affiliations
-  - `affiliations_creator` (array[object]): breakdown by creator affiliations
+  - `affiliations` (array[object]): breakdown by creator and contributor affiliations (unified)
   - `funders` (array[object]): breakdown by funding organizations
   - `subjects` (array[object]): breakdown by subject classifications
   - `publishers` (array[object]): breakdown by publisher
@@ -274,14 +273,13 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
     - `rights` (array[object]): Total number of records by rights
     - `resource_types` (array[object]): Total number of records by resource type
     - `languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `affiliations_contributor` (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `affiliations_creator` (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+    - `affiliations` (array[object]): Top N creator and contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
     - `funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
     - `periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
     - `publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
     - `subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
 
-The subcount properties are named slightly differently from the delta aggregations. With unified field names, the subcount properties use the same names across delta and snapshot documents. The subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the `access_statuses` subcount will provide a number for all access status values that appear in any record. The `affiliations_contributor` subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
+The subcount properties use the same names across delta and snapshot documents. The subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the `access_statuses` subcount will provide a number for all access status values that appear in any record. The `affiliations` subcount will provide a number for the top N creator and contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 
 Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.
 
@@ -356,8 +354,7 @@ Each document is shaped like this (the documents for the three different record 
         ],
         "languages": [],
         "resource_types": [],
-        "affiliations_contributor": [],
-        "affiliations_creator": [],
+        "affiliations": [],
         "funders": [],
         "periodicals": [],
         "publishers": [],
@@ -415,7 +412,7 @@ Each object in the subcount arrays will have the following fields:
 - `download` (object): The number of downloads for records with the subcount item, structured as in the top-level `download` object
 
 ```{note}
-In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations by default also include subcounts for visitor country and referrer domain. These too are configurable via the COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration.
+In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations by default also include subcounts for visitor country and referrer domain. These too are configurable via the COMMUNITY_STATS_SUBCOUNTS configuration.
 ```
 
 ```{note}

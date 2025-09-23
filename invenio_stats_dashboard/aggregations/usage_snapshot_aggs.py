@@ -336,56 +336,47 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         Returns:
             The updated aggregation dictionary with the new top subcounts.
         """
-        top_configs = [
-            config.get("usage_events", {})
-            for config in self.subcount_configs.values()
-            if config.get("usage_events", {}).get("snapshot_type") == "top"
-        ]
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if usage_config.get("snapshot_type") == "top":
+                # Use the subcount key directly
+                top_subcount_name = subcount_key
 
-        for config in top_configs:
-            # With unified field names, use the delta_aggregation_name directly
-            top_subcount_name = config["delta_aggregation_name"]
+                if top_subcount_name not in exhaustive_counts_cache:
+                    exhaustive_counts_cache[top_subcount_name] = (
+                        self._build_exhaustive_cache(deltas, top_subcount_name)
+                    )
+                else:
+                    self._update_exhaustive_cache(
+                        top_subcount_name, latest_delta, exhaustive_counts_cache
+                    )
 
-            if top_subcount_name not in exhaustive_counts_cache:
-                exhaustive_counts_cache[top_subcount_name] = (
-                    self._build_exhaustive_cache(deltas, top_subcount_name)
+                top_by_view = self._select_top_n_from_cache(
+                    exhaustive_counts_cache[top_subcount_name], "view"
                 )
-            else:
-                self._update_exhaustive_cache(
-                    top_subcount_name, latest_delta, exhaustive_counts_cache
+                top_by_download = self._select_top_n_from_cache(
+                    exhaustive_counts_cache[top_subcount_name], "download"
                 )
-
-            top_by_view = self._select_top_n_from_cache(
-                exhaustive_counts_cache[top_subcount_name], "view"
-            )
-            top_by_download = self._select_top_n_from_cache(
-                exhaustive_counts_cache[top_subcount_name], "download"
-            )
-            new_dict["subcounts"][top_subcount_name] = {  # type: ignore
-                "by_view": top_by_view,
-                "by_download": top_by_download,
-            }
+                new_dict["subcounts"][top_subcount_name] = {  # type: ignore
+                    "by_view": top_by_view,
+                    "by_download": top_by_download,
+                }
 
     def _initialize_subcounts_structure(
         self,
     ) -> dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]:
         """Initialize the subcounts structure based on configuration."""
         subcounts: dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories] = {}
-        for config in self.subcount_configs.values():
+        for subcount_key, config in self.subcount_configs.items():
             usage_config = config.get("usage_events", {})
             if not usage_config:
                 continue
 
             snapshot_type = usage_config.get("snapshot_type", "all")
-            delta_aggregation_name = usage_config.get("delta_aggregation_name")
-            if not delta_aggregation_name:
-                continue
-            snapshot_field = delta_aggregation_name
-
             if snapshot_type == "all":
-                subcounts[snapshot_field] = []
+                subcounts[subcount_key] = []
             elif snapshot_type == "top":
-                subcounts[snapshot_field] = {"by_view": [], "by_download": []}
+                subcounts[subcount_key] = {"by_view": [], "by_download": []}
         return subcounts
 
     def _is_top_subcount(self, subcount_name: str) -> bool:
@@ -393,4 +384,4 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         config = self.subcount_configs.get(subcount_name, {})
         usage_config = config.get("usage_events", {})
         snapshot_type = usage_config.get("snapshot_type", "all")
-        return snapshot_type == "top"
+        return str(snapshot_type) == "top"

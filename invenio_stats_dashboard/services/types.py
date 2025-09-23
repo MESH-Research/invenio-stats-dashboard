@@ -160,11 +160,11 @@ class ReindexingProgress(TypedDict):
 def create_enriched_event_type(subcount_configs: dict[str, Any]) -> type:
     """Dynamically create an EnrichedEvent TypedDict based on subcount configuration.
 
-    This function analyzes the COMMUNITY_STATS_SUBCOUNT_CONFIGS to determine
+    This function analyzes the COMMUNITY_STATS_SUBCOUNTS to determine
     which enriched fields should be included in the EnrichedEvent TypedDict.
 
     Args:
-        subcount_configs: The COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration
+        subcount_configs: The COMMUNITY_STATS_SUBCOUNTS configuration
 
     Returns:
         A dynamically generated TypedDict class for enriched events

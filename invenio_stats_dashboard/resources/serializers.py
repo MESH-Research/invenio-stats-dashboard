@@ -56,10 +56,10 @@ class StatsCSVSerializer:
                 writer.writerows(data)
         elif isinstance(data, dict):
             # Handle dict responses (e.g., comprehensive stats)
-            writer = csv.writer(output)
+            csv_writer = csv.writer(output)
             for key, value in data.items():
                 if isinstance(value, list):
-                    writer.writerow([key])
+                    csv_writer.writerow([key])
                     if value and isinstance(value[0], dict):
                         # List of dicts - write as sub-table
                         sub_fieldnames = self._get_fieldnames(value[0])
@@ -68,9 +68,9 @@ class StatsCSVSerializer:
                         sub_writer.writerows(value)
                     else:
                         for item in value:
-                            writer.writerow([item])
+                            csv_writer.writerow([item])
                 else:
-                    writer.writerow([key, value])
+                    csv_writer.writerow([key, value])
 
         return Response(
             output.getvalue(),

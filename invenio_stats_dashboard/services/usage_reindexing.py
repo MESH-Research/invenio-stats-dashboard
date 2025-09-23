@@ -59,7 +59,7 @@ class MetadataExtractor:
         """Initialize the enricher with pre-compiled specs.
 
         Args:
-            subcount_configs: The COMMUNITY_STATS_SUBCOUNT_CONFIGS
+            subcount_configs: The COMMUNITY_STATS_SUBCOUNTS
         """
         self.subcount_configs = subcount_configs
         self.compiled_specs: dict[str, Spec] = {}
@@ -290,9 +290,9 @@ class EventReindexingService:
     """Service for reindexing events with enriched metadata.
 
     This service provides configurable event enrichment based on the
-    COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration. It will always at minimum
+    COMMUNITY_STATS_SUBCOUNTS configuration. It will always at minimum
     add a community_ids field. Which additional fields are added are determined
-    by the COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration.
+    by the COMMUNITY_STATS_SUBCOUNTS configuration.
     """
 
     def __init__(self, app: Flask):
@@ -326,7 +326,7 @@ class EventReindexingService:
         self.max_spot_check_sample_size = app.config.get(
             "STATS_DASHBOARD_REINDEXING_MAX_SPOT_CHECK_SAMPLE_SIZE", 100
         )
-        self.subcount_configs = app.config.get("COMMUNITY_STATS_SUBCOUNT_CONFIGS", {})
+        self.subcount_configs = app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
 
         # Lazy-load components that require application context
         self._reindexing_bookmark_api: EventReindexingBookmarkAPI | None = None
@@ -2051,7 +2051,7 @@ class EventReindexingService:
 
             batch_count = 0
             should_continue = True
-            previous_batch_ids = set()
+            previous_batch_ids: set[str] = set()
             search_after_point = None
 
             while should_continue:
@@ -2082,7 +2082,9 @@ class EventReindexingService:
                 last_timestamp = batch_result["last_event_timestamp"]
                 continue_processing = batch_result["should_continue"]
                 batch_document_ids = batch_result.get("batch_document_ids", [])
-                previous_batch_ids = batch_result.get("previous_batch_ids", set())
+                previous_batch_ids = (
+                    batch_result.get("previous_batch_ids", set()) or set()
+                )
                 search_after_point = batch_result.get("search_after_point", None)
 
                 current_app.logger.info(

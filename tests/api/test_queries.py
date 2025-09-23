@@ -73,10 +73,10 @@ class TestCommunityRecordCreatedDeltaQuery:
 
     SUB_AGGS = [
         "access_statuses",
-        "affiliations_contributor_id",
-        "affiliations_contributor_keyword",
-        "affiliations_creator_id",
-        "affiliations_creator_keyword",
+        "affiliations_id",
+        "affiliations_keyword",
+        "affiliations_1_id",
+        "affiliations_1_keyword",
         "file_types",
         "funders_id",
         "funders_keyword",
@@ -279,14 +279,14 @@ class TestCommunityRecordCreatedDeltaQuery:
             count_without_files=0,
             expected_bytes=59117831.0,
         )
-        assert result["affiliations_contributor_id"]["buckets"] == []
-        assert result["affiliations_contributor_keyword"]["buckets"] == []
-        assert result["affiliations_creator_keyword"]["buckets"] == []
+        assert result["affiliations_id"]["buckets"] == []
+        assert result["affiliations_keyword"]["buckets"] == []
+        assert result["affiliations_1_id"]["buckets"] == []
+        assert result["affiliations_1_keyword"]["buckets"] == []
 
         # Find affiliations by key since order is not guaranteed
         affiliations = {
-            bucket["key"]: bucket
-            for bucket in result["affiliations_creator_id"]["buckets"]
+            bucket["key"]: bucket for bucket in result["affiliations_id"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -465,17 +465,17 @@ class TestCommunityRecordCreatedDeltaQuery:
             for a in self.SUB_AGGS
             if a
             not in [
-                "affiliations_creator_id",
-                "affiliations_contributor_id",
-                "affiliations_creator_keyword",
-                "affiliations_contributor_keyword",
+                "affiliations_id",
+                "affiliations_keyword",
+                "affiliations_1_id",
+                "affiliations_1_keyword",
             ]
         ]:
             assert result[agg]["buckets"] == []
-        assert result["affiliations_creator_id"]["buckets"] == []
-        assert result["affiliations_contributor_id"]["buckets"] == []
-        assert result["affiliations_creator_keyword"]["buckets"] == []
-        assert result["affiliations_contributor_keyword"]["buckets"] == []
+        assert result["affiliations_id"]["buckets"] == []
+        assert result["affiliations_keyword"]["buckets"] == []
+        assert result["affiliations_1_id"]["buckets"] == []
+        assert result["affiliations_1_keyword"]["buckets"] == []
 
     def _check_result_day2(self, result):
         """Check the results for day 2."""
@@ -522,12 +522,14 @@ class TestCommunityRecordCreatedDeltaQuery:
             expected_key="open",
             expected_bytes=1984949.0,
         )
-        assert result["affiliations_contributor_keyword"]["buckets"] == []
+        assert result["affiliations_id"]["buckets"] == []
+        assert result["affiliations_keyword"]["buckets"] == []
+        assert result["affiliations_1_id"]["buckets"] == []
+        assert result["affiliations_1_keyword"]["buckets"] == []
 
         # Find affiliations by key since order is not guaranteed
         affiliations = {
-            bucket["key"]: bucket
-            for bucket in result["affiliations_creator_id"]["buckets"]
+            bucket["key"]: bucket for bucket in result["affiliations_id"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -787,7 +789,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         test_dates = self.test_date_range
         for day in test_dates:
             query = CommunityRecordDeltaQuery(
-                client=self.client,
+                client=self.client,  # type: ignore
                 event_index=prefix_index("rdmrecords-records"),
             ).build_query(
                 start_date=day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
@@ -1527,7 +1529,7 @@ class TestCommunityUsageDeltaQuery:
             "affiliations_id",
             "affiliations_name",
             "funders_id",
-            "funders_name",
+            "funders_keyword",
             "languages",
             "rights",
             "resource_types",

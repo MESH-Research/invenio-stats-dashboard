@@ -15,6 +15,12 @@ from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
+from .config import (
+    get_subcount_field,
+    get_subcount_label_includes,
+    get_subcount_combine_subfields,
+)
+
 
 def get_relevant_record_ids_from_events(
     start_date: str,
@@ -348,46 +354,63 @@ class CommunityUsageDeltaQuery:
         }
         return agg
 
-    def _make_subcount_aggregations_dict(self, event_type: str) -> dict:
+    def _make_subcount_aggregations_dict(self, event_type: str, index: int = 0) -> dict:
         """Get the subcount aggregations dictionary for view events.
 
         Returns:
             dict: The subcount aggregations dictionary for view events.
         """
-        subcount_configs = current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+        subcount_configs = current_app.config["COMMUNITY_STATS_SUBCOUNTS"]
         subcounts = {}
-        for config in subcount_configs.values():
+        for subcount_key, config in subcount_configs.items():
             # Get the usage_events configuration for this subcount
             usage_config = config.get("usage_events", {})
             if not usage_config:
                 continue
 
-            if (
-                usage_config.get("combine_queries")
-                and len(usage_config["combine_queries"]) > 1
-            ):
-                for query_field in usage_config["combine_queries"]:
-                    subfield = query_field.split(".")[-1]
-                    query_name = f"{usage_config['delta_aggregation_name']}_{subfield}"
-                    subcounts[query_name] = self._make_labeled_subcount_aggregation(
-                        query_field,
-                        usage_config["label_source_includes"],
-                        event_type,
-                    )
-            elif usage_config.get("label_field"):
-                subcounts[usage_config["delta_aggregation_name"]] = (
-                    self._make_labeled_subcount_aggregation(
-                        usage_config["field"],
-                        usage_config["label_source_includes"],
-                        event_type,
-                    )
+            # Iterate over source_fields
+            source_fields = usage_config.get("source_fields", [])
+            for field_index, source_field in enumerate(source_fields):
+                combine_subfields = get_subcount_combine_subfields(
+                    usage_config, field_index
                 )
-            else:
-                subcounts[usage_config["delta_aggregation_name"]] = (
-                    self._make_simple_subcount_aggregation(
-                        usage_config["field"], event_type
-                    )
-                )
+
+                if combine_subfields and len(combine_subfields) > 1:
+                    # Handle combined subfields (e.g., id and name.keyword)
+                    for subfield in combine_subfields:
+                        if len(source_fields) > 1:
+                            query_name = f"{subcount_key}_{field_index}_{subfield.split('.')[-1]}"
+                        else:
+                            query_name = f"{subcount_key}_{subfield.split('.')[-1]}"
+                        subcounts[query_name] = self._make_labeled_subcount_aggregation(
+                            subfield,
+                            get_subcount_label_includes(usage_config, field_index),
+                            event_type,
+                        )
+                elif get_subcount_field(usage_config, "label_field", field_index):
+                    # Handle single field with label
+                    field = get_subcount_field(usage_config, "field", field_index)
+                    if field:
+                        if len(source_fields) > 1:
+                            query_name = f"{subcount_key}_{field_index}"
+                        else:
+                            query_name = subcount_key
+                        subcounts[query_name] = self._make_labeled_subcount_aggregation(
+                            field,
+                            get_subcount_label_includes(usage_config, field_index),
+                            event_type,
+                        )
+                else:
+                    # Handle simple field without label
+                    field = get_subcount_field(usage_config, "field", field_index)
+                    if field:
+                        if len(source_fields) > 1:
+                            query_name = f"{subcount_key}_{field_index}"
+                        else:
+                            query_name = subcount_key
+                        subcounts[query_name] = self._make_simple_subcount_aggregation(
+                            field, event_type
+                        )
         return subcounts
 
 
@@ -548,7 +571,7 @@ class CommunityRecordDeltaQuery:
         self.event_index = event_index or "stats-community-events"
         self.record_index = record_index or "rdmrecords-records"
         self.subcount_configs = (
-            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNT_CONFIGS"]
+            subcount_configs or current_app.config["COMMUNITY_STATS_SUBCOUNTS"]
         )
 
     def _get_must_clauses(
@@ -649,142 +672,97 @@ class CommunityRecordDeltaQuery:
     def _get_sub_aggregations(self) -> dict:
         """Get the sub aggregations for the query.
 
-        Args:
-            start_date (str): The start date to query.
-            end_date (str): The end date to query.
-            community_id (str, optional): The community ID. If "global", uses
-                events index when use_published_dates=True, otherwise uses record date
-                fields directly.
-            find_deleted (bool, optional): Whether to find deleted records.
-            use_included_dates (bool, optional): Whether to use the dates when
-                the record was included to the community instead of the created date.
-            use_published_dates (bool, optional): Whether to use the metadata
-                publication date instead of the created date.
-
         Returns:
             dict: The sub aggregations for the query.
         """
         sub_aggs: dict = {}
 
-        for config in self.subcount_configs.values():
+        for subcount_key, config in self.subcount_configs.items():
             if (
                 "records" in config.keys()
-                and "delta_aggregation_name" in config["records"].keys()
+                and "source_fields" in config["records"].keys()
             ):
                 records_config = config["records"]
-                subcount_key = records_config["delta_aggregation_name"]
+                source_fields = records_config.get("source_fields", [])
 
-                # Handle combined queries (like affiliations)
-                if records_config.get("combine_queries"):
-                    current_app.logger.error(
-                        f"Creating combine_queries aggregations for {subcount_key}: "
-                        f"{records_config['combine_queries']}"
+                for field_index, _source_field in enumerate(source_fields):
+                    sub_aggs = self._build_single_field_aggregation(
+                        sub_aggs, records_config, subcount_key, field_index
                     )
-                    # For combined queries, we need to create separate aggregations
-                    for field in records_config["combine_queries"]:
-                        field_name = field.split(".")[-1]
-                        agg_name = (
-                            f"{records_config['delta_aggregation_name']}_{field_name}"
-                        )
-                        current_app.logger.error(
-                            f"Creating aggregation '{agg_name}' for field '{field}'"
-                        )
-                        sub_aggs[agg_name] = {
-                            "terms": {"field": field, "size": 1000},
-                            "aggs": {
-                                "with_files": {
-                                    "filter": {"term": {"files.enabled": True}},
-                                    "aggs": {
-                                        "unique_parents": {
-                                            "cardinality": {"field": "parent.id"}
-                                        }
-                                    },
+        return sub_aggs
+
+    def _make_subcount_agg_dict(self, field, label_field, label_includes):
+        """Make a subcount aggregation dictionary."""
+        return {
+            "terms": {"field": field, "size": 1000},
+            "aggs": {
+                "with_files": {
+                    "filter": {"term": {"files.enabled": True}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "without_files": {
+                    "filter": {"term": {"files.enabled": False}},
+                    "aggs": {"unique_parents": {"cardinality": {"field": "parent.id"}}},
+                },
+                "file_count": {"value_count": {"field": "files.entries.key"}},
+                "total_bytes": {"sum": {"field": "files.entries.size"}},
+                **(
+                    {
+                        "label": {
+                            "top_hits": {
+                                "size": 1,
+                                "_source": {
+                                    "includes": (
+                                        label_includes if label_includes else [field]
+                                    )
                                 },
-                                "without_files": {
-                                    "filter": {"term": {"files.enabled": False}},
-                                    "aggs": {
-                                        "unique_parents": {
-                                            "cardinality": {"field": "parent.id"}
-                                        }
-                                    },
-                                },
-                                "file_count": {
-                                    "value_count": {"field": "files.entries.key"}
-                                },
-                                "total_bytes": {"sum": {"field": "files.entries.size"}},
-                                **(
-                                    {
-                                        "label": {
-                                            "top_hits": {
-                                                "size": 1,
-                                                "_source": {
-                                                    "includes": (
-                                                        records_config[
-                                                            "label_source_includes"
-                                                        ]
-                                                        if records_config.get(
-                                                            "label_source_includes"
-                                                        )
-                                                        else [field]
-                                                    )
-                                                },
-                                            }
-                                        }
-                                    }
-                                    if records_config.get("label_field")
-                                    else {}
-                                ),
-                            },
+                            }
                         }
-                else:
-                    # Standard single field aggregation
-                    sub_aggs[subcount_key] = {
-                        "terms": {"field": records_config["field"], "size": 1000},
-                        "aggs": {
-                            "with_files": {
-                                "filter": {"term": {"files.enabled": True}},
-                                "aggs": {
-                                    "unique_parents": {
-                                        "cardinality": {"field": "parent.id"}
-                                    }
-                                },
-                            },
-                            "without_files": {
-                                "filter": {"term": {"files.enabled": False}},
-                                "aggs": {
-                                    "unique_parents": {
-                                        "cardinality": {"field": "parent.id"}
-                                    }
-                                },
-                            },
-                            "file_count": {
-                                "value_count": {"field": "files.entries.key"}
-                            },
-                            "total_bytes": {"sum": {"field": "files.entries.size"}},
-                            **(
-                                {
-                                    "label": {
-                                        "top_hits": {
-                                            "size": 1,
-                                            "_source": {
-                                                "includes": (
-                                                    records_config[
-                                                        "label_source_includes"
-                                                    ]
-                                                    if records_config.get(
-                                                        "label_source_includes"
-                                                    )
-                                                    else [records_config["field"]]
-                                                )
-                                            },
-                                        }
-                                    }
-                                }
-                                if records_config.get("label_field")
-                                else {}
-                            ),
-                        },
                     }
+                    if label_field
+                    else {}
+                ),
+            },
+        }
+
+    def _build_single_field_aggregation(
+        self, sub_aggs, records_config, subcount_key, field_index
+    ):
+        """Build a single aggregations for a single subcount's field/subfields."""
+
+        field = get_subcount_field(records_config, "field", field_index)
+        label_field = get_subcount_field(records_config, "label_field", field_index)
+        label_includes = get_subcount_label_includes(records_config, field_index)
+
+        if field_index > 0:
+            agg_name = f"{subcount_key}_{field_index}"
+        else:
+            agg_name = subcount_key
+
+        # Handle combined subfields (like affiliations.id and affiliations.name)
+        combine_subfields = get_subcount_combine_subfields(records_config, field_index)
+        if combine_subfields:
+            current_app.logger.error(
+                f"Creating combine_subfields aggregations for {subcount_key}: "
+                f"{combine_subfields}"
+            )
+            for field in combine_subfields:
+                field_name = field.split(".")[-1]
+                if field_index > 0:
+                    agg_name = f"{subcount_key}_{field_index}_{field_name}"
+                else:
+                    agg_name = f"{subcount_key}_{field_name}"
+                current_app.logger.error(
+                    f"Creating aggregation '{agg_name}' for field '{field}'"
+                )
+                sub_aggs[agg_name] = self._make_subcount_agg_dict(
+                    field, label_field, label_includes
+                )
+        else:
+            # Standard single field aggregation
+            sub_aggs[agg_name] = self._make_subcount_agg_dict(
+                field, label_field, label_includes
+            )
 
         return sub_aggs
 
