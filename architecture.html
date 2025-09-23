@@ -412,8 +412,7 @@ may also want to display a time series of a community’s contents based on when
 <li><p><code class="docutils literal notranslate"><span class="pre">resource_types</span></code> (array[object]): breakdown by resource type (journal articles, datasets, etc.)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> (array[object]): breakdown by access status (open, restricted, etc.)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">languages</span></code> (array[object]): breakdown by deposit language (English, French, etc.)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_contributor</span></code> (array[object]): breakdown by contributor affiliations</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_creator</span></code> (array[object]): breakdown by creator affiliations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations</span></code> (array[object]): breakdown by creator and contributor affiliations (unified)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">funders</span></code> (array[object]): breakdown by funding organizations</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subjects</span></code> (array[object]): breakdown by subject classifications</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">publishers</span></code> (array[object]): breakdown by publisher</p></li>
@@ -552,8 +551,7 @@ may also want to display a time series of a community’s contents based on when
 <li><p><code class="docutils literal notranslate"><span class="pre">rights</span></code> (array[object]): Total number of records by rights</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">resource_types</span></code> (array[object]): Total number of records by resource type</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">languages</span></code> (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_contributor</span></code> (array[object]): Top N contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">affiliations_creator</span></code> (array[object]): Top N creator affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affiliations</span></code> (array[object]): Top N creator and contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">funders</span></code> (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">periodicals</span></code> (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">publishers</span></code> (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)</p></li>
@@ -561,7 +559,7 @@ may also want to display a time series of a community’s contents based on when
 </ul>
 </li>
 </ul>
-<p>The subcount properties are named slightly differently from the delta aggregations. With unified field names, the subcount properties use the same names across delta and snapshot documents. The subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> subcount will provide a number for all access status values that appear in any record. The <code class="docutils literal notranslate"><span class="pre">affiliations_contributor</span></code> subcount will provide a number for the top N contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
+<p>The subcount properties use the same names across delta and snapshot documents. The subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the <code class="docutils literal notranslate"><span class="pre">access_statuses</span></code> subcount will provide a number for all access status values that appear in any record. The <code class="docutils literal notranslate"><span class="pre">affiliations</span></code> subcount will provide a number for the top N creator and contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).</p>
 <p>Each subcount array object has the same shape as the subcount objects in the corresponding delta aggregations.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -643,8 +641,7 @@ may also want to display a time series of a community’s contents based on when
 <span class="w">        </span><span class="p">],</span>
 <span class="w">        </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="w">        </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;affiliations_contributor&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">        </span><span class="nt">&quot;affiliations_creator&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="w">        </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="w">        </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="w">        </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
@@ -715,7 +712,7 @@ may also want to display a time series of a community’s contents based on when
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations by default also include subcounts for visitor country and referrer domain. These too are configurable via the COMMUNITY_STATS_SUBCOUNT_CONFIGS configuration.</p>
+<p>In addition to the same subcounts included in the record delta aggregations, the usage delta aggregations by default also include subcounts for visitor country and referrer domain. These too are configurable via the COMMUNITY_STATS_SUBCOUNTS configuration.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

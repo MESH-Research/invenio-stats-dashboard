@@ -246,21 +246,33 @@ This variable controls the maximum number of items returned in subcount breakdow
 COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
 ```
 
-#### `COMMUNITY_STATS_SUBCOUNT_CONFIGS`
+#### `COMMUNITY_STATS_SUBCOUNTS`
 
 This variable defines the configuration for different subcount breakdown types, including field mappings and display options.
 
 ```python
-COMMUNITY_STATS_SUBCOUNT_CONFIGS = {
+COMMUNITY_STATS_SUBCOUNTS = {
     "resource_types": {
-        "field": "metadata.resource_type.id",
-        "label": "Resource Type",
-        "display_field": "metadata.resource_type.title",
+        "records": {
+            "source_fields": [
+                {
+                    "field": "metadata.resource_type.id",
+                    "label_field": "metadata.resource_type.title",
+                    "label_source_includes": ["metadata.resource_type.id", "metadata.resource_type.title"]
+                }
+            ]
+        }
     },
     "subjects": {
-        "field": "metadata.subjects.subject",
-        "label": "Subject",
-        "display_field": "metadata.subjects.subject",
+        "records": {
+            "source_fields": [
+                {
+                    "field": "metadata.subjects.subject",
+                    "label_field": "metadata.subjects.subject",
+                    "label_source_includes": ["metadata.subjects.subject"]
+                }
+            ]
+        }
     },
     # ... other subcount configurations
 }
@@ -280,7 +292,22 @@ STATS_DASHBOARD_UI_SUBCOUNTS = {
     "periodicals": {},
     "publishers": {},
     "affiliations": {
-        "combine": ["affiliations_creator", "affiliations_contributor"]
+        "records": {
+            "source_fields": [
+                {
+                    "field": "metadata.creators.affiliations.id",
+                    "label_field": "metadata.creators.affiliations.name",
+                    "label_source_includes": ["metadata.creators.affiliations.id", "metadata.creators.affiliations.name"],
+                    "combine_subfields": ["id", "name.keyword"]
+                },
+                {
+                    "field": "metadata.contributors.affiliations.id",
+                    "label_field": "metadata.contributors.affiliations.name",
+                    "label_source_includes": ["metadata.contributors.affiliations.id", "metadata.contributors.affiliations.name"],
+                    "combine_subfields": ["id", "name.keyword"]
+                }
+            ]
+        }
     },
     "countries": {},
     "referrers": {},
@@ -347,7 +374,7 @@ The following table provides a complete reference of all available configuration
 | `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
 | `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
 | `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
-| `COMMUNITY_STATS_SUBCOUNT_CONFIGS` | `{...}` | Configuration for subcount breakdowns and field mappings |
+| `COMMUNITY_STATS_SUBCOUNTS` | `{...}` | Configuration for subcount breakdowns and field mappings |
 | `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
 | `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
 | `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |

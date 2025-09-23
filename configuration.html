@@ -486,19 +486,31 @@ range for each granularity level.</p>
 </pre></div>
 </div>
 </section>
-<section id="community-stats-subcount-configs">
-<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code><a class="headerlink" href="#community-stats-subcount-configs" title="Link to this heading">¶</a></h3>
+<section id="community-stats-subcounts">
+<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code><a class="headerlink" href="#community-stats-subcounts" title="Link to this heading">¶</a></h3>
 <p>This variable defines the configuration for different subcount breakdown types, including field mappings and display options.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span> <span class="o">=</span> <span class="p">{</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Resource Type&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;display_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">]</span>
+                <span class="p">}</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
     <span class="p">},</span>
     <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;display_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">]</span>
+                <span class="p">}</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
     <span class="p">},</span>
     <span class="c1"># ... other subcount configurations</span>
 <span class="p">}</span>
@@ -517,7 +529,22 @@ range for each granularity level.</p>
     <span class="s2">&quot;periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
     <span class="s2">&quot;publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
     <span class="s2">&quot;affiliations&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;combine&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;affiliations_creator&quot;</span><span class="p">,</span> <span class="s2">&quot;affiliations_contributor&quot;</span><span class="p">]</span>
+        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.creators.affiliations.id&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.creators.affiliations.name&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.creators.affiliations.id&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata.creators.affiliations.name&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;combine_subfields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name.keyword&quot;</span><span class="p">]</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.contributors.affiliations.id&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.contributors.affiliations.name&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.contributors.affiliations.id&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata.contributors.affiliations.name&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;combine_subfields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name.keyword&quot;</span><span class="p">]</span>
+                <span class="p">}</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
     <span class="p">},</span>
     <span class="s2">&quot;countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
     <span class="s2">&quot;referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
@@ -612,7 +639,7 @@ range for each granularity level.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
 <td><p>Maximum number of items to return in subcount breakdowns</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
 <td><p>Configuration for subcount breakdowns and field mappings</p></td>
 </tr>
@@ -771,7 +798,7 @@ range for each granularity level.</p>
 </li>
 <li><a class="reference internal" href="#subcount-configuration">Subcount Configuration</a><ul>
 <li><a class="reference internal" href="#community-stats-top-subcount-limit"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code></a></li>
-<li><a class="reference internal" href="#community-stats-subcount-configs"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNT_CONFIGS</span></code></a></li>
+<li><a class="reference internal" href="#community-stats-subcounts"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code></a></li>
 <li><a class="reference internal" href="#stats-dashboard-ui-subcounts"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code></a></li>
 </ul>
 </li>
