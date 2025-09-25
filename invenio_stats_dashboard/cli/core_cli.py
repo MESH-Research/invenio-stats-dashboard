@@ -184,18 +184,16 @@ def aggregate_stats_command(
 )
 @click.option(
     "--query-type",
-    type=click.Choice(
-        [
-            "community-record-delta-created",
-            "community-record-delta-published",
-            "community-record-delta-added",
-            "community-record-snapshot-created",
-            "community-record-snapshot-published",
-            "community-record-snapshot-added",
-            "community-usage-delta",
-            "community-usage-snapshot",
-        ]
-    ),
+    type=click.Choice([
+        "community-record-delta-created",
+        "community-record-delta-published",
+        "community-record-delta-added",
+        "community-record-snapshot-created",
+        "community-record-snapshot-published",
+        "community-record-snapshot-added",
+        "community-usage-delta",
+        "community-usage-snapshot",
+    ]),
     help="Specific query type to run instead of the meta-query.",
 )
 @with_appcontext
@@ -294,6 +292,9 @@ def _generate_completeness_bar(agg_status, start_date, total_days, bar_length=30
 
     # Calculate relative positions within the total time range
     start_offset = max(0, (agg_start - start_date).days)
+    expected_total_days = (arrow.utcnow() - agg_start).days + 1
+    if start_offset > 0 and expected_total_days > 0:
+        start_offset = expected_total_days - agg_status["document_count"]
     end_offset = (agg_end - start_date).days
 
     # Create the bar
@@ -379,8 +380,7 @@ def status_command(community_id, verbose):
 
     for community in status["communities"]:
         click.echo(
-            f"\nCommunity: {community['community_slug']} "
-            f"({community['community_id']})"
+            f"\nCommunity: {community['community_slug']} ({community['community_id']})"
         )
         click.echo("-" * 60)
 
