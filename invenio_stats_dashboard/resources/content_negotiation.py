@@ -106,7 +106,13 @@ class ContentNegotiationMixin:
         accept_header = request.headers.get("Accept")
         accept_encoding = request.headers.get("Accept-Encoding", "")
 
-        if not accept_header and "gzip" not in accept_encoding:
+        # Check if any supported compression is requested
+        supported_compressions = ["gzip", "br", "brotli"]
+        has_compression_request = any(
+            comp in accept_encoding.lower() for comp in supported_compressions
+        )
+
+        if not accept_header and not has_compression_request:
             return False
 
         if query_name:
@@ -127,8 +133,11 @@ class ContentNegotiationMixin:
         accept_header = request.headers.get("Accept", "")
         accept_encoding = request.headers.get("Accept-Encoding", "")
 
-        # Check for compression preference first
-        if "gzip" in accept_encoding:
+        # Check for compression preference first (brotli preferred over gzip)
+        if "br" in accept_encoding or "brotli" in accept_encoding:
+            if "application/json" in accept_header or not accept_header:
+                return "application/json+br"
+        elif "gzip" in accept_encoding:
             if "application/json" in accept_header or not accept_header:
                 return "application/json+gzip"
 

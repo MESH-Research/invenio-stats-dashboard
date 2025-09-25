@@ -29,4 +29,4 @@ htmlcov/
 *.log
 .ropeproject/autoimport.db
 invenio_stats_dashboard/utils/utils.py
-tests/test_logs/invenio.log.1
+tests/test_logs/

@@ -13,6 +13,12 @@ from typing import Union
 
 from flask import Response
 
+try:
+    import brotli
+    BROTLI_AVAILABLE = True
+except ImportError:
+    BROTLI_AVAILABLE = False
+
 from .serializers import (
     StatsCSVSerializer,
     StatsExcelSerializer,
@@ -25,7 +31,15 @@ from ..transformers.base import DataSeries
 class CompressedStatsJSONSerializer:
     """Compressed JSON serializer for data series responses."""
 
-    def serialize(self, data: Union[DataSeries, dict, list], **kwargs) -> Response:
+    def __init__(self, compression_method: str = "gzip"):
+        """Initialize the serializer with a compression method.
+
+        Args:
+            compression_method: Compression method to use ("gzip" or "brotli")
+        """
+        self.compression_method = compression_method.lower()
+
+    def serialize(self, data: DataSeries | dict | list, **kwargs) -> Response:
         """Serialize data to compressed JSON format.
 
         Args:
@@ -52,8 +66,20 @@ class CompressedStatsJSONSerializer:
         # Serialize to JSON
         json_str = json.dumps(json_data, indent=2, default=str)
 
-        # Compress the JSON
-        compressed_data = gzip.compress(json_str.encode("utf-8"))
+        # Compress the JSON based on method
+        if self.compression_method == "brotli":
+            if not BROTLI_AVAILABLE:
+                # Fallback to gzip if brotli is not available
+                return self._create_gzip_response(json_str)
+            compressed_data = brotli.compress(json_str.encode("utf-8"))
+            return self._create_brotli_response(compressed_data)
+        else:
+            # Default to gzip
+            compressed_data = gzip.compress(json_str.encode("utf-8"))
+            return self._create_gzip_response(compressed_data)
+
+    def _create_gzip_response(self, compressed_data: bytes) -> Response:
+        """Create a gzip-compressed response."""
         return Response(
             compressed_data,
             mimetype="application/json",
@@ -64,11 +90,40 @@ class CompressedStatsJSONSerializer:
             },
         )
 
+    def _create_brotli_response(self, compressed_data: bytes) -> Response:
+        """Create a brotli-compressed response."""
+        return Response(
+            compressed_data,
+            mimetype="application/json",
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+                "Content-Encoding": "br",
+                "Content-Disposition": "attachment; filename=stats.json.br",
+            },
+        )
+
+
+# Convenience classes for backward compatibility and easy configuration
+class GzipStatsJSONSerializer(CompressedStatsJSONSerializer):
+    """Gzip-compressed JSON serializer for data series responses."""
+
+    def __init__(self):
+        """Initialize the compressed JSON serializer with gzip compression."""
+        super().__init__(compression_method="gzip")
+
+
+class BrotliStatsJSONSerializer(CompressedStatsJSONSerializer):
+    """Brotli-compressed JSON serializer for data series responses."""
+
+    def __init__(self):
+        """Initialize the compressed JSON serializer with brotli compression."""
+        super().__init__(compression_method="brotli")
+
 
 class DataSeriesCSVSerializer(StatsCSVSerializer):
     """CSV serializer for data series responses."""
 
-    def serialize(self, data: Union[DataSeries, dict, list], **kwargs) -> Response:
+    def serialize(self, data: DataSeries | dict | list, **kwargs) -> Response:
         """Serialize data to CSV format.
 
         Args:
@@ -104,7 +159,7 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
 class DataSeriesExcelSerializer(StatsExcelSerializer):
     """Excel serializer for data series responses."""
 
-    def serialize(self, data: Union[DataSeries, dict, list], **kwargs) -> Response:
+    def serialize(self, data: DataSeries | dict | list, **kwargs) -> Response:
         """Serialize data to Excel format.
 
         Args:

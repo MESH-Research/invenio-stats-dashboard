@@ -36,6 +36,14 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
 
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis.
+
+        Base implementation returns the index as-is. Child classes can override
+        to append the date_basis suffix.
+        """
+        return self.index
+
     def run(
         self,
         community_id: str = "global",
@@ -44,6 +52,7 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
         category: str = "global",
         metric: str = "views",
         subcount_id: str | None = None,
+        date_basis: str = "added",
     ) -> Response | list[DataSeriesDict] | dict | list:
         """Run the query to generate a single data series.
 
@@ -57,6 +66,8 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
             category: The category of the series ('global', 'access_statuses', etc.)
             metric: The metric type ('views', 'downloads', 'visitors', 'dataVolume')
             subcount_id: Specific subcount item ID (for subcount series)
+            date_basis: The date basis for the query ("added", "created",
+                "published"). Default is "added".
 
         Returns:
             DataSeries object or Response with serialized data
@@ -70,6 +81,9 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
                 community_id = community.id
             except Exception as e:
                 raise ValueError(f"Community {community_id} not found: {str(e)}") from e
+
+        # Select the appropriate index based on date_basis
+        search_index = self._get_index_for_date_basis(date_basis)
 
         # Build search query
         must_clauses: list[dict] = [
@@ -88,23 +102,22 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
             must_clauses.append({"range": range_clauses})
 
         # Execute search
-        alias_name = self.index
-        index_pattern = f"{alias_name}-*"
+        index_pattern = f"{search_index}-*"
 
         try:
-            if self.client.indices.exists_alias(name=alias_name):
-                search_index = alias_name
+            if self.client.indices.exists_alias(name=search_index):
+                final_search_index = search_index
             else:
                 indices = self.client.indices.get(index_pattern)
                 if not indices:
                     raise AssertionError(
-                        f"No indices found for alias '{alias_name}' or pattern "
+                        f"No indices found for alias '{search_index}' or pattern "
                         f"{index_pattern}'"
                     )
-                search_index = index_pattern
+                final_search_index = index_pattern
 
             agg_search = (
-                Search(using=self.client, index=search_index)
+                Search(using=self.client, index=final_search_index)
                 .query(Q("bool", must=must_clauses))
                 .extra(size=10_000)
             )
@@ -191,6 +204,10 @@ class RecordSnapshotDataSeriesQuery(DataSeriesQueryBase):
         self.date_field = "snapshot_date"
         self.transformer_class = RecordSnapshotDataSeriesSet
 
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis."""
+        return f"{self.index}-{date_basis}"
+
 
 class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
     """Query for record delta data series."""
@@ -202,6 +219,10 @@ class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
         self.transformer_class = RecordDeltaDataSeriesSet
+
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis."""
+        return f"{self.index}-{date_basis}"
 
 
 class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
@@ -216,11 +237,20 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
 
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis.
+
+        Base implementation returns the index as-is. Child classes can override
+        to append the date_basis suffix.
+        """
+        return self.index
+
     def run(
         self,
         community_id: str = "global",
         start_date: str | None = None,
         end_date: str | None = None,
+        date_basis: str = "added",
     ) -> Response | dict[str, dict[str, list[DataSeriesDict]]] | dict | list:
         """Run the query to generate all data series for a category.
 
@@ -231,6 +261,8 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
                 arrow.get() or a datetime object.
             end_date: The end date. Can be a date string parseable by
                 arrow.get() or a datetime object.
+            date_basis: The date basis for the query ("added", "created",
+                "published"). Default is "added".
 
         Returns:
             Dictionary of DataSeries objects or Response with serialized data
@@ -244,6 +276,8 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
                 community_id = community.id
             except Exception as e:
                 raise ValueError(f"Community {community_id} not found: {str(e)}") from e
+
+        search_index = self._get_index_for_date_basis(date_basis)
 
         # Build search query
         must_clauses: list[dict] = [
@@ -262,23 +296,22 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
             must_clauses.append({"range": range_clauses})
 
         # Execute search
-        alias_name = self.index
-        index_pattern = f"{alias_name}-*"
+        index_pattern = f"{search_index}-*"
 
         try:
-            if self.client.indices.exists_alias(name=alias_name):
-                search_index = alias_name
+            if self.client.indices.exists_alias(name=search_index):
+                final_search_index = search_index
             else:
                 indices = self.client.indices.get(index_pattern)
                 if not indices:
                     raise AssertionError(
-                        f"No indices found for alias '{alias_name}' or pattern "
+                        f"No indices found for alias '{search_index}' or pattern "
                         f"{index_pattern}'"
                     )
-                search_index = index_pattern
+                final_search_index = index_pattern
 
             agg_search = (
-                Search(using=self.client, index=search_index)
+                Search(using=self.client, index=final_search_index)
                 .query(Q("bool", must=must_clauses))
                 .extra(size=10_000)
             )
@@ -348,6 +381,10 @@ class RecordSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
         self.date_field = "snapshot_date"
         self.transformer_class = RecordSnapshotDataSeriesSet
 
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis."""
+        return f"{self.index}-{date_basis}"
+
 
 class RecordDeltaCategoryQuery(CategoryDataSeriesQueryBase):
     """Query for all record delta data series in a category."""
@@ -359,3 +396,7 @@ class RecordDeltaCategoryQuery(CategoryDataSeriesQueryBase):
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
         self.transformer_class = RecordDeltaDataSeriesSet
+
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis."""
+        return f"{self.index}-{date_basis}"

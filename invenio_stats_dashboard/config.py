@@ -1055,7 +1055,23 @@ COMMUNITY_STATS_SERIALIZERS = {
     "application/json+gzip": {
         "serializer": (
             "invenio_stats_dashboard.resources.data_series_serializers:"
-            "CompressedStatsJSONSerializer"
+            "GzipStatsJSONSerializer"
+        ),
+        "enabled_for": [
+            "usage-snapshot-series",
+            "usage-delta-series",
+            "record-snapshot-series",
+            "record-delta-series",
+            "usage-snapshot-category",
+            "usage-delta-category",
+            "record-snapshot-category",
+            "record-delta-category",
+        ],
+    },
+    "application/json+br": {
+        "serializer": (
+            "invenio_stats_dashboard.resources.data_series_serializers:"
+            "BrotliStatsJSONSerializer"
         ),
         "enabled_for": [
             "usage-snapshot-series",

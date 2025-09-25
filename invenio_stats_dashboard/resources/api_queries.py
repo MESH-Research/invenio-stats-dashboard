@@ -34,11 +34,20 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
 
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis.
+
+        Base implementation returns the index as-is. Child classes can override
+        to append the date_basis suffix.
+        """
+        return self.index
+
     def run(
         self,
         community_id: str = "global",
         start_date: str | datetime.datetime | None = None,
         end_date: str | datetime.datetime | None = None,
+        date_basis: str = "added",
     ) -> Response | list[dict[str, Any]] | dict[str, Any]:
         """Run the query.
 
@@ -54,6 +63,8 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
                 arrow.get() or a datetime object.
             end_date (str): The end date. Can be a date string parseable by
                 arrow.get() or a datetime object.
+            date_basis (str): The date basis for the query ("added", "created",
+                "published"). Default is "added".
 
         Returns:
             Response | list[dict[str, Any]] | dict[str, Any]: The results of the query.
@@ -67,6 +78,9 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
                 community_id = community.id
             except Exception as e:
                 raise ValueError(f"Community {community_id} not found: {str(e)}") from e
+
+        # Select the appropriate index based on date_basis
+        search_index = self._get_index_for_date_basis(date_basis)
 
         must_clauses: list[dict] = [
             {"term": {"community_id": community_id}},
@@ -84,23 +98,22 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
             must_clauses.append({"range": range_clauses})
 
         # The parent Query class has already applied prefix_index to self.index
-        alias_name = self.index
-        index_pattern = f"{alias_name}-*"
+        index_pattern = f"{search_index}-*"
 
         try:
-            if self.client.indices.exists_alias(name=alias_name):
-                search_index = alias_name
+            if self.client.indices.exists_alias(name=search_index):
+                final_search_index = search_index
             else:
                 indices = self.client.indices.get(index_pattern)
                 if not indices:
                     raise AssertionError(
-                        f"No indices found for alias '{alias_name}' or pattern "
+                        f"No indices found for alias '{search_index}' or pattern "
                         f"{index_pattern}'"
                     )
-                search_index = index_pattern
+                final_search_index = index_pattern
 
             agg_search = (
-                Search(using=self.client, index=search_index)
+                Search(using=self.client, index=final_search_index)
                 .query(Q("bool", must=must_clauses))
                 .extra(size=10_000)
             )
@@ -125,7 +138,18 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
 
 
 class CommunityRecordDeltaResultsQuery(CommunityStatsResultsQueryBase):
-    """Query for community record delta results."""
+    """Query for community record delta results.
+
+    This query retrieves record delta statistics for a community, showing
+    changes in record counts over time. The query supports different date
+    bases (added, created, published) to filter records by different
+    temporal criteria.
+
+    Args:
+        name: Query name identifier
+        index: Base index name (date basis will be appended automatically)
+        client: OpenSearch client instance
+    """
 
     def __init__(
         self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
@@ -133,6 +157,10 @@ class CommunityRecordDeltaResultsQuery(CommunityStatsResultsQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
+
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis."""
+        return f"{self.index}-{date_basis}"
 
 
 class CommunityRecordSnapshotResultsQuery(CommunityStatsResultsQueryBase):
@@ -144,6 +172,10 @@ class CommunityRecordSnapshotResultsQuery(CommunityStatsResultsQueryBase):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
+
+    def _get_index_for_date_basis(self, date_basis: str) -> str:
+        """Get the appropriate index based on date_basis."""
+        return f"{self.index}-{date_basis}"
 
 
 class CommunityUsageDeltaResultsQuery(CommunityStatsResultsQueryBase):
@@ -184,8 +216,23 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
         community_id: str = "global",
         start_date: str | None = None,
         end_date: str | None = None,
+        date_basis: str = "added",
     ) -> Response | dict[str, Any]:
-        """Run the query."""
+        """Run the query.
+
+        Args:
+            community_id: The community ID (UUID or slug). If "global", the
+                query will be run for the entire repository. Default is "global".
+            start_date: The start date. Can be a date string parseable by
+                arrow.get() or a datetime object.
+            end_date: The end date. Can be a date string parseable by
+                arrow.get() or a datetime object.
+            date_basis: The date basis for the query ("added", "created",
+                "published"). Default is "added".
+
+        Returns:
+            Dictionary containing results from all query types.
+        """
         results = {}
         record_deltas_created = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-created",
@@ -193,7 +240,7 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
             client=self.client,
         )
         results["record_deltas_created"] = record_deltas_created.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
         record_deltas_published = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-published",
@@ -201,7 +248,7 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
             client=self.client,
         )
         results["record_deltas_published"] = record_deltas_published.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
         record_deltas_added = CommunityRecordDeltaResultsQuery(
             name="community-record-delta-added",
@@ -209,7 +256,7 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
             client=self.client,
         )
         results["record_deltas_added"] = record_deltas_added.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
         record_snapshots_created = CommunityRecordSnapshotResultsQuery(
             name="community-record-snapshot-created",
@@ -217,7 +264,7 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
             client=self.client,
         )
         results["record_snapshots_created"] = record_snapshots_created.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
         record_snapshots_published = CommunityRecordSnapshotResultsQuery(
             name="community-record-snapshot-published",
@@ -225,7 +272,7 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
             client=self.client,
         )
         results["record_snapshots_published"] = record_snapshots_published.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
         record_snapshots_added = CommunityRecordSnapshotResultsQuery(
             name="community-record-snapshot-added",
@@ -233,21 +280,23 @@ class CommunityStatsResultsQuery(Query, ContentNegotiationMixin):
             client=self.client,
         )
         results["record_snapshots_added"] = record_snapshots_added.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
         usage_deltas = CommunityUsageDeltaResultsQuery(
             name="community-usage-delta",
             index="stats-community-usage-delta",
             client=self.client,
         )
-        results["usage_deltas"] = usage_deltas.run(community_id, start_date, end_date)
+        results["usage_deltas"] = usage_deltas.run(
+            community_id, start_date, end_date, date_basis
+        )
         usage_snapshots = CommunityUsageSnapshotResultsQuery(
             name="community-usage-snapshot",
             index="stats-community-usage-snapshot",
             client=self.client,
         )
         results["usage_snapshots"] = usage_snapshots.run(
-            community_id, start_date, end_date
+            community_id, start_date, end_date, date_basis
         )
 
         if self.should_use_content_negotiation(self.name):
