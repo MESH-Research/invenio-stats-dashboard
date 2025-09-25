@@ -395,4 +395,46 @@ The following table provides a complete reference of all available configuration
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
 
+### Content Negotiation and Response Serializers
+
+The API supports multiple response formats through content negotiation. The `COMMUNITY_STATS_SERIALIZERS` configuration controls which serializers are available for different content types:
+
+```python
+COMMUNITY_STATS_SERIALIZERS = {
+    "application/json": {
+        "serializer": "invenio_stats_dashboard.resources.serializers:StatsJSONSerializer",
+        "enabled_for": ["community-record-delta-created", ...]
+    },
+    "application/json+gzip": {
+        "serializer": "invenio_stats_dashboard.resources.data_series_serializers:GzipStatsJSONSerializer",
+        "enabled_for": ["usage-snapshot-series", "usage-delta-series", ...]
+    },
+    "application/json+br": {
+        "serializer": "invenio_stats_dashboard.resources.data_series_serializers:BrotliStatsJSONSerializer",
+        "enabled_for": ["usage-snapshot-series", "usage-delta-series", ...]
+    },
+    "text/csv": {
+        "serializer": "invenio_stats_dashboard.resources.data_series_serializers:DataSeriesCSVSerializer",
+        "enabled_for": ["usage-snapshot-series", "usage-delta-series", ...]
+    }
+}
+```
+
+#### Compression Support
+
+- **Gzip**: Widely supported, good compression ratio
+- **Brotli**: Better compression (15-25% smaller), preferred when available
+- **Automatic fallback**: Brotli falls back to Gzip if the `brotli` package is not available
+
+#### Custom Serializers
+
+You can add custom serializers by extending the configuration:
+
+```python
+COMMUNITY_STATS_SERIALIZERS["application/custom"] = {
+    "serializer": "your_module.serializers:CustomSerializer",
+    "enabled_for": ["usage-snapshot-series"]
+}
+```
+
 

@@ -213,6 +213,7 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">CLI Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_requests.html">API Requests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
@@ -716,6 +717,48 @@ range for each granularity level.</p>
 </div>
 <p><strong>Note</strong>: Variables marked with <code class="docutils literal notranslate"><span class="pre">{...}</span></code> contain complex configuration objects that are documented in detail in the sections above.</p>
 </section>
+<section id="content-negotiation-and-response-serializers">
+<h2>Content Negotiation and Response Serializers<a class="headerlink" href="#content-negotiation-and-response-serializers" title="Link to this heading">¶</a></h2>
+<p>The API supports multiple response formats through content negotiation. The <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SERIALIZERS</span></code> configuration controls which serializers are available for different content types:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SERIALIZERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;application/json&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.serializers:StatsJSONSerializer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;community-record-delta-created&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;application/json+gzip&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.data_series_serializers:GzipStatsJSONSerializer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">,</span> <span class="s2">&quot;usage-delta-series&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;application/json+br&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.data_series_serializers:BrotliStatsJSONSerializer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">,</span> <span class="s2">&quot;usage-delta-series&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;text/csv&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.data_series_serializers:DataSeriesCSVSerializer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">,</span> <span class="s2">&quot;usage-delta-series&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="compression-support">
+<h3>Compression Support<a class="headerlink" href="#compression-support" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Gzip</strong>: Widely supported, good compression ratio</p></li>
+<li><p><strong>Brotli</strong>: Better compression (15-25% smaller), preferred when available</p></li>
+<li><p><strong>Automatic fallback</strong>: Brotli falls back to Gzip if the <code class="docutils literal notranslate"><span class="pre">brotli</span></code> package is not available</p></li>
+</ul>
+</section>
+<section id="custom-serializers">
+<h3>Custom Serializers<a class="headerlink" href="#custom-serializers" title="Link to this heading">¶</a></h3>
+<p>You can add custom serializers by extending the configuration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SERIALIZERS</span><span class="p">[</span><span class="s2">&quot;application/custom&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;your_module.serializers:CustomSerializer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
         </article>
@@ -816,6 +859,11 @@ range for each granularity level.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#configuration-reference">Configuration Reference</a></li>
+<li><a class="reference internal" href="#content-negotiation-and-response-serializers">Content Negotiation and Response Serializers</a><ul>
+<li><a class="reference internal" href="#compression-support">Compression Support</a></li>
+<li><a class="reference internal" href="#custom-serializers">Custom Serializers</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
