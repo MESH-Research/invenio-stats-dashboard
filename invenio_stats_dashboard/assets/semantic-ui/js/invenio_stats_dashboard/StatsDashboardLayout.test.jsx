@@ -99,33 +99,32 @@ describe('StatsDashboardLayout with caching', () => {
       }
 
       return Promise.resolve({
-        cachedStats: null,
-        freshStats: mockTransformedStats,
+        stats: mockTransformedStats,
         lastUpdated: Date.now(),
         error: null
       });
     });
   });
 
-        it('should display cached data immediately when available', async () => {
-    // Mock API to simulate cached data flow
+  it('should display data when loaded', async () => {
+    // Mock API to simulate data loading flow
     fetchStats.mockImplementation(({ onStateChange, isMounted }) => {
-      // Simulate cached data callback
+      // Simulate loading state
       if (onStateChange && isMounted && isMounted()) {
         onStateChange({
-          type: 'cached_data_loaded',
-          stats: mockTransformedStats,
-          isLoading: false,
-          isUpdating: true,
+          type: 'loading_started',
+          stats: null,
+          isLoading: true,
+          isUpdating: false,
           error: null
         });
       }
 
-      // Simulate fresh data callback
+      // Simulate data loaded callback
       setTimeout(() => {
         if (onStateChange && isMounted && isMounted()) {
           onStateChange({
-            type: 'fresh_data_loaded',
+            type: 'data_loaded',
             stats: mockTransformedStats,
             isLoading: false,
             isUpdating: false,
@@ -136,8 +135,7 @@ describe('StatsDashboardLayout with caching', () => {
       }, 100);
 
       return Promise.resolve({
-        cachedStats: mockTransformedStats,
-        freshStats: mockTransformedStats,
+        stats: mockTransformedStats,
         lastUpdated: Date.now(),
         error: null
       });
@@ -214,8 +212,7 @@ describe('StatsDashboardLayout with caching', () => {
       }, 100);
 
       return Promise.resolve({
-        cachedStats: mockTransformedStats,
-        freshStats: mockTransformedStats,
+        stats: mockTransformedStats,
         lastUpdated: Date.now(),
         error: null
       });
