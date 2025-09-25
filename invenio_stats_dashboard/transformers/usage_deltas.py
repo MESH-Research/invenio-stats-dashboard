@@ -6,12 +6,13 @@
 
 """Usage delta data series transformer classes."""
 
+from typing import Any
+
 from .base import (
     DataSeries,
     DataSeriesArray,
     DataSeriesSet,
 )
-from typing import Any
 
 
 class GlobalUsageDeltaDataSeries(DataSeries):
@@ -43,7 +44,7 @@ class GlobalUsageDeltaDataSeries(DataSeries):
             "downloads": ("download", "total_events", "number"),
             "view_visitors": ("view", "unique_visitors", "number"),
             "download_visitors": ("download", "unique_visitors", "number"),
-            "dataVolume": ("download", "total_volume", "filesize"),
+            "data_volume": ("download", "total_volume", "filesize"),
         }
 
         if self.metric in core_metrics:
@@ -97,7 +98,7 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
         - view.total_events → views
         - download.total_events → downloads
         - view.unique_visitors + download.unique_visitors → visitors (max)
-        - download.total_volume → dataVolume
+        - download.total_volume → data_volume
         - Plus additional metrics from view/download structures
         """
         if not self.documents:
@@ -121,7 +122,7 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
         if "unique_visitors" in download_data:
             metrics.append("download_visitors")
         if "total_volume" in download_data:
-            metrics.append("dataVolume")
+            metrics.append("data_volume")
 
         # Additional metrics from view data
         for key in view_data.keys():

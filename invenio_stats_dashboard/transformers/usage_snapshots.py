@@ -1,9 +1,18 @@
+# Copyright (C) 2025 Kcworks
+#
+# Invenio is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+
+"""Data series transformer classes for usage snapshot data."""
+
+from typing import Any
+
 from .base import (
     DataSeries,
     DataSeriesArray,
     DataSeriesSet,
 )
-from typing import Any
 
 
 class GlobalUsageSnapshotDataSeries(DataSeries):
@@ -35,7 +44,7 @@ class GlobalUsageSnapshotDataSeries(DataSeries):
             "downloads": ("download", "total_events", "number"),
             "view_visitors": ("view", "unique_visitors", "number"),
             "download_visitors": ("download", "unique_visitors", "number"),
-            "dataVolume": ("download", "total_volume", "filesize"),
+            "data_volume": ("download", "total_volume", "filesize"),
         }
 
         if self.metric in core_metrics:
@@ -90,6 +99,29 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         """Return the configuration key for usage snapshot data."""
         return "usage_events"
 
+    def _get_default_series_keys(self) -> list[str]:
+        """Get the default series keys for usage snapshot data."""
+        from flask import current_app
+
+        subcount_configs = current_app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
+
+        series_keys = []
+        series_keys.append("global")
+
+        for subcount_name, config in subcount_configs.items():
+            if self.config_key in config:
+                subcount_config = config[self.config_key]
+
+                if subcount_config.get("snapshot_type") == "top":
+                    series_keys.append(f"{subcount_name}_by_view")
+                    series_keys.append(f"{subcount_name}_by_download")
+                else:
+                    series_keys.append(subcount_name)
+
+        series_keys.extend(self.special_subcounts)
+
+        return series_keys
+
     @property
     def special_subcounts(self) -> list[str]:
         """Get special subcounts for usage snapshots."""
@@ -115,7 +147,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
             "downloads",
             "view_visitors",
             "download_visitors",
-            "dataVolume",
+            "data_volume",
         ]
 
     def _create_special_series_array(
@@ -140,7 +172,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         - download.total_events → downloads
         - view.unique_visitors → view_visitors
         - download.unique_visitors → download_visitors
-        - download.total_volume → dataVolume
+        - download.total_volume → data_volume
         - Plus additional metrics from view/download structures
         """
         if not self.documents:
@@ -164,7 +196,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         if "unique_visitors" in download_data:
             metrics.append("download_visitors")
         if "total_volume" in download_data:
-            metrics.append("dataVolume")
+            metrics.append("data_volume")
 
         # Additional metrics from view data
         for key in view_data.keys():

@@ -30,14 +30,14 @@ from .resources.api_queries import (
     CommunityUsageSnapshotResultsQuery,
 )
 from .resources.data_series_queries import (
-    UsageSnapshotDataSeriesQuery,
-    UsageDeltaDataSeriesQuery,
-    RecordSnapshotDataSeriesQuery,
-    RecordDeltaDataSeriesQuery,
-    UsageSnapshotCategoryQuery,
-    UsageDeltaCategoryQuery,
-    RecordSnapshotCategoryQuery,
     RecordDeltaCategoryQuery,
+    RecordDeltaDataSeriesQuery,
+    RecordSnapshotCategoryQuery,
+    RecordSnapshotDataSeriesQuery,
+    UsageDeltaCategoryQuery,
+    UsageDeltaDataSeriesQuery,
+    UsageSnapshotCategoryQuery,
+    UsageSnapshotDataSeriesQuery,
 )
 from .tasks import CommunityStatsAggregationTask
 
@@ -660,58 +660,6 @@ STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 85
 COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
 
 
-def get_subcount_field(config: dict, field_name: str, index: int = 0) -> str | None:
-    """Get field value from subcount config using source_fields structure.
-
-    Args:
-        config: Subcount configuration dictionary
-        field_name: Name of the field to extract (e.g., 'field', 'label_field')
-        index: Index of the source_fields entry to use (default: 0)
-
-    Returns:
-        Field value or None if not found
-    """
-    source_fields = config.get("source_fields", [])
-    if index < len(source_fields):
-        result = source_fields[index].get(field_name)
-        return result if isinstance(result, str) else None
-    return None
-
-
-def get_subcount_label_includes(config: dict, index: int = 0) -> list[str]:
-    """Get label_source_includes from subcount config using source_fields structure.
-
-    Args:
-        config: Subcount configuration dictionary
-        index: Index of the source_fields entry to use (default: 0)
-
-    Returns:
-        List of label source includes
-    """
-    source_fields = config.get("source_fields", [])
-    if index < len(source_fields):
-        result = source_fields[index].get("label_source_includes", [])
-        return result if isinstance(result, list) else []
-    return []
-
-
-def get_subcount_combine_subfields(config: dict, index: int = 0) -> list[str]:
-    """Get combine_subfields from subcount config using source_fields structure.
-
-    Args:
-        config: Subcount configuration dictionary
-        index: Index of the source_fields entry to use (default: 0)
-
-    Returns:
-        List of combine subfields
-    """
-    source_fields = config.get("source_fields", [])
-    if index < len(source_fields):
-        result = source_fields[index].get("combine_subfields", [])
-        return result if isinstance(result, list) else []
-    return []
-
-
 COMMUNITY_STATS_SUBCOUNTS = {
     "resource_types": {
         "records": {
@@ -898,6 +846,10 @@ COMMUNITY_STATS_SUBCOUNTS = {
                     "field": "funders.id",
                     "label_field": "funders.name",
                     "label_source_includes": ["funders.id", "funders.name"],
+                    "combine_subfields": [
+                        "funders.id",
+                        "funders.name",
+                    ],
                 },
             ],
         },
@@ -1003,6 +955,10 @@ COMMUNITY_STATS_SUBCOUNTS = {
                     "field": "affiliations.id",
                     "label_field": "affiliations.name",
                     "label_source_includes": ["affiliations.name", "affiliations.id"],
+                    "combine_subfields": [
+                        "affiliations.id",
+                        "affiliations.name",
+                    ],
                 },
             ],
         },

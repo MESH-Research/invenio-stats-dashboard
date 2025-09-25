@@ -6,12 +6,16 @@
 
 """Record snapshot data series transformer classes."""
 
+from pprint import pformat
+from typing import Any
+
+from flask import current_app
+
 from .base import (
     DataSeries,
     DataSeriesArray,
     DataSeriesSet,
 )
-from typing import Any
 
 
 class GlobalRecordSnapshotDataSeries(DataSeries):
@@ -109,23 +113,35 @@ class FilePresenceRecordSnapshotDataSeries(DataSeries):
 
     def add(self, doc: dict[str, Any]) -> None:
         """Add file presence data from document."""
-        # Extract date
         snapshot_date = doc.get("snapshot_date")
         if snapshot_date is None:
             return
         date = snapshot_date.split("T")[0]
         if not date:
             return
+        current_app.logger.error(f"doc: {pformat(doc)}")
 
-        # Get total_records data
-        total_records = doc.get("total_records")
-        if not isinstance(total_records, dict):
-            return
-
-        # The metric should be the presence type (metadata_only or with_files)
-        if self.metric in total_records:
-            value = total_records[self.metric]
-            self.add_data_point(date, value)
+        if self.metric in ["records", "parents"]:
+            # The subfields of  records  and parents  match the
+            # series ids we're looking for
+            metric_data = doc.get(f"total_{self.metric}")
+            if isinstance(metric_data, dict):
+                self.add_data_point(date, int(metric_data[self.series_id]), "number")
+        elif self.metric in ["data_volume", "file_count"]:
+            current_app.logger.error(self.metric)
+            current_app.logger.error(self.series_id)
+            current_app.logger.error(f"metric_data: {doc.get('total_files')}")
+            current_app.logger.error(
+                f"metric_data: {doc.get('total_files', {}).get(self.metric)}"
+            )
+            # These come from files structure
+            files_data = doc.get("total_files", {})
+            if self.series_id == "metadata_only":
+                self.add_data_point(date, 0, "number")
+            elif self.series_id == "with_files":
+                value = files_data.get(self.metric, 0)
+                value_type = "filesize" if self.metric == "data_volume" else "number"
+                self.add_data_point(date, value, value_type)
 
 
 class RecordSnapshotDataSeriesSet(DataSeriesSet):
@@ -143,8 +159,7 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
         """Get the metrics for a special subcount."""
-        if subcount == "file_presence":
-            return ["metadata_only", "with_files"]  # Two presence types
+        # Return empty list to fall back to regular metrics discovery
         return []
 
     def _create_special_series_array(
@@ -152,15 +167,57 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
     ) -> DataSeriesArray:
         """Create a data series array for a special subcount and metric."""
         if subcount == "file_presence":
-            return DataSeriesArray(
+            series_array = DataSeriesArray(
                 "file_presence",
                 FilePresenceRecordSnapshotDataSeries,
                 metric,
                 is_global=False,
                 chart_type="line",
                 value_type="number",
+                is_special=True,
             )
+
+            series_array.series = [
+                FilePresenceRecordSnapshotDataSeries(
+                    "metadata_only",
+                    "Metadata Only",
+                    metric,
+                    "line",
+                    "number",
+                ),
+                FilePresenceRecordSnapshotDataSeries(
+                    "with_files",
+                    "With Files",
+                    metric,
+                    "line",
+                    "number",
+                ),
+            ]
+
+            series_array._initialized = True
+
+            return series_array
         raise NotImplementedError(f"Special subcount {subcount} not implemented")
+
+    def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
+        """Discover metrics from record snapshot documents."""
+        metrics = super()._discover_metrics_from_documents()
+        assert isinstance(metrics, dict)
+
+        # For record snapshots, split total_files into data_volume and file_count
+        if "global" in metrics:
+            metrics["global"] = [
+                metric for metric in metrics["global"] if metric != "total_files"
+            ] + ["data_volume", "file_count"]
+
+        # For subcounts, split files into data_volume and file_count
+        for subcount_name in metrics:
+            if subcount_name != "global" and "files" in metrics[subcount_name]:
+                metrics[subcount_name] = [
+                    metric for metric in metrics[subcount_name] if metric != "files"
+                ] + ["data_volume", "file_count"]
+
+        return metrics
 
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given subcount and metric."""

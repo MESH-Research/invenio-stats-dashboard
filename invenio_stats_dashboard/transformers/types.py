@@ -33,8 +33,8 @@ class GlobalMetricsDict(TypedDict):
     records: list[DataSeriesDict]
     parents: list[DataSeriesDict]
     uploaders: list[DataSeriesDict]
-    fileCount: list[DataSeriesDict]
-    dataVolume: list[DataSeriesDict]
+    file_count: list[DataSeriesDict]
+    data_volume: list[DataSeriesDict]
 
 
 class FilePresenceDict(TypedDict):
@@ -50,8 +50,8 @@ class SubcountMetricsDict(TypedDict):
     records: list[DataSeriesDict]
     parents: list[DataSeriesDict]
     uploaders: list[DataSeriesDict]
-    fileCount: list[DataSeriesDict]
-    dataVolume: list[DataSeriesDict]
+    file_count: list[DataSeriesDict]
+    data_volume: list[DataSeriesDict]
 
 
 class SubcountUsageMetricsDict(TypedDict):
@@ -60,7 +60,7 @@ class SubcountUsageMetricsDict(TypedDict):
     views: list[DataSeriesDict]
     downloads: list[DataSeriesDict]
     visitors: list[DataSeriesDict]
-    dataVolume: list[DataSeriesDict]
+    data_volume: list[DataSeriesDict]
 
 
 class UsageMetricsDict(TypedDict):
@@ -69,7 +69,7 @@ class UsageMetricsDict(TypedDict):
     views: list[DataSeriesDict]
     downloads: list[DataSeriesDict]
     visitors: list[DataSeriesDict]
-    dataVolume: list[DataSeriesDict]
+    data_volume: list[DataSeriesDict]
 
 
 class FilePresenceUsageDict(TypedDict):
@@ -78,7 +78,7 @@ class FilePresenceUsageDict(TypedDict):
     views: list[DataSeriesDict]
     downloads: list[DataSeriesDict]
     visitors: list[DataSeriesDict]
-    dataVolume: list[DataSeriesDict]
+    data_volume: list[DataSeriesDict]
 
 
 class SubcountItemDict(TypedDict):
@@ -106,7 +106,10 @@ class AggregationDocumentDict(TypedDict, total=False):
     """Type definition for an aggregation document."""
 
     period_start: str | None
+    period_end: str | None
     snapshot_date: str | None
+    community_id: str | None
+    timestamp: str | None
     records: dict[str, Any] | None
     parents: dict[str, Any] | None
     uploaders: int | None

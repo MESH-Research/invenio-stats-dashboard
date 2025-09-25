@@ -6,9 +6,9 @@
 
 """Community usage delta aggregators for tracking daily usage statistics."""
 
+import time
 from collections.abc import Generator
 from itertools import chain
-import time
 from typing import Any
 
 import arrow
@@ -19,10 +19,10 @@ from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 from ..queries import CommunityUsageDeltaQuery
-from ..config import (
+from ..utils.utils import (
+    get_subcount_combine_subfields,
     get_subcount_field,
     get_subcount_label_includes,
-    get_subcount_combine_subfields,
 )
 from .base import CommunityAggregatorBase
 from .types import (
@@ -214,7 +214,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 continue
 
             # Process each source field
-            for field_index, source_field in enumerate(source_fields):
+            for field_index, _source_field in enumerate(source_fields):
                 field = get_subcount_field(usage_config, "field", field_index)
                 if not field:
                     continue  # Skip fields that don't exist
@@ -304,7 +304,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 continue
 
             # Process each source field
-            for field_index, source_field in enumerate(source_fields):
+            for field_index, _source_field in enumerate(source_fields):
                 field = get_subcount_field(usage_config, "field", field_index)
                 if not field:
                     continue  # Skip fields that don't exist
@@ -394,7 +394,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 continue
 
             # Process each source field
-            for field_index, source_field in enumerate(source_fields):
+            for field_index, _source_field in enumerate(source_fields):
                 # Check if this source field has combine_subfields configuration
                 combine_subfields = get_subcount_combine_subfields(
                     usage_config, field_index
@@ -537,8 +537,10 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             download_buckets = download_agg.buckets
 
         all_keys = set()
-        for bucket in view_buckets + download_buckets:
-            all_keys.add(bucket.key)
+        for view_bucket in view_buckets:
+            all_keys.add(view_bucket.key)
+        for download_bucket in download_buckets:
+            all_keys.add(download_bucket.key)
 
         for key in all_keys:
             view_bucket = None
@@ -638,9 +640,10 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         key
                     ].get("label"):
                         merged_results[key]["label"] = value.get("label")
-                    merged_results[key] = self._merge_field_results(
-                        [[merged_results[key]], [value]]
-                    )
+                    merged_results[key] = self._merge_field_results([
+                        [merged_results[key]],
+                        [value],
+                    ])
                 elif isinstance(value, int | float):
                     merged_results[key] += value
 
@@ -661,6 +664,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             download_results: Results from download query (or None).
             community_id (str): The community ID.
             date (arrow.Arrow): The date for the aggregation.
+            index (int): The index in the subcount config's source fields
+                list
+
 
         Returns:
             UsageDeltaDocument: Combined aggregation document.
@@ -677,7 +683,6 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             item_sets: list[list[UsageSubcountItem]] = []
 
             for field_index, _source_field in enumerate(source_fields):
-
                 if field_index > 0:
                     subcount_name = f"{subcount_key}_{field_index}"
                 else:
@@ -863,7 +868,8 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
             if key not in combined_items:
                 combined_items[key] = self._create_empty_subcount_item(
-                    id_and_label["id"], id_and_label["label"]  # type: ignore
+                    id_and_label["id"],
+                    id_and_label["label"],  # type: ignore
                 )
 
             # Add metrics

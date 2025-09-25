@@ -8,7 +8,7 @@
 
 import time
 from collections.abc import Generator
-from typing import Any
+from typing import Any, cast
 
 import arrow
 from flask import current_app
@@ -17,7 +17,7 @@ from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 from ..queries import CommunityRecordDeltaQuery
-from ..config import get_subcount_field, get_subcount_combine_subfields
+from ..utils.utils import get_subcount_field, get_subcount_combine_subfields
 from .base import CommunityAggregatorBase
 from .types import (
     RecordDeltaDocument,
@@ -266,8 +266,8 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         )
 
     def _process_multi_field_subcount(
-        self, subcount_type, aggs_added, aggs_removed, config
-    ):
+        self, subcount_type: str, aggs_added: dict, aggs_removed: dict, config: dict
+    ) -> list[RecordDeltaSubcountItem]:
         """Process subcount with multiple source fields."""
         source_fields = config.get("source_fields", [])
         agg_results = []
@@ -292,9 +292,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 )
             )
 
-        combined_results = self._merge_field_results(agg_results)
+        combined_results = self._merge_field_results(
+            [cast(list[dict[str, Any]], result_list) for result_list in agg_results]
+        )
 
-        return list(combined_results.values())
+        return cast(list[RecordDeltaSubcountItem], list(combined_results.values()))
 
     def _process_single_field_results(
         self,
@@ -623,8 +625,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                     day_iteration_end_time - day_iteration_start_time
                 )
                 current_app.logger.debug(
-                    f"Record day {total_days_processed}: "
-                    f"{day_iteration_duration:.2f}s"
+                    f"Record day {total_days_processed}: {day_iteration_duration:.2f}s"
                 )
 
                 yield (document, day_iteration_duration)

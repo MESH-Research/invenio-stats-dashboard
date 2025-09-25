@@ -91,14 +91,12 @@ class TestCommunityRecordDeltaCreatedAggregator:
         community event addition dates so that record addition to community is on
         a different day from record creation and publication.
         """
-        for idx, rec in enumerate(
-            [
-                sample_metadata_journal_article4_pdf,
-                sample_metadata_journal_article5_pdf,
-                sample_metadata_journal_article6_pdf,
-                sample_metadata_journal_article7_pdf,
-            ]
-        ):
+        for idx, rec in enumerate([
+            sample_metadata_journal_article4_pdf,
+            sample_metadata_journal_article5_pdf,
+            sample_metadata_journal_article6_pdf,
+            sample_metadata_journal_article7_pdf,
+        ]):
             meta: dict = deepcopy(rec)
             meta["created"] = self.creation_dates[idx].format("YYYY-MM-DDTHH:mm:ss")
             meta["metadata"]["publication_date"] = min(self.creation_dates).format(
@@ -303,7 +301,8 @@ class TestCommunityRecordDeltaCreatedAggregator:
                         for subcount_item in subcount_items:
                             self.app.logger.error(f"subcount_item: {subcount_item}")
                             self.app.logger.error(
-                                f"expected_doc: {expected_doc['_source']['subcounts'][k]}"
+                                f"expected_doc: "
+                                f"{expected_doc['_source']['subcounts'][k]}"
                             )
                             matching_doc = next(
                                 (
@@ -469,8 +468,8 @@ class TestCommunityRecordDeltaAddedAggregator(
                         assert doc["files"]["added"]["file_count"] == 1
                         assert doc["files"]["added"]["data_volume"] == 1984949.0
                 else:
-                    # community records will treat their "added" date as the date they were
-                    # added to the community, so all records should be added on the
+                    # community records will treat their "added" date as the date they
+                    # were added to the community, so all records should be added on the
                     # current day
                     if idx < len(set) - 1:
                         self._check_empty_day(actual_doc, idx, set_idx, community_id)
@@ -547,17 +546,15 @@ class TestCommunityRecordDeltaPublishedAggregator(
         start_date = arrow.get(self.creation_dates[0]).floor("day")
         end_date = arrow.get("2025-06-03").ceil("day")
         range_dates = [a for a in arrow.Arrow.range("day", start_date, end_date)]
-        range_dates.extend(
-            [
-                arrow.get(d)
-                for d in [
-                    "2017-01-01",
-                    "2023-11-01",
-                    "2025-06-02",
-                    "2025-06-03",
-                ]
+        range_dates.extend([
+            arrow.get(d)
+            for d in [
+                "2017-01-01",
+                "2023-11-01",
+                "2025-06-02",
+                "2025-06-03",
             ]
-        )
+        ])
         return sorted(list(set(range_dates)))
 
     @property
@@ -676,14 +673,12 @@ class TestCommunityRecordSnapshotCreatedAggregator:
     ):
         """Create sample records for testing."""
         created_records = []
-        for idx, rec in enumerate(
-            [
-                sample_metadata_journal_article4_pdf,
-                sample_metadata_journal_article5_pdf,
-                sample_metadata_journal_article6_pdf,
-                sample_metadata_journal_article7_pdf,
-            ]
-        ):
+        for idx, rec in enumerate([
+            sample_metadata_journal_article4_pdf,
+            sample_metadata_journal_article5_pdf,
+            sample_metadata_journal_article6_pdf,
+            sample_metadata_journal_article7_pdf,
+        ]):
             metadata: dict = deepcopy(rec)
             metadata["created"] = self.creation_dates[idx]
 
@@ -782,7 +777,8 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             body={"query": {"match_all": {}}, "size": 1000},
         )
         self.app.logger.error(
-            f"Events index contains: {events_documents['hits']['total']['value']} documents"
+            f"Events index contains: {events_documents['hits']['total']['value']} "
+            "documents"
         )
         for hit in events_documents["hits"]["hits"]:
             source = hit["_source"]
@@ -829,13 +825,14 @@ class TestCommunityRecordSnapshotCreatedAggregator:
 
         current_search_client.indices.refresh(index=f"*{self.snapshot_index_name}*")
 
-        # Check what's in the published record delta documents after published aggregator runs
+        # Check what's in the published record delta documents after aggregator runs
         published_delta_check = current_search_client.search(
             index=aggregator.delta_index,
             body={"query": {"match_all": {}}, "size": 100},
         )
         self.app.logger.error(
-            f"Published delta index ({aggregator.delta_index}) contains: {published_delta_check['hits']['total']['value']} documents"
+            f"Published delta index ({aggregator.delta_index}) contains: "
+            f"{published_delta_check['hits']['total']['value']} documents"
         )
         for hit in published_delta_check["hits"]["hits"]:
             source = hit["_source"]
@@ -903,7 +900,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
         return MOCK_RECORD_SNAPSHOT_DOCS
 
     def _align_expected_documents(self, agg_documents, community_id):
-        """Align expected documents with actual documents based on aggregator behavior."""
+        """Align expected documents with actual based on aggregator behavior."""
         expected_docs = self.expected_documents
         return zip(
             [agg_documents[0]] + agg_documents[-2:],
@@ -944,9 +941,9 @@ class TestCommunityRecordSnapshotCreatedAggregator:
 
             # Check that all expected subcount categories exist
             for category in expected_subcounts.keys():
-                assert (
-                    category in actual_subcounts
-                ), f"Missing subcount category: {category}"
+                assert category in actual_subcounts, (
+                    f"Missing subcount category: {category}"
+                )
 
             # Verify "all_" subcounts have identical content
             all_categories = [
@@ -955,9 +952,10 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             for category in all_categories:
                 expected_count = len(expected_subcounts[category])
                 actual_count = len(actual_subcounts[category])
-                assert (
-                    actual_count == expected_count
-                ), f"Category {category} count mismatch: expected {expected_count}, got {actual_count}"
+                assert actual_count == expected_count, (
+                    f"Category {category} count mismatch: expected {expected_count}, "
+                    f"got {actual_count}"
+                )
 
                 # Sort both lists by ID for consistent comparison
                 expected_sorted = sorted(
@@ -971,18 +969,19 @@ class TestCommunityRecordSnapshotCreatedAggregator:
                 for i, (expected_item, actual_item) in enumerate(
                     zip(expected_sorted, actual_sorted, strict=True)
                 ):
-                    assert (
-                        actual_item == expected_item
-                    ), f"Category {category} item {i} mismatch: expected {expected_item}, got {actual_item}"
+                    assert actual_item == expected_item, (
+                        f"Category {category} item {i} mismatch: expected "
+                        f"{expected_item}, got {actual_item}"
+                    )
 
             # Verify "top_" subcounts have identical content
             top_categories = [
                 k for k in expected_subcounts.keys() if k.startswith("top_")
             ]
             for category in top_categories:
-                assert (
-                    category in actual_subcounts
-                ), f"Missing top subcount category: {category}"
+                assert category in actual_subcounts, (
+                    f"Missing top subcount category: {category}"
+                )
                 assert isinstance(actual_subcounts[category], list), (
                     f"Top subcount {category} should be a list, "
                     f"got {type(actual_subcounts[category])}"
@@ -1260,14 +1259,12 @@ class TestCommunityUsageAggregators:
     ):
         """Setup test records."""
         created_records = []
-        for idx, rec in enumerate(
-            [
-                sample_metadata_journal_article4_pdf,
-                sample_metadata_journal_article5_pdf,
-                sample_metadata_journal_article6_pdf,
-                sample_metadata_journal_article7_pdf,
-            ]
-        ):
+        for idx, rec in enumerate([
+            sample_metadata_journal_article4_pdf,
+            sample_metadata_journal_article5_pdf,
+            sample_metadata_journal_article6_pdf,
+            sample_metadata_journal_article7_pdf,
+        ]):
             metadata: dict = deepcopy(rec)
             metadata["created"] = "2025-06-01T00:00:00+00:00"
             enhance_metadata_with_funding_and_affiliations(metadata, idx)
@@ -1315,21 +1312,22 @@ class TestCommunityUsageAggregators:
         # Expected: 5 records total (from test setup + other records in environment)
         # With one record having no files (so no download events)
         # Each record gets 20 view events and 20 download events (if files)
-        assert (
-            actual_events_count == 180
-        ), f"Expected 180 events (9 records × 20), got {actual_events_count}"
+        assert actual_events_count == 180, (
+            f"Expected 180 events (9 records × 20), got {actual_events_count}"
+        )
         assert actual_events["errors"] == 0
 
         current_search_client.indices.refresh(index="events-stats-*")
 
         view_count = current_search_client.count(index="events-stats-record-view")
         download_count = current_search_client.count(index="events-stats-file-download")
-        assert (
-            view_count["count"] == 100
-        ), f"Expected 100 events (5 records × 20), got {view_count['count']}"
-        assert (
-            download_count["count"] == 80
-        ), f"Expected 80 events (4 records with files × 20), got {download_count['count']}"
+        assert view_count["count"] == 100, (
+            f"Expected 100 events (5 records × 20), got {view_count['count']}"
+        )
+        assert download_count["count"] == 80, (
+            f"Expected 80 events (4 records with files × 20), got "
+            f"{download_count['count']}"
+        )
 
     def _set_bookmarks(self, aggregator, community_id):
         """Set the initial bookmarks for the delta and snapshot aggregators."""
@@ -1434,9 +1432,9 @@ class TestCommunityUsageAggregators:
         )
         # Allow some variance due to random visitor ID generation
         expected_visitors = 140 + extra_views + extra_downloads
-        assert (
-            expected_visitors - 5 <= total_visitors <= expected_visitors
-        ), f"Expected {expected_visitors} visitors (±5), got {total_visitors}"
+        assert expected_visitors - 5 <= total_visitors <= expected_visitors, (
+            f"Expected {expected_visitors} visitors (±5), got {total_visitors}"
+        )
 
         # Check cumulative totals for specific fields
         total_volume = sum(
@@ -1556,7 +1554,8 @@ class TestCommunityUsageAggregators:
             f"Delta aggregation period_start dates for {community_id}: {period_starts}"
         )
         self.app.logger.error(
-            f"Expected {total_days} days from {start_date.format('YYYY-MM-DD')} to {end_date.format('YYYY-MM-DD')}"
+            f"Expected {total_days} days from {start_date.format('YYYY-MM-DD')} to "
+            f"{end_date.format('YYYY-MM-DD')}"
         )
 
         assert results[0][0] == total_days  # Should have one result per day
@@ -1717,7 +1716,8 @@ class TestCommunityUsageAggregators:
                     self.app.logger.error(f"top_subcount_type: {top_subcount_type}")
                     self.app.logger.error(f"item: {item}")
                     self.app.logger.error(
-                        f"delta dates: {[d['_source']['period_start'] for d in delta_results]}"
+                        f"delta dates: "
+                        f"{[d['_source']['period_start'] for d in delta_results]}"
                     )
                     matching_delta_items = [
                         d_item
@@ -1900,9 +1900,9 @@ class TestCommunityUsageAggregators:
                 ]
                 matching_deltas_string = ", ".join(matching_deltas_string)
                 self.app.logger.error(
-                    f"Item {item['id']} {scope} {metric}: " f"{matching_deltas_string}"
+                    f"Item {item['id']} {scope} {metric}: {matching_deltas_string}"
                 )
-                self.app.logger.error(f"Extra events: " f"{extra_events}")
+                self.app.logger.error(f"Extra events: {extra_events}")
                 assert (
                     item[scope][metric]
                     == sum(d_item[scope][metric] for d_item in matching_delta_items)
@@ -1957,7 +1957,7 @@ class TestCommunityUsageAggregators:
         )
         current_search_client.indices.refresh(index="*stats-community-events*")
         new_record_events = current_search_client.search(
-            index="*stats-community-events*", q=f'record_id:{newrec["id"]}'
+            index="*stats-community-events*", q=f"record_id:{newrec['id']}"
         )
         self.app.logger.error(
             f"New record community events: {pformat(new_record_events['hits']['hits'])}"  # noqa: E501
@@ -1972,8 +1972,8 @@ class TestCommunityUsageAggregators:
 
         One extra view and download event is created for each record in the
         community a day prior to the start date. These should not be included
-        in the delta aggregator results if we're looking from 06-04 on, but *should* be included in the snapshot
-        aggregator cumulative totals.
+        in the delta aggregator results if we're looking from 06-04 on, but *should*
+        be included in the snapshot aggregator cumulative totals.
 
         One extra view event is created for each record not in the
         community 2 days after the start date. These should be included in the
@@ -2332,16 +2332,14 @@ class TestGetNestedValue:
         [
             # Usage Pattern 1: category_path - returns list from source
             (
-                AttrDict(
-                    {
-                        "metadata": {
-                            "resource_type": {
-                                "id": "publication",
-                                "title": {"en": "Publication"},
-                            }
+                AttrDict({
+                    "metadata": {
+                        "resource_type": {
+                            "id": "publication",
+                            "title": {"en": "Publication"},
                         }
                     }
-                ),
+                }),
                 ["metadata", "resource_type"],
                 None,
                 "id",
@@ -2357,31 +2355,28 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 3: title_path - returns scalar from deep path
             (
-                AttrDict(
-                    {
-                        "metadata": {
-                            "resource_type": {
-                                "id": "publication",
-                                "title": {"en": "Publication"},
-                            }
+                AttrDict({
+                    "metadata": {
+                        "resource_type": {
+                            "id": "publication",
+                            "title": {"en": "Publication"},
                         }
                     }
-                ),
+                }),
                 ["metadata", "resource_type", "title"],
                 None,
                 "id",
                 {"en": "Publication"},
             ),
-            # Usage Pattern 4: List field - returns entire list (key matching not implemented in original)
+            # Usage Pattern 4: List field - returns entire list (key matching not
+            # implemented in original)
             (
-                AttrDict(
-                    {
-                        "funders": [
-                            {"id": "00k4n6c31", "name": "Funder 00k4n6c31"},
-                            {"id": "456", "name": "Another Funder"},
-                        ]
-                    }
-                ),
+                AttrDict({
+                    "funders": [
+                        {"id": "00k4n6c31", "name": "Funder 00k4n6c31"},
+                        {"id": "456", "name": "Another Funder"},
+                    ]
+                }),
                 ["funders"],
                 "00k4n6c31",
                 "id",
@@ -2392,19 +2387,19 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 5: Single item list - returns entire list
             (
-                AttrDict(
-                    {"funders": [{"id": "00k4n6c31", "name": "Funder 00k4n6c31"}]}
-                ),
+                AttrDict({
+                    "funders": [{"id": "00k4n6c31", "name": "Funder 00k4n6c31"}]
+                }),
                 ["funders"],
                 "Funder 00k4n6c31",
                 "name",
                 [{"id": "00k4n6c31", "name": "Funder 00k4n6c31"}],
             ),
-            # Usage Pattern 6: Single item list with non-matching key - returns entire list
+            # Usage Pattern 6: Single item with non-matching key - returns entire list
             (
-                AttrDict(
-                    {"funders": [{"id": "00k4n6c31", "name": "Funder 00k4n6c31"}]}
-                ),
+                AttrDict({
+                    "funders": [{"id": "00k4n6c31", "name": "Funder 00k4n6c31"}]
+                }),
                 ["funders"],
                 "999",
                 "id",
@@ -2412,20 +2407,18 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 7: List traversal with integer index
             (
-                AttrDict(
-                    {
-                        "metadata": {
-                            "subjects": [
-                                {
-                                    "subject": {
-                                        "id": "123",
-                                        "title": {"en": "Computer Science"},
-                                    }
+                AttrDict({
+                    "metadata": {
+                        "subjects": [
+                            {
+                                "subject": {
+                                    "id": "123",
+                                    "title": {"en": "Computer Science"},
                                 }
-                            ]
-                        }
+                            }
+                        ]
                     }
-                ),
+                }),
                 ["metadata", "subjects", 0, "subject", "id"],
                 None,
                 "id",
@@ -2483,21 +2476,19 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 13: Affiliations field - list of lists structure
             (
-                AttrDict(
-                    {
-                        "affiliations": [
-                            [{"name": "San Francisco Public Library"}],
-                            [{"name": "San Francisco Public Library"}],
-                            [
-                                {
-                                    "name": "San Francisco Public Library",
-                                    "id": "013v4ng57",
-                                }
-                            ],
-                            [{"name": "San Francisco Public Library"}],
-                        ]
-                    }
-                ),
+                AttrDict({
+                    "affiliations": [
+                        [{"name": "San Francisco Public Library"}],
+                        [{"name": "San Francisco Public Library"}],
+                        [
+                            {
+                                "name": "San Francisco Public Library",
+                                "id": "013v4ng57",
+                            }
+                        ],
+                        [{"name": "San Francisco Public Library"}],
+                    ]
+                }),
                 ["affiliations"],
                 "013v4ng57",
                 "id",
@@ -2515,20 +2506,18 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 14: Subjects field - list of objects with id and subject
             (
-                AttrDict(
-                    {
-                        "subjects": [
-                            {
-                                "id": "http://id.worldcat.org/fast/911979",
-                                "subject": "English language--Written English--History",
-                            },
-                            {
-                                "id": "http://id.worldcat.org/fast/997916",
-                                "subject": "Library science",
-                            },
-                        ]
-                    }
-                ),
+                AttrDict({
+                    "subjects": [
+                        {
+                            "id": "http://id.worldcat.org/fast/911979",
+                            "subject": "English language--Written English--History",
+                        },
+                        {
+                            "id": "http://id.worldcat.org/fast/997916",
+                            "subject": "Library science",
+                        },
+                    ]
+                }),
                 ["subjects"],
                 "http://id.worldcat.org/fast/911979",
                 "id",
@@ -2545,26 +2534,24 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 15: Creators field - nested structure with affiliations
             (
-                AttrDict(
-                    {
-                        "metadata": {
-                            "creators": [
-                                {
-                                    "affiliations": [
-                                        {
-                                            "id": "01ggx4157",
-                                            "name": "CERN",
-                                            "type": {
-                                                "id": "institution",
-                                                "title": {"en": "Institution"},
-                                            },
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
+                AttrDict({
+                    "metadata": {
+                        "creators": [
+                            {
+                                "affiliations": [
+                                    {
+                                        "id": "01ggx4157",
+                                        "name": "CERN",
+                                        "type": {
+                                            "id": "institution",
+                                            "title": {"en": "Institution"},
+                                        },
+                                    }
+                                ]
+                            }
+                        ]
                     }
-                ),
+                }),
                 ["metadata", "creators", 0, "affiliations", 0, "id"],
                 None,
                 "id",
@@ -2572,16 +2559,14 @@ class TestGetNestedValue:
             ),
             # Usage Pattern 16: Resource type field - single object structure
             (
-                AttrDict(
-                    {
-                        "metadata": {
-                            "resource_type": {
-                                "id": "publication",
-                                "title": {"en": "Publication"},
-                            }
+                AttrDict({
+                    "metadata": {
+                        "resource_type": {
+                            "id": "publication",
+                            "title": {"en": "Publication"},
                         }
                     }
-                ),
+                }),
                 ["metadata", "resource_type"],
                 None,
                 "id",
@@ -2700,7 +2685,8 @@ class TestFindItemLabel:
                                                         {
                                                             "id": "013v4ng57",
                                                             "name": (
-                                                                "San Francisco Public Library"
+                                                                "San Francisco Public "
+                                                                "Library"
                                                             ),
                                                         },
                                                         {
@@ -2742,7 +2728,8 @@ class TestFindItemLabel:
                                                         "http://id.worldcat.org/fast/911979"
                                                     ),
                                                     "subject": (
-                                                        "English language--Written English--History"
+                                                        "English language--Written "
+                                                        "English--History"
                                                     ),
                                                 },
                                                 {
@@ -2998,33 +2985,25 @@ class TestExtractIdNameFromBucket:
     def test_id_bucket_extraction(self):
         """Test extraction from ID bucket."""
         # Mock bucket for ID aggregation (using event document structure)
-        mock_bucket = AttrDict(
-            {
-                "key": "00k4n6c31",
-                "label": AttrDict(
-                    {
-                        "hits": AttrDict(
-                            {
-                                "hits": [
-                                    AttrDict(
-                                        {
-                                            "_source": {
-                                                "funders": [
-                                                    {
-                                                        "id": "00k4n6c31",
-                                                        "name": "Funder 00k4n6c31",
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    )
+        mock_bucket = AttrDict({
+            "key": "00k4n6c31",
+            "label": AttrDict({
+                "hits": AttrDict({
+                    "hits": [
+                        AttrDict({
+                            "_source": {
+                                "funders": [
+                                    {
+                                        "id": "00k4n6c31",
+                                        "name": "Funder 00k4n6c31",
+                                    }
                                 ]
                             }
-                        )
-                    }
-                ),
-            }
-        )
+                        })
+                    ]
+                })
+            }),
+        })
 
         config = {
             "field": "funders.id",
@@ -3042,33 +3021,25 @@ class TestExtractIdNameFromBucket:
     def test_name_bucket_extraction(self):
         """Test extraction from name bucket."""
         # Mock bucket for name aggregation (using event document structure)
-        mock_bucket = AttrDict(
-            {
-                "key": "Funder 00k4n6c31",
-                "label": AttrDict(
-                    {
-                        "hits": AttrDict(
-                            {
-                                "hits": [
-                                    AttrDict(
-                                        {
-                                            "_source": {
-                                                "funders": [
-                                                    {
-                                                        "id": "00k4n6c31",
-                                                        "name": "Funder 00k4n6c31",
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    )
+        mock_bucket = AttrDict({
+            "key": "Funder 00k4n6c31",
+            "label": AttrDict({
+                "hits": AttrDict({
+                    "hits": [
+                        AttrDict({
+                            "_source": {
+                                "funders": [
+                                    {
+                                        "id": "00k4n6c31",
+                                        "name": "Funder 00k4n6c31",
+                                    }
                                 ]
                             }
-                        )
-                    }
-                ),
-            }
-        )
+                        })
+                    ]
+                })
+            }),
+        })
 
         config = {
             "field": "funders.id",
@@ -3086,40 +3057,30 @@ class TestExtractIdNameFromBucket:
     def test_id_bucket_with_multiple_matching_items(self):
         """Test ID bucket extraction when multiple items match the same ID."""
         # Mock bucket for ID aggregation with multiple matching items
-        mock_bucket = AttrDict(
-            {
-                "key": "00k4n6c31",
-                "label": AttrDict(
-                    {
-                        "hits": AttrDict(
-                            {
-                                "hits": [
-                                    AttrDict(
-                                        {
-                                            "_source": {
-                                                "funders": [
-                                                    {
-                                                        "id": "00k4n6c31",
-                                                        "name": "Funder 00k4n6c31",
-                                                    },
-                                                    {
-                                                        "id": "00k4n6c31",
-                                                        "name": "Funder 00k4n6c31",
-                                                        "additional_field": (
-                                                            "extra_data"
-                                                        ),
-                                                    },
-                                                ]
-                                            }
-                                        }
-                                    )
+        mock_bucket = AttrDict({
+            "key": "00k4n6c31",
+            "label": AttrDict({
+                "hits": AttrDict({
+                    "hits": [
+                        AttrDict({
+                            "_source": {
+                                "funders": [
+                                    {
+                                        "id": "00k4n6c31",
+                                        "name": "Funder 00k4n6c31",
+                                    },
+                                    {
+                                        "id": "00k4n6c31",
+                                        "name": "Funder 00k4n6c31",
+                                        "additional_field": ("extra_data"),
+                                    },
                                 ]
                             }
-                        )
-                    }
-                ),
-            }
-        )
+                        })
+                    ]
+                })
+            }),
+        })
 
         config = {
             "field": "funders.id",
@@ -3137,40 +3098,30 @@ class TestExtractIdNameFromBucket:
     def test_name_bucket_with_multiple_matching_items(self):
         """Test name bucket extraction when multiple items match the same name."""
         # Mock bucket for name aggregation with multiple matching items
-        mock_bucket = AttrDict(
-            {
-                "key": "Funder 00k4n6c31",
-                "label": AttrDict(
-                    {
-                        "hits": AttrDict(
-                            {
-                                "hits": [
-                                    AttrDict(
-                                        {
-                                            "_source": {
-                                                "funders": [
-                                                    {
-                                                        "id": "00k4n6c31",
-                                                        "name": "Funder 00k4n6c31",
-                                                    },
-                                                    {
-                                                        "id": "00k4n6c31",
-                                                        "name": "Funder 00k4n6c31",
-                                                        "additional_field": (
-                                                            "extra_data"
-                                                        ),
-                                                    },
-                                                ]
-                                            }
-                                        }
-                                    )
+        mock_bucket = AttrDict({
+            "key": "Funder 00k4n6c31",
+            "label": AttrDict({
+                "hits": AttrDict({
+                    "hits": [
+                        AttrDict({
+                            "_source": {
+                                "funders": [
+                                    {
+                                        "id": "00k4n6c31",
+                                        "name": "Funder 00k4n6c31",
+                                    },
+                                    {
+                                        "id": "00k4n6c31",
+                                        "name": "Funder 00k4n6c31",
+                                        "additional_field": ("extra_data"),
+                                    },
                                 ]
                             }
-                        )
-                    }
-                ),
-            }
-        )
+                        })
+                    ]
+                })
+            }),
+        })
 
         config = {
             "field": "funders.id",
@@ -3247,7 +3198,7 @@ class TestAggregatorIgnoreBookmark:
 
         # Create a test record with a specific creation date
         test_date = arrow.utcnow().shift(days=-5)
-        record = minimal_published_record_factory(
+        minimal_published_record_factory(
             metadata={
                 "metadata": {
                     "resource_type": {"id": "textDocument-journalArticle"},
@@ -3295,15 +3246,15 @@ class TestAggregatorIgnoreBookmark:
             return_results=True,
         )
 
-        # Verify that aggregation processed data from the test date (earlier than bookmark)
+        # Verify that aggregation processed data from the test date (< bookmark)
         # The results should include data from our test record created 5 days ago
         assert len(results) > 0, "Aggregation should have produced results"
 
         # Check that we have results for both global and community
         community_results = [r for r in results if len(r) >= 3 and r[2]]
-        assert (
-            len(community_results) >= 2
-        ), "Should have results for both global and community"
+        assert len(community_results) >= 2, (
+            "Should have results for both global and community"
+        )
 
         # Verify that the aggregation processed data from our test date
         # by checking that documents were created for the test date
@@ -3319,6 +3270,7 @@ class TestAggregatorIgnoreBookmark:
             },
         )
         docs = list(search.execute())
-        assert (
-            len(docs) > 0
-        ), f"Should have aggregation documents for test date {test_date.format('YYYY-MM-DD')}"
+        assert len(docs) > 0, (
+            f"Should have aggregation documents for test date "
+            f"{test_date.format('YYYY-MM-DD')}"
+        )

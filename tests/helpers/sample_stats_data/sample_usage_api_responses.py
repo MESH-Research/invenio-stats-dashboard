@@ -258,7 +258,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_records": 1,
                             "unique_visitors": 1,
                         },
-                        "id": "Universidad " "Nacional " "Autónoma de " "Mexico (UNAM)",
+                        "id": "Universidad Nacional Autónoma de Mexico (UNAM)",
                         "label": "",
                         "view": {
                             "total_events": 1,
@@ -469,7 +469,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_visitors": 1,
                         },
                         "id": "http://id.worldcat.org/fast/1108387",
-                        "label": "Science--Study " "and teaching",
+                        "label": "Science--Study and teaching",
                         "view": {
                             "total_events": 1,
                             "unique_parents": 1,
@@ -487,7 +487,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_visitors": 1,
                         },
                         "id": "http://id.worldcat.org/fast/1145221",
-                        "label": "Technology--Study " "and teaching",
+                        "label": "Technology--Study and teaching",
                         "view": {
                             "total_events": 1,
                             "unique_parents": 1,
@@ -747,7 +747,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_records": 1,
                             "unique_visitors": 1,
                         },
-                        "id": "Universidad " "Nacional " "Autónoma de " "Mexico (UNAM)",
+                        "id": "Universidad Nacional Autónoma de Mexico (UNAM)",
                         "label": "",
                         "view": {
                             "total_events": 1,
@@ -958,7 +958,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_visitors": 1,
                         },
                         "id": "http://id.worldcat.org/fast/1108387",
-                        "label": "Science--Study " "and teaching",
+                        "label": "Science--Study and teaching",
                         "view": {
                             "total_events": 1,
                             "unique_parents": 1,
@@ -976,7 +976,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_visitors": 1,
                         },
                         "id": "http://id.worldcat.org/fast/1145221",
-                        "label": "Technology--Study " "and teaching",
+                        "label": "Technology--Study and teaching",
                         "view": {
                             "total_events": 1,
                             "unique_parents": 1,
@@ -1236,7 +1236,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_records": 1,
                             "unique_visitors": 1,
                         },
-                        "id": "Universidad " "Nacional " "Autónoma de " "Mexico (UNAM)",
+                        "id": "Universidad Nacional Autónoma de Mexico (UNAM)",
                         "label": "",
                         "view": {
                             "total_events": 1,
@@ -1447,7 +1447,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_visitors": 1,
                         },
                         "id": "http://id.worldcat.org/fast/1108387",
-                        "label": "Science--Study " "and teaching",
+                        "label": "Science--Study and teaching",
                         "view": {
                             "total_events": 1,
                             "unique_parents": 1,
@@ -1465,7 +1465,7 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                             "unique_visitors": 1,
                         },
                         "id": "http://id.worldcat.org/fast/1145221",
-                        "label": "Technology--Study " "and teaching",
+                        "label": "Technology--Study and teaching",
                         "view": {
                             "total_events": 1,
                             "unique_parents": 1,

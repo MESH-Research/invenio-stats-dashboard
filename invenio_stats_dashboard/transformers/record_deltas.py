@@ -6,6 +6,8 @@
 
 """Record delta data series transformer classes."""
 
+from typing import Any
+
 from flask import current_app
 
 from .base import (
@@ -13,7 +15,6 @@ from .base import (
     DataSeriesArray,
     DataSeriesSet,
 )
-from typing import Any
 
 
 class GlobalRecordDeltaDataSeries(DataSeries):
@@ -137,11 +138,6 @@ class FilePresenceRecordDeltaDataSeries(DataSeries):
 
     def add(self, doc: dict[str, Any]) -> None:
         """Add file presence record delta data from document."""
-        current_app.logger.error(
-            f"FilePresenceRecordDeltaDataSeries.add() called with metric={self.metric}"
-        )
-
-        # Extract date
         period_start = doc.get("period_start")
         if period_start is None:
             current_app.logger.error("No period_start in document")
@@ -151,36 +147,32 @@ class FilePresenceRecordDeltaDataSeries(DataSeries):
             current_app.logger.error("Empty date after splitting period_start")
             return
 
-        # Get the records data (which has metadata_only/with_files breakdown)
-        records_data = doc.get("records")
-        if records_data is None or not isinstance(records_data, dict):
-            current_app.logger.error(f"No records data in document: {records_data}")
-            return
-
-        # Get added/removed data
-        added = records_data.get("added", {})
-        removed = records_data.get("removed", {})
-
-        current_app.logger.error(f"Records data - added: {added}, removed: {removed}")
-
-        # Calculate net values for the specific presence type
-        if self.metric == "metadata_only":
-            # For metadata_only, we only care about records without files
-            added_value = added.get("metadata_only", 0)
-            removed_value = removed.get("metadata_only", 0)
-        elif self.metric == "with_files":
-            # For with_files, we only care about records with files
-            added_value = added.get("with_files", 0)
-            removed_value = removed.get("with_files", 0)
+        if self.metric in ["parents", "records"]:
+            metric_data = doc.get(self.metric, {})
+            if metric_data is None or not isinstance(metric_data, dict):
+                current_app.logger.error(f"No records data in document: {metric_data}")
+                return
+            added_value = metric_data.get("added", {}).get(self.series_id, 0)
+            removed_value = metric_data.get("removed", {}).get(self.series_id, 0)
+        elif self.metric in ["file_count", "data_volume"]:
+            file_data = doc.get("files", {})
+            if self.series_id == "metadata_only":
+                added_value = 0
+                removed_value = 0
+            elif self.series_id == "with_files":
+                added_value = file_data.get("added", {}).get(self.metric, 0)
+                removed_value = file_data.get("removed", {}).get(self.metric, 0)
         else:
             current_app.logger.error(f"Unknown metric: {self.metric}")
             return
 
-        net_value = added_value - removed_value
+        net_value = int(added_value) - int(removed_value)
         current_app.logger.error(
             f"Adding data point: date={date}, net_value={net_value}"
         )
-        self.add_data_point(date, net_value)
+        self.add_data_point(
+            date, net_value, "number" if self.metric != "data_volume" else "filesize"
+        )
 
 
 class RecordDeltaDataSeriesSet(DataSeriesSet):
@@ -194,38 +186,46 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
     @property
     def special_subcounts(self) -> list[str]:
         """Get special subcounts for record deltas."""
-        from flask import current_app
-
-        current_app.logger.error(
-            "special_subcounts property called, returning ['file_presence']"
-        )
         return ["file_presence"]
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
         """Get the metrics for a special subcount."""
-        if subcount == "file_presence":
-            return ["metadata_only", "with_files"]  # Two presence types
+        # Return empty list to fall back to regular metrics discovery
         return []
 
     def _create_special_series_array(
         self, subcount: str, metric: str
     ) -> DataSeriesArray:
         """Create a data series array for a special subcount and metric."""
-        from flask import current_app
-
-        current_app.logger.error(
-            f"Creating special series array for subcount={subcount}, metric={metric}"
-        )
-
         if subcount == "file_presence":
             series_array = DataSeriesArray(
                 "file_presence",
                 FilePresenceRecordDeltaDataSeries,
                 metric,
-                is_global=True,  # Special subcounts should be treated as global
+                is_global=False,
                 chart_type="line",
                 value_type="number",
+                is_special=True,
             )
+
+            series_array.series = [
+                FilePresenceRecordDeltaDataSeries(
+                    "metadata_only",
+                    "Metadata Only",
+                    metric,
+                    "line",
+                    "number",
+                ),
+                FilePresenceRecordDeltaDataSeries(
+                    "with_files",
+                    "With Files",
+                    metric,
+                    "line",
+                    "number",
+                ),
+            ]
+            series_array._initialized = True
+
             current_app.logger.error(
                 f"Created FilePresenceRecordDeltaDataSeries for metric={metric}"
             )

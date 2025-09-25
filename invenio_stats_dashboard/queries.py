@@ -15,7 +15,7 @@ from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
-from .config import (
+from .utils.utils import (
     get_subcount_field,
     get_subcount_label_includes,
     get_subcount_combine_subfields,
@@ -370,7 +370,7 @@ class CommunityUsageDeltaQuery:
 
             # Iterate over source_fields
             source_fields = usage_config.get("source_fields", [])
-            for field_index, source_field in enumerate(source_fields):
+            for field_index, _source_field in enumerate(source_fields):
                 combine_subfields = get_subcount_combine_subfields(
                     usage_config, field_index
                 )
@@ -729,7 +729,6 @@ class CommunityRecordDeltaQuery:
         self, sub_aggs, records_config, subcount_key, field_index
     ):
         """Build a single aggregations for a single subcount's field/subfields."""
-
         field = get_subcount_field(records_config, "field", field_index)
         label_field = get_subcount_field(records_config, "label_field", field_index)
         label_includes = get_subcount_label_includes(records_config, field_index)

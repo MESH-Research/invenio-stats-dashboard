@@ -8,19 +8,20 @@
 
 import arrow
 from flask import Response, current_app
-from invenio_communities.proxies import current_communities
 from invenio_access.permissions import system_identity
+from invenio_communities.proxies import current_communities
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
-from .content_negotiation import ContentNegotiationMixin
+
 from ..transformers.base import DataSeriesSet
-from ..transformers.types import DataSeriesDict
-from ..transformers.usage_snapshots import UsageSnapshotDataSeriesSet
-from ..transformers.usage_deltas import UsageDeltaDataSeriesSet
-from ..transformers.record_snapshots import RecordSnapshotDataSeriesSet
 from ..transformers.record_deltas import RecordDeltaDataSeriesSet
+from ..transformers.record_snapshots import RecordSnapshotDataSeriesSet
+from ..transformers.types import DataSeriesDict
+from ..transformers.usage_deltas import UsageDeltaDataSeriesSet
+from ..transformers.usage_snapshots import UsageSnapshotDataSeriesSet
+from .content_negotiation import ContentNegotiationMixin
 
 
 class DataSeriesQueryBase(Query, ContentNegotiationMixin):
@@ -68,7 +69,7 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
                 )
                 community_id = community.id
             except Exception as e:
-                raise ValueError(f"Community {community_id} not found: {str(e)}")
+                raise ValueError(f"Community {community_id} not found: {str(e)}") from e
 
         # Build search query
         must_clauses: list[dict] = [
@@ -242,7 +243,7 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
                 )
                 community_id = community.id
             except Exception as e:
-                raise ValueError(f"Community {community_id} not found: {str(e)}")
+                raise ValueError(f"Community {community_id} not found: {str(e)}") from e
 
         # Build search query
         must_clauses: list[dict] = [
@@ -298,7 +299,8 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
         # Create data series set with all available categories
         # Let the transformer discover all available categories dynamically
         series_set = self.transformer_class(
-            documents=documents, series_keys=None  # None means use all available
+            documents=documents,
+            series_keys=None,  # None means use all available
         )
 
         # Get the complete data series set with camelCase conversion

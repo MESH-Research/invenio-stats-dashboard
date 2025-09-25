@@ -27,6 +27,7 @@ MOCK_RECORD_DELTA_DOCS = [
                 "added": {"metadata_only": 0, "with_files": 2},
                 "removed": {"metadata_only": 0, "with_files": 0},
             },
+            "uploaders": 1,
             "subcounts": {
                 "access_statuses": [
                     {
@@ -592,7 +593,7 @@ MOCK_RECORD_DELTA_DOCS = [
                             "added": {"data_volume": 1984949.0, "file_count": 1},
                             "removed": {"data_volume": 0.0, "file_count": 0},
                         },
-                        "id": "Knowledge " "Commons",
+                        "id": "Knowledge Commons",
                         "label": "",
                         "parents": {
                             "added": {"metadata_only": 0, "with_files": 1},
@@ -996,7 +997,7 @@ MOCK_RECORD_DELTA_DOCS = [
                             "added": {"data_volume": 0.0, "file_count": 0},
                             "removed": {"data_volume": 1984949.0, "file_count": 1},
                         },
-                        "id": "Knowledge " "Commons",
+                        "id": "Knowledge Commons",
                         "label": "",
                         "parents": {
                             "added": {"metadata_only": 0, "with_files": 0},
@@ -1031,6 +1032,255 @@ MOCK_RECORD_DELTA_DOCS = [
             "timestamp": "2025-06-10T00:45:10",
             "updated_timestamp": "2025-06-10T00:45:10",
             "uploaders": 0,
+        },
+    },
+]
+
+MOCK_RECORD_DELTA_DOCS_2 = [
+    {
+        "period_start": "2025-05-30T00:00:00",
+        "records": {
+            "added": {"metadata_only": 0, "with_files": 2},
+            "removed": {"metadata_only": 0, "with_files": 0},
+        },
+        "parents": {
+            "added": {"metadata_only": 0, "with_files": 2},
+            "removed": {"metadata_only": 0, "with_files": 0},
+        },
+        "uploaders": 1,
+        "files": {
+            "added": {"data_volume": 59117831.0, "file_count": 2},
+            "removed": {"data_volume": 0.0, "file_count": 0},
+        },
+        "subcounts": {
+            "access_statuses": [
+                {
+                    "id": "open",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 59117831.0, "file_count": 2},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "resource_types": [
+                {
+                    "id": "textDocument-journalArticle",
+                    "label": {"en": "Journal Article"},
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 29558915.5, "file_count": 1},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "languages": [
+                {
+                    "id": "eng",
+                    "label": {"en": "English"},
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 59117831.0, "file_count": 2},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "subjects": [
+                {
+                    "id": "http://id.worldcat.org/fast/855500",
+                    "label": "Children of prisoners--Services for",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 29558915.5, "file_count": 1},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "rights": [
+                {
+                    "id": "cc-by-sa-4.0",
+                    "label": {
+                        "en": (
+                            "Creative Commons Attribution-ShareAlike 4.0 International"
+                        )
+                    },
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 59117831.0, "file_count": 2},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "funders": [
+                {
+                    "id": "00k4n6c31",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 29558915.5, "file_count": 1},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "periodicals": [
+                {
+                    "id": "N/A",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 29558915.5, "file_count": 1},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "publishers": [
+                {
+                    "id": "Knowledge Commons",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 59117831.0, "file_count": 2},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+            "affiliations": [
+                {
+                    "id": "013v4ng57",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 29558915.5, "file_count": 1},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                },
+                {
+                    "id": "03rmrcq20",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 1},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 29558915.5, "file_count": 1},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                },
+            ],
+            "file_types": [
+                {
+                    "id": "pdf",
+                    "label": "",
+                    "records": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "parents": {
+                        "added": {"metadata_only": 0, "with_files": 2},
+                        "removed": {"metadata_only": 0, "with_files": 0},
+                    },
+                    "files": {
+                        "added": {"data_volume": 59117831.0, "file_count": 2},
+                        "removed": {"data_volume": 0.0, "file_count": 0},
+                    },
+                }
+            ],
+        },
+    },
+    {
+        "period_start": "2025-05-31T00:00:00",
+        "records": {
+            "added": {"metadata_only": 0, "with_files": 0},
+            "removed": {"metadata_only": 0, "with_files": 0},
+        },
+        "parents": {
+            "added": {"metadata_only": 0, "with_files": 0},
+            "removed": {"metadata_only": 0, "with_files": 0},
+        },
+        "uploaders": 0,
+        "files": {
+            "added": {"data_volume": 0.0, "file_count": 0},
+            "removed": {"data_volume": 0.0, "file_count": 0},
+        },
+        "subcounts": {
+            "access_statuses": [],
+            "resource_types": [],
+            "languages": [],
+            "subjects": [],
+            "rights": [],
+            "funders": [],
+            "periodicals": [],
+            "publishers": [],
+            "affiliations": [],
+            "file_types": [],
         },
     },
 ]

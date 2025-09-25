@@ -6,7 +6,11 @@
 
 import { http } from "react-invenio-forms";
 import { DASHBOARD_TYPES } from "../constants";
-import { getCachedStats, setCachedStats, clearAllCachedStats } from "../utils/statsCache";
+import {
+	getCachedStats,
+	setCachedStats,
+	clearAllCachedStats,
+} from "../utils/statsCache";
 import { transformApiData } from "./dataTransformer";
 import { generateTestStatsData } from "../components/test_data";
 
@@ -29,27 +33,49 @@ import { generateTestStatsData } from "../components/test_data";
  * @returns {Promise<Object>} - The stats data.
  */
 const statsApiClient = {
-  getStats: async (communityId, dashboardType, startDate = null, endDate = null) => {
-    if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
-      communityId = "global";
-    }
-    let requestBody = {
-      [`${dashboardType}-stats`]: {
-        "stat": `${dashboardType}-stats`,
-        "params": {
-          "community_id": communityId,
-        }
-      },
-    };
-    if (startDate) {
-      requestBody[`${dashboardType}-stats`].params.start_date = startDate;
-    }
-    if (endDate) {
-      requestBody[`${dashboardType}-stats`].params.end_date = endDate;
-    }
-    const response = await http.post(`/api/stats`, requestBody);
-    return response.data;
-  }
+	getStats: async (
+		communityId,
+		dashboardType,
+		startDate = null,
+		endDate = null,
+	) => {
+		if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
+			communityId = "global";
+		}
+
+		const statCategories = [
+			"usage-snapshot-category",
+			"usage-delta-category",
+			"record-snapshot-category",
+			"record-delta-category",
+		];
+
+		let responses = [];
+
+		for (let i = 0; i < statCategories.length; i++) {
+			const category = statCategories[i];
+
+			let requestBody = {
+				[`${category}`]: {
+					stat: `${category}`,
+					params: {
+						community_id: communityId,
+					},
+				},
+			};
+			if (startDate) {
+				requestBody[`${category}`].params.start_date = startDate;
+			}
+			if (endDate) {
+				requestBody[`${category}`].params.end_date = endDate;
+			}
+			const response = await http.post(`/api/stats`, requestBody);
+			responses.push(response.data);
+			console.log("response.data", response.data);
+		}
+
+		return responses;
+	},
 };
 
 /**
@@ -66,22 +92,29 @@ const statsApiClient = {
  * @returns {Promise<Object|null>} Cached stats data if available, null otherwise
  */
 const getCachedStatsData = async ({
-  communityId,
-  dashboardType,
-  startDate = null,
-  endDate = null,
-  getStatsParams = null,
-  community = null
+	communityId,
+	dashboardType,
+	startDate = null,
+	endDate = null,
+	getStatsParams = null,
+	community = null,
 }) => {
-  // Get community ID for caching
-  const cacheCommunityId = communityId || community?.id || 'global';
+	// Get community ID for caching
+	const cacheCommunityId = communityId || community?.id || "global";
 
-  // Use custom getStatsParams if provided, otherwise use default behavior
-  const params = getStatsParams ? getStatsParams(community, dashboardType) : [dashboardType, startDate, endDate];
-  const [dashboardTypeParam, paramStartDate, paramEndDate] = params;
+	// Use custom getStatsParams if provided, otherwise use default behavior
+	const params = getStatsParams
+		? getStatsParams(community, dashboardType)
+		: [dashboardType, startDate, endDate];
+	const [dashboardTypeParam, paramStartDate, paramEndDate] = params;
 
-  // Try to get cached data
-  return await getCachedStats(cacheCommunityId, dashboardTypeParam, paramStartDate, paramEndDate);
+	// Try to get cached data
+	return await getCachedStats(
+		cacheCommunityId,
+		dashboardTypeParam,
+		paramStartDate,
+		paramEndDate,
+	);
 };
 
 /**
@@ -102,63 +135,68 @@ const getCachedStatsData = async ({
  *   - error: Error object if fetch failed
  */
 const fetchFreshStatsWithCache = async ({
-  communityId,
-  dashboardType,
-  startDate = null,
-  endDate = null,
-  getStatsParams = null,
-  community = null,
-  useTestData = false
+	communityId,
+	dashboardType,
+	startDate = null,
+	endDate = null,
+	getStatsParams = null,
+	community = null,
+	useTestData = false,
 }) => {
-  try {
-    const cacheCommunityId = communityId || community?.id || 'global';
-    let rawStats;
-    let transformedStats;
+	try {
+		const cacheCommunityId = communityId || community?.id || "global";
+		let rawStats;
+		let transformedStats;
 
-    if (useTestData) {
-      transformedStats = await generateTestStatsData(startDate, endDate);
-    } else {
-      rawStats = await statsApiClient.getStats(communityId, dashboardType, startDate, endDate);
-      transformedStats = transformApiData(rawStats);
-    }
+		if (useTestData) {
+			transformedStats = await generateTestStatsData(startDate, endDate);
+		} else {
+			rawStats = await statsApiClient.getStats(
+				communityId,
+				dashboardType,
+				startDate,
+				endDate,
+			);
+			transformedStats = transformApiData(rawStats);
+		}
 
-    console.log('Fresh data fetched and transformed:', {
-      communityId: cacheCommunityId,
-      dashboardType: dashboardType,
-      startDate: startDate?.toISOString?.() || startDate,
-      endDate: endDate?.toISOString?.() || endDate,
-      dataSize: JSON.stringify(transformedStats).length,
-      dataKeys: Object.keys(transformedStats || {})
-    });
+		console.log("Fresh data fetched and transformed:", {
+			communityId: cacheCommunityId,
+			dashboardType: dashboardType,
+			startDate: startDate?.toISOString?.() || startDate,
+			endDate: endDate?.toISOString?.() || endDate,
+			dataSize: JSON.stringify(transformedStats).length,
+			dataKeys: Object.keys(transformedStats || {}),
+		});
 
-    // Only cache if we have valid dates (not for test data with null dates)
-    if (startDate && endDate) {
-      console.log('Caching fresh data...');
-      await setCachedStats(
-        cacheCommunityId,
-        dashboardType,
-        transformedStats,
-        startDate.toISOString(),
-        endDate.toISOString()
-      );
-      console.log('Fresh data cached successfully');
-    } else {
-      console.log('Skipping cache - no valid dates provided');
-    }
+		// Only cache if we have valid dates (not for test data with null dates)
+		if (startDate && endDate) {
+			console.log("Caching fresh data...");
+			await setCachedStats(
+				cacheCommunityId,
+				dashboardType,
+				transformedStats,
+				startDate.toISOString(),
+				endDate.toISOString(),
+			);
+			console.log("Fresh data cached successfully");
+		} else {
+			console.log("Skipping cache - no valid dates provided");
+		}
 
-    return {
-      freshStats: transformedStats,
-      lastUpdated: Date.now(),
-      error: null
-    };
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-    return {
-      freshStats: null,
-      lastUpdated: null,
-      error
-    };
-  }
+		return {
+			freshStats: transformedStats,
+			lastUpdated: Date.now(),
+			error: null,
+		};
+	} catch (error) {
+		console.error("Error fetching stats:", error);
+		return {
+			freshStats: null,
+			lastUpdated: null,
+			error,
+		};
+	}
 };
 
 /**
@@ -188,119 +226,124 @@ const fetchFreshStatsWithCache = async ({
  *   - error: Error object if fetch failed
  */
 const fetchStats = async ({
-  communityId,
-  dashboardType,
-  startDate = null,
-  endDate = null,
-  getStatsParams = null,
-  community = null,
-  onStateChange = null,
-  isMounted = null,
-  useTestData = false
+	communityId,
+	dashboardType,
+	startDate = null,
+	endDate = null,
+	getStatsParams = null,
+	community = null,
+	onStateChange = null,
+	isMounted = null,
+	useTestData = false,
 }) => {
-  const fetchParams = {
-    communityId,
-    dashboardType,
-    startDate,
-    endDate,
-    getStatsParams,
-    community
-  };
+	const fetchParams = {
+		communityId,
+		dashboardType,
+		startDate,
+		endDate,
+		getStatsParams,
+		community,
+	};
 
-  try {
-    // Check for cached data first
-    const cachedStats = await getCachedStatsData(fetchParams);
-    console.log('Cache check result:', !!cachedStats);
+	try {
+		// Check for cached data first
+		const cachedStats = await getCachedStatsData(fetchParams);
+		console.log("Cache check result:", !!cachedStats);
 
-    if (cachedStats) {
-      // State (c): done loading + cached + fetch in process
-      console.log('Found cached data, displaying immediately');
-      if (onStateChange && (!isMounted || isMounted())) {
-        onStateChange({
-          type: 'cached_data_loaded',
-          stats: cachedStats,
-          isLoading: false,
-          isUpdating: true,
-          error: null
-        });
-      }
-    } else {
-      // State (a): loading + no cached + fetch in process
-      console.log('No cached data, starting loading state');
-      if (onStateChange && (!isMounted || isMounted())) {
-        onStateChange({
-          type: 'loading_started',
-          stats: null,
-          isLoading: true,
-          isUpdating: false,
-          error: null
-        });
-      }
-    }
+		if (cachedStats) {
+			// State (c): done loading + cached + fetch in process
+			console.log("Found cached data, displaying immediately");
+			if (onStateChange && (!isMounted || isMounted())) {
+				onStateChange({
+					type: "cached_data_loaded",
+					stats: cachedStats,
+					isLoading: false,
+					isUpdating: true,
+					error: null,
+				});
+			}
+		} else {
+			// State (a): loading + no cached + fetch in process
+			console.log("No cached data, starting loading state");
+			if (onStateChange && (!isMounted || isMounted())) {
+				onStateChange({
+					type: "loading_started",
+					stats: null,
+					isLoading: true,
+					isUpdating: false,
+					error: null,
+				});
+			}
+		}
 
-    // Always fetch fresh data in the background
-    const result = await fetchFreshStatsWithCache({
-      ...fetchParams,
-      useTestData
-    });
+		// Always fetch fresh data in the background
+		const result = await fetchFreshStatsWithCache({
+			...fetchParams,
+			useTestData,
+		});
 
-    // Caching is now handled in fetchFreshStatsWithCache
+		// Caching is now handled in fetchFreshStatsWithCache
 
-    // Determine final state based on result
-    if (result.freshStats) {
-      // State (d): done loading + live data + fetch finished
-      console.log('Fresh data loaded successfully');
-      if (onStateChange && (!isMounted || isMounted())) {
-        onStateChange({
-          type: 'fresh_data_loaded',
-          stats: result.freshStats,
-          isLoading: false,
-          isUpdating: false,
-          lastUpdated: result.lastUpdated,
-          error: null
-        });
-      }
-    } else {
-      // State (e): done loading + fetch finished + stats are still null
-      console.log('Fetch finished but no data available');
-      if (onStateChange && (!isMounted || isMounted())) {
-        onStateChange({
-          type: 'no_data_available',
-          stats: null,
-          isLoading: false,
-          isUpdating: false,
-          lastUpdated: result.lastUpdated,
-          error: result.error
-        });
-      }
-    }
+		// Determine final state based on result
+		if (result.freshStats) {
+			// State (d): done loading + live data + fetch finished
+			console.log("Fresh data loaded successfully");
+			if (onStateChange && (!isMounted || isMounted())) {
+				onStateChange({
+					type: "fresh_data_loaded",
+					stats: result.freshStats,
+					isLoading: false,
+					isUpdating: false,
+					lastUpdated: result.lastUpdated,
+					error: null,
+				});
+			}
+		} else {
+			// State (e): done loading + fetch finished + stats are still null
+			console.log("Fetch finished but no data available");
+			if (onStateChange && (!isMounted || isMounted())) {
+				onStateChange({
+					type: "no_data_available",
+					stats: null,
+					isLoading: false,
+					isUpdating: false,
+					lastUpdated: result.lastUpdated,
+					error: result.error,
+				});
+			}
+		}
 
-    return {
-      cachedStats,
-      freshStats: result.freshStats,
-      lastUpdated: result.lastUpdated,
-      error: result.error
-    };
-  } catch (error) {
-    console.error('Error fetching stats:', error);
+		return {
+			cachedStats,
+			freshStats: result.freshStats,
+			lastUpdated: result.lastUpdated,
+			error: result.error,
+		};
+	} catch (error) {
+		console.error("Error fetching stats:", error);
 
-    if (onStateChange && (!isMounted || isMounted())) {
-      onStateChange({
-        type: 'error',
-        stats: null,
-        isLoading: false,
-        isUpdating: false,
-        error
-      });
-    }
+		if (onStateChange && (!isMounted || isMounted())) {
+			onStateChange({
+				type: "error",
+				stats: null,
+				isLoading: false,
+				isUpdating: false,
+				error,
+			});
+		}
 
-    return {
-      cachedStats: null,
-      freshStats: null,
-      lastUpdated: null,
-      error
-    };
-  }
+		return {
+			cachedStats: null,
+			freshStats: null,
+			lastUpdated: null,
+			error,
+		};
+	}
 };
 
-export { statsApiClient, getCachedStatsData, fetchFreshStatsWithCache, fetchStats };
+export {
+	statsApiClient,
+	getCachedStatsData,
+	fetchFreshStatsWithCache,
+	fetchStats,
+};

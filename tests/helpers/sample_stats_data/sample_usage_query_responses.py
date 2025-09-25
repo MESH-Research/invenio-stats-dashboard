@@ -2808,20 +2808,20 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997916"
                                                 ),
-                                                "subject": "Library " "science",
+                                                "subject": "Library science",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/2060143"
                                                 ),
-                                                "subject": "Mass " "incarceration",
+                                                "subject": "Mass incarceration",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997987"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science " "literature"
+                                                    "Library science literature"
                                                 ),
                                             },
                                             {
@@ -2829,7 +2829,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/997974"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science--Standards"
+                                                    "Library science--Standards"
                                                 ),
                                             },
                                             {
@@ -2888,20 +2888,20 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997916"
                                                 ),
-                                                "subject": "Library " "science",
+                                                "subject": "Library science",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/2060143"
                                                 ),
-                                                "subject": "Mass " "incarceration",
+                                                "subject": "Mass incarceration",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997987"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science " "literature"
+                                                    "Library science literature"
                                                 ),
                                             },
                                             {
@@ -2909,7 +2909,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/997974"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science--Standards"
+                                                    "Library science--Standards"
                                                 ),
                                             },
                                             {
@@ -2969,10 +2969,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/973589"
                                                 ),
                                                 "subject": (
-                                                    "Inklings "
-                                                    "(Group "
-                                                    "of "
-                                                    "writers)"
+                                                    "Inklings (Group of writers)"
                                                 ),
                                             }
                                         ]
@@ -3008,20 +3005,20 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997916"
                                                 ),
-                                                "subject": "Library " "science",
+                                                "subject": "Library science",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/2060143"
                                                 ),
-                                                "subject": "Mass " "incarceration",
+                                                "subject": "Mass incarceration",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997987"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science " "literature"
+                                                    "Library science literature"
                                                 ),
                                             },
                                             {
@@ -3029,7 +3026,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/997974"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science--Standards"
+                                                    "Library science--Standards"
                                                 ),
                                             },
                                             {
@@ -3088,20 +3085,20 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997916"
                                                 ),
-                                                "subject": "Library " "science",
+                                                "subject": "Library science",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/2060143"
                                                 ),
-                                                "subject": "Mass " "incarceration",
+                                                "subject": "Mass incarceration",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997987"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science " "literature"
+                                                    "Library science literature"
                                                 ),
                                             },
                                             {
@@ -3109,7 +3106,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/997974"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science--Standards"
+                                                    "Library science--Standards"
                                                 ),
                                             },
                                             {
@@ -3168,20 +3165,20 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997916"
                                                 ),
-                                                "subject": "Library " "science",
+                                                "subject": "Library science",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/2060143"
                                                 ),
-                                                "subject": "Mass " "incarceration",
+                                                "subject": "Mass incarceration",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997987"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science " "literature"
+                                                    "Library science literature"
                                                 ),
                                             },
                                             {
@@ -3189,7 +3186,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/997974"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science--Standards"
+                                                    "Library science--Standards"
                                                 ),
                                             },
                                             {
@@ -3248,20 +3245,20 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997916"
                                                 ),
-                                                "subject": "Library " "science",
+                                                "subject": "Library science",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/2060143"
                                                 ),
-                                                "subject": "Mass " "incarceration",
+                                                "subject": "Mass incarceration",
                                             },
                                             {
                                                 "id": (
                                                     "http://id.worldcat.org/fast/997987"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science " "literature"
+                                                    "Library science literature"
                                                 ),
                                             },
                                             {
@@ -3269,7 +3266,7 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                                     "http://id.worldcat.org/fast/997974"
                                                 ),
                                                 "subject": (
-                                                    "Library " "science--Standards"
+                                                    "Library science--Standards"
                                                 ),
                                             },
                                             {

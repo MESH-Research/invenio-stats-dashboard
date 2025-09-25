@@ -10,6 +10,7 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
+
 from babel.dates import format_date
 from flask import current_app
 
@@ -146,6 +147,7 @@ class DataSeriesArray:
         is_global: bool = False,
         chart_type: str = "line",
         value_type: str = "number",
+        is_special: bool = False,
     ):
         """Initialize the data series array.
 
@@ -158,6 +160,7 @@ class DataSeriesArray:
                 series (array)
             chart_type: Chart type for subcount series ('line', 'bar', etc.)
             value_type: Value type for subcount series ('number', 'filesize', etc.)
+            is_special: Whether this is a special subcount (pre-populated series)
         """
         self.series_type = series_type
         self.data_series_class = data_series_class
@@ -165,6 +168,7 @@ class DataSeriesArray:
         self.is_global = is_global
         self.chart_type = chart_type
         self.value_type = value_type
+        self.is_special = is_special
         self.series: DataSeries | list[DataSeries] | None = None
         self._initialized = False
 
@@ -186,16 +190,23 @@ class DataSeriesArray:
             if self.series is not None and not isinstance(self.series, list):
                 self.series.add(doc)
         else:
-            # Create individual DataSeries as we encounter items
-            self._create_series_from_doc(doc)
+            # Check if this is a special subcount (pre-populated series)
+            if self.is_special:
+                # For special subcounts, add data directly to existing series
+                if isinstance(self.series, list):
+                    for data_series in self.series:
+                        data_series.add(doc)
+            else:
+                # Create individual DataSeries as we encounter items
+                self._create_series_from_doc(doc)
 
-            # Add data to all existing series
-            if isinstance(self.series, list):
-                for data_series in self.series:
-                    # Get the item data for this specific series
-                    item_data = self._get_item_data_for_series(doc, data_series)
-                    if item_data:
-                        data_series.add(item_data)
+                # Add data to all existing series
+                if isinstance(self.series, list):
+                    for data_series in self.series:
+                        # Get the item data for this specific series
+                        item_data = self._get_item_data_for_series(doc, data_series)
+                        if item_data:
+                            data_series.add(item_data)
 
     def _create_series_from_doc(self, doc: dict[str, Any]) -> None:
         """Create individual DataSeries from document for subcount series."""
@@ -233,13 +244,12 @@ class DataSeriesArray:
             item_label = item.get("label", item_id)
 
             # Preserve the full label object (string or multilingual dict)
-            if not isinstance(item_label, (str, dict)):
+            if not isinstance(item_label, str | dict):
                 item_label = str(item_label)
 
             # Create series for this item if it doesn't exist
-            series_id = f"{self.series_type}_{item_id}"
             if isinstance(self.series, list) and not any(
-                s.series_id == series_id for s in self.series
+                s.series_id == item_id for s in self.series
             ):
                 # Convert label to string for series_name parameter
                 series_name = (
@@ -247,7 +257,7 @@ class DataSeriesArray:
                 )
                 self.series.append(
                     self.data_series_class(
-                        series_id,
+                        item_id,
                         series_name,
                         self.metric,
                         self.chart_type,
@@ -265,34 +275,32 @@ class DataSeriesArray:
             global_doc.pop("subcounts", None)
             return global_doc
 
-        # Parse the series_id to get subcount_type and item_id
-        parts = data_series.series_id.split("_", 2)
-        if len(parts) < 2:
-            return None
+        # Get the item_id directly from series_id and subcount_type from series_type
+        item_id = data_series.series_id
+        subcount_type = self.series_type
 
         subcounts = doc.get("subcounts")
         if subcounts is None:
             return None
 
-        if len(parts) == 2:
-            # Regular subcount: "subcount_type_item_id"
-            subcount_type = parts[0]
-            item_id = parts[1]
-            subcount_series = subcounts.get(subcount_type)
-        else:
-            # By view/download: "subcount_type_by_view_item_id"
-            # or "subcount_type_by_download_item_id"
-            subcount_type = parts[0]
-            item_id = parts[2]
-            subcount_data = subcounts.get(subcount_type)
+        # Handle different subcount types
+        if subcount_type.endswith("_by_view"):
+            # For by_view series, look at subcounts[base_type]["by_view"]
+            base_type = subcount_type.replace("_by_view", "")
+            subcount_data = subcounts.get(base_type)
             if not isinstance(subcount_data, dict):
                 return None
-            if parts[1] == "by_view":
-                subcount_series = subcount_data.get("by_view", [])
-            elif parts[1] == "by_download":
-                subcount_series = subcount_data.get("by_download", [])
-            else:
+            subcount_series = subcount_data.get("by_view", [])
+        elif subcount_type.endswith("_by_download"):
+            # For by_download series, look at subcounts[base_type]["by_download"]
+            base_type = subcount_type.replace("_by_download", "")
+            subcount_data = subcounts.get(base_type)
+            if not isinstance(subcount_data, dict):
                 return None
+            subcount_series = subcount_data.get("by_download", [])
+        else:
+            # For regular series, look at subcounts[series_type] (direct array)
+            subcount_series = subcounts.get(subcount_type)
 
         if not isinstance(subcount_series, list):
             return None
@@ -300,14 +308,10 @@ class DataSeriesArray:
         # Find the specific item
         for item in subcount_series:
             if item.get("id") == item_id:
-                # Return only the specific metric data with the document date
-                item_data = {
-                    "id": item.get("id"),
-                    "label": item.get("label"),
-                    "period_start": doc.get("period_start"),
-                    "snapshot_date": doc.get("snapshot_date"),
-                    self.metric: item.get(self.metric),
-                }
+                # Return the full item data with the document date
+                item_data = dict(item)
+                item_data["snapshot_date"] = doc.get("snapshot_date")
+                item_data["period_start"] = doc.get("period_start")
                 return item_data
 
         return None
@@ -372,26 +376,8 @@ class DataSeriesSet(ABC):
 
         # Add subcount configurations
         for subcount_name, config in subcount_configs.items():
-            # Check if this subcount has the appropriate configuration
             if self.config_key in config:
-                subcount_config = config[self.config_key]
-
-                # Process subcount if it has the required config
-                if subcount_config:
-                    # Add the main subcount
-                    series_keys.append(subcount_name)
-
-                    # For usage snapshots, add by_view and by_download
-                    # series for "top" type
-                    if (
-                        self.config_key == "usage_events"
-                        and subcount_config.get("snapshot_type") == "top"
-                    ):
-                        series_keys.append(f"{subcount_name}_by_view")
-                        series_keys.append(f"{subcount_name}_by_download")
-                else:
-                    # Fall back to just the subcount key
-                    series_keys.append(subcount_name)
+                series_keys.append(subcount_name)
 
         # Add special subcounts defined by subclasses
         series_keys.extend(self.special_subcounts)
@@ -428,15 +414,21 @@ class DataSeriesSet(ABC):
 
         # Create ALL DataSeriesArray objects upfront
         for subcount in self.series_keys:
-            # Check if this is a special subcount
             if subcount in self.special_subcounts:
-                # Handle special subcounts
                 special_metrics = self._get_special_subcount_metrics(subcount)
-                for metric in special_metrics:
-                    series_key = f"{subcount}_{metric}"
-                    self.series_arrays[series_key] = self._create_special_series_array(
-                        subcount, metric
-                    )
+                if special_metrics:
+                    for metric in special_metrics:
+                        series_key = f"{subcount}_{metric}"
+                        self.series_arrays[series_key] = (
+                            self._create_special_series_array(subcount, metric)
+                        )
+                else:
+                    for metric in discovered_metrics["subcount"]:
+                        series_key = f"{subcount}_{metric}"
+                        self.series_arrays[series_key] = (
+                            self._create_special_series_array(subcount, metric)
+                        )
+
             else:
                 # Get metrics for this subcount
                 if subcount == "global":
@@ -451,42 +443,38 @@ class DataSeriesSet(ABC):
                         subcount, metric
                     )
 
-        # Process each document
+        # Add data to ALL DataSeriesArray objects
         for doc in self.documents:
-            # Add data to ALL DataSeriesArray objects
             for series_array in self.series_arrays.values():
                 series_array.add(dict(doc))
 
-        # Convert to nested format matching dataTransformer structure
         result: dict[str, dict[str, list[DataSeriesDict]]] = {}
         for subcount in self.series_keys:
-            # Initialize subcount if not exists
             if subcount not in result:
                 result[subcount] = {}
 
-            # Check if this is a special subcount
             if subcount in self.special_subcounts:
-                # Handle special subcounts
                 special_metrics = self._get_special_subcount_metrics(subcount)
-                for metric in special_metrics:
-                    series_key = f"{subcount}_{metric}"
-                    series_array = self.series_arrays[series_key]
+                if special_metrics:
+                    for metric in special_metrics:
+                        series_key = f"{subcount}_{metric}"
+                        series_array = self.series_arrays[series_key]
+                        result[subcount][metric] = series_array.to_dict()
+                else:
+                    for metric in discovered_metrics["subcount"]:
+                        series_key = f"{subcount}_{metric}"
+                        series_array = self.series_arrays[series_key]
+                        result[subcount][metric] = series_array.to_dict()
 
-                    # Add metric data - use DataSeriesArray.to_dict()
-                    result[subcount][metric] = series_array.to_dict()
             else:
-                # Get metrics for this subcount
                 if subcount == "global":
                     metrics = discovered_metrics["global"]
                 else:
                     metrics = discovered_metrics["subcount"]
 
-                # Add all metrics for this subcount
                 for metric in metrics:
                     series_key = f"{subcount}_{metric}"
                     series_array = self.series_arrays[series_key]
-
-                    # Add metric data - use DataSeriesArray.to_dict()
                     result[subcount][metric] = series_array.to_dict()
 
         # Cache the result
@@ -535,7 +523,7 @@ class DataSeriesSet(ABC):
         for doc in self.documents:
             # Discover global metrics - take all top-level keys except "subcounts"
             for key, value in doc.items():
-                if key != "subcounts" and isinstance(value, (dict, int, float)):
+                if key != "subcounts" and isinstance(value, dict | int | float):
                     global_metrics.add(key)
 
             # Discover subcount metrics - look at keys in the first available
@@ -550,14 +538,14 @@ class DataSeriesSet(ABC):
                             if isinstance(first_item, dict):
                                 for key, value in first_item.items():
                                     if key not in ["id", "label"] and isinstance(
-                                        value, (dict, int, float)
+                                        value, dict | int | float
                                     ):
                                         subcount_metrics.add(key)
                         elif isinstance(subcount_data, dict):
                             # Handle "all" type subcounts (direct metric access)
                             for key, value in subcount_data.items():
                                 if key not in ["id", "label"] and isinstance(
-                                    value, (dict, int, float)
+                                    value, dict | int | float
                                 ):
                                     subcount_metrics.add(key)
 

@@ -14,6 +14,19 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
         "_source": {
             "community_id": "global",
             "snapshot_date": "2025-08-27",
+            "total_records": {
+                "metadata_only": 1,
+                "with_files": 1,
+            },
+            "total_parents": {
+                "metadata_only": 1,
+                "with_files": 1,
+            },
+            "total_files": {
+                "file_count": 1,
+                "data_volume": 1984949.0,
+            },
+            "total_uploaders": 1,
             "subcounts": {
                 "access_statuses": [
                     {
@@ -63,13 +76,6 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "label": "",
                         "parents": {"metadata_only": 0, "with_files": 1},
                         "records": {"metadata_only": 0, "with_files": 1},
-                    },
-                    {
-                        "files": {"data_volume": 0.0, "file_count": 0},
-                        "id": "03rmrcq20",
-                        "label": "",
-                        "parents": {"metadata_only": 1, "with_files": 0},
-                        "records": {"metadata_only": 1, "with_files": 0},
                     },
                 ],
                 "funders": [
@@ -261,6 +267,19 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
         "_source": {
             "community_id": "global",
             "snapshot_date": "2025-08-31",
+            "total_records": {
+                "metadata_only": 1,
+                "with_files": 3,
+            },
+            "total_parents": {
+                "metadata_only": 1,
+                "with_files": 3,
+            },
+            "total_files": {
+                "file_count": 3,
+                "data_volume": 61102780.0,
+            },
+            "total_uploaders": 1,
             "subcounts": {
                 "access_statuses": [
                     {
@@ -317,13 +336,6 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "label": "",
                         "parents": {"metadata_only": 0, "with_files": 1},
                         "records": {"metadata_only": 0, "with_files": 1},
-                    },
-                    {
-                        "files": {"data_volume": 0.0, "file_count": 0},
-                        "id": "03rmrcq20",
-                        "label": "",
-                        "parents": {"metadata_only": 1, "with_files": 0},
-                        "records": {"metadata_only": 1, "with_files": 0},
                     },
                     {
                         "files": {"data_volume": 458036.0, "file_count": 1},
@@ -542,6 +554,19 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
         "_source": {
             "community_id": "global",
             "snapshot_date": "2025-09-01",
+            "total_records": {
+                "metadata_only": 1,
+                "with_files": 2,
+            },
+            "total_parents": {
+                "metadata_only": 1,
+                "with_files": 2,
+            },
+            "total_files": {
+                "file_count": 2,
+                "data_volume": 2442985.0,
+            },
+            "total_uploaders": 1,
             "subcounts": {
                 "access_statuses": [
                     {
@@ -598,13 +623,6 @@ MOCK_RECORD_SNAPSHOT_DOCS = [
                         "label": "",
                         "parents": {"metadata_only": 0, "with_files": 1},
                         "records": {"metadata_only": 0, "with_files": 1},
-                    },
-                    {
-                        "files": {"data_volume": 0.0, "file_count": 0},
-                        "id": "03rmrcq20",
-                        "label": "",
-                        "parents": {"metadata_only": 1, "with_files": 0},
-                        "records": {"metadata_only": 1, "with_files": 0},
                     },
                     {
                         "files": {"data_volume": 458036.0, "file_count": 1},

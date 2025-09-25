@@ -13,6 +13,7 @@ from pprint import pformat
 
 import arrow
 import pytest
+from flask import current_app
 from invenio_access.permissions import system_identity
 from invenio_access.utils import get_identity
 from invenio_accounts.proxies import current_datastore
@@ -208,14 +209,12 @@ class TestCommunityRecordCreatedDeltaQuery:
             self.app.logger.error("Method: _setup_records")
 
         user_identity = get_identity(current_datastore.get_user_by_email(user_email))
-        for idx, rec in enumerate(
-            [
-                sample_metadata_journal_article4_pdf,
-                sample_metadata_journal_article5_pdf,
-                sample_metadata_journal_article6_pdf,
-                sample_metadata_journal_article7_pdf,
-            ]
-        ):
+        for idx, rec in enumerate([
+            sample_metadata_journal_article4_pdf,
+            sample_metadata_journal_article5_pdf,
+            sample_metadata_journal_article6_pdf,
+            sample_metadata_journal_article7_pdf,
+        ]):
             rec_args = {
                 "identity": user_identity,
                 "metadata": rec,
@@ -247,9 +246,9 @@ class TestCommunityRecordCreatedDeltaQuery:
             for d in confirm_record_import["hits"]["hits"]
         ]
         self.app.logger.error(f"Imported record dates: {pformat(record_dates)}")
-        assert (
-            len(confirm_record_import["hits"]["hits"]) == 4
-        ), f"Expected 4 records, got {len(confirm_record_import['hits']['hits'])}"
+        assert len(confirm_record_import["hits"]["hits"]) == 4, (
+            f"Expected 4 records, got {len(confirm_record_import['hits']['hits'])}"
+        )
 
     def _check_result_day1(self, result):
         """Check the results for day 1."""
@@ -279,7 +278,6 @@ class TestCommunityRecordCreatedDeltaQuery:
             count_without_files=0,
             expected_bytes=59117831.0,
         )
-        assert result["affiliations_id"]["buckets"] == []
         assert result["affiliations_keyword"]["buckets"] == []
         assert result["affiliations_1_id"]["buckets"] == []
         assert result["affiliations_1_keyword"]["buckets"] == []
@@ -522,26 +520,24 @@ class TestCommunityRecordCreatedDeltaQuery:
             expected_key="open",
             expected_bytes=1984949.0,
         )
-        assert result["affiliations_id"]["buckets"] == []
-        assert result["affiliations_keyword"]["buckets"] == []
-        assert result["affiliations_1_id"]["buckets"] == []
-        assert result["affiliations_1_keyword"]["buckets"] == []
 
-        # Find affiliations by key since order is not guaranteed
-        affiliations = {
+        affiliations_ids = {
             bucket["key"]: bucket for bucket in result["affiliations_id"]["buckets"]
         }
-
         self._check_query_subcount_results(
-            affiliations["03rmrcq20"],
-            expected_key="03rmrcq20",
+            affiliations_ids["03rmrcq20"],
             count_with_files=0,
             count_without_files=1,
+            expected_key="03rmrcq20",
             expected_bytes=0.0,
             expected_label={
                 "metadata": {"creators": [{"affiliations": [{"id": "03rmrcq20"}]}]}
             },
         )
+        assert result["affiliations_keyword"]["buckets"] == []
+        assert result["affiliations_1_id"]["buckets"] == []
+        assert result["affiliations_1_keyword"]["buckets"] == []
+
         # Find file types by key since order is not guaranteed
         file_types = {
             bucket["key"]: bucket for bucket in result["file_types"]["buckets"]
@@ -1038,9 +1034,9 @@ class TestCommunityRecordDeltaQueryDeleted(TestCommunityRecordCreatedDeltaQuery)
         non_empty_days = [
             i for i, day in enumerate(days) if day["total_records"]["value"] > 0
         ]
-        assert (
-            len(non_empty_days) == 1
-        ), f"Expected exactly one day with results, got {len(non_empty_days)}"
+        assert len(non_empty_days) == 1, (
+            f"Expected exactly one day with results, got {len(non_empty_days)}"
+        )
 
         # The day with results should have exactly 1 deleted record
         day_with_results = non_empty_days[0]
@@ -1089,9 +1085,9 @@ class TestCommunityRecordAddedDeltaQuery(TestCommunityRecordCreatedDeltaQuery):
         non_empty_days = [
             i for i, day in enumerate(days) if day["total_records"]["value"] > 0
         ]
-        assert (
-            len(non_empty_days) == 1
-        ), f"Expected exactly one day with results, got {len(non_empty_days)}"
+        assert len(non_empty_days) == 1, (
+            f"Expected exactly one day with results, got {len(non_empty_days)}"
+        )
 
         # The day with results should have exactly 4 added records
         day_with_results = non_empty_days[0]
@@ -1171,9 +1167,9 @@ class TestCommunityRecordPublishedDeltaQuery(TestCommunityRecordCreatedDeltaQuer
         non_empty_days = [
             i for i, day in enumerate(days) if day["total_records"]["value"] > 0
         ]
-        assert (
-            len(non_empty_days) == 4
-        ), f"Expected exactly 4 days with results, got {len(non_empty_days)}"
+        assert len(non_empty_days) == 4, (
+            f"Expected exactly 4 days with results, got {len(non_empty_days)}"
+        )
 
         # Check that the non-empty days are at the expected indices (0, 1, 5, 6)
         expected_indices = [0, 1, 5, 6]
@@ -1189,12 +1185,12 @@ class TestCommunityRecordPublishedDeltaQuery(TestCommunityRecordCreatedDeltaQuer
             assert result["uploaders"]["value"] == 1  # Imports belong to same user
             file_counts.append(result["file_count"]["value"])
 
-        assert (
-            file_counts.count(1) == 3
-        ), f"Expected 3 records with files, got {file_counts.count(1)}"
-        assert (
-            file_counts.count(0) == 1
-        ), f"Expected 1 record without files, got {file_counts.count(0)}"
+        assert file_counts.count(1) == 3, (
+            f"Expected 3 records with files, got {file_counts.count(1)}"
+        )
+        assert file_counts.count(0) == 1, (
+            f"Expected 1 record without files, got {file_counts.count(0)}"
+        )
 
         # All other days should be empty
         for i, day in enumerate(days):
@@ -1262,14 +1258,12 @@ class TestCommunityUsageDeltaQuery:
     ):
         """Setup the records for the test."""
         requests_mock.real_http = True
-        for idx, rec in enumerate(
-            [
-                sample_metadata_journal_article4_pdf,
-                sample_metadata_journal_article5_pdf,
-                sample_metadata_journal_article6_pdf,
-                sample_metadata_journal_article7_pdf,
-            ]
-        ):
+        for idx, rec in enumerate([
+            sample_metadata_journal_article4_pdf,
+            sample_metadata_journal_article5_pdf,
+            sample_metadata_journal_article6_pdf,
+            sample_metadata_journal_article7_pdf,
+        ]):
             metadata: dict = deepcopy(rec)
             metadata["created"] = "2025-06-01T00:00:00+00:00"
 
@@ -1318,9 +1312,9 @@ class TestCommunityUsageDeltaQuery:
             f"View index: {current_search_client.indices.get_alias('*')}"
         )
         actual_events_count = actual_events["indexed"]
-        assert (
-            actual_events_count == 140
-        ), f"Expected 140 events, got {actual_events_count}"
+        assert actual_events_count == 140, (
+            f"Expected 140 events, got {actual_events_count}"
+        )
         assert actual_events["errors"] == 0
 
         current_search_client.indices.refresh(index="events-stats-*")
@@ -1392,6 +1386,8 @@ class TestCommunityUsageDeltaQuery:
             # Check if both have the same number of buckets
             if len(actual_copy["buckets"]) != len(expected_copy["buckets"]):
                 # If expected is empty but actual has content, that's a test failure
+                current_app.logger.error(pformat(actual_copy["buckets"]))
+                current_app.logger.error(pformat(expected_copy["buckets"]))
                 if (
                     len(expected_copy["buckets"]) == 0
                     and len(actual_copy["buckets"]) > 0
@@ -1452,12 +1448,12 @@ class TestCommunityUsageDeltaQuery:
         # Since IP addresses are randomly selected, we can't guarantee exact country
         # counts. But we can check that we have a reasonable number of countries
         # represented
-        assert (
-            len(actual_agg["buckets"]) >= 1
-        ), "At least one country should be represented"
-        assert (
-            len(actual_agg["buckets"]) <= 20
-        ), "Should not exceed the number of available countries"
+        assert len(actual_agg["buckets"]) >= 1, (
+            "At least one country should be represented"
+        )
+        assert len(actual_agg["buckets"]) <= 20, (
+            "Should not exceed the number of available countries"
+        )
 
         # Check that error bounds are reasonable
         assert actual_agg["doc_count_error_upper_bound"] >= 0
@@ -1468,20 +1464,20 @@ class TestCommunityUsageDeltaQuery:
             assert "key" in bucket, "Country bucket must have a key"
             assert "unique_parents" in bucket, "Country bucket must have unique_parents"
             assert "unique_records" in bucket, "Country bucket must have unique_records"
-            assert (
-                "unique_visitors" in bucket
-            ), "Country bucket must have unique_visitors"
+            assert "unique_visitors" in bucket, (
+                "Country bucket must have unique_visitors"
+            )
 
             # Check that the values are reasonable
-            assert (
-                bucket["unique_parents"]["value"] >= 1
-            ), "At least one parent should be represented"
-            assert (
-                bucket["unique_records"]["value"] >= 1
-            ), "At least one record should be represented"
-            assert (
-                bucket["unique_visitors"]["value"] >= 1
-            ), "At least one visitor should be represented"
+            assert bucket["unique_parents"]["value"] >= 1, (
+                "At least one parent should be represented"
+            )
+            assert bucket["unique_records"]["value"] >= 1, (
+                "At least one record should be represented"
+            )
+            assert bucket["unique_visitors"]["value"] >= 1, (
+                "At least one visitor should be represented"
+            )
 
             # Check that the country key is a valid country code (2-3 characters)
             assert len(bucket["key"]) in [
@@ -1529,11 +1525,16 @@ class TestCommunityUsageDeltaQuery:
             "affiliations_id",
             "affiliations_name",
             "funders_id",
-            "funders_keyword",
+            "funders_name",
             "languages",
             "rights",
             "resource_types",
         ]:
+            current_app.logger.error(agg_name)
+            current_app.logger.error("ACTUAL--------")
+            current_app.logger.error(pformat(actual_aggs[agg_name]["buckets"]))
+            current_app.logger.error("EXPECTED------")
+            current_app.logger.error(pformat(mock_aggs[agg_name]["buckets"]))
             self._compare_aggregation_ignoring_ids(
                 actual_aggs[agg_name],
                 mock_aggs[agg_name],

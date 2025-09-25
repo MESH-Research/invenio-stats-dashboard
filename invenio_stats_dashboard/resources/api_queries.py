@@ -6,12 +6,13 @@
 
 """API query classes for invenio-stats-dashboard."""
 
-from typing import Any
 import datetime
+from typing import Any
+
 import arrow
-from flask import current_app, Response
-from invenio_communities.proxies import current_communities
+from flask import Response, current_app
 from invenio_access.permissions import system_identity
+from invenio_communities.proxies import current_communities
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
@@ -65,7 +66,7 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
                 )
                 community_id = community.id
             except Exception as e:
-                raise ValueError(f"Community {community_id} not found: {str(e)}")
+                raise ValueError(f"Community {community_id} not found: {str(e)}") from e
 
         must_clauses: list[dict] = [
             {"term": {"community_id": community_id}},
