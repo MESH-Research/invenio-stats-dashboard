@@ -5,9 +5,44 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import { http } from "react-invenio-forms";
+import axios from "axios";
 import { DASHBOARD_TYPES } from "../constants";
 import { transformApiData } from "./dataTransformer";
 import { generateTestStatsData } from "../components/test_data";
+
+import { kebabToCamel } from "../utils";
+
+/**
+ * Create axios instance with proper CSRF token configuration
+ */
+const createAxiosWithCSRF = () => {
+  return axios.create({
+    withCredentials: true,
+    xsrfCookieName: "csrftoken",
+    xsrfHeaderName: "X-CSRFToken",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+  });
+};
+
+/**
+ * Convert API stat name to ui category name.
+ *
+ * @param {string} str - The API stat name to convert
+ * @param {string} dateBasis - The kind of date being used to
+ *   determine the search index to query for the data.
+ *
+ * @returns {string} The ui category name
+ **/
+const convertCategoryKey = (str, dateBasis) => {
+  let newKey = kebabToCamel(str).replace("Category", "Data");
+  if (str.startsWith("record")) {
+    newKey = newKey + dateBasis.charAt(0).toUpperCase() + dateBasis.slice(1);
+  }
+  return newKey;
+};
 
 /**
  * API client for requesting stats to populate a stats dashboard.
@@ -29,58 +64,62 @@ import { generateTestStatsData } from "../components/test_data";
  * @returns {Promise<Object>} - The stats data.
  */
 const statsApiClient = {
-	getStats: async (
-		communityId,
-		dashboardType,
-		startDate = null,
-		endDate = null,
-		dateBasis = "added",
-	) => {
-		if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
-			communityId = "global";
-		}
+  getStats: async (
+    communityId,
+    dashboardType,
+    startDate = null,
+    endDate = null,
+    dateBasis = "added",
+  ) => {
+    if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
+      communityId = "global";
+    }
 
-		const statCategories = [
-			"usage-snapshot-category",
-			"usage-delta-category",
-			"record-snapshot-category",
-			"record-delta-category",
-		];
+    const statCategories = [
+      "usage-snapshot-category",
+      "usage-delta-category",
+      "record-snapshot-category",
+      "record-delta-category",
+    ];
 
-		let responses = [];
+    let responses = {};
+    const axiosWithCSRF = createAxiosWithCSRF();
 
-		for (let i = 0; i < statCategories.length; i++) {
-			const category = statCategories[i];
+    for (let i = 0; i < statCategories.length; i++) {
+      const category = statCategories[i];
 
-			let requestBody = {
-				[`${category}`]: {
-					stat: `${category}`,
-					params: {
-						community_id: communityId,
-						date_basis: dateBasis,
-					},
-				},
-			};
-			if (startDate) {
-				requestBody[`${category}`].params.start_date = startDate;
-			}
-			if (endDate) {
-				requestBody[`${category}`].params.end_date = endDate;
-			}
+      let requestBody = {
+        [`${category}`]: {
+          stat: `${category}`,
+          params: {
+            community_id: communityId,
+            date_basis: dateBasis,
+          },
+        },
+      };
+      if (startDate) {
+        requestBody[`${category}`].params.start_date = startDate;
+      }
+      if (endDate) {
+        requestBody[`${category}`].params.end_date = endDate;
+      }
 
-			// Request with compression headers for optimal performance
-			const response = await http.post(`/api/stats`, requestBody, {
-				headers: {
-					'Accept-Encoding': 'br, gzip',  // Prefer Brotli, fallback to Gzip
-					'Accept': 'application/json'
-				}
-			});
-			responses.push(response.data);
-			console.log("response.data", response.data);
-		}
+      // Request with compression headers and CSRF token
+      const response = await axiosWithCSRF.post(`/api/stats`, requestBody, {
+        headers: {
+          "Accept-Encoding": "br, gzip", // Prefer Brotli, fallback to Gzip
+          Accept: "application/json",
+        },
+      });
 
-		return responses;
-	},
+      const newKey = convertCategoryKey(category, dateBasis);
+
+      responses[newKey] = response.data[category];
+    }
+    console.log("API responses:", responses);
+
+    return responses;
+  },
 };
 
 /**
@@ -102,90 +141,299 @@ const statsApiClient = {
  *   - error: Error object if fetch failed
  */
 const fetchStats = async ({
-	communityId,
-	dashboardType,
-	startDate = null,
-	endDate = null,
-	dateBasis = "added",
-	onStateChange = null,
-	isMounted = null,
-	useTestData = false,
+  communityId,
+  dashboardType,
+  startDate = null,
+  endDate = null,
+  dateBasis = "added",
+  onStateChange = null,
+  isMounted = null,
+  useTestData = false,
 }) => {
-	try {
-		// Start loading state
-		if (onStateChange && (!isMounted || isMounted())) {
-			onStateChange({
-				type: "loading_started",
-				stats: null,
-				isLoading: true,
-				isUpdating: false,
-				error: null,
-			});
-		}
+  try {
+    // Start loading state
+    if (onStateChange && (!isMounted || isMounted())) {
+      onStateChange({
+        type: "loading_started",
+        stats: null,
+        isLoading: true,
+        isUpdating: false,
+        error: null,
+      });
+    }
 
-		let transformedStats;
+    let rawStats;
 
-		if (useTestData) {
-			transformedStats = await generateTestStatsData(startDate, endDate);
-		} else {
-			const rawStats = await statsApiClient.getStats(
-				communityId,
-				dashboardType,
-				startDate,
-				endDate,
-				dateBasis,
-			);
-			transformedStats = transformApiData(rawStats);
-		}
+    if (useTestData) {
+      rawStats = await generateTestStatsData(startDate, endDate);
+    } else {
+      rawStats = await statsApiClient.getStats(
+        communityId,
+        dashboardType,
+        startDate,
+        endDate,
+        dateBasis,
+      );
+    }
 
-		console.log("Stats data fetched and transformed:", {
-			communityId,
-			dashboardType,
-			startDate: startDate?.toISOString?.() || startDate,
-			endDate: endDate?.toISOString?.() || endDate,
-			dataSize: JSON.stringify(transformedStats).length,
-			dataKeys: Object.keys(transformedStats || {}),
-		});
+    console.log("Stats data fetched and transformed:", {
+      communityId,
+      dashboardType,
+      startDate: startDate?.toISOString?.() || startDate,
+      endDate: endDate?.toISOString?.() || endDate,
+      dataSize: JSON.stringify(rawStats).length,
+      dataKeys: Object.keys(rawStats || {}),
+    });
 
-		// Data loaded successfully
-		if (onStateChange && (!isMounted || isMounted())) {
-			onStateChange({
-				type: "data_loaded",
-				stats: transformedStats,
-				isLoading: false,
-				isUpdating: false,
-				lastUpdated: Date.now(),
-				error: null,
-			});
-		}
+    // Data loaded successfully
+    if (onStateChange && (!isMounted || isMounted())) {
+      onStateChange({
+        type: "data_loaded",
+        stats: rawStats,
+        isLoading: false,
+        isUpdating: false,
+        lastUpdated: Date.now(),
+        error: null,
+      });
+    }
 
-		return {
-			stats: transformedStats,
-			lastUpdated: Date.now(),
-			error: null,
-		};
-	} catch (error) {
-		console.error("Error fetching stats:", error);
+    return {
+      stats: rawStats,
+      lastUpdated: Date.now(),
+      error: null,
+    };
+  } catch (error) {
+    console.error("Error fetching stats:", error);
 
-		if (onStateChange && (!isMounted || isMounted())) {
-			onStateChange({
-				type: "error",
-				stats: null,
-				isLoading: false,
-				isUpdating: false,
-				error,
-			});
-		}
+    if (onStateChange && (!isMounted || isMounted())) {
+      onStateChange({
+        type: "error",
+        stats: null,
+        isLoading: false,
+        isUpdating: false,
+        error,
+      });
+    }
 
-		return {
-			stats: null,
-			lastUpdated: null,
-			error,
-		};
-	}
+    return {
+      stats: null,
+      lastUpdated: null,
+      error,
+    };
+  }
+};
+
+/**
+ * Serialization format constants for download requests
+ */
+const SERIALIZATION_FORMATS = {
+  JSON: "application/json",
+  JSON_GZIP: "application/json+gzip",
+  JSON_BROTLI: "application/json+br",
+  CSV: "text/csv",
+  XML: "application/xml",
+  EXCEL: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+/**
+ * Download stats series sets API client
+ *
+ * Downloads statistics data in various serialization formats using the current
+ * UI display settings (start/end date, community, dateBasis).
+ *
+ * @param {string} communityId - The ID of the community to get stats for (or 'global')
+ * @param {string} dashboardType - The type of dashboard (DASHBOARD_TYPES.GLOBAL or DASHBOARD_TYPES.COMMUNITY)
+ * @param {string} format - Serialization format (from SERIALIZATION_FORMATS)
+ * @param {string} [startDate] - Start date in YYYY-MM-DD format
+ * @param {string} [endDate] - End date in YYYY-MM-DD format
+ * @param {string} [dateBasis] - Date basis ("added", "created", "published"). Defaults to "added"
+ *
+ * @returns {Promise<Blob>} - The downloaded file as a Blob
+ */
+const downloadStatsSeries = async (
+  communityId,
+  dashboardType,
+  format,
+  startDate = null,
+  endDate = null,
+  dateBasis = "added",
+) => {
+  if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
+    communityId = "global";
+  }
+
+  // Validate format
+  const validFormats = Object.values(SERIALIZATION_FORMATS);
+  if (!validFormats.includes(format)) {
+    throw new Error(
+      `Invalid format: ${format}. Valid formats are: ${validFormats.join(", ")}`,
+    );
+  }
+
+  // Build request body for category-wide queries (which return data series sets)
+  const requestBody = {
+    "usage-snapshot-category": {
+      stat: "usage-snapshot-category",
+      params: {
+        community_id: communityId,
+        date_basis: dateBasis,
+      },
+    },
+    "usage-delta-category": {
+      stat: "usage-delta-category",
+      params: {
+        community_id: communityId,
+        date_basis: dateBasis,
+      },
+    },
+    "record-snapshot-category": {
+      stat: "record-snapshot-category",
+      params: {
+        community_id: communityId,
+        date_basis: dateBasis,
+      },
+    },
+    "record-delta-category": {
+      stat: "record-delta-category",
+      params: {
+        community_id: communityId,
+        date_basis: dateBasis,
+      },
+    },
+  };
+
+  // Add date filters if provided
+  if (startDate) {
+    Object.values(requestBody).forEach((query) => {
+      query.params.start_date = startDate;
+    });
+  }
+  if (endDate) {
+    Object.values(requestBody).forEach((query) => {
+      query.params.end_date = endDate;
+    });
+  }
+
+  // Set up headers for the requested format
+  const headers = {
+    Accept: format,
+  };
+
+  // Add compression headers for JSON formats
+  if (format === SERIALIZATION_FORMATS.JSON_GZIP) {
+    headers["Accept-Encoding"] = "gzip";
+  } else if (format === SERIALIZATION_FORMATS.JSON_BROTLI) {
+    headers["Accept-Encoding"] = "br";
+  } else if (format === SERIALIZATION_FORMATS.JSON) {
+    headers["Accept-Encoding"] = "br, gzip"; // Prefer Brotli, fallback to Gzip
+  }
+
+  try {
+    const axiosWithCSRF = createAxiosWithCSRF();
+    const response = await axiosWithCSRF.post(`/api/stats`, requestBody, {
+      headers,
+      responseType: "blob", // Important for binary file downloads
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error downloading stats series:", error);
+    throw error;
+  }
+};
+
+/**
+ * Download stats series sets with automatic filename handling
+ *
+ * Downloads statistics data and automatically triggers a browser download
+ * with an appropriate filename based on the community and format.
+ *
+ * @param {Object} params - Download parameters
+ * @param {string} params.communityId - The ID of the community to get stats for (or 'global')
+ * @param {string} params.dashboardType - The type of dashboard (DASHBOARD_TYPES.GLOBAL or DASHBOARD_TYPES.COMMUNITY)
+ * @param {string} params.format - Serialization format (from SERIALIZATION_FORMATS)
+ * @param {string} [params.startDate] - Start date in YYYY-MM-DD format
+ * @param {string} [params.endDate] - End date in YYYY-MM-DD format
+ * @param {string} [params.dateBasis] - Date basis ("added", "created", "published"). Defaults to "added"
+ * @param {string} [params.filename] - Custom filename (optional, will be auto-generated if not provided)
+ *
+ * @returns {Promise<void>} - Triggers browser download
+ */
+const downloadStatsSeriesWithFilename = async ({
+  communityId,
+  dashboardType,
+  format,
+  startDate = null,
+  endDate = null,
+  dateBasis = "added",
+  filename = null,
+}) => {
+  try {
+    const blob = await downloadStatsSeries(
+      communityId,
+      dashboardType,
+      format,
+      startDate,
+      endDate,
+      dateBasis,
+    );
+
+    // Generate filename if not provided
+    if (!filename) {
+      const communityPrefix =
+        dashboardType === DASHBOARD_TYPES.GLOBAL ? "global" : communityId;
+      const datePrefix =
+        startDate && endDate ? `_${startDate}_to_${endDate}` : "";
+      const formatExtension = getFormatExtension(format);
+
+      filename = `stats_series_${communityPrefix}${datePrefix}${formatExtension}`;
+    }
+
+    // Create download link and trigger download
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    console.log(`Downloaded stats series: ${filename}`);
+  } catch (error) {
+    console.error("Error downloading stats series with filename:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get file extension for a given format
+ *
+ * @param {string} format - Serialization format
+ * @returns {string} - File extension with leading dot
+ */
+const getFormatExtension = (format) => {
+  switch (format) {
+    case SERIALIZATION_FORMATS.JSON:
+    case SERIALIZATION_FORMATS.JSON_GZIP:
+    case SERIALIZATION_FORMATS.JSON_BROTLI:
+      return ".json.gz";
+    case SERIALIZATION_FORMATS.CSV:
+      return ".tar.gz";
+    case SERIALIZATION_FORMATS.XML:
+      return ".xml";
+    case SERIALIZATION_FORMATS.EXCEL:
+      return ".tar.gz";
+    default:
+      return ".bin";
+  }
 };
 
 export {
-	statsApiClient,
-	fetchStats,
+  statsApiClient,
+  fetchStats,
+  downloadStatsSeries,
+  downloadStatsSeriesWithFilename,
+  SERIALIZATION_FORMATS,
+  getFormatExtension,
 };

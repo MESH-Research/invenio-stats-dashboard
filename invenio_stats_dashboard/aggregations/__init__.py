@@ -25,7 +25,6 @@ from .usage_snapshot_aggs import CommunityUsageSnapshotAggregator
 
 def register_aggregations():
     """Register the aggregations for community statistics."""
-
     return {
         "community-records-snapshot-created-agg": {
             "templates": (

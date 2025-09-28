@@ -143,7 +143,6 @@ class CommunityAggregatorBase(StatAggregator):
             return bool(self.client.indices.exists(index=prefix_index(index_name)))
 
         if isinstance(self.first_event_index, str):
-            # Check if the index exists (either as alias or any matching index)
             if not check_index_exists(self.first_event_index):
                 raise ValueError(
                     f"Required index {prefix_index(self.first_event_index)} "
@@ -209,7 +208,6 @@ class CommunityAggregatorBase(StatAggregator):
                     last_index_event_date,
                 )
             except Exception as e:
-
                 if attempt == max_retries - 1:
                     raise CommunityEventIndexingError(
                         f"Failed to index community events for {community_id} "
@@ -336,7 +334,7 @@ class CommunityAggregatorBase(StatAggregator):
             ]
             communities_to_aggregate.append(
                 "global"
-            )  # Global stats only when no specific communities
+            )  # Add global stats only when no specific communities
 
         results = []
         for community_id in communities_to_aggregate:
@@ -408,7 +406,7 @@ class CommunityAggregatorBase(StatAggregator):
 
             community_docs_info: list[dict] = []
 
-            # Create a wrapper generator that collects metadata while yielding documents
+            # Wrapper generator that collects metadata while yielding documents
             # so that we can return the detailed information in the result
             def document_generator_with_metadata(docs_info_list):
                 for doc, doc_generation_time in agg_iter_generator:  # noqa: B023
@@ -448,7 +446,6 @@ class CommunityAggregatorBase(StatAggregator):
             docs_indexed, errors = bulk_result
             results.append((docs_indexed, errors, community_docs_info))
 
-            # Validate aggregation success before updating bookmark
             if update_bookmark:
                 if errors:
                     current_app.logger.error(

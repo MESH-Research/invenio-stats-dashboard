@@ -133,7 +133,7 @@ STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
 """Custom function to register the menu item. If None, uses default registration.
 Should be a callable that takes the Flask app as its only argument."""
 
-STATS_DASHBOARD_USE_TEST_DATA = True
+STATS_DASHBOARD_USE_TEST_DATA = False
 """Enable or disable test data mode. When True, the dashboard will use sample data
 instead of making API calls."""
 
@@ -1104,22 +1104,6 @@ COMMUNITY_STATS_SERIALIZERS = {
         "serializer": (
             "invenio_stats_dashboard.resources.data_series_serializers:"
             "DataSeriesXMLSerializer"
-        ),
-        "enabled_for": [
-            "usage-snapshot-series",
-            "usage-delta-series",
-            "record-snapshot-series",
-            "record-delta-series",
-            "usage-snapshot-category",
-            "usage-delta-category",
-            "record-snapshot-category",
-            "record-delta-category",
-        ],
-    },
-    "text/html": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.data_series_serializers:"
-            "DataSeriesHTMLSerializer"
         ),
         "enabled_for": [
             "usage-snapshot-series",

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:ds="https://github.com/MESH-Research/invenio-stats-dashboard"
+           xmlns:dc="http://purl.org/dc/elements/1.1/"
+           targetNamespace="https://github.com/MESH-Research/invenio-stats-dashboard"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+  <!-- Import Dublin Core namespace -->
+  <xs:import namespace="http://purl.org/dc/elements/1.1/"
+              schemaLocation="http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd"/>
+
+  <!-- Root element -->
+  <xs:element name="dataSeriesCollection" type="ds:DataSeriesCollectionType"/>
+
+  <!-- Main data series collection type -->
+  <xs:complexType name="DataSeriesCollectionType">
+    <xs:sequence>
+      <xs:element name="metadata" type="ds:MetadataType"/>
+      <xs:element name="category" type="ds:CategoryType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="version" type="xs:string" use="required" default="1.0"/>
+    <xs:attribute name="xmlns" type="xs:anyURI" use="required"/>
+  </xs:complexType>
+
+  <!-- Metadata type with Dublin Core elements -->
+  <xs:complexType name="MetadataType">
+    <xs:sequence>
+      <xs:element name="dc:title" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:creator" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:description" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:date" type="xs:dateTime" minOccurs="0"/>
+      <xs:element name="dc:format" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:language" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:publisher" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:rights" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:source" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:subject" type="xs:string" minOccurs="0"/>
+      <xs:element name="dc:type" type="xs:string" minOccurs="0"/>
+      <xs:element name="generatedAt" type="xs:dateTime"/>
+      <xs:element name="totalCategories" type="xs:nonNegativeInteger"/>
+      <xs:element name="totalDataPoints" type="xs:nonNegativeInteger" minOccurs="0"/>
+      <xs:element name="timeRange" type="ds:TimeRangeType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Time range type -->
+  <xs:complexType name="TimeRangeType">
+    <xs:sequence>
+      <xs:element name="startDate" type="xs:dateTime"/>
+      <xs:element name="endDate" type="xs:dateTime"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Category type -->
+  <xs:complexType name="CategoryType">
+    <xs:sequence>
+      <xs:element name="metric" type="ds:MetricType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="metricsCount" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="description" type="xs:string"/>
+    <xs:attribute name="categoryType" type="ds:CategoryTypeEnum"/>
+  </xs:complexType>
+
+  <!-- Category type enumeration -->
+  <xs:simpleType name="CategoryTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="access_status"/>
+      <xs:enumeration value="geographic"/>
+      <xs:enumeration value="temporal"/>
+      <xs:enumeration value="content_type"/>
+      <xs:enumeration value="user_behavior"/>
+      <xs:enumeration value="system_performance"/>
+      <xs:enumeration value="global"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Metric type -->
+  <xs:complexType name="MetricType">
+    <xs:sequence>
+      <xs:element name="series" type="ds:SeriesType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="dataPointsCount" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="unit" type="xs:string"/>
+    <xs:attribute name="measurementType" type="ds:MeasurementTypeEnum"/>
+    <xs:attribute name="aggregationMethod" type="ds:AggregationMethodEnum"/>
+    <xs:attribute name="description" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Measurement type enumeration -->
+  <xs:simpleType name="MeasurementTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="count"/>
+      <xs:enumeration value="sum"/>
+      <xs:enumeration value="average"/>
+      <xs:enumeration value="rate"/>
+      <xs:enumeration value="percentage"/>
+      <xs:enumeration value="volume"/>
+      <xs:enumeration value="duration"/>
+      <xs:enumeration value="frequency"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Aggregation method enumeration -->
+  <xs:simpleType name="AggregationMethodEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="daily"/>
+      <xs:enumeration value="weekly"/>
+      <xs:enumeration value="monthly"/>
+      <xs:enumeration value="yearly"/>
+      <xs:enumeration value="cumulative"/>
+      <xs:enumeration value="delta"/>
+      <xs:enumeration value="snapshot"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Series type -->
+  <xs:complexType name="SeriesType">
+    <xs:sequence>
+      <xs:element name="dataPoints" type="ds:DataPointsType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="type" type="ds:SeriesTypeEnum"/>
+    <xs:attribute name="valueType" type="ds:ValueTypeEnum"/>
+    <xs:attribute name="description" type="xs:string"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Series type enumeration -->
+  <xs:simpleType name="SeriesTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="line"/>
+      <xs:enumeration value="bar"/>
+      <xs:enumeration value="area"/>
+      <xs:enumeration value="scatter"/>
+      <xs:enumeration value="pie"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Value type enumeration -->
+  <xs:simpleType name="ValueTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="integer"/>
+      <xs:enumeration value="decimal"/>
+      <xs:enumeration value="percentage"/>
+      <xs:enumeration value="filesize"/>
+      <xs:enumeration value="duration"/>
+      <xs:enumeration value="currency"/>
+      <xs:enumeration value="boolean"/>
+      <xs:enumeration value="string"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Data points type -->
+  <xs:complexType name="DataPointsType">
+    <xs:sequence>
+      <xs:element name="point" type="ds:PointType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Point type -->
+  <xs:complexType name="PointType">
+    <xs:sequence>
+      <xs:element name="metadata" type="ds:PointMetadataType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="readableDate" type="xs:string"/>
+    <xs:attribute name="date" type="xs:dateTime" use="required"/>
+    <xs:attribute name="value" type="xs:decimal" use="required"/>
+    <xs:attribute name="valueType" type="ds:ValueTypeEnum"/>
+    <xs:attribute name="unit" type="xs:string"/>
+    <xs:attribute name="confidence" type="xs:decimal"/>
+    <xs:attribute name="quality" type="ds:QualityEnum"/>
+  </xs:complexType>
+
+  <!-- Point metadata type -->
+  <xs:complexType name="PointMetadataType">
+    <xs:sequence>
+      <xs:element name="source" type="xs:string" minOccurs="0"/>
+      <xs:element name="method" type="xs:string" minOccurs="0"/>
+      <xs:element name="notes" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Quality enumeration -->
+  <xs:simpleType name="QualityEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="low"/>
+      <xs:enumeration value="estimated"/>
+      <xs:enumeration value="interpolated"/>
+      <xs:enumeration value="unknown"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

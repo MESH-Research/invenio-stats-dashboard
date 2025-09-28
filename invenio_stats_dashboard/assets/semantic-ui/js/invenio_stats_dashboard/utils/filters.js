@@ -88,12 +88,22 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
           continue;
         }
 
-        // Skip if first element is not a valid Date
-        if (!(current.value[0] instanceof Date) || isNaN(current.value[0].getTime())) {
+        // Convert first element to Date if it's a string, or skip if invalid
+        let dateObj;
+        if (current.value[0] instanceof Date) {
+          dateObj = current.value[0];
+        } else if (typeof current.value[0] === 'string') {
+          // Handle YYYY-MM-DD format date strings
+          dateObj = new Date(current.value[0] + 'T00:00:00.000Z');
+        } else {
           continue;
         }
 
-        const dateMs = current.value[0].getTime();
+        if (isNaN(dateObj.getTime())) {
+          continue;
+        }
+
+        const dateMs = dateObj.getTime();
         if (endDayBeginning && dateMs === endDayBeginning) {
           latestData = current;
           break;
@@ -114,12 +124,22 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
           return false;
         }
 
-        // Skip if first element is not a valid Date
-        if (!(point.value[0] instanceof Date) || isNaN(point.value[0].getTime())) {
+        // Convert first element to Date if it's a string, or skip if invalid
+        let dateObj;
+        if (point.value[0] instanceof Date) {
+          dateObj = point.value[0];
+        } else if (typeof point.value[0] === 'string') {
+          // Handle YYYY-MM-DD format date strings
+          dateObj = new Date(point.value[0] + 'T00:00:00.000Z');
+        } else {
           return false;
         }
 
-        const dateMs = point.value[0].getTime();
+        if (isNaN(dateObj.getTime())) {
+          return false;
+        }
+
+        const dateMs = dateObj.getTime();
         return (
           (!dateRange.start || dateMs >= startDayBeginning) &&
           (!dateRange.end || dateMs <= endDayEnd)

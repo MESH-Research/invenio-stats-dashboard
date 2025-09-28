@@ -1,13 +1,21 @@
 import React, { useEffect, useState, useRef } from "react";
 import PropTypes from "prop-types";
-import { Dropdown, Button, Popup, Card, Form, Select, Segment } from "semantic-ui-react";
+import {
+  Dropdown,
+  Button,
+  Popup,
+  Card,
+  Form,
+  Select,
+  Segment,
+} from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
   getCurrentUTCDate,
   addDays,
   addMonths,
   addYears,
-  setDateParts
+  setDateParts,
 } from "../../utils/dates";
 
 const getDateRange = (todayDate, period, maxHistoryYears) => {
@@ -21,7 +29,10 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
 
   switch (period) {
     case "allTime":
-      startDate = setDateParts(addYears(todayDate, -maxHistoryYears), { month: 1, day: 1 });
+      startDate = setDateParts(addYears(todayDate, -maxHistoryYears), {
+        month: 1,
+        day: 1,
+      });
       break;
     // Day periods
     case "7days":
@@ -82,17 +93,32 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
       const prevQuarterStartMonth = (currentQuarterIndex - 1) * 3 + 1;
       // Get previous quarter's end month (1-12)
       const prevQuarterEndMonth = prevQuarterStartMonth + 2;
-      startDate = setDateParts(todayDate, { month: prevQuarterStartMonth, day: 1 });
-      endDate = addDays(setDateParts(todayDate, { month: prevQuarterEndMonth + 1, day: 1 }), -1);
+      startDate = setDateParts(todayDate, {
+        month: prevQuarterStartMonth,
+        day: 1,
+      });
+      endDate = addDays(
+        setDateParts(todayDate, { month: prevQuarterEndMonth + 1, day: 1 }),
+        -1,
+      );
       break;
     case "2quarters":
-      startDate = addMonths(setDateParts(todayDate, { month: quarterStartMonth, day: 1 }), -6);
+      startDate = addMonths(
+        setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
+        -6,
+      );
       break;
     case "3quarters":
-      startDate = addMonths(setDateParts(todayDate, { month: quarterStartMonth, day: 1 }), -9);
+      startDate = addMonths(
+        setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
+        -9,
+      );
       break;
     case "4quarters":
-      startDate = addMonths(setDateParts(todayDate, { month: quarterStartMonth, day: 1 }), -12);
+      startDate = addMonths(
+        setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
+        -12,
+      );
       break;
 
     // Year periods
@@ -122,7 +148,10 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
   }
 
   if (maxHistoryYears && startDate < addYears(todayDate, -maxHistoryYears)) {
-    startDate = setDateParts(addYears(todayDate, -maxHistoryYears), { month: 1, day: 1 });
+    startDate = setDateParts(addYears(todayDate, -maxHistoryYears), {
+      month: 1,
+      day: 1,
+    });
   }
 
   return { start: startDate, end: endDate };
@@ -178,11 +207,14 @@ const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
       break;
 
     case "quarter":
-      const currentQuarterIndex = Math.floor((todayDate.getUTCMonth()) / 3);
+      const currentQuarterIndex = Math.floor(todayDate.getUTCMonth() / 3);
       const quarterStartMonth = currentQuarterIndex * 3 + 1;
       const prevQuarterStartMonth = (currentQuarterIndex - 1) * 3 + 1;
 
-      if (startMonth === quarterStartMonth && endMonth === quarterStartMonth + 3) {
+      if (
+        startMonth === quarterStartMonth &&
+        endMonth === quarterStartMonth + 3
+      ) {
         return "currentQuarter";
       }
       if (
@@ -198,7 +230,10 @@ const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
 
     case "year":
       if (startDay === 1 && startMonth === 1) {
-        if (endMonth === todayDate.getUTCMonth() + 1 && endDay === todayDate.getUTCDate()) {
+        if (
+          endMonth === todayDate.getUTCMonth() + 1 &&
+          endDay === todayDate.getUTCDate()
+        ) {
           return "currentYear";
         }
         if (endDay === 31 && endMonth === 12) {
@@ -275,7 +310,11 @@ const quarterPeriodOptions = [
 
 const yearPeriodOptions = [
   { key: "currentYear", text: i18next.t("Current year"), value: "currentYear" },
-  { key: "previousYear", text: i18next.t("Previous year"), value: "previousYear" },
+  {
+    key: "previousYear",
+    text: i18next.t("Previous year"),
+    value: "previousYear",
+  },
   { key: "2years", text: i18next.t("Past 2 years"), value: "2years" },
   { key: "3years", text: i18next.t("Past 3 years"), value: "3years" },
   { key: "4years", text: i18next.t("Past 4 years"), value: "4years" },
@@ -305,12 +344,21 @@ const DateRangeSelector = ({
   const menuRef = useRef(null);
   const todayDate = getCurrentUTCDate();
   const currentPeriodOptions = periodOptions[granularity];
-  const [currentSelectedOption, setCurrentSelectedOption] = useState(dateRange ? getCurrentPeriod(dateRange, granularity, maxHistoryYears) : currentPeriodOptions[0].value);
+  const [currentSelectedOption, setCurrentSelectedOption] = useState(
+    dateRange
+      ? getCurrentPeriod(dateRange, granularity, maxHistoryYears)
+      : currentPeriodOptions[0].value,
+  );
 
   useEffect(() => {
     if (!dateRange) {
       const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
-      const initialDateRange = getDateRange(todayDate, defaultPeriod, maxHistoryYears);
+      console.log("defaultPeriod", defaultPeriod);
+      const initialDateRange = getDateRange(
+        todayDate,
+        defaultPeriod,
+        maxHistoryYears,
+      );
       setDateRange(initialDateRange);
       setDataFetchRange(initialDateRange); // Also set initial data fetch range
       setCurrentSelectedOption(defaultPeriod);
@@ -320,7 +368,11 @@ const DateRangeSelector = ({
   useEffect(() => {
     const newDefaultPeriod = defaultRangeOptions?.[granularity];
     setCurrentSelectedOption(newDefaultPeriod);
-    const newDateRange = getDateRange(todayDate, newDefaultPeriod, maxHistoryYears);
+    const newDateRange = getDateRange(
+      todayDate,
+      newDefaultPeriod,
+      maxHistoryYears,
+    );
     setDateRange(newDateRange);
   }, [granularity]);
 
@@ -330,9 +382,11 @@ const DateRangeSelector = ({
     setDateRange(newDateRange);
 
     // Only update dataFetchRange if the new range extends beyond current dataFetchRange
-    if (!dataFetchRange ||
-        newDateRange.start < dataFetchRange.start ||
-        newDateRange.end > dataFetchRange.end) {
+    if (
+      !dataFetchRange ||
+      newDateRange.start < dataFetchRange.start ||
+      newDateRange.end > dataFetchRange.end
+    ) {
       setDataFetchRange(newDateRange);
     }
 
@@ -346,30 +400,36 @@ const DateRangeSelector = ({
 
   const handleMenuOpen = () => {
     setIsOpen(true);
-    const selectorElement = document.querySelector('.period-selector');
+    const selectorElement = document.querySelector(".period-selector");
     if (selectorElement) {
-      selectorElement.style.position = 'relative';
-      selectorElement.style.zIndex = '1000';
+      selectorElement.style.position = "relative";
+      selectorElement.style.zIndex = "1000";
     }
   };
 
   const handleMenuClose = () => {
     setIsOpen(false);
     setTimeout(() => {
-      const selectorElement = document.querySelector('.period-selector');
-      const menuElement = document.querySelector('.period-selector .menu');
+      const selectorElement = document.querySelector(".period-selector");
+      const menuElement = document.querySelector(".period-selector .menu");
       if (selectorElement) {
-        selectorElement.style = '';
+        selectorElement.style = "";
       }
       if (menuElement) {
-        menuElement.style = '';
+        menuElement.style = "";
       }
     }, 100);
   };
 
   return (
     <Segment className="date-range-selector">
-      <label id="date-range-selector-label" className="stats-dashboard-field-label" htmlFor="date-range-selector">{i18next.t("for the")}</label>
+      <label
+        id="date-range-selector-label"
+        className="stats-dashboard-field-label"
+        htmlFor="date-range-selector"
+      >
+        {i18next.t("for the")}
+      </label>
       <Dropdown
         id="date-range-selector"
         selection

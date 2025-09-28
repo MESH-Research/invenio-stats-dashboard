@@ -6,6 +6,8 @@
 
 """Data series API query classes for invenio-stats-dashboard."""
 
+from pprint import pformat
+
 import arrow
 from flask import Response, current_app
 from invenio_access.permissions import system_identity
@@ -338,6 +340,8 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
 
         # Get the complete data series set with camelCase conversion
         json_result = series_set.for_json()
+
+        current_app.logger.error(f"JSON result: {pformat(json_result)}")
 
         # Handle content negotiation
         if self.should_use_content_negotiation(self.name):

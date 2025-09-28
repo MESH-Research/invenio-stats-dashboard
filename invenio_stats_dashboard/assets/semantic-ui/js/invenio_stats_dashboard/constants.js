@@ -93,17 +93,19 @@ const getSubcountKeyMapping = (frontendKeys, allowedSubcounts = {}) => {
 
   const mapping = {};
 
-  console.log('allowedSubcounts:', allowedSubcounts);
-  console.log('frontendKeys:', frontendKeys);
+  console.log("allowedSubcounts:", allowedSubcounts);
+  console.log("frontendKeys:", frontendKeys);
 
-  allowedSubcounts.forEach(backendKey => {
+  allowedSubcounts.forEach((backendKey) => {
     // Remove "by_" prefix first, then convert snake_case to camelCase
-    let frontendKey = backendKey.replace(/^by_/, '').replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+    let frontendKey = backendKey
+      .replace(/^by_/, "")
+      .replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
     console.log(`Converting ${backendKey} -> ${frontendKey}`);
 
     // Handle special case for filePresence
-    if (backendKey === 'by_file_presence') {
-      frontendKey = 'filePresence';
+    if (backendKey === "by_file_presence") {
+      frontendKey = "filePresence";
     }
 
     // Check if this frontend key exists in availableBreakdowns
@@ -115,11 +117,14 @@ const getSubcountKeyMapping = (frontendKeys, allowedSubcounts = {}) => {
     }
   });
 
-  console.log('Final mapping:', mapping);
+  console.log("Final mapping:", mapping);
 
   _subcountKeyMapping = mapping;
   return mapping;
 };
+
+// Export getSubcountKeyMapping as a named export
+export { getSubcountKeyMapping };
 
 // Export all constants as a single object
 export default {

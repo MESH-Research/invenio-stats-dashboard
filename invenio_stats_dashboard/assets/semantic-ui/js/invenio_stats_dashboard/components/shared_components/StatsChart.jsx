@@ -4,49 +4,60 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect, useMemo } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Button, Container, Header, Segment, Popup, Icon, Form, Checkbox, Loader, Message } from 'semantic-ui-react';
+import {
+  Button,
+  Container,
+  Header,
+  Segment,
+  Popup,
+  Icon,
+  Form,
+  Checkbox,
+  Loader,
+  Message,
+} from "semantic-ui-react";
 import ReactECharts from "echarts-for-react";
-import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { CHART_COLORS, getSubcountKeyMapping } from '../../constants';
-import { formatNumber, filterSeriesArrayByDate } from '../../utils';
-import { formatDateRange, readableGranularDate } from '../../utils/dates';
+import { useStatsDashboard } from "../../context/StatsDashboardContext";
+import { CHART_COLORS, getSubcountKeyMapping } from "../../constants";
+import { formatNumber, filterSeriesArrayByDate } from "../../utils";
+import { formatDateRange, readableGranularDate } from "../../utils/dates";
 
 // Define y-axis labels for different series
 const SERIES_Y_AXIS_LABELS = {
-  'dataVolume': i18next.t('Uploaded Data Volume (GB)'),
-  'default': i18next.t('Value'),
-  'downloads': i18next.t('Number of Downloads'),
-  'fileCount': i18next.t('Number of Files'),
-  'records': i18next.t('Number of Works'),
-  'traffic': i18next.t('Downloaded Data Volume (GB)'),
-  'uploaders': i18next.t('Number of Uploaders'),
-  'views': i18next.t('Number of Views'),
+  dataVolume: i18next.t("Uploaded Data Volume (GB)"),
+  default: i18next.t("Value"),
+  downloads: i18next.t("Number of Downloads"),
+  fileCount: i18next.t("Number of Files"),
+  records: i18next.t("Number of Works"),
+  traffic: i18next.t("Downloaded Data Volume (GB)"),
+  uploaders: i18next.t("Number of Uploaders"),
+  views: i18next.t("Number of Views"),
 };
 
 // Define breakdown category names for display
 const BREAKDOWN_NAMES = {
-  'resourceTypes': 'Work Types',
-  'subjects': 'Subjects',
-  'accessStatuses': 'Access Statuses',
-  'rights': 'Rights',
-  'affiliations': 'Affiliations',
-  'funders': 'Funders',
-  'countries': 'Countries',
-  'referrers': 'Referrer Domains',
-  'fileTypes': 'File Types',
-  'languages': 'Languages',
-  'periodicals': 'Periodicals',
-  'publishers': 'Publishers',
-  'byFilePresence': 'With/Without Files'
+  resourceTypes: "Work Types",
+  subjects: "Subjects",
+  accessStatuses: "Access Statuses",
+  rights: "Rights",
+  affiliations: "Affiliations",
+  funders: "Funders",
+  countries: "Countries",
+  referrers: "Referrer Domains",
+  fileTypes: "File Types",
+  languages: "Languages",
+  periodicals: "Periodicals",
+  publishers: "Publishers",
+  byFilePresence: "With/Without Files",
 };
 
 // Chart configuration constants
 const CHART_CONFIG = {
   aria: {
-    enabled: true
+    enabled: true,
   },
   xAxis: {
     type: "time",
@@ -55,63 +66,63 @@ const CHART_CONFIG = {
     clip: true,
     axisTick: {
       alignWithLabel: true,
-      length: 8
+      length: 8,
     },
     axisLabel: {
       fontSize: 14,
       rich: {
         day: {
           fontSize: 14,
-          lineHeight: 20
+          lineHeight: 20,
         },
         month: {
           fontSize: 14,
           lineHeight: 20,
-          padding: [24, 0, 0, 0]
+          padding: [24, 0, 0, 0],
         },
         quarter: {
           fontSize: 14,
-          lineHeight: 20
+          lineHeight: 20,
         },
         year: {
           fontSize: 14,
           lineHeight: 20,
-          padding: [24, 0, 0, 0]
-        }
-      }
-    }
+          padding: [24, 0, 0, 0],
+        },
+      },
+    },
   },
   yAxis: {
     type: "value",
     nameLocation: "middle",
     nameGap: 60,
     splitLine: {
-      show: true
+      show: true,
     },
     nameTextStyle: {
       fontSize: 14,
-      fontWeight: "bold"
+      fontWeight: "bold",
     },
     axisLabel: {
-      fontSize: 14
-    }
+      fontSize: 14,
+    },
   },
   series: {
     label: {
       fontSize: 14,
-      fontWeight: 'bold',
-      formatter: (params) => params.data.readableDate
+      fontWeight: "bold",
+      formatter: (params) => params.data.readableDate,
     },
     emphasis: {
-      focus: "series"
+      focus: "series",
     },
-    barWidth: '60%',
-    barGap: '30%',
+    barWidth: "60%",
+    barGap: "30%",
     clip: true,
     areaStyle: {
-      opacity: 0.7
-    }
-  }
+      opacity: 0.7,
+    },
+  },
 };
 
 // Grid configuration constants
@@ -121,7 +132,7 @@ const GRID_CONFIG = {
   bottom: "10%",
   top: "10%",
   containLabel: true,
-  clip: true
+  clip: true,
 };
 
 // Tooltip configuration constants
@@ -137,7 +148,11 @@ const TOOLTIP_CONFIG = {
         " " +
         param.seriesName +
         ": " +
-        formatNumber(param.data.value[1], param.data.valueType === 'filesize' ? 'filesize' : 'compact', { compactThreshold: 100_000_000 }) +
+        formatNumber(
+          param.data.value[1],
+          param.data.valueType === "filesize" ? "filesize" : "compact",
+          { compactThreshold: 100_000_000 },
+        ) +
         "<br/>";
     });
     return result;
@@ -168,31 +183,45 @@ class ChartConfigBuilder {
     return this;
   }
 
-  withAxisLabels(showAxisLabels, xAxisLabel, yAxisLabel, seriesYAxisLabel, granularity, minXInterval, maxXInterval, yAxisMin, selectedMetric) {
+  withAxisLabels(
+    showAxisLabels,
+    xAxisLabel,
+    yAxisLabel,
+    seriesYAxisLabel,
+    granularity,
+    minXInterval,
+    maxXInterval,
+    yAxisMin,
+    selectedMetric,
+  ) {
     this.config.xAxis = {
       ...CHART_CONFIG.xAxis,
       name: showAxisLabels ? xAxisLabel : undefined,
       axisTick: {
         ...CHART_CONFIG.xAxis.axisTick,
-        show: ['quarter', 'year'].includes(granularity) ? false : true
+        show: ["quarter", "year"].includes(granularity) ? false : true,
       },
       axisLabel: {
         ...CHART_CONFIG.xAxis.axisLabel,
-        show: ['quarter', 'year'].includes(granularity) ? false : true,
-        formatter: (value) => formatXAxisLabel(value, granularity)
+        show: ["quarter", "year"].includes(granularity) ? false : true,
+        formatter: (value) => formatXAxisLabel(value, granularity),
       },
       minInterval: minXInterval,
-      maxInterval: maxXInterval
+      maxInterval: maxXInterval,
     };
 
     this.config.yAxis = {
       ...CHART_CONFIG.yAxis,
-      name: showAxisLabels ? (yAxisLabel || seriesYAxisLabel) : undefined,
+      name: showAxisLabels ? yAxisLabel || seriesYAxisLabel : undefined,
       min: yAxisMin,
       axisLabel: {
         ...CHART_CONFIG.yAxis.axisLabel,
-        formatter: (value) => formatNumber(value, selectedMetric === 'New Data Volume' ? "filesize" : "compact")
-      }
+        formatter: (value) =>
+          formatNumber(
+            value,
+            selectedMetric === "New Data Volume" ? "filesize" : "compact",
+          ),
+      },
     };
 
     return this;
@@ -203,29 +232,37 @@ class ChartConfigBuilder {
       // For breakdown view, always show legend with individual series names
       this.config.legend = {
         show: true,
-        type: 'scroll', // Allow scrolling if there are many series
-        orient: 'horizontal',
+        type: "scroll", // Allow scrolling if there are many series
+        orient: "horizontal",
         bottom: 0,
         textStyle: {
-          fontSize: 12
-        }
+          fontSize: 12,
+        },
       };
     } else {
       // For global view, respect the showLegend prop
       this.config.legend = {
         show: showLegend,
-        bottom: 0
+        bottom: 0,
       };
     }
     return this;
   }
 
-  withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked, chartType) {
+  withSeries(
+    displaySeparately,
+    aggregatedData,
+    seriesColorIndex,
+    areaStyle,
+    granularity,
+    stacked,
+    chartType,
+  ) {
     if (displaySeparately) {
       // Helper function to determine which series should show labels
       const shouldShowLabel = (seriesIndex, allSeries) => {
         // Only show labels for quarter/year granularity
-        if (!['quarter', 'year'].includes(granularity)) {
+        if (!["quarter", "year"].includes(granularity)) {
           return false;
         }
 
@@ -243,21 +280,31 @@ class ChartConfigBuilder {
         label: {
           ...this.config.series.label,
           show: shouldShowLabel(index, aggregatedData),
-          position: 'top', // Always position labels above the series for stacked subcount
-          color: CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1] // Use the same color as the metric selector button
+          position: "top", // Always position labels above the series for stacked subcount
+          color:
+            CHART_COLORS.primary[
+              seriesColorIndex % CHART_COLORS.primary.length
+            ][1], // Use the same color as the metric selector button
         },
-        areaStyle: (chartType || series.type || "bar") === 'line' ? {
-          ...this.config.series.areaStyle,
-          color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-        } : undefined,
+        areaStyle:
+          (chartType || series.type || "bar") === "line"
+            ? {
+                ...this.config.series.areaStyle,
+                color:
+                  CHART_COLORS.secondary[
+                    index % CHART_COLORS.secondary.length
+                  ][1],
+              }
+            : undefined,
         itemStyle: {
-          color: (chartType || series.type || "bar") === "bar"
-            ? CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-            : CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
+          color:
+            (chartType || series.type || "bar") === "bar"
+              ? CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
+              : CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
         },
         lineStyle: {
-          color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1]
-        }
+          color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
+        },
       }));
     } else {
       this.config.series = aggregatedData.map((series) => ({
@@ -268,22 +315,42 @@ class ChartConfigBuilder {
         data: series.data,
         label: {
           ...this.config.series.label,
-          show: ['quarter', 'year'].includes(granularity) ? true : false,
-          position: (chartType || series.type || "bar") === 'bar' ? 'inside' : 'top',
-          color: (chartType || series.type || "bar") === 'bar' ? "#fff" : CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
+          show: ["quarter", "year"].includes(granularity) ? true : false,
+          position:
+            (chartType || series.type || "bar") === "bar" ? "inside" : "top",
+          color:
+            (chartType || series.type || "bar") === "bar"
+              ? "#fff"
+              : CHART_COLORS.primary[
+                  seriesColorIndex % CHART_COLORS.primary.length
+                ][1],
         },
         itemStyle: {
-          color: (chartType || series.type || "bar") === "bar"
-            ? CHART_COLORS.secondary[seriesColorIndex % CHART_COLORS.secondary.length][1]
-            : CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
+          color:
+            (chartType || series.type || "bar") === "bar"
+              ? CHART_COLORS.secondary[
+                  seriesColorIndex % CHART_COLORS.secondary.length
+                ][1]
+              : CHART_COLORS.primary[
+                  seriesColorIndex % CHART_COLORS.primary.length
+                ][1],
         },
         lineStyle: {
-          color: CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
+          color:
+            CHART_COLORS.primary[
+              seriesColorIndex % CHART_COLORS.primary.length
+            ][1],
         },
-        areaStyle: (areaStyle && (chartType || series.type || "bar") === 'line') ? {
-          ...this.config.series.areaStyle,
-          color: CHART_COLORS.primary[seriesColorIndex % CHART_COLORS.primary.length][1]
-        } : undefined
+        areaStyle:
+          areaStyle && (chartType || series.type || "bar") === "line"
+            ? {
+                ...this.config.series.areaStyle,
+                color:
+                  CHART_COLORS.primary[
+                    seriesColorIndex % CHART_COLORS.primary.length
+                  ][1],
+              }
+            : undefined,
       }));
     }
 
@@ -301,37 +368,51 @@ const SEPARATE_CHART_CONFIG = {
   series: {
     ...CHART_CONFIG.series,
     areaStyle: {
-      opacity: 0.3  // Different opacity for non-displaySeparately case
-    }
-  }
+      opacity: 0.3, // Different opacity for non-displaySeparately case
+    },
+  },
 };
 
-const FilterSelector = ({ data, displaySeparately, setDisplaySeparately, display_subcounts, global_subcounts }) => {
+const FilterSelector = ({
+  data,
+  displaySeparately,
+  setDisplaySeparately,
+  display_subcounts,
+  global_subcounts,
+}) => {
   // Get available breakdown options from data
-  console.log('data', data);
-  const availableBreakdowns = data ? Object.keys(data).filter(k => k !== 'global') : [];
-  console.log('availableBreakdowns', availableBreakdowns);
+  console.log("data", data);
+  const availableBreakdowns = data
+    ? Object.keys(data).filter((k) => k !== "global")
+    : [];
+  console.log("availableBreakdowns", availableBreakdowns);
 
   const allowedSubcounts = display_subcounts || global_subcounts || {};
-  console.log('allowedSubcounts', allowedSubcounts);
-  const allowedSubcountsArray = Array.isArray(allowedSubcounts) ? allowedSubcounts : Object.keys(allowedSubcounts);
+  console.log("allowedSubcounts", allowedSubcounts);
+  const allowedSubcountsArray = Array.isArray(allowedSubcounts)
+    ? allowedSubcounts
+    : Object.keys(allowedSubcounts);
   const globalSubcountsArray = Object.keys(global_subcounts || {});
-  const subcountMapping = availableBreakdowns ? getSubcountKeyMapping(availableBreakdowns, globalSubcountsArray) : {};
-  console.log('subcountMapping', subcountMapping);
+  const subcountMapping = availableBreakdowns
+    ? getSubcountKeyMapping(availableBreakdowns, globalSubcountsArray)
+    : {};
+  console.log("subcountMapping", subcountMapping);
 
-  const breakdownOptions = !availableBreakdowns ? [] : availableBreakdowns.filter(key => {
-    // If no subcounts config is provided, show all available breakdowns
-    if (!allowedSubcountsArray || allowedSubcountsArray.length === 0) {
-      return true;
-    }
+  const breakdownOptions = !availableBreakdowns
+    ? []
+    : availableBreakdowns.filter((key) => {
+        // If no subcounts config is provided, show all available breakdowns
+        if (!allowedSubcountsArray || allowedSubcountsArray.length === 0) {
+          return true;
+        }
 
-    const backendKey = subcountMapping[key];
-    console.log('backendKey', backendKey);
+        const backendKey = subcountMapping[key];
+        console.log("backendKey", backendKey);
 
-    return allowedSubcountsArray.includes(backendKey);
-  });
+        return allowedSubcountsArray.includes(backendKey);
+      });
 
-  console.log('breakdownOptions', breakdownOptions);
+  console.log("breakdownOptions", breakdownOptions);
 
   // Don't render filter if no data available
   if (!data) {
@@ -356,7 +437,7 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately, display
             <legend className="rel-mb-1">
               <label htmlFor="stats-chart-filter">Show separately</label>
             </legend>
-            {breakdownOptions.map(key => (
+            {breakdownOptions.map((key) => (
               <Form.Field key={key} className="rel-mb-0">
                 <Checkbox
                   radio
@@ -368,7 +449,15 @@ const FilterSelector = ({ data, displaySeparately, setDisplaySeparately, display
               </Form.Field>
             ))}
             <Form.Field className="rel-mt-1">
-              <Button type="submit" icon labelPosition="right" onClick={() => setDisplaySeparately(null)}>Clear<Icon name="close" /></Button>
+              <Button
+                type="submit"
+                icon
+                labelPosition="right"
+                onClick={() => setDisplaySeparately(null)}
+              >
+                Clear
+                <Icon name="close" />
+              </Button>
             </Form.Field>
           </fieldset>
         </Form>
@@ -385,23 +474,23 @@ const createAggregationKey = (date, granularity) => {
   const d = new Date(date);
 
   switch (granularity) {
-    case 'week':
+    case "week":
       const diff = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
       const startOfWeek = new Date(d.setDate(diff));
-      return startOfWeek.toISOString().split('T')[0];
+      return startOfWeek.toISOString().split("T")[0];
 
-    case 'month':
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    case "month":
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
-    case 'quarter':
+    case "quarter":
       const quarter = Math.floor(d.getMonth() / 3) + 1;
-      return `${d.getFullYear()}-${String(quarter).padStart(2, '0')}`;
+      return `${d.getFullYear()}-${String(quarter).padStart(2, "0")}`;
 
-    case 'year':
+    case "year":
       return `${d.getFullYear()}`;
 
     default:
-      return date.toISOString().split('T')[0];
+      return date.toISOString().split("T")[0];
   }
 };
 
@@ -412,24 +501,23 @@ const isDataCumulative = (data) => {
   // Check if this is snapshot data by looking for snapshot-related properties
   // Delta data: recordDeltaData*, usageDeltaData
   // Snapshot data: recordSnapshotData*, usageSnapshotData
-  return Object.keys(data).some(key => key.includes('Snapshot'));
+  return Object.keys(data).some((key) => key.includes("Snapshot"));
 };
-
 
 const aggregateData = (data, granularity, isSubcounts = false) => {
   if (!data) return [];
-  if (granularity === 'day') {
+  if (granularity === "day") {
     return data;
   }
 
-  const aggregatedSeries = data.map(series => {
+  const aggregatedSeries = data.map((series) => {
     if (!series.data || series.data.length === 0) {
       return { ...series, data: [] };
     }
 
     const aggregatedPoints = new Map();
 
-    series.data.forEach(point => {
+    series.data.forEach((point) => {
       const [date, value] = point.value;
 
       if (!date || value === undefined) {
@@ -443,12 +531,18 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
         aggregatedPoints.set(key, {
           value: value,
           readableDate: readableDate,
-          lastDate: date
+          lastDate: date,
         });
       } else {
         const current = aggregatedPoints.get(key);
         // Always take the last value of each time period
-        if (date > current.lastDate) {
+        // Ensure both dates are Date objects for proper comparison
+        const currentDate =
+          current.lastDate instanceof Date
+            ? current.lastDate
+            : new Date(current.lastDate);
+        const pointDate = date instanceof Date ? date : new Date(date);
+        if (pointDate > currentDate) {
           current.value = value;
           current.lastDate = date;
         }
@@ -462,14 +556,14 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
         .map(([key, { value, readableDate }]) => {
           // Convert the aggregation key back to a proper date for the chart
           let chartDate;
-          if (granularity === 'quarter') {
-            const [year, quarter] = key.split('-');
+          if (granularity === "quarter") {
+            const [year, quarter] = key.split("-");
             const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
             chartDate = new Date(parseInt(year), month, 1);
-          } else if (granularity === 'month') {
-            const [year, month] = key.split('-');
+          } else if (granularity === "month") {
+            const [year, month] = key.split("-");
             chartDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-          } else if (granularity === 'year') {
+          } else if (granularity === "year") {
             chartDate = new Date(parseInt(key), 0, 1);
           } else {
             // week and day use ISO date strings
@@ -479,11 +573,12 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
           return {
             value: [chartDate, value],
             readableDate: readableDate,
-            valueType: series.valueType || 'number'
+            valueType: series.valueType || "number",
           };
         }),
     };
   });
+  console.log("AggregatedSeries:", aggregatedSeries);
 
   return aggregatedSeries;
 };
@@ -491,8 +586,8 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
 const calculateYAxisMin = (data) => {
   if (!data || data.length === 0) return 0;
 
-  const allValues = data.flatMap(series =>
-    series.data.map(point => point.value[1])  // numeric value from [date, value]
+  const allValues = data.flatMap(
+    (series) => series.data.map((point) => point.value[1]), // numeric value from [date, value]
   );
 
   const [min, max] = [Math.min(...allValues), Math.max(...allValues)];
@@ -503,56 +598,61 @@ const calculateYAxisMin = (data) => {
   }
 
   // Calculate a minimum that's 20% below the lowest value
-  const calculatedMin = Math.max(0, min - (range * 0.2));
+  const calculatedMin = Math.max(0, min - range * 0.2);
   return calculatedMin;
 };
 
 const formatXAxisLabel = (value, granularity) => {
   // value is already a timestamp, use it directly
   const day = new Date(value).getUTCDate();
-  const month = new Date(value).toLocaleString('default', { month: 'short', timeZone: 'UTC' });
+  const month = new Date(value).toLocaleString("default", {
+    month: "short",
+    timeZone: "UTC",
+  });
   const year = new Date(value).getUTCFullYear();
 
   switch (granularity) {
-    case 'day':
-    case 'week':
+    case "day":
+    case "week":
       // For day and week granularities, show only month name on first of month
       if (day === 1) {
-        return '{month|' + month + '}';
+        return "{month|" + month + "}";
       }
-      return '{day|' + day + '}';
+      return "{day|" + day + "}";
 
-    case 'month':
-      return '{month|' + month + '}';
+    case "month":
+      return "{month|" + month + "}";
 
-    case 'quarter':
+    case "quarter":
       // We're not actually showing axis labels for quarter
-      if (day === 1 && month === 'Jan') {
-        return '{year|' + year + '}';
+      if (day === 1 && month === "Jan") {
+        return "{year|" + year + "}";
       } else if (day === 1) {
-        return '{month|' + month + '}';
+        return "{month|" + month + "}";
       } else {
-        return '{day|' + day + '}';
+        return "{day|" + day + "}";
       }
 
-    case 'year':
+    case "year":
       // We're not actually showing axis labels for year
-      return '{year|' + year + '}';
+      return "{year|" + year + "}";
 
     default:
-      return '{day|' + day + '}';
+      return "{day|" + day + "}";
   }
 };
 
 /** deprecated */
 const getAxisIntervals = (granularity, aggregatedData) => {
   switch (granularity) {
-    case 'year':
+    case "year":
       return [3600 * 1000 * 24 * 365, 3600 * 1000 * 24 * 365];
-    case 'quarter':
+    case "quarter":
       // Calculate based on data range
       if (aggregatedData.length > 0 && aggregatedData[0].data.length > 0) {
-        const dates = aggregatedData[0].data.map(point => new Date(point.value[0]).getTime());
+        const dates = aggregatedData[0].data.map((point) =>
+          new Date(point.value[0]).getTime(),
+        );
         const minDate = Math.min(...dates);
         const maxDate = Math.max(...dates);
         const quarterInMs = 3600 * 1000 * 24 * 90; // 90 days in milliseconds
@@ -562,11 +662,11 @@ const getAxisIntervals = (granularity, aggregatedData) => {
         return [interval, interval];
       }
       return [3600 * 1000 * 24 * 90, 3600 * 1000 * 24 * 90];
-    case 'month':
+    case "month":
       return [3600 * 1000 * 24 * 30, undefined];
-    case 'week':
+    case "week":
       return [3600 * 1000 * 24 * 7, undefined];
-    case 'day':
+    case "day":
       return [3600 * 1000 * 24, undefined];
     default:
       return [undefined, undefined];
@@ -627,14 +727,14 @@ const StatsChart = ({
   classnames,
   data,
   seriesSelectorOptions,
-  title=undefined,
+  title = undefined,
   xAxisLabel,
   yAxisLabel,
   stacked = false,
   areaStyle = false,
   height = "400px",
   showControls = true,
-  showLegend = false,  // Always true with displaySeparately
+  showLegend = false, // Always true with displaySeparately
   showTooltip = true,
   showGrid = true,
   showAxisLabels = true,
@@ -644,8 +744,11 @@ const StatsChart = ({
   chartType = undefined, // Optional prop to override chart type consistently
   display_subcounts = undefined, // Optional prop to override global subcounts config
 }) => {
-  const { dateRange, granularity, isLoading, ui_subcounts } = useStatsDashboard();
-  const [selectedMetric, setSelectedMetric] = useState(seriesSelectorOptions?.[0]?.value);
+  const { dateRange, granularity, isLoading, ui_subcounts } =
+    useStatsDashboard();
+  const [selectedMetric, setSelectedMetric] = useState(
+    seriesSelectorOptions?.[0]?.value,
+  );
   const [displaySeparately, setDisplaySeparately] = useState(null);
 
   const [aggregatedData, setAggregatedData] = useState([]);
@@ -662,19 +765,22 @@ const StatsChart = ({
       seriesToProcess = data.global?.[selectedMetric] || [];
     }
 
+    console.log("seriesToProcess", seriesToProcess);
     return seriesToProcess;
   }, [data, selectedMetric, displaySeparately]);
 
   // Check if there's any data to display
   const hasData = useMemo(() => {
     if (isLoading) return true; // Don't show no-data state while loading
-    return seriesArray.length > 0 && seriesArray.some(series =>
-      series.data && series.data.length > 0
+    return (
+      seriesArray.length > 0 &&
+      seriesArray.some((series) => series.data && series.data.length > 0)
     );
   }, [seriesArray, isLoading]);
 
-    useEffect(() => {
+  useEffect(() => {
     const filteredData = filterSeriesArrayByDate(seriesArray, dateRange);
+    console.log("filteredData", filteredData);
 
     // Add names to the series based on the breakdown category or metric type
     const namedSeries = filteredData.map((series, index) => {
@@ -682,37 +788,48 @@ const StatsChart = ({
         // For breakdown view, use the breakdown category name
         return {
           ...series,
-          name: series.name || `Series ${index + 1}`
+          name: series.name || `Series ${index + 1}`,
         };
       } else {
         // For global view, use the metric name
         return {
           ...series,
-          name: selectedMetric || `Series ${index + 1}`
+          name: selectedMetric || `Series ${index + 1}`,
         };
       }
     });
+    console.log("namedSeries", namedSeries);
 
-    const aggregatedData = aggregateData(namedSeries, granularity, displaySeparately);
+    const aggregatedData = aggregateData(
+      namedSeries,
+      granularity,
+      displaySeparately,
+    );
 
     setAggregatedData(aggregatedData);
   }, [seriesArray, granularity, dateRange, displaySeparately, selectedMetric]);
 
-  const seriesColorIndex = useMemo(() =>
-    seriesSelectorOptions?.findIndex(option => option.value === selectedMetric) || 0,
-    [seriesSelectorOptions, selectedMetric]
+  const seriesColorIndex = useMemo(
+    () =>
+      seriesSelectorOptions?.findIndex(
+        (option) => option.value === selectedMetric,
+      ) || 0,
+    [seriesSelectorOptions, selectedMetric],
   );
 
-  const [minXInterval, maxXInterval] = useMemo(() => getAxisIntervals(granularity, aggregatedData), [granularity, aggregatedData]);
-
-  const yAxisMin = useMemo(() =>
-    calculateYAxisMin(aggregatedData),
-    [aggregatedData]
+  const [minXInterval, maxXInterval] = useMemo(
+    () => getAxisIntervals(granularity, aggregatedData),
+    [granularity, aggregatedData],
   );
 
-  const seriesYAxisLabel = useMemo(() =>
-    SERIES_Y_AXIS_LABELS[selectedMetric] || SERIES_Y_AXIS_LABELS.default,
-    [selectedMetric]
+  const yAxisMin = useMemo(
+    () => calculateYAxisMin(aggregatedData),
+    [aggregatedData],
+  );
+
+  const seriesYAxisLabel = useMemo(
+    () => SERIES_Y_AXIS_LABELS[selectedMetric] || SERIES_Y_AXIS_LABELS.default,
+    [selectedMetric],
   );
 
   const chartOptions = useMemo(() => {
@@ -722,9 +839,27 @@ const StatsChart = ({
     const finalConfig = new ChartConfigBuilder(baseConfig)
       .withTooltip(showTooltip, tooltipConfig)
       .withGrid(showGrid, gridConfig)
-      .withAxisLabels(showAxisLabels, xAxisLabel, yAxisLabel, seriesYAxisLabel, granularity, minXInterval, maxXInterval, yAxisMin, selectedMetric)
+      .withAxisLabels(
+        showAxisLabels,
+        xAxisLabel,
+        yAxisLabel,
+        seriesYAxisLabel,
+        granularity,
+        minXInterval,
+        maxXInterval,
+        yAxisMin,
+        selectedMetric,
+      )
       .withLegend(showLegend, displaySeparately)
-      .withSeries(displaySeparately, aggregatedData, seriesColorIndex, areaStyle, granularity, stacked, chartType)
+      .withSeries(
+        displaySeparately,
+        aggregatedData,
+        seriesColorIndex,
+        areaStyle,
+        granularity,
+        stacked,
+        chartType,
+      )
       .build();
 
     const options = {
@@ -750,7 +885,7 @@ const StatsChart = ({
     yAxisMin,
     granularity,
     displaySeparately,
-    chartType
+    chartType,
   ]);
 
   // ReactECharts handles option updates automatically when props change
@@ -767,63 +902,95 @@ const StatsChart = ({
         global_subcounts={ui_subcounts}
       />
       {title && (
-        <Header as="h3" attached="top" fluid textAlign="center" className="rel-mt-1">
-          <Header.Content>
-            {title}
-          </Header.Content>
+        <Header
+          as="h3"
+          attached="top"
+          fluid
+          textAlign="center"
+          className="rel-mt-1"
+        >
+          <Header.Content>{title}</Header.Content>
           {dateRange && !isLoading && (
             <Header.Subheader>
-              {formatDateRange({start: dateRange.start, "end": dateRange.end}, 'day', true)}
+              {formatDateRange(
+                { start: dateRange.start, end: dateRange.end },
+                "day",
+                true,
+              )}
             </Header.Subheader>
           )}
         </Header>
       )}
-      <Segment className={`stats-chart ${classnames} rel-mb-1 rel-mt-0`} attached="bottom" fluid role="region" aria-label={title || "Statistics Chart"} aria-description={`Chart showing ${selectedMetric} over time`}>
-          {showControls && !isLoading && (
-            <div className="stats-chart-controls" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              {showSeriesControls && (
-                <Button.Group className="stats-chart-series-controls separated">
-                  {seriesSelectorOptions && seriesSelectorOptions.map((option, index) => (
-                     <Button
-                       key={option.value}
-                       toggle
-                       active={selectedMetric === option.value}
-                       onClick={() => setSelectedMetric(option.value)}
-                       aria-pressed={selectedMetric === option.value}
-                       {...(selectedMetric === option.value && {
-                         color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][0],
-                       })}
-                     >
-                       {option.text}
-                     </Button>
-                   ))}
-                </Button.Group>
-              )}
-            </div>
-          )}
-          <div className="stats-chart-container" style={{ height: height }}>
-          {isLoading ? (
-              <div className="stats-chart-loading-container">
-                <Loader active size="large" />
-              </div>
-            ) : !hasData ? (
-              <div className="stats-chart-no-data-container">
-                <Message info>
-                  <Message.Header>{i18next.t("No Data Available")}</Message.Header>
-                  <p>{i18next.t("No data is available for the selected time period.")}</p>
-                </Message>
-              </div>
-            ) : (
-              <ReactECharts
-                key={`${selectedMetric}-${displaySeparately}-${granularity}`}
-                option={chartOptions}
-                notMerge={true}
-                style={{ height }}
-                aria-label={title || "Statistics Chart"}
-                aria-description={`Chart showing ${selectedMetric} over time`}
-              />
+      <Segment
+        className={`stats-chart ${classnames} rel-mb-1 rel-mt-0`}
+        attached="bottom"
+        fluid
+        role="region"
+        aria-label={title || "Statistics Chart"}
+        aria-description={`Chart showing ${selectedMetric} over time`}
+      >
+        {showControls && !isLoading && (
+          <div
+            className="stats-chart-controls"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "1rem",
+            }}
+          >
+            {showSeriesControls && (
+              <Button.Group className="stats-chart-series-controls separated">
+                {seriesSelectorOptions &&
+                  seriesSelectorOptions.map((option, index) => (
+                    <Button
+                      key={option.value}
+                      toggle
+                      active={selectedMetric === option.value}
+                      onClick={() => setSelectedMetric(option.value)}
+                      aria-pressed={selectedMetric === option.value}
+                      {...(selectedMetric === option.value && {
+                        color:
+                          CHART_COLORS.primary[
+                            index % CHART_COLORS.primary.length
+                          ][0],
+                      })}
+                    >
+                      {option.text}
+                    </Button>
+                  ))}
+              </Button.Group>
             )}
           </div>
+        )}
+        <div className="stats-chart-container" style={{ height: height }}>
+          {isLoading ? (
+            <div className="stats-chart-loading-container">
+              <Loader active size="large" />
+            </div>
+          ) : !hasData ? (
+            <div className="stats-chart-no-data-container">
+              <Message info>
+                <Message.Header>
+                  {i18next.t("No Data Available")}
+                </Message.Header>
+                <p>
+                  {i18next.t(
+                    "No data is available for the selected time period.",
+                  )}
+                </p>
+              </Message>
+            </div>
+          ) : (
+            <ReactECharts
+              key={`${selectedMetric}-${displaySeparately}-${granularity}`}
+              option={chartOptions}
+              notMerge={true}
+              style={{ height }}
+              aria-label={title || "Statistics Chart"}
+              aria-description={`Chart showing ${selectedMetric} over time`}
+            />
+          )}
+        </div>
       </Segment>
     </Container>
   );
@@ -832,95 +999,127 @@ const StatsChart = ({
 StatsChart.propTypes = {
   data: PropTypes.shape({
     global: PropTypes.shape({
-      records: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired, // [Date, number]
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
-      parents: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
-      uploaders: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
-      fileCount: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
-      dataVolume: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
+      records: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired, // [Date, number]
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
+      parents: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
+      uploaders: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
+      fileCount: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
+      dataVolume: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
       // Usage metrics
-      views: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
-      downloads: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
-      visitors: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        data: PropTypes.arrayOf(PropTypes.shape({
-          value: PropTypes.array.isRequired,
-          readableDate: PropTypes.string.isRequired,
-          valueType: PropTypes.string.isRequired,
-        })).isRequired,
-        type: PropTypes.string,
-        valueType: PropTypes.string,
-      })),
+      views: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
+      downloads: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
+      visitors: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+          data: PropTypes.arrayOf(
+            PropTypes.shape({
+              value: PropTypes.array.isRequired,
+              readableDate: PropTypes.string.isRequired,
+              valueType: PropTypes.string.isRequired,
+            }),
+          ).isRequired,
+          type: PropTypes.string,
+          valueType: PropTypes.string,
+        }),
+      ),
     }),
     // Allow additional breakdown categories
     [PropTypes.string]: PropTypes.object,
@@ -944,9 +1143,9 @@ StatsChart.propTypes = {
       value: PropTypes.string.isRequired,
       text: PropTypes.string.isRequired,
       valueType: PropTypes.string,
-    })
+    }),
   ),
-  chartType: PropTypes.oneOf(['bar', 'line']),
+  chartType: PropTypes.oneOf(["bar", "line"]),
   display_subcounts: PropTypes.array,
 };
 

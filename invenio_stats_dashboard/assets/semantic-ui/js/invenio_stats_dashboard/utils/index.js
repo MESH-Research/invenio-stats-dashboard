@@ -5,7 +5,14 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 // Exports
-export * from './numbers';
-export * from './dates';
-export * from './filters';
-export * from './multiDisplayHelpers';
+export * from "./numbers";
+export * from "./dates";
+export * from "./filters";
+export * from "./multiDisplayHelpers";
+
+function kebabToCamel(str) {
+	return str.replace(/-./g, (x) => x[1].toUpperCase());
+}
+
+export { kebabToCamel };
+

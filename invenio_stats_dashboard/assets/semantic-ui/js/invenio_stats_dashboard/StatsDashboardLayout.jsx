@@ -8,13 +8,7 @@
 
 import React, { useState, useEffect } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import {
-  Container,
-  Grid,
-  Icon,
-  Menu,
-  Transition,
-} from "semantic-ui-react";
+import { Container, Grid, Icon, Menu, Transition } from "semantic-ui-react";
 import { StatsDashboardPage } from "./StatsDashboardPage";
 import { DateRangeSelector } from "./components/controls/DateRangeSelector";
 import { GranularitySelector } from "./components/controls/GranularitySelector";
@@ -40,29 +34,29 @@ const StatsDashboardLayout = ({
   containerClassNames,
   sidebarClassNames,
   bodyClassNames,
-  getStatsParams = null
+  getStatsParams = null,
 }) => {
-  const availableTabs = dashboardConfig?.layout?.tabs?.map(tab => ({
+  const availableTabs = dashboardConfig?.layout?.tabs?.map((tab) => ({
     name: tab.name,
     label: i18next.t(tab.label),
     icon: tab.icon,
   }));
   const [selectedTab, setSelectedTab] = useState(availableTabs[0].name);
   const showTitle = ["true", "True", "TRUE", "1", true].includes(
-    dashboardConfig?.show_title
+    dashboardConfig?.show_title,
   );
   const showDescription = ["true", "True", "TRUE", "1", true].includes(
-    dashboardConfig?.show_description
+    dashboardConfig?.show_description,
   );
   const maxHistoryYears = dashboardConfig?.max_history_years || 15;
   const binary_sizes = dashboardConfig?.display_binary_sizes || false;
   const [dateRange, setDateRange] = useState();
   const [dataFetchRange, setDataFetchRange] = useState();
   const [granularity, setGranularity] = useState(
-    dashboardConfig?.default_granularity || "day"
+    dashboardConfig?.default_granularity || "day",
   );
   const [recordStartBasis, setRecordStartBasis] = useState(
-    dashboardConfig?.default_record_start_basis || "added"
+    dashboardConfig?.default_record_start_basis || "added",
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
   const [stats, setStats] = useState(null);
@@ -76,18 +70,23 @@ const StatsDashboardLayout = ({
   };
 
   useEffect(() => {
-    console.log('StatsDashboardLayout useEffect triggered by:', {
-      dataFetchRange: dataFetchRange?.start?.toISOString?.() + ' to ' + dataFetchRange?.end?.toISOString?.(),
+    console.log("StatsDashboardLayout useEffect triggered by:", {
+      dataFetchRange:
+        dataFetchRange?.start?.toISOString?.() +
+        " to " +
+        dataFetchRange?.end?.toISOString?.(),
       community: community?.id,
       dashboardType,
-      getStatsParams: !!getStatsParams
+      getStatsParams: !!getStatsParams,
     });
 
     // Don't fetch data if we don't have valid dates
     if (!dataFetchRange?.start || !dataFetchRange?.end) {
-      console.log('Skipping data fetch - no valid dates');
+      console.log("Skipping data fetch - no valid dates");
       return;
     }
+    console.log("dataFetchRange", dataFetchRange);
+    console.log("dateRange", dateRange);
 
     let isMounted = true;
 
@@ -106,7 +105,7 @@ const StatsDashboardLayout = ({
           useTestData,
           onStateChange: (state) => {
             if (isMounted) {
-              console.log('State change received:', state);
+              console.log("State change received:", state);
               setStats(state.stats);
               setIsLoading(state.isLoading);
               setIsUpdating(state.isUpdating);
@@ -117,11 +116,11 @@ const StatsDashboardLayout = ({
                 setLastUpdated(state.lastUpdated);
               }
             }
-          }
+          },
         });
       } catch (error) {
         if (isMounted) {
-          console.error('Error in loadStats:', error);
+          console.error("Error in loadStats:", error);
           setError(error);
           setIsLoading(false);
           setIsUpdating(false);
@@ -169,7 +168,9 @@ const StatsDashboardLayout = ({
                 {dashboardConfig?.title || i18next.t("Statistics")}
               </h1>
               {showDescription && (
-                <p className="ui description">{dashboardConfig?.description || ""}</p>
+                <p className="ui description">
+                  {dashboardConfig?.description || ""}
+                </p>
               )}
             </div>
           </div>
@@ -179,7 +180,12 @@ const StatsDashboardLayout = ({
           id={`${dashboardType}-stats-dashboard`}
         >
           <Grid.Row>
-            <Grid.Column computer={3} tablet={16} mobile={16} className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0`}>
+            <Grid.Column
+              computer={3}
+              tablet={16}
+              mobile={16}
+              className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0`}
+            >
               {showTitle && (
                 <h2 className="stats-dashboard-header tablet computer widescreen large-monitor only">
                   {dashboardConfig.title || i18next.t("Statistics")}
@@ -190,7 +196,7 @@ const StatsDashboardLayout = ({
                 vertical
                 className="stats-dashboard-sidebar-menu rel-mt-2 rel-mb-2 theme-primary-menu horizontal tablet horizontal mobile"
               >
-                {availableTabs.map(tab => (
+                {availableTabs.map((tab) => (
                   <Menu.Item
                     key={tab.name}
                     name={tab.name}
@@ -203,7 +209,9 @@ const StatsDashboardLayout = ({
                 ))}
               </Menu>
               {showDescription && (
-                <p className="ui description">{dashboardConfig?.description || ""}</p>
+                <p className="ui description">
+                  {dashboardConfig?.description || ""}
+                </p>
               )}
               <DateRangeSelector
                 dateRange={dateRange}
@@ -232,7 +240,10 @@ const StatsDashboardLayout = ({
               mobile={16}
               className={`${bodyClassNames} stats-dashboard-body`}
             >
-              <Transition.Group animation="fade" duration={{ show: 1000, hide: 20 }}>
+              <Transition.Group
+                animation="fade"
+                duration={{ show: 1000, hide: 20 }}
+              >
                 {selectedTab && (
                   <StatsDashboardPage
                     community={community}
