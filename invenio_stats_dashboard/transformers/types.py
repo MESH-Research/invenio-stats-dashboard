@@ -21,7 +21,7 @@ class DataSeriesDict(TypedDict):
     """Type definition for a data series dictionary."""
 
     id: str
-    name: str
+    name: str | dict[str, str]  # Allow multilingual labels
     data: list[DataPointDict]
     type: str
     valueType: str

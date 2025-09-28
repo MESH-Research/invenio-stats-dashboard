@@ -70,7 +70,7 @@ class DataSeries(ABC):
     def __init__(
         self,
         series_id: str,
-        series_name: str,
+        series_name: str | dict,
         metric: str,
         chart_type: str = "line",
         value_type: str = "number",
@@ -123,9 +123,18 @@ class DataSeries(ABC):
 
     def to_dict(self) -> DataSeriesDict:
         """Convert to dictionary format matching JavaScript output."""
+        # Handle multilingual labels - preserve as object for JavaScript processing
+        name = self.series_name
+        if isinstance(name, dict):
+            # Keep as object for proper multilingual handling on frontend
+            pass
+        else:
+            # Ensure it's a string
+            name = str(name)
+
         return {
             "id": self.series_id,
-            "name": self.series_name,
+            "name": name,
             "data": [dp.to_dict() for dp in self.data],
             "type": self.chart_type,
             "valueType": self.value_type,
@@ -251,10 +260,9 @@ class DataSeriesArray:
             if isinstance(self.series, list) and not any(
                 s.series_id == item_id for s in self.series
             ):
-                # Convert label to string for series_name parameter
-                series_name = (
-                    str(item_label) if isinstance(item_label, dict) else item_label
-                )
+                # Preserve the original label object for proper multilingual handling
+                # The JavaScript side will handle localization
+                series_name = item_label
                 self.series.append(
                     self.data_series_class(
                         item_id,

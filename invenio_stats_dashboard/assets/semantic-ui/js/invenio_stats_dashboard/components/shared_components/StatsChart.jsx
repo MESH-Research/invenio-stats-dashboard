@@ -24,6 +24,7 @@ import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { CHART_COLORS, getSubcountKeyMapping } from "../../constants";
 import { formatNumber, filterSeriesArrayByDate } from "../../utils";
 import { formatDateRange, readableGranularDate } from "../../utils/dates";
+import { extractLocalizedLabel } from "../../api/dataTransformer";
 
 // Define y-axis labels for different series
 const SERIES_Y_AXIS_LABELS = {
@@ -783,18 +784,23 @@ const StatsChart = ({
     console.log("filteredData", filteredData);
 
     // Add names to the series based on the breakdown category or metric type
+    const currentLanguage = i18next.language || 'en';
     const namedSeries = filteredData.map((series, index) => {
       if (displaySeparately) {
         // For breakdown view, use the breakdown category name
+        const seriesName = series.name || `Series ${index + 1}`;
+        const localizedName = extractLocalizedLabel(seriesName, currentLanguage);
         return {
           ...series,
-          name: series.name || `Series ${index + 1}`,
+          name: localizedName,
         };
       } else {
         // For global view, use the metric name
+        const seriesName = selectedMetric || `Series ${index + 1}`;
+        const localizedName = extractLocalizedLabel(seriesName, currentLanguage);
         return {
           ...series,
-          name: selectedMetric || `Series ${index + 1}`,
+          name: localizedName,
         };
       }
     });

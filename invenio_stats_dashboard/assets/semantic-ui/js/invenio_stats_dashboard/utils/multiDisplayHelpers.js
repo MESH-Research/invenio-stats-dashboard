@@ -7,6 +7,8 @@
 import React from "react";
 import { formatNumber } from "./numbers";
 import { CHART_COLORS } from '../constants';
+import { extractLocalizedLabel } from '../api/dataTransformer';
+import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
 /**
  * Transform multi-display data into chart-ready format
@@ -34,8 +36,10 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
   const transformedData = topXItems.map((item, index) => {
     const value = item?.data?.[0]?.value?.[1] || 0;
     const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
+    const currentLanguage = i18next.language || 'en';
+    const localizedName = extractLocalizedLabel(item.name, currentLanguage);
     return {
-      name: item.name,
+      name: localizedName,
       value: value,
       percentage: percentage,
       id: item.id,
@@ -51,7 +55,7 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
     return acc;
   }, {
     id: "other",
-    name: "Other",
+    name: i18next.t("Other"),
     value: 0,
     itemStyle: {
       color: colorPalette[colorPalette.length - 1][1]

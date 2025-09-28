@@ -19,6 +19,7 @@ from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 from .content_negotiation import ContentNegotiationMixin
+from .cache_utils import StatsCache
 
 
 class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
@@ -33,6 +34,7 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
     ):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
+        self.stats_cache = StatsCache()
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
         """Get the appropriate index based on date_basis.
@@ -69,6 +71,31 @@ class CommunityStatsResultsQueryBase(Query, ContentNegotiationMixin):
         Returns:
             Response | list[dict[str, Any]] | dict[str, Any]: The results of the query.
         """
+        # Convert datetime objects to strings for cache key generation
+        start_date_str = start_date.isoformat() if isinstance(start_date, datetime.datetime) else start_date
+        end_date_str = end_date.isoformat() if isinstance(end_date, datetime.datetime) else end_date
+        
+        # Check cache first
+        cached_data = self.stats_cache.get_cached_data(
+            community_id=community_id,
+            stat_name=self.name,
+            start_date=start_date_str,
+            end_date=end_date_str,
+            date_basis=date_basis,
+        )
+        
+        if cached_data is not None:
+            # Return cached compressed data as a Response
+            from flask import Response
+            return Response(
+                cached_data,
+                mimetype="application/json",
+                headers={
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Content-Encoding": "gzip",
+                    "X-Cache": "HIT",
+                },
+            )
         results = []
         if community_id != "global":
             try:

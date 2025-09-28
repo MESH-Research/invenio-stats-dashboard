@@ -6,7 +6,14 @@
 
 import React, { useState } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Header, Segment, Icon, Button, Loader, Message } from "semantic-ui-react";
+import {
+  Header,
+  Segment,
+  Icon,
+  Button,
+  Loader,
+  Message,
+} from "semantic-ui-react";
 import { PropTypes } from "prop-types";
 import ReactECharts from "echarts-for-react";
 import { StatsTable } from "./StatsTable";
@@ -60,11 +67,27 @@ const VIEW_MODE_ICON_MAP = {
  * @param {string} defaultViewMode - The default view mode of the data series.
  *      Defaults to "list".
  * @param {object} onEvents - The events to be passed to ReactECharts.
-*/
-const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chartOptions, defaultViewMode = "list", onEvents, isLoading = false, hasData = true }) => {
+ */
+const StatsMultiDisplay = ({
+  title,
+  icon: labelIcon,
+  label,
+  headers,
+  rows,
+  chartOptions,
+  defaultViewMode = "list",
+  onEvents,
+  isLoading = false,
+  hasData = true,
+}) => {
   const [viewMode, setViewMode] = useState(defaultViewMode);
   const availableViewModes = Object.keys(chartOptions);
-  const tableLabel = label ? label : title ? title.toLowerCase().replace(/\s+/g, "-") : "stats";
+  const tableLabel = label
+    ? label
+    : title
+      ? title.toLowerCase().replace(/\s+/g, "-")
+      : "stats";
+  console.log("chartOptions", chartOptions);
 
   const handleViewChange = (mode) => {
     setViewMode(mode);
@@ -77,11 +100,12 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
       {
         ...value,
         aria: {
-          enabled: true
-        }
-      }
-    ])
+          enabled: true,
+        },
+      },
+    ]),
   );
+  console.log("enhancedChartOptions", enhancedChartOptions);
 
   return (
     <div
@@ -91,25 +115,39 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
       data-testid="stats-multi-display"
     >
       {title && (
-        <Header as="h3" id={`${tableLabel}-stats-multi-display-header`} className="stats-multi-display-header" attached="top">
-          {labelIcon && <Icon name={labelIcon} className="stats-multi-display-icon" aria-hidden="true" size="small" />}
-          {availableViewModes.length > 1 && !isLoading && availableViewModes.map((mode) => (
-            <Button
-              key={mode}
-              active={viewMode === mode}
-              onClick={() => handleViewChange(mode)}
-              aria-label={i18next.t(mode)}
+        <Header
+          as="h3"
+          id={`${tableLabel}-stats-multi-display-header`}
+          className="stats-multi-display-header"
+          attached="top"
+        >
+          {labelIcon && (
+            <Icon
+              name={labelIcon}
+              className="stats-multi-display-icon"
+              aria-hidden="true"
               size="small"
-              toggle
-            >
-              <Icon fitted name={VIEW_MODE_ICON_MAP[mode]} />
-            </Button>
-          ))}
+            />
+          )}
+          {availableViewModes.length > 1 &&
+            !isLoading &&
+            availableViewModes.map((mode) => (
+              <Button
+                key={mode}
+                active={viewMode === mode}
+                onClick={() => handleViewChange(mode)}
+                aria-label={i18next.t(mode)}
+                size="small"
+                toggle
+              >
+                <Icon fitted name={VIEW_MODE_ICON_MAP[mode]} />
+              </Button>
+            ))}
           {title}
         </Header>
       )}
-            <Segment attached className="stats-multi-display-segment">
-      {isLoading ? (
+      <Segment attached className="stats-multi-display-segment">
+        {isLoading ? (
           <div className="stats-loading-container">
             <Loader active size="large" />
           </div>
@@ -117,7 +155,11 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
           <div className="stats-no-data-container">
             <Message info>
               <Message.Header>{i18next.t("No Data Available")}</Message.Header>
-              <p>{i18next.t("No data is available for the selected time period.")}</p>
+              <p>
+                {i18next.t(
+                  "No data is available for the selected time period.",
+                )}
+              </p>
             </Message>
           </div>
         ) : viewMode === "list" ? (
@@ -131,7 +173,7 @@ const StatsMultiDisplay = ({ title, icon: labelIcon, label, headers, rows, chart
           <ReactECharts
             option={enhancedChartOptions[viewMode]}
             notMerge={true}
-            style={{ height: '300px' }}
+            style={{ height: "300px" }}
             className={`${tableLabel}-${viewMode}-chart`}
             onEvents={onEvents}
           />

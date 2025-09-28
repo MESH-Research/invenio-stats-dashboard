@@ -23,7 +23,6 @@ class GlobalRecordSnapshotDataSeries(DataSeries):
 
     def add(self, doc: dict[str, Any]) -> None:
         """Add global record snapshot data from document."""
-        # Extract date
         snapshot_date = doc.get("snapshot_date")
         if snapshot_date is None:
             return
@@ -31,36 +30,33 @@ class GlobalRecordSnapshotDataSeries(DataSeries):
         if not date:
             return
 
-        # Get the metric data based on the metric name
-        metric_data = doc.get(self.metric)
-        if metric_data is None:
-            return
-
         # Handle different metric types
-        if self.metric in ["total_records", "total_parents"]:
-            # Sum the nested values for records and parents
-            if isinstance(metric_data, dict):
+        if self.metric in ["records", "parents"]:
+            # Map frontend metric names to document field names
+            doc_field = f"total_{self.metric}"
+            metric_data = doc.get(doc_field)
+            if metric_data and isinstance(metric_data, dict):
                 total_value = sum(
-                    v for v in metric_data.values() if isinstance(v, (int, float))
+                    v for v in metric_data.values() if isinstance(v, int | float)
                 )
                 self.add_data_point(date, int(total_value))
-        elif self.metric == "total_files":
-            # For files, we need to handle data_volume and file_count separately
-            # This should be handled by separate DataSeries instances
-            if isinstance(metric_data, dict):
-                # This shouldn't happen - total_files should be split into
-                # data_volume and file_count
-                pass
+        elif self.metric == "uploaders":
+            # Map frontend metric name to document field name
+            doc_field = "total_uploaders"
+            metric_data = doc.get(doc_field)
+            if metric_data is not None:
+                self.add_data_point(date, metric_data)  # type: ignore[arg-type]
         elif self.metric in ["data_volume", "file_count"]:
-            # These come from total_files structure
             files_data = doc.get("total_files")
             if files_data and isinstance(files_data, dict):
                 value = files_data.get(self.metric, 0)
                 value_type = "filesize" if self.metric == "data_volume" else "number"
                 self.add_data_point(date, value, value_type)
         else:
-            # Direct numeric value (like total_uploaders)
-            self.add_data_point(date, metric_data)  # type: ignore[arg-type]
+            # Direct numeric value (fallback for any other metrics)
+            metric_data = doc.get(self.metric)
+            if metric_data is not None:
+                self.add_data_point(date, metric_data)  # type: ignore[arg-type]
 
 
 class SubcountRecordSnapshotDataSeries(DataSeries):
@@ -76,23 +72,20 @@ class SubcountRecordSnapshotDataSeries(DataSeries):
         if not date:
             return
 
-        # Get the metric data based on the metric name
-        metric_data = doc.get(self.metric)
-        if metric_data is None:
-            return
-
         # Handle different metric types
         if self.metric in ["records", "parents"]:
             # Sum the nested values for records and parents
-            if isinstance(metric_data, dict):
+            metric_data = doc.get(self.metric)
+            if metric_data and isinstance(metric_data, dict):
                 total_value = sum(
-                    v for v in metric_data.values() if isinstance(v, (int, float))
+                    v for v in metric_data.values() if isinstance(v, int | float)
                 )
                 self.add_data_point(date, int(total_value))
         elif self.metric == "files":
             # For files, we need to handle data_volume and file_count separately
             # This should be handled by separate DataSeries instances
-            if isinstance(metric_data, dict):
+            metric_data = doc.get(self.metric)
+            if metric_data and isinstance(metric_data, dict):
                 # This shouldn't happen - files should be split into
                 # data_volume and file_count
                 pass
@@ -105,7 +98,9 @@ class SubcountRecordSnapshotDataSeries(DataSeries):
                 self.add_data_point(date, value, value_type)
         else:
             # Direct numeric value
-            self.add_data_point(date, metric_data)  # type: ignore[arg-type]
+            metric_data = doc.get(self.metric)
+            if metric_data is not None:
+                self.add_data_point(date, metric_data)  # type: ignore[arg-type]
 
 
 class FilePresenceRecordSnapshotDataSeries(DataSeries):
@@ -204,10 +199,10 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         metrics = super()._discover_metrics_from_documents()
         assert isinstance(metrics, dict)
 
-        # For record snapshots, split total_files into data_volume and file_count
+        # For record snapshots, map total_* metrics to frontend-expected names
         if "global" in metrics:
             metrics["global"] = [
-                metric for metric in metrics["global"] if metric != "total_files"
+                metric.replace("total_", "") for metric in metrics["global"] if metric != "total_files"
             ] + ["data_volume", "file_count"]
 
         # For subcounts, split files into data_volume and file_count
