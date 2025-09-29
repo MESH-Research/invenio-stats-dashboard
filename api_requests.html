@@ -755,12 +755,6 @@ Content-Type:<span class="w"> </span>application/json
 </pre></div>
 </div>
 </section>
-<section id="html">
-<h3>HTML<a class="headerlink" href="#html" title="Link to this heading">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Accept</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">html</span>
-</pre></div>
-</div>
-</section>
 <section id="excel">
 <h3>Excel<a class="headerlink" href="#excel" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Accept</span><span class="p">:</span> <span class="n">application</span><span class="o">/</span><span class="n">vnd</span><span class="o">.</span><span class="n">openxmlformats</span><span class="o">-</span><span class="n">officedocument</span><span class="o">.</span><span class="n">spreadsheetml</span><span class="o">.</span><span class="n">sheet</span>
@@ -906,6 +900,266 @@ Content-Type:<span class="w"> </span>application/json
 </pre></div>
 </div>
 </section>
+<section id="download-api">
+<h2>Download API<a class="headerlink" href="#download-api" title="Link to this heading">¶</a></h2>
+<p>The Invenio Stats Dashboard provides JavaScript API functions for downloading statistics data in various serialization formats. These functions automatically use the current UI display settings (start/end date, community, dateBasis) and handle file downloads with appropriate naming.</p>
+<section id="javascript-api-functions">
+<h3>JavaScript API Functions<a class="headerlink" href="#javascript-api-functions" title="Link to this heading">¶</a></h3>
+<section id="import-the-api-functions">
+<h4>Import the API functions<a class="headerlink" href="#import-the-api-functions" title="Link to this heading">¶</a></h4>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">downloadStatsSeries</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">downloadStatsSeriesWithFilename</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">SERIALIZATION_FORMATS</span>
+<span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../api/api&#39;</span><span class="p">;</span>
+<span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">DASHBOARD_TYPES</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../constants&#39;</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+<section id="downloadstatsserieswithfilename">
+<h4><code class="docutils literal notranslate"><span class="pre">downloadStatsSeriesWithFilename()</span></code><a class="headerlink" href="#downloadstatsserieswithfilename" title="Link to this heading">¶</a></h4>
+<p>Downloads statistics data and automatically triggers a browser download with an appropriate filename.</p>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">communityId</span></code> (string): Community ID or ‘global’ for global stats</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dashboardType</span></code> (string): Either <code class="docutils literal notranslate"><span class="pre">DASHBOARD_TYPES.GLOBAL</span></code> or <code class="docutils literal notranslate"><span class="pre">DASHBOARD_TYPES.COMMUNITY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">format</span></code> (string): One of the <code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS</span></code> constants</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">startDate</span></code> (string, optional): Start date in YYYY-MM-DD format</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">endDate</span></code> (string, optional): End date in YYYY-MM-DD format</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dateBasis</span></code> (string, optional): “added”, “created”, or “published” (default: “added”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code> (string, optional): Custom filename (auto-generated if not provided)</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="c1">// Download CSV format for a specific community</span>
+<span class="k">await</span><span class="w"> </span><span class="nx">downloadStatsSeriesWithFilename</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">communityId</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;research-community&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">dashboardType</span><span class="o">:</span><span class="w"> </span><span class="nx">DASHBOARD_TYPES</span><span class="p">.</span><span class="nx">COMMUNITY</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">format</span><span class="o">:</span><span class="w"> </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">CSV</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">startDate</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;2024-01-01&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">endDate</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;2024-12-31&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">dateBasis</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;added&#39;</span>
+<span class="p">});</span>
+<span class="c1">// Downloads: stats_series_research-community_2024-01-01_to_2024-12-31.tar.gz</span>
+</pre></div>
+</div>
+</section>
+<section id="downloadstatsseries">
+<h4><code class="docutils literal notranslate"><span class="pre">downloadStatsSeries()</span></code><a class="headerlink" href="#downloadstatsseries" title="Link to this heading">¶</a></h4>
+<p>Downloads statistics data as a Blob for custom handling (e.g., upload to cloud storage, custom processing).</p>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">communityId</span></code> (string): Community ID or ‘global’ for global stats</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dashboardType</span></code> (string): Either <code class="docutils literal notranslate"><span class="pre">DASHBOARD_TYPES.GLOBAL</span></code> or <code class="docutils literal notranslate"><span class="pre">DASHBOARD_TYPES.COMMUNITY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">format</span></code> (string): One of the <code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS</span></code> constants</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">startDate</span></code> (string, optional): Start date in YYYY-MM-DD format</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">endDate</span></code> (string, optional): End date in YYYY-MM-DD format</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dateBasis</span></code> (string, optional): “added”, “created”, or “published” (default: “added”)</p></li>
+</ul>
+<p><strong>Returns:</strong> Promise<Blob> - The downloaded file as a Blob</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="c1">// Get the file as a blob for custom processing</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">downloadStatsSeries</span><span class="p">(</span>
+<span class="w">  </span><span class="s1">&#39;research-community&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">DASHBOARD_TYPES</span><span class="p">.</span><span class="nx">COMMUNITY</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">XML</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;2024-01-01&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;2024-12-31&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;published&#39;</span>
+<span class="p">);</span>
+
+<span class="c1">// Custom handling - e.g., upload to cloud storage</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">formData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">FormData</span><span class="p">();</span>
+<span class="nx">formData</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">blob</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;stats.xml&#39;</span><span class="p">);</span>
+<span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s1">&#39;/api/upload&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;POST&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nx">formData</span><span class="w"> </span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="available-serialization-formats">
+<h3>Available Serialization Formats<a class="headerlink" href="#available-serialization-formats" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Constant</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>File Extension</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>JSON (Compressed)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS.JSON_BROTLI</span></code></p></td>
+<td><p>Brotli-compressed JSON</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.json.gz</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>JSON (Gzip)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS.JSON_GZIP</span></code></p></td>
+<td><p>Gzip-compressed JSON</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.json.gz</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>JSON (Raw)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS.JSON</span></code></p></td>
+<td><p>Uncompressed JSON</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.json.gz</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>CSV</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS.CSV</span></code></p></td>
+<td><p>Compressed CSV archive</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.tar.gz</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Excel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS.EXCEL</span></code></p></td>
+<td><p>Compressed Excel archive</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.tar.gz</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>XML</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIALIZATION_FORMATS.XML</span></code></p></td>
+<td><p>XML with Dublin Core metadata</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.xml</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="file-naming-convention">
+<h3>File Naming Convention<a class="headerlink" href="#file-naming-convention" title="Link to this heading">¶</a></h3>
+<p>Files are automatically named using this pattern:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">stats_series_</span><span class="p">{</span><span class="n">community</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">startDate</span><span class="p">}</span><span class="n">_to_</span><span class="p">{</span><span class="n">endDate</span><span class="p">}</span><span class="o">.</span><span class="p">{</span><span class="n">extension</span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Examples:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats_series_global_2024-01-01_to_2024-12-31.tar.gz</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats_series_research-community_2024-06-01_to_2024-06-30.xml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats_series_digital-humanities.tar.gz</span></code> (no date range)</p></li>
+</ul>
+</section>
+<section id="react-component-integration">
+<h3>React Component Integration<a class="headerlink" href="#react-component-integration" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">ReportSelector</span></code> component has been updated to use this API:</p>
+<div class="highlight-jsx notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">ReportSelector</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../components/controls/ReportSelector&#39;</span><span class="p">;</span>
+
+<span class="c1">// In your dashboard component</span>
+<span class="p">&lt;</span><span class="nt">ReportSelector</span><span class="w"> </span><span class="na">defaultFormat</span><span class="o">=</span><span class="s">&quot;csv&quot;</span><span class="w"> </span><span class="p">/&gt;</span>
+</pre></div>
+</div>
+<p>The component automatically:</p>
+<ul class="simple">
+<li><p>Uses current dashboard context (community, date range, date basis)</p></li>
+<li><p>Shows loading state during download</p></li>
+<li><p>Handles errors gracefully</p></li>
+<li><p>Generates appropriate filenames</p></li>
+</ul>
+</section>
+<section id="advanced-usage-examples">
+<h3>Advanced Usage Examples<a class="headerlink" href="#advanced-usage-examples" title="Link to this heading">¶</a></h3>
+<section id="batch-downloads">
+<h4>Batch Downloads<a class="headerlink" href="#batch-downloads" title="Link to this heading">¶</a></h4>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="c1">// Download multiple formats for the same data</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">formats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">CSV</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">EXCEL</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">XML</span>
+<span class="p">];</span>
+
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">format</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">formats</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">downloadStatsSeriesWithFilename</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">communityId</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;research-community&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">dashboardType</span><span class="o">:</span><span class="w"> </span><span class="nx">DASHBOARD_TYPES</span><span class="p">.</span><span class="nx">COMMUNITY</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">format</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">startDate</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;2024-01-01&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">endDate</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;2024-12-31&#39;</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="custom-filename">
+<h4>Custom Filename<a class="headerlink" href="#custom-filename" title="Link to this heading">¶</a></h4>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="c1">// Download Excel format with custom filename</span>
+<span class="k">await</span><span class="w"> </span><span class="nx">downloadStatsSeriesWithFilename</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">communityId</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;global&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">dashboardType</span><span class="o">:</span><span class="w"> </span><span class="nx">DASHBOARD_TYPES</span><span class="p">.</span><span class="nx">GLOBAL</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">format</span><span class="o">:</span><span class="w"> </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">EXCEL</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">filename</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;my_custom_stats.xlsx&#39;</span>
+<span class="p">});</span>
+<span class="c1">// Downloads: my_custom_stats.xlsx</span>
+</pre></div>
+</div>
+</section>
+<section id="error-handling">
+<h4>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading">¶</a></h4>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">downloadStatsSeriesWithFilename</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">communityId</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;invalid-community&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">dashboardType</span><span class="o">:</span><span class="w"> </span><span class="nx">DASHBOARD_TYPES</span><span class="p">.</span><span class="nx">COMMUNITY</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">format</span><span class="o">:</span><span class="w"> </span><span class="nx">SERIALIZATION_FORMATS</span><span class="p">.</span><span class="nx">CSV</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s1">&#39;Download failed:&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">error</span><span class="p">.</span><span class="nx">message</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Handle error - show user notification, retry, etc.</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="community-specific-features">
+<h3>Community-Specific Features<a class="headerlink" href="#community-specific-features" title="Link to this heading">¶</a></h3>
+<p>When downloading community-specific stats, the API automatically:</p>
+<ul class="simple">
+<li><p>Includes community metadata in XML format</p></li>
+<li><p>Uses community slug in filenames when available</p></li>
+<li><p>Falls back to community ID if slug is not available</p></li>
+<li><p>Handles missing communities gracefully</p></li>
+</ul>
+</section>
+<section id="underlying-api-requests">
+<h3>Underlying API Requests<a class="headerlink" href="#underlying-api-requests" title="Link to this heading">¶</a></h3>
+<p>The download functions make POST requests to <code class="docutils literal notranslate"><span class="pre">/api/stats</span></code> with category-wide queries that return data series sets:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="c1">// Example request body for downloadStatsSeries</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="s2">&quot;usage-snapshot-category&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s2">&quot;stat&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;usage-snapshot-category&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;params&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="s2">&quot;community_id&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;research-community&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;date_basis&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;added&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;start_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;end_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-12-31&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="s2">&quot;usage-delta-category&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s2">&quot;stat&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;usage-delta-category&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;params&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="s2">&quot;community_id&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;research-community&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;date_basis&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;added&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;start_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;end_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-12-31&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="s2">&quot;record-snapshot-category&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s2">&quot;stat&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;record-snapshot-category&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;params&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="s2">&quot;community_id&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;research-community&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;date_basis&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;added&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;start_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;end_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-12-31&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="s2">&quot;record-delta-category&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s2">&quot;stat&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;record-delta-category&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;params&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="s2">&quot;community_id&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;research-community&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;date_basis&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;added&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;start_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;end_date&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;2024-12-31&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The response format depends on the <code class="docutils literal notranslate"><span class="pre">Accept</span></code> header specified in the request, supporting all the serialization formats listed above.</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -1020,7 +1274,6 @@ Content-Type:<span class="w"> </span>application/json
 </li>
 <li><a class="reference internal" href="#csv">CSV</a></li>
 <li><a class="reference internal" href="#xml">XML</a></li>
-<li><a class="reference internal" href="#html">HTML</a></li>
 <li><a class="reference internal" href="#excel">Excel</a></li>
 </ul>
 </li>
@@ -1042,6 +1295,26 @@ Content-Type:<span class="w"> </span>application/json
 </li>
 <li><a class="reference internal" href="#authentication">Authentication</a></li>
 <li><a class="reference internal" href="#rate-limiting">Rate Limiting</a></li>
+<li><a class="reference internal" href="#download-api">Download API</a><ul>
+<li><a class="reference internal" href="#javascript-api-functions">JavaScript API Functions</a><ul>
+<li><a class="reference internal" href="#import-the-api-functions">Import the API functions</a></li>
+<li><a class="reference internal" href="#downloadstatsserieswithfilename"><code class="docutils literal notranslate"><span class="pre">downloadStatsSeriesWithFilename()</span></code></a></li>
+<li><a class="reference internal" href="#downloadstatsseries"><code class="docutils literal notranslate"><span class="pre">downloadStatsSeries()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#available-serialization-formats">Available Serialization Formats</a></li>
+<li><a class="reference internal" href="#file-naming-convention">File Naming Convention</a></li>
+<li><a class="reference internal" href="#react-component-integration">React Component Integration</a></li>
+<li><a class="reference internal" href="#advanced-usage-examples">Advanced Usage Examples</a><ul>
+<li><a class="reference internal" href="#batch-downloads">Batch Downloads</a></li>
+<li><a class="reference internal" href="#custom-filename">Custom Filename</a></li>
+<li><a class="reference internal" href="#error-handling">Error Handling</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#community-specific-features">Community-Specific Features</a></li>
+<li><a class="reference internal" href="#underlying-api-requests">Underlying API Requests</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

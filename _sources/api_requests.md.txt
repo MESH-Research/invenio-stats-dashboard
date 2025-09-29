@@ -436,11 +436,6 @@ Accept: text/csv
 Accept: application/xml
 ```
 
-### HTML
-```
-Accept: text/html
-```
-
 ### Excel
 ```
 Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
@@ -579,3 +574,226 @@ X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1640995200
 ```
+
+## Download API
+
+The Invenio Stats Dashboard provides JavaScript API functions for downloading statistics data in various serialization formats. These functions automatically use the current UI display settings (start/end date, community, dateBasis) and handle file downloads with appropriate naming.
+
+### JavaScript API Functions
+
+#### Import the API functions
+
+```javascript
+import {
+  downloadStatsSeries,
+  downloadStatsSeriesWithFilename,
+  SERIALIZATION_FORMATS
+} from '../api/api';
+import { DASHBOARD_TYPES } from '../constants';
+```
+
+#### `downloadStatsSeriesWithFilename()`
+
+Downloads statistics data and automatically triggers a browser download with an appropriate filename.
+
+**Parameters:**
+- `communityId` (string): Community ID or 'global' for global stats
+- `dashboardType` (string): Either `DASHBOARD_TYPES.GLOBAL` or `DASHBOARD_TYPES.COMMUNITY`
+- `format` (string): One of the `SERIALIZATION_FORMATS` constants
+- `startDate` (string, optional): Start date in YYYY-MM-DD format
+- `endDate` (string, optional): End date in YYYY-MM-DD format
+- `dateBasis` (string, optional): "added", "created", or "published" (default: "added")
+- `filename` (string, optional): Custom filename (auto-generated if not provided)
+
+**Example:**
+```javascript
+// Download CSV format for a specific community
+await downloadStatsSeriesWithFilename({
+  communityId: 'research-community',
+  dashboardType: DASHBOARD_TYPES.COMMUNITY,
+  format: SERIALIZATION_FORMATS.CSV,
+  startDate: '2024-01-01',
+  endDate: '2024-12-31',
+  dateBasis: 'added'
+});
+// Downloads: stats_series_research-community_2024-01-01_to_2024-12-31.tar.gz
+```
+
+#### `downloadStatsSeries()`
+
+Downloads statistics data as a Blob for custom handling (e.g., upload to cloud storage, custom processing).
+
+**Parameters:**
+- `communityId` (string): Community ID or 'global' for global stats
+- `dashboardType` (string): Either `DASHBOARD_TYPES.GLOBAL` or `DASHBOARD_TYPES.COMMUNITY`
+- `format` (string): One of the `SERIALIZATION_FORMATS` constants
+- `startDate` (string, optional): Start date in YYYY-MM-DD format
+- `endDate` (string, optional): End date in YYYY-MM-DD format
+- `dateBasis` (string, optional): "added", "created", or "published" (default: "added")
+
+**Returns:** Promise<Blob> - The downloaded file as a Blob
+
+**Example:**
+```javascript
+// Get the file as a blob for custom processing
+const blob = await downloadStatsSeries(
+  'research-community',
+  DASHBOARD_TYPES.COMMUNITY,
+  SERIALIZATION_FORMATS.XML,
+  '2024-01-01',
+  '2024-12-31',
+  'published'
+);
+
+// Custom handling - e.g., upload to cloud storage
+const formData = new FormData();
+formData.append('file', blob, 'stats.xml');
+await fetch('/api/upload', { method: 'POST', body: formData });
+```
+
+### Available Serialization Formats
+
+| Format | Constant | Description | File Extension |
+|--------|----------|-------------|----------------|
+| JSON (Compressed) | `SERIALIZATION_FORMATS.JSON_BROTLI` | Brotli-compressed JSON | `.json.gz` |
+| JSON (Gzip) | `SERIALIZATION_FORMATS.JSON_GZIP` | Gzip-compressed JSON | `.json.gz` |
+| JSON (Raw) | `SERIALIZATION_FORMATS.JSON` | Uncompressed JSON | `.json.gz` |
+| CSV | `SERIALIZATION_FORMATS.CSV` | Compressed CSV archive | `.tar.gz` |
+| Excel | `SERIALIZATION_FORMATS.EXCEL` | Compressed Excel archive | `.tar.gz` |
+| XML | `SERIALIZATION_FORMATS.XML` | XML with Dublin Core metadata | `.xml` |
+
+### File Naming Convention
+
+Files are automatically named using this pattern:
+```
+stats_series_{community}_{startDate}_to_{endDate}.{extension}
+```
+
+**Examples:**
+- `stats_series_global_2024-01-01_to_2024-12-31.tar.gz`
+- `stats_series_research-community_2024-06-01_to_2024-06-30.xml`
+- `stats_series_digital-humanities.tar.gz` (no date range)
+
+### React Component Integration
+
+The `ReportSelector` component has been updated to use this API:
+
+```jsx
+import { ReportSelector } from '../components/controls/ReportSelector';
+
+// In your dashboard component
+<ReportSelector defaultFormat="csv" />
+```
+
+The component automatically:
+- Uses current dashboard context (community, date range, date basis)
+- Shows loading state during download
+- Handles errors gracefully
+- Generates appropriate filenames
+
+### Advanced Usage Examples
+
+#### Batch Downloads
+
+```javascript
+// Download multiple formats for the same data
+const formats = [
+  SERIALIZATION_FORMATS.CSV,
+  SERIALIZATION_FORMATS.EXCEL,
+  SERIALIZATION_FORMATS.XML
+];
+
+for (const format of formats) {
+  await downloadStatsSeriesWithFilename({
+    communityId: 'research-community',
+    dashboardType: DASHBOARD_TYPES.COMMUNITY,
+    format,
+    startDate: '2024-01-01',
+    endDate: '2024-12-31'
+  });
+}
+```
+
+#### Custom Filename
+
+```javascript
+// Download Excel format with custom filename
+await downloadStatsSeriesWithFilename({
+  communityId: 'global',
+  dashboardType: DASHBOARD_TYPES.GLOBAL,
+  format: SERIALIZATION_FORMATS.EXCEL,
+  filename: 'my_custom_stats.xlsx'
+});
+// Downloads: my_custom_stats.xlsx
+```
+
+#### Error Handling
+
+```javascript
+try {
+  await downloadStatsSeriesWithFilename({
+    communityId: 'invalid-community',
+    dashboardType: DASHBOARD_TYPES.COMMUNITY,
+    format: SERIALIZATION_FORMATS.CSV
+  });
+} catch (error) {
+  console.error('Download failed:', error.message);
+  // Handle error - show user notification, retry, etc.
+}
+```
+
+### Community-Specific Features
+
+When downloading community-specific stats, the API automatically:
+- Includes community metadata in XML format
+- Uses community slug in filenames when available
+- Falls back to community ID if slug is not available
+- Handles missing communities gracefully
+
+### Underlying API Requests
+
+The download functions make POST requests to `/api/stats` with category-wide queries that return data series sets:
+
+```javascript
+// Example request body for downloadStatsSeries
+{
+  "usage-snapshot-category": {
+    "stat": "usage-snapshot-category",
+    "params": {
+      "community_id": "research-community",
+      "date_basis": "added",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    }
+  },
+  "usage-delta-category": {
+    "stat": "usage-delta-category",
+    "params": {
+      "community_id": "research-community",
+      "date_basis": "added",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    }
+  },
+  "record-snapshot-category": {
+    "stat": "record-snapshot-category",
+    "params": {
+      "community_id": "research-community",
+      "date_basis": "added",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    }
+  },
+  "record-delta-category": {
+    "stat": "record-delta-category",
+    "params": {
+      "community_id": "research-community",
+      "date_basis": "added",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    }
+  }
+}
+```
+
+The response format depends on the `Accept` header specified in the request, supporting all the serialization formats listed above.
