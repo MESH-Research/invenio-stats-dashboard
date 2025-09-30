@@ -114,7 +114,6 @@ class FilePresenceRecordSnapshotDataSeries(DataSeries):
         date = snapshot_date.split("T")[0]
         if not date:
             return
-        current_app.logger.error(f"doc: {pformat(doc)}")
 
         if self.metric in ["records", "parents"]:
             # The subfields of  records  and parents  match the
@@ -123,12 +122,6 @@ class FilePresenceRecordSnapshotDataSeries(DataSeries):
             if isinstance(metric_data, dict):
                 self.add_data_point(date, int(metric_data[self.series_id]), "number")
         elif self.metric in ["data_volume", "file_count"]:
-            current_app.logger.error(self.metric)
-            current_app.logger.error(self.series_id)
-            current_app.logger.error(f"metric_data: {doc.get('total_files')}")
-            current_app.logger.error(
-                f"metric_data: {doc.get('total_files', {}).get(self.metric)}"
-            )
             # These come from files structure
             files_data = doc.get("total_files", {})
             if self.series_id == "metadata_only":

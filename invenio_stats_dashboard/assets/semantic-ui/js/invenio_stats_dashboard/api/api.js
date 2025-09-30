@@ -4,10 +4,8 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import { http } from "react-invenio-forms";
 import axios from "axios";
 import { DASHBOARD_TYPES } from "../constants";
-import { transformApiData } from "./dataTransformer";
 import { generateTestStatsData } from "../components/test_data";
 
 import { kebabToCamel } from "../utils";
@@ -22,7 +20,6 @@ const createAxiosWithCSRF = () => {
     xsrfHeaderName: "X-CSRFToken",
     headers: {
       "Content-Type": "application/json",
-      Accept: "application/json",
     },
   });
 };
@@ -82,13 +79,13 @@ const statsApiClient = {
       "record-delta-category",
     ];
 
-    let responses = {};
+    const responses = {};
     const axiosWithCSRF = createAxiosWithCSRF();
 
     for (let i = 0; i < statCategories.length; i++) {
       const category = statCategories[i];
 
-      let requestBody = {
+      const requestBody = {
         [`${category}`]: {
           stat: `${category}`,
           params: {
@@ -104,13 +101,16 @@ const statsApiClient = {
         requestBody[`${category}`].params.end_date = endDate;
       }
 
-      // Request with compression headers and CSRF token
-      const response = await axiosWithCSRF.post(`/api/stats`, requestBody, {
-        headers: {
-          "Accept-Encoding": "br, gzip", // Prefer Brotli, fallback to Gzip
-          Accept: "application/json",
+      // Request with plain JSON headers and CSRF token
+      const response = await axiosWithCSRF.post(
+        `/api/stats-dashboard`,
+        requestBody,
+        {
+          headers: {
+            Accept: "application/json", // Request plain JSON
+          },
         },
-      });
+      );
 
       const newKey = convertCategoryKey(category, dateBasis);
 
@@ -205,6 +205,7 @@ const fetchStats = async ({
   } catch (error) {
     console.error("Error fetching stats:", error);
 
+    // Set ui fetching error state
     if (onStateChange && (!isMounted || isMounted())) {
       onStateChange({
         type: "error",
@@ -302,7 +303,6 @@ const downloadStatsSeries = async (
     },
   };
 
-  // Add date filters if provided
   if (startDate) {
     Object.values(requestBody).forEach((query) => {
       query.params.start_date = startDate;
@@ -314,26 +314,20 @@ const downloadStatsSeries = async (
     });
   }
 
-  // Set up headers for the requested format
   const headers = {
     Accept: format,
   };
 
-  // Add compression headers for JSON formats
-  if (format === SERIALIZATION_FORMATS.JSON_GZIP) {
-    headers["Accept-Encoding"] = "gzip";
-  } else if (format === SERIALIZATION_FORMATS.JSON_BROTLI) {
-    headers["Accept-Encoding"] = "br";
-  } else if (format === SERIALIZATION_FORMATS.JSON) {
-    headers["Accept-Encoding"] = "br, gzip"; // Prefer Brotli, fallback to Gzip
-  }
-
   try {
     const axiosWithCSRF = createAxiosWithCSRF();
-    const response = await axiosWithCSRF.post(`/api/stats`, requestBody, {
-      headers,
-      responseType: "blob", // Important for binary file downloads
-    });
+    const response = await axiosWithCSRF.post(
+      `/api/stats-dashboard`,
+      requestBody,
+      {
+        headers,
+        responseType: "blob", // Important for binary file downloads
+      },
+    );
 
     return response.data;
   } catch (error) {

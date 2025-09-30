@@ -387,8 +387,7 @@ def update_community_events_index(
             f"community {community_id}: {event_doc}"
         )
         try:
-            result = client.index(index=write_index, body=event_doc)
-            current_app.logger.error(f"Created new community event: {result}")
+            client.index(index=write_index, body=event_doc)
         except Exception as e:
             current_app.logger.error(
                 f"Error creating new community event for record {record_id}, "
@@ -487,7 +486,6 @@ class CommunityAcceptedEventComponent(ServiceComponent):
         **kwargs,
     ) -> None:
         """Update the community record events."""
-        current_app.logger.error(f"CommunityAcceptedEventComponent create: {data}")
         request_data = event.request.data  # type: ignore
         valid_request_types = [CommunityInclusion.type_id, CommunitySubmission.type_id]
         valid_request_statuses = [
@@ -592,7 +590,6 @@ class RecordCommunityEventComponent(ServiceComponent):
         Find any changes to the communities field and update the community events
         accordingly on the record.
         """
-        current_app.logger.error(f"RecordCommunityEventComponent delete_record: {data}")
         update_community_events_deletion_fields(
             record_id=str(record.pid.pid_value),  # type: ignore
             is_deleted=True,

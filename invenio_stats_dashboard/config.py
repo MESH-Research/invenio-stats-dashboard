@@ -39,6 +39,14 @@ from .resources.data_series_queries import (
     UsageSnapshotCategoryQuery,
     UsageSnapshotDataSeriesQuery,
 )
+from .resources.serializers.wrapper_functions import (
+    brotli_json_serializer_func,
+    data_series_csv_serializer_func,
+    data_series_excel_serializer_func,
+    data_series_xml_serializer_func,
+    gzip_json_serializer_func,
+    json_serializer_func,
+)
 from .tasks import CommunityStatsAggregationTask
 
 COMMUNITY_STATS_ENABLED = True
@@ -88,6 +96,12 @@ STATS_DASHBOARD_ROUTES = {
     "community": "/communities/<pid_value>/stats",
 }
 """Routes for the stats dashboard."""
+
+
+STATS_DASHBOARD_API_ROUTES = {
+    "stats_series": "/stats-dashboard",
+}
+"""Routes for the stats dashboard api endpoint. ('api' prefix added automatically)"""
 
 STATS_DASHBOARD_UI_CONFIG = {
     "global": {
@@ -1035,101 +1049,12 @@ COMMUNITY_STATS_SUBCOUNTS = {
 
 # Content negotiation configuration for community stats API requests
 COMMUNITY_STATS_SERIALIZERS = {
-    "application/json": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.serializers:StatsJSONSerializer"
-        ),
-        "enabled_for": [
-            "community-record-delta-created",
-            "community-record-delta-published",
-            "community-record-delta-added",
-            "community-record-snapshot-created",
-            "community-record-snapshot-published",
-            "community-record-snapshot-added",
-            "community-usage-delta",
-            "community-usage-snapshot",
-            "community-stats",
-            "global-stats",
-        ],
-    },
-    "application/json+gzip": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.data_series_serializers:"
-            "GzipStatsJSONSerializer"
-        ),
-        "enabled_for": [
-            "usage-snapshot-series",
-            "usage-delta-series",
-            "record-snapshot-series",
-            "record-delta-series",
-            "usage-snapshot-category",
-            "usage-delta-category",
-            "record-snapshot-category",
-            "record-delta-category",
-        ],
-    },
-    "application/json+br": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.data_series_serializers:"
-            "BrotliStatsJSONSerializer"
-        ),
-        "enabled_for": [
-            "usage-snapshot-series",
-            "usage-delta-series",
-            "record-snapshot-series",
-            "record-delta-series",
-            "usage-snapshot-category",
-            "usage-delta-category",
-            "record-snapshot-category",
-            "record-delta-category",
-        ],
-    },
-    "text/csv": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.data_series_serializers:"
-            "DataSeriesCSVSerializer"
-        ),
-        "enabled_for": [
-            "usage-snapshot-series",
-            "usage-delta-series",
-            "record-snapshot-series",
-            "record-delta-series",
-            "usage-snapshot-category",
-            "usage-delta-category",
-            "record-snapshot-category",
-            "record-delta-category",
-        ],
-    },
-    "application/xml": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.data_series_serializers:"
-            "DataSeriesXMLSerializer"
-        ),
-        "enabled_for": [
-            "usage-snapshot-series",
-            "usage-delta-series",
-            "record-snapshot-series",
-            "record-delta-series",
-            "usage-snapshot-category",
-            "usage-delta-category",
-            "record-snapshot-category",
-            "record-delta-category",
-        ],
-    },
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-        "serializer": (
-            "invenio_stats_dashboard.resources.data_series_serializers:"
-            "DataSeriesExcelSerializer"
-        ),
-        "enabled_for": [
-            "usage-snapshot-series",
-            "usage-delta-series",
-            "record-snapshot-series",
-            "record-delta-series",
-            "usage-snapshot-category",
-            "usage-delta-category",
-            "record-snapshot-category",
-            "record-delta-category",
-        ],
-    },
+    "application/json": json_serializer_func,
+    "application/json+br": brotli_json_serializer_func,
+    "application/json+gzip": gzip_json_serializer_func,
+    "text/csv": data_series_csv_serializer_func,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": (
+        data_series_excel_serializer_func
+    ),
+    "application/xml": data_series_xml_serializer_func,
 }

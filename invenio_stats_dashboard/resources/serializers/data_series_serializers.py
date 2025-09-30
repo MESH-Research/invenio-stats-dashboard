@@ -15,26 +15,15 @@ import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 
+import brotli
 from flask import Response, current_app, g
+from invenio_communities.proxies import current_communities
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 from werkzeug.utils import secure_filename
 
-from invenio_communities.proxies import current_communities
-
-try:
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill
-    OPENPYXL_AVAILABLE = True
-except ImportError:
-    OPENPYXL_AVAILABLE = False
-
-try:
-    import brotli
-    BROTLI_AVAILABLE = True
-except ImportError:
-    BROTLI_AVAILABLE = False
-
-from ..transformers.base import DataSeries
-from .serializers import (
+from ...transformers.base import DataSeries
+from .basic_serializers import (
     StatsCSVSerializer,
     StatsExcelSerializer,
     StatsXMLSerializer,
@@ -44,12 +33,19 @@ from .serializers import (
 class CompressedStatsJSONSerializer:
     """Compressed JSON serializer for data series responses."""
 
-    def __init__(self, compression_method: str = "gzip"):
+    def __init__(self, compression_method: str | None = None):
         """Initialize the serializer with a compression method.
 
+        Current supported compression methods are: gzip, brotli.
+        The default is set in the configuration file.
+
         Args:
-            compression_method: Compression method to use ("gzip" or "brotli")
+            compression_method: Compression method to use
         """
+        if compression_method is None:
+            compression_method = current_app.config.get(
+                "STATS_CACHE_COMPRESSION_METHOD", "brotli"
+            )
         self.compression_method = compression_method.lower()
 
     def serialize(self, data: DataSeries | dict | list, **kwargs) -> Response:
@@ -62,11 +58,9 @@ class CompressedStatsJSONSerializer:
         Returns:
             Flask Response with compressed JSON content
         """
-        # Convert DataSeries to dict if needed
         if isinstance(data, DataSeries):
             json_data = data.for_json()
         elif isinstance(data, dict):
-            # Handle dict of DataSeries objects
             json_data = {}
             for key, value in data.items():
                 if isinstance(value, DataSeries):
@@ -76,18 +70,12 @@ class CompressedStatsJSONSerializer:
         else:
             json_data = data
 
-        # Serialize to JSON
         json_str = json.dumps(json_data, indent=2, default=str)
 
-        # Compress the JSON based on method
         if self.compression_method == "brotli":
-            if not BROTLI_AVAILABLE:
-                # Fallback to gzip if brotli is not available
-                return self._create_gzip_response(json_str)
             compressed_data = brotli.compress(json_str.encode("utf-8"))
             return self._create_brotli_response(compressed_data)
         else:
-            # Default to gzip
             compressed_data = gzip.compress(json_str.encode("utf-8"))
             return self._create_gzip_response(compressed_data)
 
@@ -136,7 +124,9 @@ class BrotliStatsJSONSerializer(CompressedStatsJSONSerializer):
 class DataSeriesCSVSerializer(StatsCSVSerializer):
     """CSV serializer for data series responses with nested folder structure."""
 
-    def serialize(self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs) -> Response:
+    def serialize(
+        self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs
+    ) -> Response:
         """Serialize nested dictionary data to compressed CSV folder structure.
 
         Creates a temporary nested folder structure that mirrors the top two levels
@@ -161,13 +151,11 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
             # Create gzip-compressed tar archive with community-specific filename
             filename_prefix = self._get_filename_prefix(community_id)
             archive_path = shutil.make_archive(
-                os.path.join(tempfile.gettempdir(), filename_prefix),
-                'gztar',
-                temp_dir
+                os.path.join(tempfile.gettempdir(), filename_prefix), "gztar", temp_dir
             )
 
             # Read compressed archive into memory
-            with open(archive_path, 'rb') as f:
+            with open(archive_path, "rb") as f:
                 compressed_data = f.read()
 
             # Clean up the archive file
@@ -184,7 +172,9 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
                 },
             )
 
-    def _get_filename_prefix(self, community_id: str | None = None, format_type: str = "csv") -> str:
+    def _get_filename_prefix(
+        self, community_id: str | None = None, format_type: str = "csv"
+    ) -> str:
         """Generate filename prefix based on community and format.
 
         Args:
@@ -276,9 +266,9 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
                 if isinstance(level2_value, list):
                     # Handle list of objects
                     for inner_obj in level2_value:
-                        if isinstance(inner_obj, dict) and 'id' in inner_obj:
+                        if isinstance(inner_obj, dict) and "id" in inner_obj:
                             self._create_csv_file(inner_obj, level2_path)
-                elif isinstance(level2_value, dict) and 'id' in level2_value:
+                elif isinstance(level2_value, dict) and "id" in level2_value:
                     # Handle single object
                     self._create_csv_file(level2_value, level2_path)
 
@@ -289,25 +279,25 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
             obj: Object containing id and data fields
             directory_path: Directory where CSV file should be created
         """
-        obj_id = obj.get('id', 'unknown')
+        obj_id = obj.get("id", "unknown")
         safe_id = secure_filename(str(obj_id))
         csv_filename = f"{safe_id}.csv"
         csv_path = os.path.join(directory_path, csv_filename)
 
         # Extract data points from the object
-        data_points = obj.get('data', [])
+        data_points = obj.get("data", [])
         if not isinstance(data_points, list):
             return
 
         # Write CSV file with date/value pairs
-        with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+        with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
             csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(['date', 'value'])  # Header row
+            csvwriter.writerow(["date", "value"])  # Header row
 
             for data_point in data_points:
                 if isinstance(data_point, dict):
                     # Extract date and value from data_point.value array
-                    value_array = data_point.get('value', [])
+                    value_array = data_point.get("value", [])
                     if isinstance(value_array, list) and len(value_array) >= 2:
                         date_val = value_array[0]
                         numeric_val = value_array[1]
@@ -317,7 +307,9 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
 class DataSeriesExcelSerializer(StatsExcelSerializer):
     """Enhanced Excel serializer for data series responses with multiple workbooks."""
 
-    def serialize(self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs) -> Response:
+    def serialize(
+        self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs
+    ) -> Response:
         """Serialize nested dictionary data to compressed Excel workbook archive.
 
         Creates separate Excel workbooks for each top-level series, with one sheet
@@ -334,30 +326,20 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
         if not isinstance(data, dict):
             raise ValueError("Cannot serialize non-dictionary content")
 
-        if not OPENPYXL_AVAILABLE:
-            # Fallback to CSV if openpyxl is not available
-            return self._fallback_to_csv(data, community_id=community_id, **kwargs)
-
         # Create temporary directory for the Excel workbooks
         with tempfile.TemporaryDirectory() as temp_dir:
             self._create_excel_workbooks(data, temp_dir)
 
-            # Create gzip-compressed tar archive with community-specific filename
             filename_prefix = self._get_filename_prefix(community_id, "excel")
             archive_path = shutil.make_archive(
-                os.path.join(tempfile.gettempdir(), filename_prefix),
-                'gztar',
-                temp_dir
+                os.path.join(tempfile.gettempdir(), filename_prefix), "gztar", temp_dir
             )
 
-            # Read compressed archive into memory
-            with open(archive_path, 'rb') as f:
+            with open(archive_path, "rb") as f:
                 compressed_data = f.read()
 
-            # Clean up the archive file
             os.unlink(archive_path)
 
-            # Return compressed archive as Flask Response
             filename = f"{filename_prefix}.tar.gz"
             return Response(
                 compressed_data,
@@ -400,7 +382,7 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
                 # Process inner objects (third level)
                 current_row = 3  # Start after header
                 for inner_obj in level2_value:
-                    if isinstance(inner_obj, dict) and 'id' in inner_obj:
+                    if isinstance(inner_obj, dict) and "id" in inner_obj:
                         self._add_data_to_sheet(ws, inner_obj, current_row)
                         current_row += 1
 
@@ -421,19 +403,19 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
             obj: Object containing id and data fields
             start_row: Starting row number
         """
-        obj_id = obj.get('id', 'unknown')
+        obj_id = obj.get("id", "unknown")
 
         # Add object ID in first column
         ws.cell(row=start_row, column=1, value=str(obj_id))
 
         # Add data points in subsequent columns
-        data_points = obj.get('data', [])
+        data_points = obj.get("data", [])
         if isinstance(data_points, list):
             col = 2
             for data_point in data_points:
                 if isinstance(data_point, dict):
                     # Extract date and value from data_point.value array
-                    value_array = data_point.get('value', [])
+                    value_array = data_point.get("value", [])
                     if isinstance(value_array, list) and len(value_array) >= 2:
                         date_val = value_array[0]
                         numeric_val = value_array[1]
@@ -461,9 +443,9 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
         sanitized = str(name)
 
         # Remove invalid characters
-        invalid_chars = ['\\', '/', '?', '*', '[', ']']
+        invalid_chars = ["\\", "/", "?", "*", "[", "]"]
         for char in invalid_chars:
-            sanitized = sanitized.replace(char, '_')
+            sanitized = sanitized.replace(char, "_")
 
         # Truncate if too long
         if len(sanitized) > 31:
@@ -493,21 +475,9 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
                 cell.font = header_font
                 cell.fill = header_fill
 
-    def _fallback_to_csv(self, data: dict, community_id: str | None = None, **kwargs) -> Response:
-        """Fallback to CSV serialization when openpyxl is not available.
-
-        Args:
-            data: Data to serialize
-            community_id: Optional community ID for community-specific stats
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            Flask Response with CSV content
-        """
-        csv_serializer = DataSeriesCSVSerializer()
-        return csv_serializer.serialize(data, community_id=community_id, **kwargs)
-
-    def _get_filename_prefix(self, community_id: str | None = None, format_type: str = "csv") -> str:
+    def _get_filename_prefix(
+        self, community_id: str | None = None, format_type: str = "csv"
+    ) -> str:
         """Generate filename prefix based on community and format.
 
         Args:
@@ -558,10 +528,12 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         root.set("xmlns", "https://github.com/MESH-Research/invenio-stats-dashboard")
         root.set("xmlns:dc", "http://purl.org/dc/elements/1.1/")
         root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-        root.set("xsi:schemaLocation",
-                 "https://github.com/MESH-Research/invenio-stats-dashboard "
-                 "https://github.com/MESH-Research/invenio-stats-dashboard/"
-                 "schema/data-series.xsd")
+        root.set(
+            "xsi:schemaLocation",
+            "https://github.com/MESH-Research/invenio-stats-dashboard "
+            "https://github.com/MESH-Research/invenio-stats-dashboard/"
+            "schema/data-series.xsd",
+        )
         root.set("version", "1.0")
 
         # Add comprehensive metadata with Dublin Core elements
@@ -569,9 +541,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
 
         publisher = self._get_publisher_from_config()
         # Dublin Core metadata
-        ET.SubElement(metadata, "dc:title").text = (
-            f"{publisher} Data Series Collection"
-        )
+        ET.SubElement(metadata, "dc:title").text = f"{publisher} Data Series Collection"
         ET.SubElement(metadata, "dc:creator").text = publisher
         ET.SubElement(metadata, "dc:description").text = (
             "Time-series statistical data from the "
@@ -585,9 +555,9 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         ET.SubElement(metadata, "dc:language").text = language
         ET.SubElement(metadata, "dc:publisher").text = publisher
         ET.SubElement(metadata, "dc:source").text = f"{publisher} API"
-        ET.SubElement(metadata, "dc:subject").text = (
-            "Statistics, Usage Analytics, Time Series Data"
-        )
+        ET.SubElement(
+            metadata, "dc:subject"
+        ).text = "Statistics, Usage Analytics, Time Series Data"
         ET.SubElement(metadata, "dc:type").text = "Dataset"
 
         # Technical metadata
@@ -611,17 +581,17 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             if community_metadata:
                 community_elem = ET.SubElement(metadata, "community")
                 ET.SubElement(community_elem, "dc:identifier").text = community_id
-                ET.SubElement(community_elem, "dc:title").text = (
-                    community_metadata.get("title", "")
+                ET.SubElement(community_elem, "dc:title").text = community_metadata.get(
+                    "title", ""
                 )
-                ET.SubElement(community_elem, "dc:description").text = (
-                    community_metadata.get("description", "")
-                )
-                ET.SubElement(community_elem, "dc:source").text = (
-                    community_metadata.get("url", "")
-                )
-                ET.SubElement(community_elem, "slug").text = (
-                    community_metadata.get("slug", "")
+                ET.SubElement(
+                    community_elem, "dc:description"
+                ).text = community_metadata.get("description", "")
+                ET.SubElement(
+                    community_elem, "dc:source"
+                ).text = community_metadata.get("url", "")
+                ET.SubElement(community_elem, "slug").text = community_metadata.get(
+                    "slug", ""
                 )
 
         # Process each top-level category
@@ -644,8 +614,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
 
             # Count metrics in this category
             metrics_count = sum(
-                1 for v in category_data.values()
-                if isinstance(v, list) and v
+                1 for v in category_data.values() if isinstance(v, list) and v
             )
             category_elem.set("metricsCount", str(metrics_count))
 
@@ -678,30 +647,30 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
 
                 # Process each data series in the metric
                 for series_obj in metric_data:
-                    if not isinstance(series_obj, dict) or 'id' not in series_obj:
+                    if not isinstance(series_obj, dict) or "id" not in series_obj:
                         continue
 
                     series_elem = ET.SubElement(metric_elem, "series")
-                    series_elem.set("id", str(series_obj.get('id', 'unknown')))
+                    series_elem.set("id", str(series_obj.get("id", "unknown")))
 
                     # Add series metadata
-                    if 'name' in series_obj:
-                        series_elem.set("name", str(series_obj['name']))
-                    if 'type' in series_obj:
-                        series_elem.set("type", str(series_obj['type']))
-                    if 'valueType' in series_obj:
-                        series_elem.set("valueType", str(series_obj['valueType']))
+                    if "name" in series_obj:
+                        series_elem.set("name", str(series_obj["name"]))
+                    if "type" in series_obj:
+                        series_elem.set("type", str(series_obj["type"]))
+                    if "valueType" in series_obj:
+                        series_elem.set("valueType", str(series_obj["valueType"]))
 
                     # Add semantic attributes
-                    if 'label' in series_obj:
-                        series_elem.set("label", str(series_obj['label']))
+                    if "label" in series_obj:
+                        series_elem.set("label", str(series_obj["label"]))
 
                     description = self._get_series_description(series_obj)
                     if description:
                         series_elem.set("description", description)
 
                     # Add data points
-                    data_points = series_obj.get('data', [])
+                    data_points = series_obj.get("data", [])
                     if isinstance(data_points, list):
                         points_elem = ET.SubElement(series_elem, "dataPoints")
                         points_elem.set("count", str(len(data_points)))
@@ -711,22 +680,24 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
                                 point_elem = ET.SubElement(points_elem, "point")
 
                                 # Add readable date if available
-                                if 'readableDate' in point:
+                                if "readableDate" in point:
                                     point_elem.set(
-                                        "readableDate", str(point['readableDate'])
+                                        "readableDate", str(point["readableDate"])
                                     )
 
                                 # Add value array
-                                value_array = point.get('value', [])
-                                if (isinstance(value_array, list) and
-                                        len(value_array) >= 2):
+                                value_array = point.get("value", [])
+                                if (
+                                    isinstance(value_array, list)
+                                    and len(value_array) >= 2
+                                ):
                                     point_elem.set("date", str(value_array[0]))
                                     point_elem.set("value", str(value_array[1]))
 
                                     # Add value type if available
-                                    if 'valueType' in point:
+                                    if "valueType" in point:
                                         point_elem.set(
-                                            "valueType", str(point['valueType'])
+                                            "valueType", str(point["valueType"])
                                         )
 
                                     # Add semantic attributes
@@ -758,7 +729,9 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             },
         )
 
-    def _get_filename_prefix(self, community_id: str | None = None, format_type: str = "xml") -> str:
+    def _get_filename_prefix(
+        self, community_id: str | None = None, format_type: str = "xml"
+    ) -> str:
         """Generate filename prefix based on community and format.
 
         Args:
@@ -796,15 +769,43 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
 
         # Replace invalid characters with underscores
         invalid_chars = [
-            ' ', '/', '\\', '?', '*', '[', ']', '(', ')', '{', '}', ':',
-            ';', '=', '+', '&', '%', '$', '#', '@', '!', '~', '`', '^',
-            '|', '<', '>', ',', '.', '"', "'"
+            " ",
+            "/",
+            "\\",
+            "?",
+            "*",
+            "[",
+            "]",
+            "(",
+            ")",
+            "{",
+            "}",
+            ":",
+            ";",
+            "=",
+            "+",
+            "&",
+            "%",
+            "$",
+            "#",
+            "@",
+            "!",
+            "~",
+            "`",
+            "^",
+            "|",
+            "<",
+            ">",
+            ",",
+            ".",
+            '"',
+            "'",
         ]
         for char in invalid_chars:
-            sanitized = sanitized.replace(char, '_')
+            sanitized = sanitized.replace(char, "_")
 
         # Ensure it starts with letter or underscore
-        if sanitized and not (sanitized[0].isalpha() or sanitized[0] == '_'):
+        if sanitized and not (sanitized[0].isalpha() or sanitized[0] == "_"):
             sanitized = f"id_{sanitized}"
 
         # Ensure not empty
@@ -820,6 +821,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Current timestamp as ISO string
         """
         from datetime import datetime
+
         return datetime.utcnow().isoformat() + "Z"
 
     def _get_publisher_from_config(self) -> str:
@@ -830,11 +832,11 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         """
         # Try to get publisher from various configuration sources
         publisher = (
-            current_app.config.get("THEME_SITENAME") or
-            current_app.config.get("THEME_FRONTPAGE_TITLE") or
-            current_app.config.get("THEME_SHORT_TITLE") or
-            current_app.config.get("APP_THEME") or
-            "InvenioRDM"
+            current_app.config.get("THEME_SITENAME")
+            or current_app.config.get("THEME_FRONTPAGE_TITLE")
+            or current_app.config.get("THEME_SHORT_TITLE")
+            or current_app.config.get("APP_THEME")
+            or "InvenioRDM"
         )
         return publisher
 
@@ -846,9 +848,9 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         """
         # Get language from BABEL_DEFAULT_LOCALE configuration
         language = (
-            current_app.config.get("BABEL_DEFAULT_LOCALE") or
-            current_app.config.get("I18N_DEFAULT_LOCALE") or
-            "en"
+            current_app.config.get("BABEL_DEFAULT_LOCALE")
+            or current_app.config.get("I18N_DEFAULT_LOCALE")
+            or "en"
         )
         return language
 
@@ -907,7 +909,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
                     if isinstance(metric_data, list):
                         for series_obj in metric_data:
                             if isinstance(series_obj, dict):
-                                data_points = series_obj.get('data', [])
+                                data_points = series_obj.get("data", [])
                                 if isinstance(data_points, list):
                                     total += len(data_points)
         return total
@@ -928,13 +930,15 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
                     if isinstance(metric_data, list):
                         for series_obj in metric_data:
                             if isinstance(series_obj, dict):
-                                data_points = series_obj.get('data', [])
+                                data_points = series_obj.get("data", [])
                                 if isinstance(data_points, list):
                                     for point in data_points:
                                         if isinstance(point, dict):
-                                            value_array = point.get('value', [])
-                                            if (isinstance(value_array, list) and
-                                                len(value_array) >= 2):
+                                            value_array = point.get("value", [])
+                                            if (
+                                                isinstance(value_array, list)
+                                                and len(value_array) >= 2
+                                            ):
                                                 dates.append(value_array[0])
 
         if not dates:
@@ -953,19 +957,19 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Category type or None
         """
         category_mapping = {
-            'access_statuses': 'access_status',
-            'countries': 'geographic',
-            'languages': 'content_type',
-            'resource_types': 'content_type',
-            'subjects': 'content_type',
-            'publishers': 'content_type',
-            'rights': 'content_type',
-            'funders': 'content_type',
-            'affiliations': 'geographic',
-            'file_types': 'content_type',
-            'referrers': 'user_behavior',
-            'periodicals': 'content_type',
-            'global': 'global',
+            "access_statuses": "access_status",
+            "countries": "geographic",
+            "languages": "content_type",
+            "resource_types": "content_type",
+            "subjects": "content_type",
+            "publishers": "content_type",
+            "rights": "content_type",
+            "funders": "content_type",
+            "affiliations": "geographic",
+            "file_types": "content_type",
+            "referrers": "user_behavior",
+            "periodicals": "content_type",
+            "global": "global",
         }
         return category_mapping.get(category_name.lower())
 
@@ -979,21 +983,21 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Description or None
         """
         descriptions = {
-            'access_statuses': (
-                'Statistics grouped by access status (open, restricted, etc.)'
+            "access_statuses": (
+                "Statistics grouped by access status (open, restricted, etc.)"
             ),
-            'countries': 'Statistics grouped by geographic country',
-            'languages': 'Statistics grouped by content language',
-            'resource_types': 'Statistics grouped by type of resource',
-            'subjects': 'Statistics grouped by subject classification',
-            'publishers': 'Statistics grouped by publisher',
-            'rights': 'Statistics grouped by license/rights',
-            'funders': 'Statistics grouped by funding organization',
-            'affiliations': 'Statistics grouped by institutional affiliation',
-            'file_types': 'Statistics grouped by file format type',
-            'referrers': 'Statistics grouped by referring website',
-            'periodicals': 'Statistics grouped by journal/publication',
-            'global': 'Global statistics across all categories',
+            "countries": "Statistics grouped by geographic country",
+            "languages": "Statistics grouped by content language",
+            "resource_types": "Statistics grouped by type of resource",
+            "subjects": "Statistics grouped by subject classification",
+            "publishers": "Statistics grouped by publisher",
+            "rights": "Statistics grouped by license/rights",
+            "funders": "Statistics grouped by funding organization",
+            "affiliations": "Statistics grouped by institutional affiliation",
+            "file_types": "Statistics grouped by file format type",
+            "referrers": "Statistics grouped by referring website",
+            "periodicals": "Statistics grouped by journal/publication",
+            "global": "Global statistics across all categories",
         }
         return descriptions.get(category_name.lower())
 
@@ -1007,16 +1011,16 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Unit string or None
         """
         unit_mapping = {
-            'data_volume': 'bytes',
-            'downloads': 'count',
-            'views': 'count',
-            'download_unique_files': 'count',
-            'download_unique_parents': 'count',
-            'download_unique_records': 'count',
-            'view_unique_parents': 'count',
-            'view_unique_records': 'count',
-            'download_visitors': 'count',
-            'view_visitors': 'count',
+            "data_volume": "bytes",
+            "downloads": "count",
+            "views": "count",
+            "download_unique_files": "count",
+            "download_unique_parents": "count",
+            "download_unique_records": "count",
+            "view_unique_parents": "count",
+            "view_unique_records": "count",
+            "download_visitors": "count",
+            "view_visitors": "count",
         }
         return unit_mapping.get(metric_name.lower())
 
@@ -1030,16 +1034,16 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Measurement type or None
         """
         type_mapping = {
-            'data_volume': 'volume',
-            'downloads': 'count',
-            'views': 'count',
-            'download_unique_files': 'count',
-            'download_unique_parents': 'count',
-            'download_unique_records': 'count',
-            'view_unique_parents': 'count',
-            'view_unique_records': 'count',
-            'download_visitors': 'count',
-            'view_visitors': 'count',
+            "data_volume": "volume",
+            "downloads": "count",
+            "views": "count",
+            "download_unique_files": "count",
+            "download_unique_parents": "count",
+            "download_unique_records": "count",
+            "view_unique_parents": "count",
+            "view_unique_records": "count",
+            "download_visitors": "count",
+            "view_visitors": "count",
         }
         return type_mapping.get(metric_name.lower())
 
@@ -1053,12 +1057,12 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Aggregation method or None
         """
         # Most metrics are daily aggregations
-        if 'unique' in metric_name.lower():
-            return 'daily'
-        elif 'visitors' in metric_name.lower():
-            return 'daily'
+        if "unique" in metric_name.lower():
+            return "daily"
+        elif "visitors" in metric_name.lower():
+            return "daily"
         else:
-            return 'daily'
+            return "daily"
 
     def _get_metric_description(self, metric_name: str) -> str | None:
         """Get description for metric based on name.
@@ -1070,16 +1074,16 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Description or None
         """
         descriptions = {
-            'data_volume': 'Total data volume transferred',
-            'downloads': 'Total number of download events',
-            'views': 'Total number of view events',
-            'download_unique_files': 'Number of unique files downloaded',
-            'download_unique_parents': 'Number of unique parent records downloaded',
-            'download_unique_records': 'Number of unique records downloaded',
-            'view_unique_parents': 'Number of unique parent records viewed',
-            'view_unique_records': 'Number of unique records viewed',
-            'download_visitors': 'Number of unique visitors who downloaded',
-            'view_visitors': 'Number of unique visitors who viewed',
+            "data_volume": "Total data volume transferred",
+            "downloads": "Total number of download events",
+            "views": "Total number of view events",
+            "download_unique_files": "Number of unique files downloaded",
+            "download_unique_parents": "Number of unique parent records downloaded",
+            "download_unique_records": "Number of unique records downloaded",
+            "view_unique_parents": "Number of unique parent records viewed",
+            "view_unique_records": "Number of unique records viewed",
+            "download_visitors": "Number of unique visitors who downloaded",
+            "view_visitors": "Number of unique visitors who viewed",
         }
         return descriptions.get(metric_name.lower())
 
@@ -1092,21 +1096,21 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         Returns:
             Description or None
         """
-        series_id = series_obj.get('id', '')
-        if series_id == 'global':
-            return 'Global statistics across all data'
-        elif series_id == 'metadata-only':
-            return 'Statistics for metadata-only records'
-        elif series_id == 'US':
-            return 'Statistics for United States'
-        elif series_id == 'eng':
-            return 'Statistics for English language content'
-        elif series_id == 'pdf':
-            return 'Statistics for PDF files'
-        elif series_id == 'google.com':
-            return 'Statistics for traffic from Google'
+        series_id = series_obj.get("id", "")
+        if series_id == "global":
+            return "Global statistics across all data"
+        elif series_id == "metadata-only":
+            return "Statistics for metadata-only records"
+        elif series_id == "US":
+            return "Statistics for United States"
+        elif series_id == "eng":
+            return "Statistics for English language content"
+        elif series_id == "pdf":
+            return "Statistics for PDF files"
+        elif series_id == "google.com":
+            return "Statistics for traffic from Google"
         else:
-            return f'Statistics for {series_id}'
+            return f"Statistics for {series_id}"
 
     def _assess_data_quality(self, point: dict) -> str | None:
         """Assess data quality for a data point.
@@ -1118,12 +1122,12 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             Quality assessment or None
         """
         # Simple quality assessment based on available data
-        if 'readableDate' in point and 'value' in point:
-            return 'high'
-        elif 'value' in point:
-            return 'medium'
+        if "readableDate" in point and "value" in point:
+            return "high"
+        elif "value" in point:
+            return "medium"
         else:
-            return 'low'
+            return "low"
 
     def _indent_xml(self, elem: ET.Element, level: int = 0) -> None:
         """Add proper indentation to XML elements.

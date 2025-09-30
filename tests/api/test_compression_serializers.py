@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from invenio_stats_dashboard.resources.data_series_serializers import (
+from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
     CompressedStatsJSONSerializer,
     GzipStatsJSONSerializer,
     BrotliStatsJSONSerializer,

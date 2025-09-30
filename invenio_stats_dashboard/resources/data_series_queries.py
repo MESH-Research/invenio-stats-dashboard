@@ -23,10 +23,9 @@ from ..transformers.record_snapshots import RecordSnapshotDataSeriesSet
 from ..transformers.types import DataSeriesDict
 from ..transformers.usage_deltas import UsageDeltaDataSeriesSet
 from ..transformers.usage_snapshots import UsageSnapshotDataSeriesSet
-from .content_negotiation import ContentNegotiationMixin
 
 
-class DataSeriesQueryBase(Query, ContentNegotiationMixin):
+class DataSeriesQueryBase(Query):
     """Base class for data series API queries."""
 
     date_field: str  # Type annotation for child classes
@@ -74,7 +73,6 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
         Returns:
             DataSeries object or Response with serialized data
         """
-        # Resolve community ID if not global
         if community_id != "global":
             try:
                 community = current_communities.service.read(
@@ -84,10 +82,8 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
             except Exception as e:
                 raise ValueError(f"Community {community_id} not found: {str(e)}") from e
 
-        # Select the appropriate index based on date_basis
         search_index = self._get_index_for_date_basis(date_basis)
 
-        # Build search query
         must_clauses: list[dict] = [
             {"term": {"community_id": community_id}},
         ]
@@ -103,7 +99,6 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
         if range_clauses:
             must_clauses.append({"range": range_clauses})
 
-        # Execute search
         index_pattern = f"{search_index}-*"
 
         try:
@@ -164,11 +159,8 @@ class DataSeriesQueryBase(Query, ContentNegotiationMixin):
             else:
                 series_data = []
 
-        # Handle content negotiation
-        if self.should_use_content_negotiation(self.name):
-            return self.serialize_response(series_data, query_name=self.name)
-        else:
-            return series_data
+        # Return raw data only - content negotiation handled by view
+        return series_data
 
 
 class UsageSnapshotDataSeriesQuery(DataSeriesQueryBase):
@@ -227,7 +219,7 @@ class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
         return f"{self.index}-{date_basis}"
 
 
-class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
+class CategoryDataSeriesQueryBase(Query):
     """Base class for category-wide data series queries."""
 
     date_field: str  # Type annotation for child classes
@@ -269,7 +261,6 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
         Returns:
             Dictionary of DataSeries objects or Response with serialized data
         """
-        # Resolve community ID if not global
         if community_id != "global":
             try:
                 community = current_communities.service.read(
@@ -341,13 +332,8 @@ class CategoryDataSeriesQueryBase(Query, ContentNegotiationMixin):
         # Get the complete data series set with camelCase conversion
         json_result = series_set.for_json()
 
-        current_app.logger.error(f"JSON result: {pformat(json_result)}")
-
-        # Handle content negotiation
-        if self.should_use_content_negotiation(self.name):
-            return self.serialize_response(json_result, query_name=self.name)
-        else:
-            return json_result
+        # Return raw data only - content negotiation handled by view
+        return json_result
 
 
 class UsageSnapshotCategoryQuery(CategoryDataSeriesQueryBase):

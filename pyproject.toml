@@ -99,6 +99,9 @@ invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
 [project.entry-points."invenio_base.blueprints"]
 invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_blueprint"
 
+[project.entry-points."invenio_base.api_blueprints"]
+invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_api_blueprint"
+
 [project.entry-points."invenio_assets.webpack"]
 invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
 

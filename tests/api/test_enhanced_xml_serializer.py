@@ -3,7 +3,7 @@
 
 import xml.etree.ElementTree as ET
 
-from invenio_stats_dashboard.resources.data_series_serializers import (
+from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
     DataSeriesXMLSerializer
 )
 

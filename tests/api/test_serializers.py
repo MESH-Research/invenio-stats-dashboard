@@ -9,7 +9,7 @@
 import json
 import pytest
 
-from invenio_stats_dashboard.resources.serializers import (
+from invenio_stats_dashboard.resources.serializers.basic_serializers import (
     StatsJSONSerializer,
     StatsCSVSerializer,
     StatsXMLSerializer,
@@ -247,55 +247,3 @@ class TestStatsExcelSerializer:
 class TestSerializerIntegration:
     """Test serializer integration with Flask app."""
 
-    def test_content_negotiation_config(self, app):
-        """Test that content negotiation configuration is loaded."""
-        from invenio_stats_dashboard.ext import InvenioStatsDashboard
-
-        # Initialize the extension
-        ext = InvenioStatsDashboard()
-        ext.init_app(app)
-
-        # Check that the extension was registered
-        assert "invenio-stats-dashboard" in app.extensions
-
-        # Check that content negotiation config is loaded
-        assert "STATS_SERIALIZERS" in app.config
-
-        # Check that the config has the expected structure
-        serializers = app.config["STATS_SERIALIZERS"]
-        assert "application/json" in serializers
-        assert "serializer" in serializers["application/json"]
-        assert "enabled_for" in serializers["application/json"]
-
-    def test_content_negotiation_mixin(self, app):
-        """Test that ContentNegotiationMixin works correctly."""
-        from invenio_stats_dashboard.resources.content_negotiation import (
-            ContentNegotiationMixin,
-        )
-        from invenio_stats_dashboard.queries import CommunityStatsResultsQueryBase
-
-        # Check that the base query class has content negotiation
-        assert issubclass(CommunityStatsResultsQueryBase, ContentNegotiationMixin)
-
-    def test_query_specific_enablement(self, app):
-        """Test that serializers can be enabled for specific queries."""
-        from invenio_stats_dashboard.resources.content_negotiation import (
-            ContentNegotiationMixin,
-        )
-
-        # Create a mock mixin instance
-        mixin = ContentNegotiationMixin()
-
-        # Test that HTML is enabled for community-stats but not for individual queries
-        assert mixin._is_serializer_enabled_for_query("text/html", "community-stats")
-        assert not mixin._is_serializer_enabled_for_query(
-            "text/html", "community-record-delta-created"
-        )
-
-        # Test that JSON is enabled for all queries
-        assert mixin._is_serializer_enabled_for_query(
-            "application/json", "community-stats"
-        )
-        assert mixin._is_serializer_enabled_for_query(
-            "application/json", "community-record-delta-created"
-        )

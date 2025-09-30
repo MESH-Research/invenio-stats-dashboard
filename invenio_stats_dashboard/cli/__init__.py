@@ -10,6 +10,7 @@
 
 import click
 
+from .cache_cli import cache_cli
 from .community_events_cli import community_events_cli
 from .core_cli import aggregate_stats_command, read_stats_command, status_command
 from .destroy_indices_cli import destroy_indices_command
@@ -28,8 +29,7 @@ cli.add_command(read_stats_command)
 cli.add_command(status_command)
 cli.add_command(destroy_indices_command)
 
+cli.add_command(cache_cli)
 cli.add_command(community_events_cli)
-
 cli.add_command(usage_events_cli)
-
 cli.add_command(processes_cli)
