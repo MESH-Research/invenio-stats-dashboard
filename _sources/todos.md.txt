@@ -1,20 +1,24 @@
 # TODOs
 
-- [ ] ensure that dependent PRs are merged in invenio-requests and invenio-rdm-records
-- [ ] decide whether to rename the package `invenio-community-stats`
+- [ ] general code cleanup
+  - [ ] decide whether to rename the package `invenio-community-stats`
+- [ ] dependencies
+  - [ ] ensure that dependent PRs are merged in invenio-requests and invenio-rdm-records
 - [x] add config flag to switch UI between test data and production data
 - [ ] testing
-  - [ ] move all tests from centralized KCWorks test suite into this package
-  - [ ] fix failing tests
+  - [x] move all tests from centralized KCWorks test suite into this package
+  - [ ] fix failing python tests
+  - [ ] fix failing javascript tests
   - [ ] expand test coverage
 - [ ] search indexing
+  - [x] make view and download event factories use the subcounts configuration
+  - [x] rework index keys to harmonize across different aggregators
   - [ ] add dynamic creation of index templates based on subcount configurations
-  - [ ] make view and download event factories use the subcounts configuration
 - [ ] aggregation
   - [x] refactor CommunityUsageSnapshotAggregator for the enriched event document structure
   - [x] ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)
   - [x] get tests for aggregator classes working
-  - [ ] get tests for queries working with refactored code
+  - [x] get tests for queries working with refactored code
   - [ ] set up a check in aggregator classes to ensure that view/download event migration has been completed before running the aggregator tasks
   - [ ] set up automatic triggering of the startup tasks (index community events, migrate usage events) when the aggregators first run
   - [ ] add opensearch health and memory usage checks to the aggregator classes (as in the reindexing service) and quit out gracefully if necessary
@@ -30,15 +34,19 @@
   - [ ] add `invenio-communities` custom field to provide per-community configuration of the dashboard layout
 - [ ] client-side data handling
   - [ ] add client-side caching of the stats data to display while new data is loading (current implementation with IndexedDB is not working)
-  - [ ] update client-side data transformer to use the configurable subcounts
+  - [x] update client-side data transformer to use the configurable subcounts (redundant with move to back-end data series production)
 - [ ] UI theming
   - [x] move default CSS into this package
   - [x] finish basic theming of the global dashboard view
   - [ ] harmonize default CSS with InvenioRDM defaults
   - [ ] improve mobile responsiveness of the dashboard views
 - [ ] API requests
+  - [ ] implement back-end production of data series
+  - [ ] implement back-end caching of data series
+  - [ ] add cli commands for clearing cache and checking cache status
   - [ ] implement security policy for API queries
 - [ ] reporting
-  - [ ] implement report generation (via API request? via email? generated client-side?)
-  - [ ] enable report download from dashboard widget
+  - [ ] implement download of data series in various formats
+  - [ ] enable data series download from dashboard widget
 - [ ] improve documentation
+  - [ ] general check for accuracy after refactoring and expansion

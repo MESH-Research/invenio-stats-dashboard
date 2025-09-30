@@ -91,6 +91,44 @@ invenio community-stats read --community-id my-community --query-type community-
 
 The `read` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
 
+#### `cache`
+
+Manage cached statistics data.
+
+```bash
+invenio community-stats cache [SUBCOMMAND] [OPTIONS]
+```
+
+**Subcommands:**
+
+- `clear-all`: Clear all cached statistics data
+- `clear-item`: Clear a specific cached statistics item
+- `info`: Show cache information including size and item count
+- `list`: List all cached statistics keys
+- `test`: Test cache functionality
+
+**Examples:**
+```bash
+# Clear all cached data
+invenio community-stats cache clear-all
+
+# Clear specific cache entry
+invenio community-stats cache clear-item global record_snapshots
+
+# Show cache information
+invenio community-stats cache info
+
+# List all cache keys
+invenio community-stats cache list
+
+# Test cache functionality
+invenio community-stats cache test
+```
+
+**Configuration Requirements:**
+
+The `cache` commands require the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the commands will exit with an error message.
+
 #### `status`
 
 Get aggregation status for communities, showing bookmark dates, document counts, and completeness visualization.

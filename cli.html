@@ -341,6 +341,40 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span><span clas
 <p><strong>Configuration Requirements:</strong></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">read</span></code> command requires the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the command will exit with an error message.</p>
 </section>
+<section id="cache">
+<h3><code class="docutils literal notranslate"><span class="pre">cache</span></code><a class="headerlink" href="#cache" title="Link to this heading">¶</a></h3>
+<p>Manage cached statistics data.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span><span class="o">[</span>SUBCOMMAND<span class="o">]</span><span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Subcommands:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">clear-all</span></code>: Clear all cached statistics data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">clear-item</span></code>: Clear a specific cached statistics item</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info</span></code>: Show cache information including size and item count</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">list</span></code>: List all cached statistics keys</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test</span></code>: Test cache functionality</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear all cached data</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-all
+
+<span class="c1"># Clear specific cache entry</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-item<span class="w"> </span>global<span class="w"> </span>record_snapshots
+
+<span class="c1"># Show cache information</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>info
+
+<span class="c1"># List all cache keys</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>list
+
+<span class="c1"># Test cache functionality</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span><span class="nb">test</span>
+</pre></div>
+</div>
+<p><strong>Configuration Requirements:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">cache</span></code> commands require the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the commands will exit with an error message.</p>
+</section>
 <section id="status">
 <h3><code class="docutils literal notranslate"><span class="pre">status</span></code><a class="headerlink" href="#status" title="Link to this heading">¶</a></h3>
 <p>Get aggregation status for communities, showing bookmark dates, document counts, and completeness visualization.</p>
@@ -891,6 +925,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>processes<
 <li><a class="reference internal" href="#core-commands">Core Commands</a><ul>
 <li><a class="reference internal" href="#aggregate"><code class="docutils literal notranslate"><span class="pre">aggregate</span></code></a></li>
 <li><a class="reference internal" href="#read"><code class="docutils literal notranslate"><span class="pre">read</span></code></a></li>
+<li><a class="reference internal" href="#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
 <li><a class="reference internal" href="#status"><code class="docutils literal notranslate"><span class="pre">status</span></code></a></li>
 <li><a class="reference internal" href="#destroy-indices"><code class="docutils literal notranslate"><span class="pre">destroy-indices</span></code></a></li>
 </ul>
