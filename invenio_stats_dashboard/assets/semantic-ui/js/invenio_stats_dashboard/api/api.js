@@ -35,9 +35,14 @@ const createAxiosWithCSRF = () => {
  * @param {string} dateRange.end - End date in YYYY-MM-DD format
  * @returns {Promise} Promise that resolves to the API response
  */
-export const fetchRecords = async (sort, page = 1, size = 20, dateRange = null) => {
+export const fetchRecords = async (
+  sort,
+  page = 1,
+  size = 20,
+  dateRange = null,
+) => {
   try {
-    let query = '';
+    let query = "";
 
     // Add date range filter if provided
     if (dateRange && dateRange.start && dateRange.end) {
@@ -45,14 +50,14 @@ export const fetchRecords = async (sort, page = 1, size = 20, dateRange = null) 
     }
 
     const axiosWithCSRF = createAxiosWithCSRF();
-    const response = await axiosWithCSRF.get('/api/records', {
+    const response = await axiosWithCSRF.get("/api/records", {
       params: {
         q: query,
-        l: 'list',
+        l: "list",
         p: page,
         s: size,
-        sort: sort
-      }
+        sort: sort,
+      },
     });
     return response.data;
   } catch (error) {

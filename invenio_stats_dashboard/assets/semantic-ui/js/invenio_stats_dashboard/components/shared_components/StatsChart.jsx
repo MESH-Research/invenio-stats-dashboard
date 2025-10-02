@@ -383,9 +383,10 @@ const FilterSelector = ({
 }) => {
   // Get available breakdown options from data
   console.log("data", data);
-  const availableBreakdowns = data
-    ? Object.keys(data).filter((k) => k !== "global")
-    : [];
+  const availableBreakdowns =
+    data && data.length > 0
+      ? Object.keys(data[0]).filter((k) => k !== "global")
+      : [];
   console.log("availableBreakdowns", availableBreakdowns);
 
   const allowedSubcounts = display_subcounts || global_subcounts || {};
@@ -476,7 +477,8 @@ const createAggregationKey = (date, granularity) => {
 
   switch (granularity) {
     case "week":
-      const diff = d.getUTCDate() - d.getUTCDay() + (d.getUTCDay() === 0 ? -6 : 1);
+      const diff =
+        d.getUTCDate() - d.getUTCDay() + (d.getUTCDay() === 0 ? -6 : 1);
       const startOfWeek = new Date(d.setUTCDate(diff));
       return startOfWeek.toISOString().split("T")[0];
 
@@ -601,11 +603,14 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
   if (granularity === "quarter") {
     console.log("Quarter aggregation debug:");
     aggregatedSeries.forEach((series, index) => {
-      console.log(`Series ${index} (${series.name}):`, series.data.map(point => ({
-        date: point.value[0],
-        value: point.value[1],
-        readableDate: point.readableDate
-      })));
+      console.log(
+        `Series ${index} (${series.name}):`,
+        series.data.map((point) => ({
+          date: point.value[0],
+          value: point.value[1],
+          readableDate: point.readableDate,
+        })),
+      );
     });
   }
 
@@ -785,15 +790,17 @@ const StatsChart = ({
   const seriesArray = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
 
-    const allSeries = data.map(yearlyData => {
-      if (!yearlyData) return [];
+    const allSeries = data
+      .map((yearlyData) => {
+        if (!yearlyData) return [];
 
-      if (displaySeparately && yearlyData[displaySeparately]) {
-        return yearlyData[displaySeparately][selectedMetric] || [];
-      } else {
-        return yearlyData.global?.[selectedMetric] || [];
-      }
-    }).flat(); // Combine all series from all years
+        if (displaySeparately && yearlyData[displaySeparately]) {
+          return yearlyData[displaySeparately][selectedMetric] || [];
+        } else {
+          return yearlyData.global?.[selectedMetric] || [];
+        }
+      })
+      .flat(); // Combine all series from all years
 
     console.log("seriesToProcess (yearly array):", allSeries);
     console.log("displaySeparately:", displaySeparately);
@@ -815,12 +822,15 @@ const StatsChart = ({
     console.log("filteredData", filteredData);
 
     // Add names to the series based on the breakdown category or metric type
-    const currentLanguage = i18next.language || 'en';
+    const currentLanguage = i18next.language || "en";
     const namedSeries = filteredData.map((series, index) => {
       if (displaySeparately) {
         // For breakdown view, use the breakdown category name
         const seriesName = series.name || `Series ${index + 1}`;
-        const localizedName = extractLocalizedLabel(seriesName, currentLanguage);
+        const localizedName = extractLocalizedLabel(
+          seriesName,
+          currentLanguage,
+        );
         return {
           ...series,
           name: localizedName,
@@ -828,7 +838,10 @@ const StatsChart = ({
       } else {
         // For global view, use the metric name
         const seriesName = selectedMetric || `Series ${index + 1}`;
-        const localizedName = extractLocalizedLabel(seriesName, currentLanguage);
+        const localizedName = extractLocalizedLabel(
+          seriesName,
+          currentLanguage,
+        );
         return {
           ...series,
           name: localizedName,

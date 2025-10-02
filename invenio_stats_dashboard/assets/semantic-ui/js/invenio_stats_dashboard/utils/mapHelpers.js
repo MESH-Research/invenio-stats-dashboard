@@ -5,6 +5,53 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import { filterSeriesArrayByDate } from './filters';
+import countriesGeoJson from '../components/maps/data/countries.json';
+import { i18next } from "@translations/invenio_stats_dashboard/i18next";
+
+/**
+ * Create a lookup map from country codes to internationalized country names
+ * Only processes countries that actually have data points for efficiency
+ * @param {Array} countryCodes - Array of country codes that have data points
+ * @returns {Map} Map with country codes as keys and internationalized names as values
+ */
+const createCountryNameLookup = (countryCodes) => {
+  const lookup = new Map();
+
+  const currentLocale = i18next.language || 'en';
+  const displayNames = new Intl.DisplayNames([currentLocale], { type: 'region' });
+
+  if (countryCodes && countryCodes.length > 0) {
+    const countryCodeSet = new Set(countryCodes);
+
+    const geoJsonCountryMap = new Map();
+    if (countriesGeoJson && countriesGeoJson.features) {
+      countriesGeoJson.features.forEach(feature => {
+        if (feature.properties && feature.properties['ISO3166-1-Alpha-2'] && feature.properties.name) {
+          const countryCode = feature.properties['ISO3166-1-Alpha-2'];
+          // Only store countries that have data points
+          if (countryCodeSet.has(countryCode)) {
+            geoJsonCountryMap.set(countryCode, feature.properties.name);
+          }
+        }
+      });
+    }
+
+    countryCodes.forEach(countryCode => {
+      try {
+        const internationalizedName = displayNames.of(countryCode);
+        const geoJsonName = geoJsonCountryMap.get(countryCode);
+        lookup.set(countryCode, internationalizedName || geoJsonName || countryCode);
+      } catch (error) {
+        // Fallback to GeoJSON name if Intl.DisplayNames fails
+        console.warn(`Failed to get internationalized name for country code ${countryCode}:`, error);
+        const geoJsonName = geoJsonCountryMap.get(countryCode);
+        lookup.set(countryCode, geoJsonName || countryCode);
+      }
+    });
+  }
+
+  return lookup;
+};
 
 /**
  * Extract country data from stats for map visualization
@@ -12,16 +59,15 @@ import { filterSeriesArrayByDate } from './filters';
  * @param {Array} stats - Array of yearly stats objects
  * @param {string} metric - Metric name ('views', 'downloads', 'visitors', 'dataVolume')
  * @param {Object} dateRange - Date range object
- * @param {Object} countryNameMap - Mapping object for country name normalization
+ * @param {Object} useSnapshot - Whether to use snapshot data (latest value) or delta data (sum all values)
  * @param {boolean} useSnapshot - Whether to use snapshot data (latest value) or delta data (sum all values)
- * @returns {Array} Array of map data objects with name, value, and originalName
+ * @returns {Array} Array of map data objects with name (country code), value, originalName, and readableName
  */
-const extractCountryMapData = (stats, metric = 'views', dateRange = null, countryNameMap = {}, useSnapshot = true) => {
+const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSnapshot = true) => {
   if (!stats || !Array.isArray(stats)) {
     return [];
   }
 
-  // Filter out yearly chunks that don't overlap with the date range
   const relevantYearlyStats = stats.filter(yearlyStats => {
     if (!yearlyStats || !yearlyStats.year) return false;
 
@@ -39,7 +85,6 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, countr
     return [];
   }
 
-  // Flatten all country data from relevant years
   const allCountriesData = relevantYearlyStats.flatMap(yearlyStats => {
     if (useSnapshot) {
       if (metric === 'views' && yearlyStats.usageSnapshotData?.countriesByView?.views) {
@@ -64,7 +109,22 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, countr
   // For delta data, we want all values to sum (latestOnly=false)
   const filteredData = filterSeriesArrayByDate(allCountriesData, dateRange, useSnapshot);
 
-  // Extract country data from the filtered series
+  const countryCodesWithData = new Set();
+  filteredData.forEach(series => {
+    if (series.data && Array.isArray(series.data)) {
+      series.data.forEach(dataPoint => {
+        if (dataPoint && dataPoint.value && Array.isArray(dataPoint.value) && dataPoint.value.length >= 2) {
+          const value = dataPoint.value[1];
+          const countryName = series.name || series.id;
+          if (value > 0 && countryName) {
+            countryCodesWithData.add(countryName);
+          }
+        }
+      });
+    }
+  });
+  const countryNameLookup = createCountryNameLookup(Array.from(countryCodesWithData));
+
   const countryDataMap = new Map();
 
   filteredData.forEach(series => {
@@ -76,27 +136,34 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, countr
           const countryName = series.name || series.id;
 
           if (value > 0 && countryName) {
-            const mappedName = countryNameMap[countryName] || countryName;
+            // Data starts with country ISO3166-1-Alpha-2 codes
+            const countryCode = countryName;
+
+            // Use the lookup we created
+            const readableName = countryNameLookup.get(countryCode) || countryCode;
+
             const numericValue = parseInt(value, 10) || 0;
 
             if (useSnapshot) {
               // For snapshot data, we only want the latest value per country
               // Since we filtered with latest=true, each country should have only one data point
-              countryDataMap.set(mappedName, {
-                name: mappedName,
+              countryDataMap.set(countryCode, {
+                name: readableName, // Use readable name for ECharts matching (matches GeoJSON name field)
                 value: numericValue,
-                originalName: countryName
+                originalName: countryCode,
+                readableName: readableName // Add readable name for display
               });
             } else {
               // For delta data, we sum all values for each country
-              const existing = countryDataMap.get(mappedName);
+              const existing = countryDataMap.get(countryCode);
               if (existing) {
                 existing.value += numericValue;
               } else {
-                countryDataMap.set(mappedName, {
-                  name: mappedName,
+                countryDataMap.set(countryCode, {
+                  name: readableName, // Use readable name for ECharts matching (matches GeoJSON name field)
                   value: numericValue,
-                  originalName: countryName
+                  originalName: countryCode,
+                  readableName: readableName // Add readable name for display
                 });
               }
             }

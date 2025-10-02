@@ -67,6 +67,11 @@
       .sub.header {
         color: @stats-text-accent !important;
       }
+      .stats-map-date-range-subtitle {
+        color: @stats-text-accent !important;
+        font-size: 1rem;
+        font-weight: normal;
+      }
       & > .icon {
         color: @stats-accent;
         font-size: 1.5rem;
@@ -93,6 +98,27 @@
 
     .segment.bottom.attached {
       border-top: none;
+    }
+
+    .stats-truncated-title {
+      display: block;
+      line-height: 1.2;
+      max-height: 2.5em; // Approximately two lines
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-wrap: break-word;
+    }
+
+    // General link styles for record titles
+    .stats-multi-display-container a {
+      text-decoration: none;
+      border-bottom: 1px dotted @stats-text-accent;
+      color: @stats-text;
+
+      &:hover {
+        color: @stats-primary;
+        border-bottom-color: @stats-primary;
+      }
     }
   }
 

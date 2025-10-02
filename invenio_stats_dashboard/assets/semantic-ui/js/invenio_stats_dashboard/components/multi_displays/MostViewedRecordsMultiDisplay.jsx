@@ -17,12 +17,14 @@ import {
   assembleMultiDisplayRows,
   generateMultiDisplayChartOptions
 } from "../../utils/multiDisplayHelpers";
+import { createTruncatedTitle } from '../../utils/textTruncation';
 
 const MostViewedRecordsMultiDisplay = ({
   title = i18next.t("Most Viewed Works"),
   pageSize = 10,
   available_views = ["list"],
   default_view = "list",
+  maxHeight = null, // Optional max height for scrollable list
 }) => {
   const { dateRange } = useStatsDashboard();
   const [records, setRecords] = useState([]);
@@ -50,7 +52,7 @@ const MostViewedRecordsMultiDisplay = ({
   // Transform the API response into the format expected by StatsMultiDisplay
   const transformedData = records.map((record, index) => ({
     name: record.metadata?.title || 'Untitled',
-    value: record.metadata?.views || 0, // Assuming views are in metadata
+    value: record.stats?.all_versions?.views || 0, // Use stats.all_versions.views
     percentage: 0, // We'll calculate this if needed
     link: record.links?.self_html,
     itemStyle: {
@@ -60,7 +62,11 @@ const MostViewedRecordsMultiDisplay = ({
 
   const rowsWithLinks = transformedData.map(({ name, value, link }) => [
     null,
-    link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : name,
+    createTruncatedTitle(
+      name,
+      link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : null,
+      60
+    ),
     `${formatNumber(value, 'compact')}`
   ]);
 
@@ -78,6 +84,7 @@ const MostViewedRecordsMultiDisplay = ({
       pageSize={pageSize}
       isLoading={isLoading}
       hasData={!isLoading && transformedData.length > 0}
+      maxHeight={maxHeight}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.link) {
@@ -94,6 +101,7 @@ MostViewedRecordsMultiDisplay.propTypes = {
   pageSize: PropTypes.number,
   available_views: PropTypes.arrayOf(PropTypes.string),
   default_view: PropTypes.string,
+  maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export { MostViewedRecordsMultiDisplay };

@@ -8,12 +8,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import worldJson from './data/world2.json';
-import { COUNTRY_NAME_MAP } from './data/country_mappings';
+import countriesGeoJson from './data/countries.json';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Header, Segment, Loader, Message } from 'semantic-ui-react';
 import { extractCountryMapData } from '../../utils/mapHelpers';
+import { formatDate } from '../../utils';
 
 const StatsMap = ({
   title,
@@ -25,32 +25,26 @@ const StatsMap = ({
   useSnapshot = true
 }) => {
   const [isMapRegistered, setIsMapRegistered] = useState(false);
+  const [dateRangeSubtitle, setDateRangeSubtitle] = useState(null);
   const { stats, dateRange, isLoading } = useStatsDashboard();
 
   useEffect(() => {
-    echarts.registerMap('world', worldJson);
+    echarts.registerMap('world', countriesGeoJson);
     setIsMapRegistered(true);
   }, []);
 
-  const mapData = useMemo(() => {
-    return extractCountryMapData(stats || [], metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
-  }, [stats, metric, dateRange, useSnapshot]);
+  useEffect(() => {
+    if (dateRange) {
+      const subtitle = useSnapshot
+        ? i18next.t("Cumulative totals as of") + " " + formatDate(dateRange.end, 'day', true)
+        : i18next.t("from") + " " + formatDate(dateRange.start, 'day', true, dateRange.end) + " " + i18next.t("to") + " " + formatDate(dateRange.end, 'day', true);
+      setDateRangeSubtitle(subtitle);
+    }
+  }, [dateRange, useSnapshot]);
 
-  // Debug logging for extracted map data
-  console.log('StatsMap - extracted mapData:', mapData);
-  console.log('StatsMap - mapData length:', mapData.length);
-  console.log('StatsMap - stats structure:', {
-    statsIsArray: Array.isArray(stats),
-    statsLength: stats?.length || 0,
-    statsYears: stats?.map(s => s.year) || [],
-    hasUsageSnapshotData: stats?.some(s => !!s?.usageSnapshotData),
-    hasTopCountriesByView: stats?.some(s => !!s?.usageSnapshotData?.countriesByView),
-    hasTopCountriesByDownload: stats?.some(s => !!s?.usageSnapshotData?.countriesByDownload),
-    hasByCountries: stats?.some(s => !!s?.usageSnapshotData?.countries),
-    countriesByViewViews: stats?.reduce((sum, s) => sum + (s?.usageSnapshotData?.countriesByView?.views?.length || 0), 0) || 0,
-    countriesByDownloadDownloads: stats?.reduce((sum, s) => sum + (s?.usageSnapshotData?.countriesByDownload?.downloads?.length || 0), 0) || 0,
-    countriesViews: stats?.reduce((sum, s) => sum + (s?.usageSnapshotData?.countries?.views?.length || 0), 0) || 0
-  });
+  const mapData = useMemo(() => {
+    return extractCountryMapData(stats || [], metric, dateRange, useSnapshot);
+  }, [stats, metric, dateRange, useSnapshot]);
 
   const maxValue = useMemo(() => {
     return Math.max(...mapData.map(item => item.value), 1);
@@ -69,9 +63,9 @@ const StatsMap = ({
       fontSize: 14,
       formatter: (params) => {
         if (!params.value || isNaN(params.value)) {
-          return `${params.name}: 0`;
+          return `${params.data?.readableName || params.name}: 0`;
         }
-        return `${params.data.originalName}: ${params.data.value}`;
+        return `${params.data?.readableName || params.data?.originalName || params.name}: ${params.data.value}`;
       }
     },
     visualMap: {
@@ -126,7 +120,14 @@ const StatsMap = ({
 
   return (
     <>
-      <Header as="h3" attached="top">{title}</Header>
+      <Header as="h3" attached="top">
+        {title}
+        {dateRangeSubtitle && (
+          <Header.Subheader className="stats-map-date-range-subtitle">
+            {dateRangeSubtitle}
+          </Header.Subheader>
+        )}
+      </Header>
       <Segment fluid attached="bottom" className="stats-map pb-0 pt-0 pr-0 pl-0" style={{ height: height, minHeight: minHeight }}>
       {isLoading ? (
           <div className="stats-map-loading-container">

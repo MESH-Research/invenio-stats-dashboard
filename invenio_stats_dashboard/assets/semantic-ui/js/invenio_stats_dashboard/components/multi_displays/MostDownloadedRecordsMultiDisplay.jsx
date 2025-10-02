@@ -17,6 +17,7 @@ import {
   assembleMultiDisplayRows,
   generateMultiDisplayChartOptions
 } from "../../utils/multiDisplayHelpers";
+import { createTruncatedTitle } from '../../utils/textTruncation';
 
 const MostDownloadedRecordsMultiDisplay = ({
   title = undefined,
@@ -25,6 +26,7 @@ const MostDownloadedRecordsMultiDisplay = ({
   headers = [i18next.t("Record"), i18next.t("Downloads")],
   default_view,
   available_views = ["list", "pie", "bar"],
+  maxHeight = null, // Optional max height for scrollable list
   ...otherProps
 }) => {
   const { dateRange } = useStatsDashboard();
@@ -53,7 +55,7 @@ const MostDownloadedRecordsMultiDisplay = ({
   // Transform the API response into the format expected by StatsMultiDisplay
   const transformedData = records.map((record, index) => ({
     name: record.metadata?.title || 'Untitled',
-    value: record.metadata?.downloads || 0, // Assuming downloads are in metadata
+    value: record.stats?.all_versions?.downloads || 0, // Use stats.all_versions.downloads
     percentage: 0, // We'll calculate this if needed
     link: record.links?.self_html,
     itemStyle: {
@@ -63,7 +65,11 @@ const MostDownloadedRecordsMultiDisplay = ({
 
   const rowsWithLinks = transformedData.map(({ name, value, link }) => [
     null,
-    link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : name,
+    createTruncatedTitle(
+      name,
+      link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : null,
+      60
+    ),
     `${formatNumber(value, 'compact')}`
   ]);
 
@@ -81,6 +87,7 @@ const MostDownloadedRecordsMultiDisplay = ({
       pageSize={pageSize}
       isLoading={isLoading}
       hasData={!isLoading && transformedData.length > 0}
+      maxHeight={maxHeight}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.link) {
@@ -100,6 +107,7 @@ MostDownloadedRecordsMultiDisplay.propTypes = {
   headers: PropTypes.array,
   default_view: PropTypes.string,
   available_views: PropTypes.arrayOf(PropTypes.string),
+  maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export { MostDownloadedRecordsMultiDisplay };

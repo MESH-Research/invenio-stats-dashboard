@@ -19,15 +19,22 @@ import { PropTypes } from "prop-types";
  * @param {string} label - Optional label for class names. If not provided, will be derived from title
  * @returns {React.ReactElement} - The StatsTable component.
  */
-const StatsTable = ({ headers = [], rows = [], title, label }) => {
+const StatsTable = ({ headers = [], rows = [], title, label, maxHeight = null }) => {
+  const tableStyle = maxHeight ? {
+    maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+    overflowY: 'auto',
+    display: 'block'
+  } : {};
+
   return (
-    <Table
-      id={`${label}-stats-table`}
-      aria-labelledby={`${label}-stats-table-header`}
-      basic="very"
-      compact
-      unstackable
-    >
+    <div style={tableStyle}>
+      <Table
+        id={`${label}-stats-table`}
+        aria-labelledby={`${label}-stats-table-header`}
+        basic="very"
+        compact
+        unstackable
+      >
       <Table.Header>
         <Table.Row>
           {/* Icon column */}
@@ -66,6 +73,7 @@ const StatsTable = ({ headers = [], rows = [], title, label }) => {
         ))}
       </Table.Body>
     </Table>
+    </div>
   );
 };
 
@@ -74,6 +82,7 @@ StatsTable.propTypes = {
   rows: PropTypes.array.isRequired,
   title: PropTypes.string,
   label: PropTypes.string,
+  maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export { StatsTable };

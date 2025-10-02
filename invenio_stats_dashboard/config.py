@@ -455,6 +455,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Most Downloaded Works",
                                     "pageSize": 6,
                                     "available_views": ["list"],
+                                    "maxHeight": "300px",
                                 },
                             },
                             {
@@ -464,6 +465,24 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Most Viewed Works",
                                     "pageSize": 6,
                                     "available_views": ["list"],
+                                    "maxHeight": "300px",
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        "name": "world-map-delta",
+                        "components": [
+                            {
+                                "component": "StatsMap",
+                                "width": 16,
+                                "props": {
+                                    "title": "Top Countries by Visits",
+                                    "height": 400,
+                                    "minHeight": 400,
+                                    "zoom": 1.3,
+                                    "center": [0, 20],
+                                    "useSnapshot": False,
                                 },
                             },
                         ],
