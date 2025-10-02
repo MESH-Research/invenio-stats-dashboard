@@ -9,7 +9,7 @@ import { filterSeriesArrayByDate } from './filters';
 /**
  * Extract country data from stats for map visualization
  *
- * @param {Object} stats - The transformed stats object
+ * @param {Array} stats - Array of yearly stats objects
  * @param {string} metric - Metric name ('views', 'downloads', 'visitors', 'dataVolume')
  * @param {Object} dateRange - Date range object
  * @param {Object} countryNameMap - Mapping object for country name normalization
@@ -17,34 +17,52 @@ import { filterSeriesArrayByDate } from './filters';
  * @returns {Array} Array of map data objects with name, value, and originalName
  */
 const extractCountryMapData = (stats, metric = 'views', dateRange = null, countryNameMap = {}, useSnapshot = true) => {
-  if (!stats) {
+  if (!stats || !Array.isArray(stats)) {
     return [];
   }
 
-  let countriesData = null;
+  // Filter out yearly chunks that don't overlap with the date range
+  const relevantYearlyStats = stats.filter(yearlyStats => {
+    if (!yearlyStats || !yearlyStats.year) return false;
 
-  if (useSnapshot) {
-    // Try to get country data from usage snapshot data
-    if (metric === 'views' && stats.usageSnapshotData?.countriesByView?.views) {
-      countriesData = stats.usageSnapshotData.countriesByView.views;
-    } else if (metric === 'downloads' && stats.usageSnapshotData?.countriesByDownload?.downloads) {
-      countriesData = stats.usageSnapshotData.countriesByDownload.downloads;
-    } else if (stats.usageSnapshotData?.countries?.[metric]) {
-      countriesData = stats.usageSnapshotData.countries[metric];
+    if (dateRange) {
+      const rangeStartYear = new Date(dateRange.start).getFullYear();
+      const rangeEndYear = new Date(dateRange.end).getFullYear();
+
+      return yearlyStats.year >= rangeStartYear && yearlyStats.year <= rangeEndYear;
     }
-  } else {
-    // Get country data from usage delta data
-    countriesData = stats.usageDeltaData?.countries?.[metric];
+
+    return true; // If no date range, include all years
+  });
+
+  if (relevantYearlyStats.length === 0) {
+    return [];
   }
 
-  if (!countriesData || !Array.isArray(countriesData)) {
+  // Flatten all country data from relevant years
+  const allCountriesData = relevantYearlyStats.flatMap(yearlyStats => {
+    if (useSnapshot) {
+      if (metric === 'views' && yearlyStats.usageSnapshotData?.countriesByView?.views) {
+        return yearlyStats.usageSnapshotData.countriesByView.views;
+      } else if (metric === 'downloads' && yearlyStats.usageSnapshotData?.countriesByDownload?.downloads) {
+        return yearlyStats.usageSnapshotData.countriesByDownload.downloads;
+      } else if (yearlyStats.usageSnapshotData?.countries?.[metric]) {
+        return yearlyStats.usageSnapshotData.countries[metric];
+      }
+    } else {
+      return yearlyStats.usageDeltaData?.countries?.[metric] || [];
+    }
+    return [];
+  });
+
+  if (allCountriesData.length === 0) {
     return [];
   }
 
   // Filter data by date range if provided
-  // For snapshot data, we want the latest value (latest=true)
-  // For delta data, we want all values to sum (latest=false)
-  const filteredData = filterSeriesArrayByDate(countriesData, dateRange, useSnapshot);
+  // For snapshot data, we want the latest value (latestOnly=true)
+  // For delta data, we want all values to sum (latestOnly=false)
+  const filteredData = filterSeriesArrayByDate(allCountriesData, dateRange, useSnapshot);
 
   // Extract country data from the filtered series
   const countryDataMap = new Map();

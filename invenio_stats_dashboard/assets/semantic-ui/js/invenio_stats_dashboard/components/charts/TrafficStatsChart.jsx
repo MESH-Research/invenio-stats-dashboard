@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsChart } from '../shared_components/StatsChart';
@@ -22,6 +22,14 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
 const TrafficStatsChart = ({ title = undefined, height = 300, chartType = "line", ...otherProps }) => {
   const { stats } = useStatsDashboard();
 
+  // Extract yearly data objects for lazy merging in StatsChart
+  const yearlyData = useMemo(() => {
+    if (!stats || !Array.isArray(stats)) return null;
+
+    // Extract usageDeltaData from each yearly stats object
+    return stats.map(yearlyStats => yearlyStats?.usageDeltaData).filter(Boolean);
+  }, [stats]);
+
   const seriesSelectorOptions = [
     { value: 'views', text: i18next.t('Unique Views') },
     { value: 'downloads', text: i18next.t('Unique Downloads') },
@@ -31,7 +39,7 @@ const TrafficStatsChart = ({ title = undefined, height = 300, chartType = "line"
   return (
     <StatsChart
       title={title}
-      data={stats?.usageDeltaData}
+      data={yearlyData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
       chartType={chartType}

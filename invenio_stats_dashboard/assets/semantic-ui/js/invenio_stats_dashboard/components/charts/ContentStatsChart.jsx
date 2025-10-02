@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { RECORD_START_BASES } from "../../constants";
@@ -26,11 +26,20 @@ import { StatsChart } from "../shared_components/StatsChart";
 const ContentStatsChart = ({ title = undefined, height = 300, chartType = "line", ...otherProps }) => {
   const { stats, recordStartBasis } = useStatsDashboard();
 
-  const seriesCategoryMap = {
-    [RECORD_START_BASES.ADDED]: stats?.recordDeltaDataAdded,
-    [RECORD_START_BASES.CREATED]: stats?.recordDeltaDataCreated,
-    [RECORD_START_BASES.PUBLISHED]: stats?.recordDeltaDataPublished,
-  };
+  // Extract yearly data objects for lazy merging in StatsChart
+  const yearlyData = useMemo(() => {
+    if (!stats || !Array.isArray(stats)) return null;
+
+    // Extract relevant data from each yearly stats object
+    return stats.map(yearlyStats => {
+      const seriesCategoryMap = {
+        [RECORD_START_BASES.ADDED]: yearlyStats?.recordDeltaDataAdded,
+        [RECORD_START_BASES.CREATED]: yearlyStats?.recordDeltaDataCreated,
+        [RECORD_START_BASES.PUBLISHED]: yearlyStats?.recordDeltaDataPublished,
+      };
+      return seriesCategoryMap[recordStartBasis];
+    }).filter(Boolean); // Remove null/undefined entries
+  }, [stats, recordStartBasis]);
 
   const seriesSelectorOptions = {
     [RECORD_START_BASES.ADDED]: [
@@ -50,7 +59,7 @@ const ContentStatsChart = ({ title = undefined, height = 300, chartType = "line"
     ],
   };
 
-  const data = seriesCategoryMap[recordStartBasis];
+  const data = yearlyData;
   const options = seriesSelectorOptions[recordStartBasis];
 
 

@@ -6,6 +6,8 @@
 
 """Wrapper functions for ContentNegotiatedMethodView serializers."""
 
+from flask import Response, jsonify
+
 from .basic_serializers import (
     StatsCSVSerializer,
     StatsExcelSerializer,
@@ -25,7 +27,8 @@ from .data_series_serializers import (
 def json_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for JSON serialization."""
     serializer = StatsJSONSerializer()
-    response = serializer.serialize(data, **kwargs)
+    json_data = serializer.serialize(data, **kwargs)
+    response = jsonify(json_data)
     if headers:
         response.headers.update(headers)
     return response
@@ -62,7 +65,16 @@ def excel_serializer_func(data, code=200, headers=None, **kwargs):
 def gzip_json_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Gzip JSON serialization."""
     serializer = GzipStatsJSONSerializer()
-    response = serializer.serialize(data, **kwargs)
+    compressed_data = serializer.serialize(data, **kwargs)
+    response = Response(
+        compressed_data,
+        mimetype="application/json",
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Encoding": "gzip",
+            "Content-Disposition": "attachment; filename=stats.json.gz",
+        },
+    )
     if headers:
         response.headers.update(headers)
     return response
@@ -71,7 +83,16 @@ def gzip_json_serializer_func(data, code=200, headers=None, **kwargs):
 def brotli_json_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Brotli JSON serialization."""
     serializer = BrotliStatsJSONSerializer()
-    response = serializer.serialize(data, **kwargs)
+    compressed_data = serializer.serialize(data, **kwargs)
+    response = Response(
+        compressed_data,
+        mimetype="application/json",
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Encoding": "br",
+            "Content-Disposition": "attachment; filename=stats.json.br",
+        },
+    )
     if headers:
         response.headers.update(headers)
     return response
@@ -80,7 +101,15 @@ def brotli_json_serializer_func(data, code=200, headers=None, **kwargs):
 def data_series_csv_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Data Series CSV serialization."""
     serializer = DataSeriesCSVSerializer()
-    response = serializer.serialize(data, **kwargs)
+    compressed_data = serializer.serialize(data, **kwargs)
+    response = Response(
+        compressed_data,
+        mimetype="application/gzip",
+        headers={
+            "Content-Type": "application/gzip",
+            "Content-Disposition": "attachment; filename=stats.csv.tar.gz",
+        },
+    )
     if headers:
         response.headers.update(headers)
     return response
@@ -89,7 +118,15 @@ def data_series_csv_serializer_func(data, code=200, headers=None, **kwargs):
 def data_series_xml_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Data Series XML serialization."""
     serializer = DataSeriesXMLSerializer()
-    response = serializer.serialize(data, **kwargs)
+    xml_string = serializer.serialize(data, **kwargs)
+    response = Response(
+        xml_string,
+        mimetype="application/xml",
+        headers={
+            "Content-Type": "application/xml; charset=utf-8",
+            "Content-Disposition": "attachment; filename=stats.xml",
+        },
+    )
     if headers:
         response.headers.update(headers)
     return response
@@ -98,7 +135,15 @@ def data_series_xml_serializer_func(data, code=200, headers=None, **kwargs):
 def data_series_excel_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Data Series Excel serialization."""
     serializer = DataSeriesExcelSerializer()
-    response = serializer.serialize(data, **kwargs)
+    compressed_data = serializer.serialize(data, **kwargs)
+    response = Response(
+        compressed_data,
+        mimetype="application/gzip",
+        headers={
+            "Content-Type": "application/gzip",
+            "Content-Disposition": "attachment; filename=stats.xlsx.tar.gz",
+        },
+    )
     if headers:
         response.headers.update(headers)
     return response

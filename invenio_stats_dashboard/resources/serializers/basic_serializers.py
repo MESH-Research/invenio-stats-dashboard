@@ -8,10 +8,11 @@
 
 import csv
 import io
+import json
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from flask import Response, jsonify
+from flask import Response, current_app
 from openpyxl.styles import Font, PatternFill
 from openpyxl.workbook import Workbook
 
@@ -19,19 +20,25 @@ from openpyxl.workbook import Workbook
 class StatsJSONSerializer:
     """JSON serializer for stats responses."""
 
-    def serialize(self, data: dict | list, **kwargs) -> Response:
+    def serialize(self, data: dict | list | bytes, **kwargs) -> dict | list | Any:
         """Serialize data to JSON format.
 
         Args:
-            data: The data to serialize (dict or list)
+            data: The data to serialize (dict, list, or bytes)
             **kwargs: Additional keyword arguments
 
         Returns:
-            Flask Response with JSON content
+            Raw JSON-ready data (dict or list) ready to be dumped to JSON
         """
-        return jsonify(data)
+        if isinstance(data, bytes):
+            try:
+                json_data = json.loads(data.decode('utf-8'))
+                return json_data
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                current_app.logger.warning(f"Failed to decode bytes data to JSON: {e}")
+                return {"error": "Invalid JSON data"}
 
-
+        return data
 
 
 class StatsCSVSerializer:

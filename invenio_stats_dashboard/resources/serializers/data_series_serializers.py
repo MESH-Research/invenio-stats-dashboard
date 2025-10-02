@@ -15,6 +15,7 @@ import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 
+import arrow
 import brotli
 from flask import Response, current_app, g
 from invenio_communities.proxies import current_communities
@@ -48,7 +49,7 @@ class CompressedStatsJSONSerializer:
             )
         self.compression_method = compression_method.lower()
 
-    def serialize(self, data: DataSeries | dict | list, **kwargs) -> Response:
+    def serialize(self, data: DataSeries | dict | list, **kwargs) -> bytes:
         """Serialize data to compressed JSON format.
 
         Args:
@@ -56,7 +57,7 @@ class CompressedStatsJSONSerializer:
             **kwargs: Additional keyword arguments
 
         Returns:
-            Flask Response with compressed JSON content
+            Compressed JSON data as bytes
         """
         if isinstance(data, DataSeries):
             json_data = data.for_json()
@@ -74,10 +75,10 @@ class CompressedStatsJSONSerializer:
 
         if self.compression_method == "brotli":
             compressed_data = brotli.compress(json_str.encode("utf-8"))
-            return self._create_brotli_response(compressed_data)
         else:
             compressed_data = gzip.compress(json_str.encode("utf-8"))
-            return self._create_gzip_response(compressed_data)
+
+        return compressed_data
 
     def _create_gzip_response(self, compressed_data: bytes) -> Response:
         """Create a gzip-compressed response."""
@@ -126,7 +127,7 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
 
     def serialize(
         self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs
-    ) -> Response:
+    ) -> bytes:
         """Serialize nested dictionary data to compressed CSV folder structure.
 
         Creates a temporary nested folder structure that mirrors the top two levels
@@ -144,33 +145,21 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
         if not isinstance(data, dict):
             raise ValueError("Cannot serialize non-dictionary content")
 
-        # Create temporary directory for the nested structure
         with tempfile.TemporaryDirectory() as temp_dir:
             self._create_nested_csv_structure(data, temp_dir)
 
-            # Create gzip-compressed tar archive with community-specific filename
             filename_prefix = self._get_filename_prefix(community_id)
             archive_path = shutil.make_archive(
                 os.path.join(tempfile.gettempdir(), filename_prefix), "gztar", temp_dir
             )
 
-            # Read compressed archive into memory
             with open(archive_path, "rb") as f:
                 compressed_data = f.read()
 
             # Clean up the archive file
             os.unlink(archive_path)
 
-            # Return compressed archive as Flask Response
-            filename = f"{filename_prefix}.tar.gz"
-            return Response(
-                compressed_data,
-                mimetype="application/gzip",
-                headers={
-                    "Content-Type": "application/gzip",
-                    "Content-Disposition": f"attachment; filename={filename}",
-                },
-            )
+            return compressed_data
 
     def _get_filename_prefix(
         self, community_id: str | None = None, format_type: str = "csv"
@@ -241,36 +230,40 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
         """Create nested folder structure with CSV files.
 
         Args:
-            data: Nested dictionary data
+            data: Nested dictionary data with structure:
+                  {series_set_name: {category_name:
+                   {metric_name: [data_series_objects]}}}
             base_path: Base path for the temporary directory
         """
-        for level1_key, level1_value in data.items():
-            if not isinstance(level1_value, dict):
+
+        # Level 0: Series sets (e.g., "record-delta-category",
+        # "usage-snapshot-category")
+        for series_set_name, series_set_data in data.items():
+            if not isinstance(series_set_data, dict):
                 continue
 
-            # Sanitize first-level key and create directory
-            safe_level1_key = secure_filename(str(level1_key))
-            level1_path = os.path.join(base_path, safe_level1_key)
-            os.makedirs(level1_path, exist_ok=True)
+            # Sanitize series set name and create directory
+            safe_series_set_name = secure_filename(str(series_set_name))
+            series_set_path = os.path.join(base_path, safe_series_set_name)
+            os.makedirs(series_set_path, exist_ok=True)
 
-            for level2_key, level2_value in level1_value.items():
-                if not isinstance(level2_value, dict):
+            # Level 1: Categories (e.g., "periodicals", "publishers", "affiliations")
+            for category_name, category_data in series_set_data.items():
+                if not isinstance(category_data, dict):
                     continue
 
-                # Sanitize second-level key and create directory
-                safe_level2_key = secure_filename(str(level2_key))
-                level2_path = os.path.join(level1_path, safe_level2_key)
-                os.makedirs(level2_path, exist_ok=True)
+                # Sanitize category name and create directory
+                safe_category_name = secure_filename(str(category_name))
+                category_path = os.path.join(series_set_path, safe_category_name)
+                os.makedirs(category_path, exist_ok=True)
 
-                # Process inner objects (third level)
-                if isinstance(level2_value, list):
-                    # Handle list of objects
-                    for inner_obj in level2_value:
-                        if isinstance(inner_obj, dict) and "id" in inner_obj:
-                            self._create_csv_file(inner_obj, level2_path)
-                elif isinstance(level2_value, dict) and "id" in level2_value:
-                    # Handle single object
-                    self._create_csv_file(level2_value, level2_path)
+                # Level 2: Metrics (e.g., "data_volume", "file_count", "records")
+                for metric_name, metric_data in category_data.items():
+                    if isinstance(metric_data, list):
+                        # Handle list of data series objects
+                        for i, data_series in enumerate(metric_data):
+                            if isinstance(data_series, dict) and "id" in data_series:
+                                self._create_csv_file(data_series, category_path)
 
     def _create_csv_file(self, obj: dict, directory_path: str) -> None:
         """Create a CSV file for a single data object.
@@ -286,7 +279,11 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
 
         # Extract data points from the object
         data_points = obj.get("data", [])
+
         if not isinstance(data_points, list):
+            return
+
+        if not data_points:
             return
 
         # Write CSV file with date/value pairs
@@ -294,6 +291,7 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(["date", "value"])  # Header row
 
+            rows_written = 0
             for data_point in data_points:
                 if isinstance(data_point, dict):
                     # Extract date and value from data_point.value array
@@ -302,6 +300,11 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
                         date_val = value_array[0]
                         numeric_val = value_array[1]
                         csvwriter.writerow([date_val, numeric_val])
+                        rows_written += 1
+                    else:
+                        pass  # Skip invalid value_array
+                else:
+                    pass  # Skip invalid data_point
 
 
 class DataSeriesExcelSerializer(StatsExcelSerializer):
@@ -309,7 +312,7 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
 
     def serialize(
         self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs
-    ) -> Response:
+    ) -> bytes:
         """Serialize nested dictionary data to compressed Excel workbook archive.
 
         Creates separate Excel workbooks for each top-level series, with one sheet
@@ -341,14 +344,7 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
             os.unlink(archive_path)
 
             filename = f"{filename_prefix}.tar.gz"
-            return Response(
-                compressed_data,
-                mimetype="application/gzip",
-                headers={
-                    "Content-Type": "application/gzip",
-                    "Content-Disposition": f"attachment; filename={filename}",
-                },
-            )
+            return compressed_data
 
     def _create_excel_workbooks(self, data: dict, base_path: str) -> None:
         """Create Excel workbooks for each top-level series.
@@ -506,7 +502,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
 
     def serialize(
         self, data: DataSeries | dict | list, community_id: str | None = None, **kwargs
-    ) -> Response:
+    ) -> str:
         """Serialize nested dictionary data to structured XML format.
 
         Creates a well-structured XML representation of the nested data with
@@ -548,7 +544,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
             f"{publisher} "
             "including usage metrics and record counts."
         )
-        ET.SubElement(metadata, "dc:date").text = self._get_current_timestamp()
+        ET.SubElement(metadata, "dc:date").text = arrow.utcnow().isoformat()
         ET.SubElement(metadata, "dc:format").text = "application/xml"
         # Get language from i18n configuration
         language = self._get_language_from_config()
@@ -561,7 +557,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         ET.SubElement(metadata, "dc:type").text = "Dataset"
 
         # Technical metadata
-        ET.SubElement(metadata, "generatedAt").text = self._get_current_timestamp()
+        ET.SubElement(metadata, "generatedAt").text = arrow.utcnow().isoformat()
         ET.SubElement(metadata, "totalCategories").text = str(len(data))
 
         # Calculate total data points
@@ -718,16 +714,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
 
         # Generate community-specific filename
         filename_prefix = self._get_filename_prefix(community_id, "xml")
-        filename = f"{filename_prefix}.xml"
-
-        return Response(
-            xml_string,
-            mimetype="application/xml",
-            headers={
-                "Content-Type": "application/xml; charset=utf-8",
-                "Content-Disposition": f"attachment; filename={filename}",
-            },
-        )
+        return xml_string
 
     def _get_filename_prefix(
         self, community_id: str | None = None, format_type: str = "xml"
@@ -804,25 +791,13 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         for char in invalid_chars:
             sanitized = sanitized.replace(char, "_")
 
-        # Ensure it starts with letter or underscore
         if sanitized and not (sanitized[0].isalpha() or sanitized[0] == "_"):
             sanitized = f"id_{sanitized}"
 
-        # Ensure not empty
         if not sanitized:
             sanitized = "unknown"
 
         return sanitized
-
-    def _get_current_timestamp(self) -> str:
-        """Get current timestamp in ISO format.
-
-        Returns:
-            Current timestamp as ISO string
-        """
-        from datetime import datetime
-
-        return datetime.utcnow().isoformat() + "Z"
 
     def _get_publisher_from_config(self) -> str:
         """Get publisher information from InvenioRDM configuration.

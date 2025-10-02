@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsChart } from '../shared_components/StatsChart';
@@ -23,11 +23,18 @@ import { RECORD_START_BASES } from '../../constants';
 const ContentStatsChartCumulative = ({ title = undefined, height = 300, chartType = "bar", ...otherProps }) => {
   const { stats, recordStartBasis } = useStatsDashboard();
 
-  const seriesCategoryMap = {
-    [RECORD_START_BASES.ADDED]: stats?.recordSnapshotDataAdded,
-    [RECORD_START_BASES.CREATED]: stats?.recordSnapshotDataCreated,
-    [RECORD_START_BASES.PUBLISHED]: stats?.recordSnapshotDataPublished,
-  };
+  const yearlyData = useMemo(() => {
+    if (!stats || !Array.isArray(stats)) return null;
+
+    return stats.map(yearlyStats => {
+      const seriesCategoryMap = {
+        [RECORD_START_BASES.ADDED]: yearlyStats?.recordSnapshotDataAdded,
+        [RECORD_START_BASES.CREATED]: yearlyStats?.recordSnapshotDataCreated,
+        [RECORD_START_BASES.PUBLISHED]: yearlyStats?.recordSnapshotDataPublished,
+      };
+      return seriesCategoryMap[recordStartBasis];
+    }).filter(Boolean); // Remove null/undefined entries
+  }, [stats, recordStartBasis]);
 
   const seriesSelectorOptions = {
     [RECORD_START_BASES.ADDED]: [
@@ -50,7 +57,7 @@ const ContentStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
     ],
   };
 
-  const data = seriesCategoryMap[recordStartBasis];
+  const data = yearlyData;
   const options = seriesSelectorOptions[recordStartBasis];
 
   return (

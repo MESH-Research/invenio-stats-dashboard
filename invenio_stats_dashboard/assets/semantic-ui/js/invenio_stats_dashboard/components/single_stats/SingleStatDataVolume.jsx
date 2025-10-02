@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
@@ -23,13 +23,15 @@ const SingleStatDataVolume = ({ title = i18next.t("Data Volume"), icon = "databa
   }, [dateRange]);
 
   // Extract data volume value using the helper function
-  const value = extractRecordDeltaValue(
-    stats,
-    recordStartBasis,
-    'dataVolume',
-    'global',
-    dateRange
-  );
+  const value = useMemo(() => {
+    return extractRecordDeltaValue(
+      stats,
+      recordStartBasis,
+      'dataVolume',
+      'global',
+      dateRange
+    );
+  }, [stats, recordStartBasis, dateRange]);
 
   return (
     <SingleStatBox

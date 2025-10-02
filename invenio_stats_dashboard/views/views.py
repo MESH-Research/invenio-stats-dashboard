@@ -9,6 +9,8 @@
 This module contains the views for the Invenio Stats Dashboard.
 """
 
+import json
+
 from flask import (
     Blueprint,
     Flask,
@@ -24,6 +26,7 @@ from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
 from ..resources.cache_utils import StatsCache
+from ..resources.serializers.basic_serializers import StatsJSONSerializer
 
 
 def global_stats_dashboard():
@@ -43,6 +46,7 @@ def global_stats_dashboard():
                 "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
             "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
+            "compress_json": current_app.config.get("STATS_DASHBOARD_COMPRESS_JSON", True),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -75,6 +79,7 @@ def community_stats_dashboard(pid_value, community, community_ui):
                 "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
             "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
+            "compress_json": current_app.config.get("STATS_DASHBOARD_COMPRESS_JSON", True),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
         },
         community=community_ui,
@@ -87,78 +92,21 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
     view_name = "stats_dashboard_api"
 
-    def _check_cache(self, query_name: str, query_params: dict) -> Response | None:
-        """Check cache for the given query parameters.
+    def _get_cached_data(self, query_name: str, query_params: dict) -> bytes | None:
+        """Get cached data for the given query parameters.
 
         Args:
             query_name: Name of the query
             query_params: Query parameters dictionary
 
         Returns:
-            Cached Response object or None if not found
+            Cached data bytes or None if not found
         """
-        serializers, default_media_type = self.get_method_serializers(
-            request.method
-        )
-        serializer = self.match_serializers(serializers, default_media_type)
-
-        content_type = None
-        for ct, ser in serializers.items():
-            if ser == serializer:
-                content_type = ct
-                break
-
-        if content_type is None:
-            return None
-
         cache = StatsCache()
         cache_params = self._prepare_cache_params(
-            query_name, query_params, content_type
+            query_name, query_params, "application/json"
         )
-        cached_data = cache.get_cached_data(**cache_params)
-
-        if cached_data is not None:
-            # Return Response object to bypass make_response()
-
-            # Compressed data needs to be returned with encoding headers
-            if content_type == "application/json+br":
-                headers = {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Content-Encoding": "br",
-                    "X-Cache": "HIT",
-                }
-                response = Response(
-                    cached_data,
-                    mimetype="application/json",
-                    headers=headers,
-                )
-                return response
-            elif content_type == "application/json+gzip":
-                headers = {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Content-Encoding": "gzip",
-                    "X-Cache": "HIT",
-                }
-                response = Response(
-                    cached_data,
-                    mimetype="application/json",
-                    headers=headers,
-                )
-                return response
-            else:
-                # For other content types, use the original content type
-                headers = {
-                    "Content-Type": f"{content_type}; charset=utf-8",
-                    "X-Cache": "HIT",
-                }
-                response = Response(
-                    cached_data,
-                    mimetype=content_type,
-                    headers=headers,
-                )
-                return response
-
-        return None
+        return cache.get_cached_data(**cache_params)
 
     def _prepare_cache_params(
         self, query_name: str, query_params: dict, content_type: str
@@ -202,9 +150,6 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
             if not request_data:
                 return {"error": "No JSON data provided"}, 400
 
-            query_name = list(request_data.keys())[0]
-            query_params = request_data[query_name].get("params", {})
-
             configured_queries = current_app.config.get("COMMUNITY_STATS_QUERIES", {})
             allowed_params = [
                 "community_id",
@@ -215,81 +160,103 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                 "date_basis",
             ]
 
-            if query_name not in configured_queries:
-                return {"error": f"Unknown query: {query_name}"}, 400
+            # Use parent class content negotiation to determine content type
+            serializers, default_media_type = self.get_method_serializers(request.method)
+            serializer = self.match_serializers(serializers, default_media_type)
 
-            if any([p for p in query_params.keys() if p not in allowed_params]):
-                return {"error": "Unknown parameter in request body"}
+            if serializer is None:
+                abort(406)
 
-            # Check cache first - return early if hit
-            cached_response = self._check_cache(query_name, query_params)
+            # Get the actual content type that will be used
+            content_type = getattr(serializer, 'media_type', default_media_type)
+
+            # Check for cached entire response first
+            cache = StatsCache()
+            cached_response = cache.get_cached_response(
+                content_type=content_type,
+                request_data=request_data
+            )
+
             if cached_response is not None:
-                return cached_response
+                current_app.logger.info(f"=== CACHE HIT (ENTIRE RESPONSE) ===")
+                current_app.logger.info(f"Content type: {content_type}")
 
-            # If not cached, execute query
-            query_config = configured_queries[query_name]
-            query_class = query_config["cls"]
-            query_index = query_config["params"]["index"]
+                # For JSON content types, return cached bytes directly
+                if content_type.startswith('application/json'):
+                    return Response(
+                        cached_response,
+                        mimetype=content_type,
+                        headers={"X-Cache": "HIT"}
+                    )
+                else:
+                    # For other content types, decode and let serializer handle it
+                    json_string = cached_response.decode('utf-8')
+                    results = json.loads(json_string)
+                    return results
 
-            query_instance = query_class(name=query_name, index=query_index)
-            result = query_instance.run(**{
-                k: v
-                for k, v in query_params.items()
-                if k
-                in [
-                    "community_id",
-                    "start_date",
-                    "end_date",
-                    "category",
-                    "metric",
-                    "date_basis",
-                ]
-            })
+            # Cache miss - build results dictionary
+            current_app.logger.info(f"=== CACHE MISS (ENTIRE RESPONSE) ===")
+            current_app.logger.info(f"Content type: {content_type}")
 
-            return {query_name: result}
+            results = {}
+            for query_name, query_data in request_data.items():
+                query_params = query_data.get("params", {})
+
+                if query_name not in configured_queries:
+                    return {"error": f"Unknown query: {query_name}"}, 400
+
+                if any([p for p in query_params.keys() if p not in allowed_params]):
+                    return {
+                        "error": (
+                            f"Unknown parameter in request body for query {query_name}"
+                        )
+                    }
+
+                query_config = configured_queries[query_name]
+                query_class = query_config["cls"]
+                query_index = query_config["params"]["index"]
+
+                query_instance = query_class(name=query_name, index=query_index)
+                raw_json = query_instance.run(**{
+                    k: v
+                    for k, v in query_params.items()
+                    if k
+                    in [
+                        "community_id",
+                        "start_date",
+                        "end_date",
+                        "category",
+                        "metric",
+                        "date_basis",
+                    ]
+                })
+
+                results[query_name] = raw_json
+
+            # Cache the entire response
+            json_data = json.dumps(results)
+            success = cache.set_cached_response(
+                content_type=content_type,
+                request_data=request_data,
+                response_data=json_data,
+                timeout=3600
+            )
+            current_app.logger.info(f"=== CACHE WRITE (ENTIRE RESPONSE) ===")
+            current_app.logger.info(f"Content type: {content_type}")
+            current_app.logger.info(f"Cache write success: {success}")
+
+            # Debug: Show what keys are in Redis after this write
+            all_keys = cache.list_cache_keys()
+            current_app.logger.info(f"Total keys in Redis: {len(all_keys)}")
+            for key in all_keys[:5]:  # Show first 5 stats keys
+                current_app.logger.info(f"  Key: {key}")
+
+            return results
 
         except Exception as e:
             current_app.logger.error(f"Stats API error: {str(e)}")
             return {"error": str(e)}, 500
 
-    def make_response(self, *args, **kwargs):
-        """Override to add caching after content negotiation and serialization."""
-        # Get the determined serializer and content type
-        serializers, default_media_type = self.get_method_serializers(request.method)
-        serializer = self.match_serializers(serializers, default_media_type)
-
-        content_type = None
-        for ct, ser in serializers.items():
-            if ser == serializer:
-                content_type = ct
-                break
-
-        if serializer is None:
-            abort(406)
-        response = serializer(*args, **kwargs)
-
-        # Cache the final serialized/compressed response
-        try:
-            request_data = request.get_json() or {}
-            query_name = list(request_data.keys())[0] if request_data else "unknown"
-            query_params = request_data.get(query_name, {}).get("params", {})
-
-            if content_type is not None:
-                cache = StatsCache()
-                cache_params = self._prepare_cache_params(
-                    query_name, query_params, content_type
-                )
-
-                cache.set_cached_data(
-                    data=response.get_data(),
-                    timeout=None,
-                    **cache_params
-                )
-        except Exception as e:
-            # Don't fail the request if caching fails
-            current_app.logger.warning(f"Cache write error: {e}")
-
-        return response
 
 
 def create_blueprint(app: Flask) -> Blueprint:

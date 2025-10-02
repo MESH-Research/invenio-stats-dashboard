@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
@@ -28,36 +28,37 @@ const StatsMap = ({
   const { stats, dateRange, isLoading } = useStatsDashboard();
 
   useEffect(() => {
-    // Register the world map
     echarts.registerMap('world', worldJson);
     setIsMapRegistered(true);
   }, []);
 
-  const mapData = extractCountryMapData(stats || {}, metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
+  const mapData = useMemo(() => {
+    return extractCountryMapData(stats || [], metric, dateRange, COUNTRY_NAME_MAP, useSnapshot);
+  }, [stats, metric, dateRange, useSnapshot]);
 
   // Debug logging for extracted map data
   console.log('StatsMap - extracted mapData:', mapData);
   console.log('StatsMap - mapData length:', mapData.length);
   console.log('StatsMap - stats structure:', {
-    hasUsageSnapshotData: !!stats?.usageSnapshotData,
-    hasTopCountriesByView: !!stats.usageSnapshotData?.countriesByView,
-    hasTopCountriesByDownload: !!stats.usageSnapshotData?.countriesByDownload,
-    hasByCountries: !!stats.usageSnapshotData?.countries,
-    countriesByViewViews: stats.usageSnapshotData?.countriesByView?.views?.length || 0,
-    countriesByDownloadDownloads: stats.usageSnapshotData?.countriesByDownload?.downloads?.length || 0,
-    countriesViews: stats.usageSnapshotData?.countries?.views?.length || 0
+    statsIsArray: Array.isArray(stats),
+    statsLength: stats?.length || 0,
+    statsYears: stats?.map(s => s.year) || [],
+    hasUsageSnapshotData: stats?.some(s => !!s?.usageSnapshotData),
+    hasTopCountriesByView: stats?.some(s => !!s?.usageSnapshotData?.countriesByView),
+    hasTopCountriesByDownload: stats?.some(s => !!s?.usageSnapshotData?.countriesByDownload),
+    hasByCountries: stats?.some(s => !!s?.usageSnapshotData?.countries),
+    countriesByViewViews: stats?.reduce((sum, s) => sum + (s?.usageSnapshotData?.countriesByView?.views?.length || 0), 0) || 0,
+    countriesByDownloadDownloads: stats?.reduce((sum, s) => sum + (s?.usageSnapshotData?.countriesByDownload?.downloads?.length || 0), 0) || 0,
+    countriesViews: stats?.reduce((sum, s) => sum + (s?.usageSnapshotData?.countries?.views?.length || 0), 0) || 0
   });
 
-  // Use the extracted map data directly
-  const finalMapData = mapData;
+  const maxValue = useMemo(() => {
+    return Math.max(...mapData.map(item => item.value), 1);
+  }, [mapData]);
 
-  const maxValue = Math.max(...mapData.map(item => item.value), 1);
-
-  // Check if there's any data to display
-  const hasData = !isLoading && mapData.length > 0 && mapData.some(item => item.value > 0);
-
-  // Debug logging for max value
-  console.log('StatsMap - maxValue:', maxValue);
+  const hasData = useMemo(() => {
+    return !isLoading && mapData.length > 0 && mapData.some(item => item.value > 0);
+  }, [isLoading, mapData]);
 
   const option = {
     aria: {

@@ -59,7 +59,7 @@ const StatsDashboardLayout = ({
     dashboardConfig?.default_record_start_basis || "added",
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState([]); // Array of yearly stats objects
   const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -99,10 +99,13 @@ const StatsDashboardLayout = ({
           dashboardType,
           startDate: dataFetchRange?.start,
           endDate: dataFetchRange?.end,
+          dateBasis: recordStartBasis,
+          currentStats: stats, // Pass current stats for yearly block system
           getStatsParams,
           community,
           isMounted: () => isMounted,
           useTestData,
+          dashboardConfig,
           onStateChange: (state) => {
             if (isMounted) {
               console.log("State change received:", state);

@@ -167,9 +167,6 @@ class FilePresenceRecordDeltaDataSeries(DataSeries):
             return
 
         net_value = int(added_value) - int(removed_value)
-        current_app.logger.error(
-            f"Adding data point: date={date}, net_value={net_value}"
-        )
         self.add_data_point(
             date, net_value, "number" if self.metric != "data_volume" else "filesize"
         )

@@ -476,19 +476,19 @@ const createAggregationKey = (date, granularity) => {
 
   switch (granularity) {
     case "week":
-      const diff = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
-      const startOfWeek = new Date(d.setDate(diff));
+      const diff = d.getUTCDate() - d.getUTCDay() + (d.getUTCDay() === 0 ? -6 : 1);
+      const startOfWeek = new Date(d.setUTCDate(diff));
       return startOfWeek.toISOString().split("T")[0];
 
     case "month":
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
     case "quarter":
-      const quarter = Math.floor(d.getMonth() / 3) + 1;
-      return `${d.getFullYear()}-${String(quarter).padStart(2, "0")}`;
+      const quarter = Math.floor(d.getUTCMonth() / 3) + 1;
+      return `${d.getUTCFullYear()}-${String(quarter).padStart(2, "0")}`;
 
     case "year":
-      return `${d.getFullYear()}`;
+      return `${d.getUTCFullYear()}`;
 
     default:
       return date.toISOString().split("T")[0];
@@ -528,7 +528,23 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
       const key = createAggregationKey(date, granularity);
 
       if (!aggregatedPoints.has(key)) {
-        const readableDate = readableGranularDate(key, granularity);
+        // Convert aggregation key to a proper date for readableGranularDate
+        let dateForReadable;
+        if (granularity === "quarter") {
+          const [year, quarter] = key.split("-");
+          const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
+          dateForReadable = new Date(parseInt(year), month, 1);
+        } else if (granularity === "year") {
+          dateForReadable = new Date(parseInt(key), 0, 1);
+        } else if (granularity === "month") {
+          const [year, month] = key.split("-");
+          dateForReadable = new Date(parseInt(year), parseInt(month) - 1, 1);
+        } else {
+          // For day and week, key is already a proper date string
+          dateForReadable = key;
+        }
+
+        const readableDate = readableGranularDate(dateForReadable, granularity);
         aggregatedPoints.set(key, {
           value: value,
           readableDate: readableDate,
@@ -580,6 +596,18 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
     };
   });
   console.log("AggregatedSeries:", aggregatedSeries);
+
+  // Debug logging for quarter aggregation issues
+  if (granularity === "quarter") {
+    console.log("Quarter aggregation debug:");
+    aggregatedSeries.forEach((series, index) => {
+      console.log(`Series ${index} (${series.name}):`, series.data.map(point => ({
+        date: point.value[0],
+        value: point.value[1],
+        readableDate: point.readableDate
+      })));
+    });
+  }
 
   return aggregatedSeries;
 };
@@ -755,19 +783,22 @@ const StatsChart = ({
   const [aggregatedData, setAggregatedData] = useState([]);
 
   const seriesArray = useMemo(() => {
-    if (!data || !data.global) return [];
-    let seriesToProcess;
+    if (!data || !Array.isArray(data)) return [];
 
-    if (displaySeparately && data[displaySeparately]) {
-      // Breakdown view: get the array of series for the selected metric
-      seriesToProcess = data[displaySeparately][selectedMetric] || [];
-    } else {
-      // Global view: get the array of series for the selected metric
-      seriesToProcess = data.global?.[selectedMetric] || [];
-    }
+    const allSeries = data.map(yearlyData => {
+      if (!yearlyData) return [];
 
-    console.log("seriesToProcess", seriesToProcess);
-    return seriesToProcess;
+      if (displaySeparately && yearlyData[displaySeparately]) {
+        return yearlyData[displaySeparately][selectedMetric] || [];
+      } else {
+        return yearlyData.global?.[selectedMetric] || [];
+      }
+    }).flat(); // Combine all series from all years
+
+    console.log("seriesToProcess (yearly array):", allSeries);
+    console.log("displaySeparately:", displaySeparately);
+    console.log("selectedMetric:", selectedMetric);
+    return allSeries;
   }, [data, selectedMetric, displaySeparately]);
 
   // Check if there's any data to display

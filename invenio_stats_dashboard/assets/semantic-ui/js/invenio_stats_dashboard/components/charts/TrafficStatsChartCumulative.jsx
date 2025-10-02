@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsChart } from '../shared_components/StatsChart';
@@ -22,6 +22,12 @@ import { useStatsDashboard } from '../../context/StatsDashboardContext';
 const TrafficStatsChartCumulative = ({ title = undefined, height = 300, chartType = "bar", ...otherProps }) => {
   const { stats } = useStatsDashboard();
 
+  const yearlyData = useMemo(() => {
+    if (!stats || !Array.isArray(stats)) return null;
+
+    return stats.map(yearlyStats => yearlyStats?.usageSnapshotData).filter(Boolean);
+  }, [stats]);
+
   const seriesSelectorOptions = [
     { value: 'views', text: i18next.t('Cumulative Views') },
     { value: 'downloads', text: i18next.t('Cumulative Downloads') },
@@ -32,7 +38,7 @@ const TrafficStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
     <StatsChart
       title={title || i18next.t('Cumulative Usage')}
       chartType={chartType}
-      data={stats?.usageSnapshotData}
+      data={yearlyData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
       {...otherProps}

@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 from typing import Any
 
+import arrow
 import redis
 from flask import current_app
 
@@ -18,58 +19,57 @@ from flask import current_app
 class StatsCache:
     """Cache manager for statistics data series."""
 
-    def __init__(self, compression_method: str | None = None):
+    def __init__(self):
         """Initialize the cache manager with direct Redis connection."""
-        base_redis_url = current_app.config.get(
-            'CACHE_REDIS_URL', 'redis://localhost:6379/6'
-        )
+        redis_url = self._get_redis_url()
 
         self.cache_prefix = current_app.config.get(
-            'STATS_CACHE_PREFIX', 'stats_dashboard'
+            "STATS_CACHE_PREFIX", "stats_dashboard"
         )
 
-        redis_url = base_redis_url
         self.redis_client: redis.Redis = redis.from_url(
             redis_url, decode_responses=False
         )
-        # Get compression method from parameter or config, default to brotli
-        if compression_method is None:
-            compression_method = current_app.config.get(
-                'STATS_CACHE_COMPRESSION_METHOD', 'brotli'
-            )
 
-    def _generate_cache_key(
+    def _get_redis_url(self) -> str:
+        """Get the Redis URL for stats cache.
+
+        Priority:
+        1. STATS_CACHE_REDIS_URL (if set) - full override
+        2. CACHE_REDIS_URL + STATS_CACHE_REDIS_DB - use main cache URL with stats DB
+        3. Default to redis://localhost:6379/7
+        """
+        # Check for full override first
+        stats_redis_url = str(current_app.config.get("STATS_CACHE_REDIS_URL", ""))
+        if stats_redis_url:
+            return stats_redis_url
+
+        main_redis_url = current_app.config.get(
+            "CACHE_REDIS_URL", "redis://localhost:6379/0"
+        )
+        stats_db = current_app.config.get("STATS_CACHE_REDIS_DB", 7)
+
+        if "/" in main_redis_url:
+            base_url = main_redis_url.rsplit("/", 1)[0]
+            return f"{base_url}/{stats_db}"
+        else:
+            return f"{main_redis_url}/{stats_db}"
+
+    def _generate_response_cache_key(
         self,
-        community_id: str,
-        stat_name: str,
-        start_date: str = "",
-        end_date: str = "",
-        date_basis: str = "added",
-        content_type: str | None = None,
+        content_type: str,
+        request_data: dict,
     ) -> str:
-        """Generate a cache key for the given parameters.
-
-        We hash keys to shorten them for efficiency.
+        """Generate a cache key for entire response caching.
 
         Args:
-            community_id: Community ID or "global"
-            stat_name: Name of the statistics query
-            start_date: Start date string
-            end_date: End date string
-            date_basis: Date basis for the query
-            content_type: Content type for content negotiation
+            content_type: Content type for the response
+            request_data: Full request data dict
 
         Returns:
             Cache key string
         """
-        key_data = {
-            "community_id": community_id,
-            "stat_name": stat_name,
-            "start_date": start_date,
-            "end_date": end_date,
-            "date_basis": date_basis,
-        }
-
+        key_data: dict[str, Any] = {"request_data": request_data}
         if content_type:
             key_data["content_type"] = content_type
 
@@ -78,121 +78,93 @@ class StatsCache:
 
         return f"{self.cache_prefix}:{key_hash}"
 
-    def get_cached_data(
+    def get_cached_response(
         self,
-        community_id: str,
-        stat_name: str,
-        start_date: str = "",
-        end_date: str = "",
-        date_basis: str = "added",
-        content_type: str | None = None,
+        content_type: str,
+        request_data: dict,
     ) -> bytes | None:
-        """Get cached compressed data for the given parameters.
+        """Get cached response data.
 
         Args:
-            community_id: Community ID or "global"
-            stat_name: Name of the statistics query
-            start_date: Start date string
-            end_date: End date string
-            date_basis: Date basis for the query
-            content_type: Content type for content negotiation
+            content_type: Content type for the response
+            request_data: Full request data dict (post request body, for key generation)
 
         Returns:
-            Cached compressed data bytes or None if not found
+            Cached response bytes or None if not found
         """
-        cache_key = self._generate_cache_key(
-            community_id, stat_name, start_date, end_date, date_basis,
-            content_type
+        cache_key = self._generate_response_cache_key(
+            content_type=content_type, request_data=request_data
         )
 
         try:
             cached_data = self.redis_client.get(cache_key)
             if cached_data is not None:
-                if isinstance(cached_data, bytes):
-                    return cached_data
-                else:
-                    return str(cached_data).encode('utf-8')
+                return cached_data  # type: ignore
             else:
                 return None
         except Exception as e:
             current_app.logger.warning(f"Cache get error for key {cache_key}: {e}")
             return None
 
-    def set_cached_data(
+    def set_cached_response(
         self,
-        data: Any,
-        community_id: str,
-        stat_name: str,
-        start_date: str = "",
-        end_date: str = "",
-        date_basis: str = "added",
-        content_type: str | None = None,
+        content_type: str,
+        request_data: dict,
+        response_data: str,
         timeout: int | None = None,
     ) -> bool:
-        """Cache compressed data for the given parameters.
+        """Set cached entire response data.
 
         Args:
-            data: Data to cache (will be compressed)
-            community_id: Community ID or "global"
-            stat_name: Name of the statistics query
-            start_date: Start date string
-            end_date: End date string
-            date_basis: Date basis for the query
-            content_type: Content type for content negotiation
-            timeout: Cache timeout in seconds (optional)
+            content_type: Content type for the response
+            request_data: Full request data dict (post request body, for key
+                generation)
+            response_data: Response data to cache (as JSON string)
+            timeout: Cache timeout in seconds (defaults to )
 
         Returns:
-            True if caching was successful, False otherwise
+            True if successful, False otherwise
         """
-        cache_key = self._generate_cache_key(
-            community_id, stat_name, start_date, end_date, date_basis,
-            content_type
+        cache_key = self._generate_response_cache_key(
+            content_type=content_type, request_data=request_data
         )
 
         try:
-            if isinstance(data, bytes):
-                data_to_store = data
-            else:
-                data_to_store = str(data).encode('utf-8')
-
             if timeout is None:
-                timeout = current_app.config.get('STATS_CACHE_DEFAULT_TIMEOUT', 3600)
-
-            timeout = int(timeout) if timeout is not None else 3600
-
-            self.redis_client.setex(cache_key, timeout, data_to_store)
+                self.redis_client.set(cache_key, response_data.encode("utf-8"))
+            else:
+                self.redis_client.setex(
+                    cache_key, timeout, response_data.encode("utf-8")
+                )
             return True
-
         except Exception as e:
             current_app.logger.warning(f"Cache set error for key {cache_key}: {e}")
             return False
 
     def invalidate_cache(
         self,
-        community_id: str | None = None,
-        stat_name: str | None = None,
+        pattern: str | None = None,
     ) -> bool:
-        """Invalidate cache entries matching the given criteria.
+        """Invalidate cache entries matching the given pattern.
 
         Args:
-            community_id: Community ID to invalidate (optional)
-            stat_name: Stat name to invalidate (optional)
+            pattern: Redis key pattern to match (e.g., "stats_dashboard:*" for all)
 
         Returns:
             True if invalidation was successful, False otherwise
         """
         try:
-            if community_id and stat_name:
-                cache_key = self._generate_cache_key(community_id, stat_name)
-                self.redis_client.delete(cache_key)
+            if pattern is None:
+                pattern = f"{self.cache_prefix}:*"
+
+            keys = self.redis_client.keys(pattern)
+            if keys:
+                self.redis_client.delete(*keys)  # type: ignore
                 current_app.logger.info(
-                    f"Invalidated cache for {community_id}:{stat_name}"
+                    f"Invalidated {len(keys)} cache entries matching {pattern}"  # type: ignore  # noqa: E501
                 )
             else:
-                current_app.logger.warning(
-                    "Bulk cache invalidation not implemented"
-                )
-                return False
+                current_app.logger.info(f"No cache entries found matching {pattern}")
 
             return True
 
@@ -200,16 +172,16 @@ class StatsCache:
             current_app.logger.warning(f"Cache invalidation error: {e}")
             return False
 
-    def clear_all_cache(self) -> tuple[bool, int]:
+    def clear_all_cache(self, pattern: str | None = None) -> tuple[bool, int]:
         """Clear all cache entries in the Redis database.
 
         Returns:
             Tuple of (success, number_of_deleted_keys)
         """
+        if pattern is None:
+            pattern = f"{self.cache_prefix}:*"
         try:
-            # Get all keys in the database (since it's dedicated to stats cache)
-            keys: list[bytes] | list[str] | None = self.redis_client.keys("*")
-
+            keys: list[bytes] | list[str] | None = self.redis_client.keys(pattern)  # type: ignore
             if keys is None:
                 current_app.logger.warning(
                     "Redis keys() returned None - possible connection issue"
@@ -220,7 +192,7 @@ class StatsCache:
                 current_app.logger.info("No cache entries found to clear")
                 return True, 0
 
-            deleted_count: int = self.redis_client.delete(*keys)
+            deleted_count: int = self.redis_client.delete(*keys)  # type: ignore
             current_app.logger.info(f"Cleared {deleted_count} cache entries")
             return True, deleted_count
 
@@ -228,19 +200,20 @@ class StatsCache:
             current_app.logger.warning(f"Cache clear all error: {e}")
             return False, 0
 
-    def list_cache_keys(self) -> list[str]:
-        """List all cache keys in the Redis database.
+    def list_cache_keys(self, pattern: str | None = None) -> list[str]:
+        """List all stats cache keys in the Redis database.
 
         Returns:
             List of cache keys
         """
+        if pattern is None:
+            pattern = f"{self.cache_prefix}:*"
         try:
-            # Get all keys in the database (since it's dedicated to stats cache)
-            keys: list[bytes] | list[str] | None = self.redis_client.keys("*")
+            keys: list[bytes] | list[str] | None = self.redis_client.keys(pattern)  # type: ignore
             if keys is None:
                 return []
             return [
-                key.decode('utf-8') if isinstance(key, bytes) else str(key)
+                key.decode("utf-8") if isinstance(key, bytes) else str(key)
                 for key in keys
             ]
         except Exception as e:
@@ -255,7 +228,7 @@ class StatsCache:
         """
         try:
             # Get all keys in the database (since it's dedicated to stats cache)
-            keys: list[bytes] | list[str] | None = self.redis_client.keys("*")
+            keys: list[bytes] | list[str] | None = self.redis_client.keys("*")  # type: ignore
             if keys is None:
                 key_count = 0
             else:
@@ -266,14 +239,14 @@ class StatsCache:
             if keys:
                 for key in keys:
                     try:
-                        memory_usage: int | None = self.redis_client.memory_usage(key)
+                        memory_usage: int | None = self.redis_client.memory_usage(key)  # type: ignore
                         if memory_usage:
                             total_memory += int(memory_usage)
                     except Exception:
                         # Some Redis versions don't support memory_usage
                         pass
 
-            redis_info: dict[str, Any] = self.redis_client.info()
+            redis_info: dict[str, Any] = self.redis_client.info()  # type: ignore
 
             return {
                 "key_count": key_count,
@@ -293,7 +266,7 @@ class StatsCache:
     def _format_bytes(self, bytes_value: int) -> str:
         """Format bytes into human readable format."""
         value = float(bytes_value)
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if value < 1024.0:
                 return f"{value:.2f} {unit}"
             value /= 1024.0
@@ -306,24 +279,20 @@ class StatsCache:
             Dictionary with cache information
         """
         try:
-            redis_info: dict[str, Any] = self.redis_client.info()
+            redis_info: dict[str, Any] | None = self.redis_client.info()  # type: ignore
             if isinstance(redis_info, dict):
                 return {
                     "cache_type": "Redis (Direct)",
                     "redis_version": redis_info.get("redis_version", "unknown"),
-                    "used_memory_human": redis_info.get(
-                        "used_memory_human", "unknown"
-                    ),
-                    "connected_clients": redis_info.get(
-                        "connected_clients", "unknown"
-                    ),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "used_memory_human": redis_info.get("used_memory_human", "unknown"),
+                    "connected_clients": redis_info.get("connected_clients", "unknown"),
+                    "timestamp": arrow.utcnow().isoformat(),
                 }
             else:
                 return {
                     "cache_type": "Redis (Direct)",
                     "error": "Could not retrieve Redis info",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": arrow.utcnow().isoformat(),
                 }
         except Exception as e:
             current_app.logger.warning(f"Cache info error: {e}")

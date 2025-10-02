@@ -1047,6 +1047,14 @@ COMMUNITY_STATS_SUBCOUNTS = {
     },
 }
 
+# JSON compression configuration
+# When True: Frontend requests compressed JSON (application/json+gzip) from the API
+# When False: Frontend requests plain JSON (application/json) and lets server
+#   handle compression
+# Set to False when server-level compression (nginx, Apache) is enabled to avoid
+#   double compression
+STATS_DASHBOARD_COMPRESS_JSON = False
+
 # Content negotiation configuration for community stats API requests
 COMMUNITY_STATS_SERIALIZERS = {
     "application/json": json_serializer_func,

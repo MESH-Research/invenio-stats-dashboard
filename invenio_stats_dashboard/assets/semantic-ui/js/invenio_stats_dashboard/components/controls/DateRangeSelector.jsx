@@ -27,6 +27,16 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
   // Get current quarter start date
   const quarterStartMonth = currentQuarterIndex * 3 + 1;
 
+  // Debug logging for quarter calculation
+  if (period === "currentQuarter") {
+    console.log("Current quarter calculation debug:");
+    console.log("todayDate:", todayDate.toISOString());
+    console.log("currentMonth (1-indexed):", currentMonth);
+    console.log("currentQuarterIndex (0-3):", currentQuarterIndex);
+    console.log("Expected quarter:", currentQuarterIndex + 1);
+    console.log("quarterStartMonth:", quarterStartMonth);
+  }
+
   switch (period) {
     case "allTime":
       startDate = setDateParts(addYears(todayDate, -maxHistoryYears), {
@@ -87,6 +97,19 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
     // up to the current day.
     case "currentQuarter":
       startDate = setDateParts(todayDate, { month: quarterStartMonth, day: 1 });
+      // Set end date to the last day of the current quarter
+      const quarterEndMonth = quarterStartMonth + 2; // Q1: Jan-Mar, Q2: Apr-Jun, etc.
+      endDate = addDays(
+        setDateParts(todayDate, { month: quarterEndMonth + 1, day: 1 }),
+        -1,
+      );
+
+      // Debug logging for current quarter date range
+      console.log("Current quarter date range:");
+      console.log("startDate:", startDate.toISOString());
+      console.log("endDate:", endDate.toISOString());
+      console.log("quarterStartMonth:", quarterStartMonth);
+      console.log("quarterEndMonth:", quarterEndMonth);
       break;
     case "previousQuarter":
       // Get previous quarter's start month (1-12)

@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { SingleStatBox } from '../shared_components/SingleStatBox';
@@ -23,13 +23,15 @@ const SingleStatRecordCount = ({ title = i18next.t("Records"), icon = "file", co
   }, [dateRange]);
 
   // Extract record count value using the new helper function
-  const value = extractRecordDeltaValue(
-    stats,
-    recordStartBasis,
-    'records',
-    'global',
-    dateRange
-  );
+  const value = useMemo(() => {
+    return extractRecordDeltaValue(
+      stats,
+      recordStartBasis,
+      'records',
+      'global',
+      dateRange
+    );
+  }, [stats, recordStartBasis, dateRange]);
 
   return (
     <SingleStatBox
