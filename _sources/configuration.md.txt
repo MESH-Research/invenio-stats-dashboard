@@ -328,6 +328,30 @@ STATS_DASHBOARD_USE_TEST_DATA = True
 
 **Note**: This should be set to `False` in production environments to ensure real statistics data is displayed.
 
+### JSON Compression Configuration
+
+#### `STATS_DASHBOARD_COMPRESS_JSON`
+
+This variable controls whether the frontend requests compressed JSON from the API. This is useful for optimizing bandwidth usage and avoiding double compression when server-level compression is already configured.
+
+```python
+STATS_DASHBOARD_COMPRESS_JSON = False  # Default: False
+```
+
+**Configuration Options:**
+
+- **`False` (Default)**: Frontend requests plain JSON (`application/json`) and lets the server handle compression
+  - ✅ **Use when**: Server-level compression is enabled (nginx, Apache, etc.)
+  - ✅ **Benefit**: Avoids double compression, more efficient
+  - ✅ **Result**: Server compresses the response using HTTP-level compression
+
+- **`True`**: Frontend requests compressed JSON (`application/json+gzip`) from the API
+  - ✅ **Use when**: No server-level compression is configured
+  - ✅ **Benefit**: Still get compressed responses even without server-level compression
+  - ✅ **Result**: API compresses the response using application-level compression
+
+**Important**: When server-level compression is enabled, setting this to `True` can result in double compression, which is inefficient and may cause issues. Always set this to `False` when using nginx, Apache, or other reverse proxies with compression enabled.
+
 ### Event Processing Configuration
 
 #### `STATS_EVENTS`
@@ -388,6 +412,7 @@ The following table provides a complete reference of all available configuration
 | `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
 | `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
 | `STATS_DASHBOARD_USE_TEST_DATA` | `True` | Enable/disable test data mode for development |
+| `STATS_DASHBOARD_COMPRESS_JSON` | `False` | Control whether frontend requests compressed JSON from API |
 | `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
 | `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `5000` | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
 | `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85` | Maximum memory usage percentage before stopping migration |
@@ -397,7 +422,7 @@ The following table provides a complete reference of all available configuration
 
 ### Content Negotiation and Response Serializers
 
-The API supports multiple response formats through content negotiation. The `COMMUNITY_STATS_SERIALIZERS` configuration controls which serializers are available for different content types:
+The API supports multiple response formats through content negotiation. The `COMMUNITY_STATS_SERIALIZERS` configuration controls which serializers are available for different content types. The frontend's compression behavior is controlled by the `STATS_DASHBOARD_COMPRESS_JSON` configuration variable (see [JSON Compression Configuration](#json-compression-configuration) above).
 
 ```python
 COMMUNITY_STATS_SERIALIZERS = {
