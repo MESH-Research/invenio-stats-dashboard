@@ -19,11 +19,11 @@ from flask import current_app
 class StatsCache:
     """Cache manager for statistics data series."""
 
-    def __init__(self):
+    def __init__(self, cache_prefix: str | None = None):
         """Initialize the cache manager with direct Redis connection."""
         redis_url = self._get_redis_url()
 
-        self.cache_prefix = current_app.config.get(
+        self.cache_prefix = cache_prefix or current_app.config.get(
             "STATS_CACHE_PREFIX", "stats_dashboard"
         )
 

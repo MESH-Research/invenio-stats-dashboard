@@ -8,9 +8,11 @@
 
 """Cache management CLI commands."""
 
+import json
+from pprint import pformat
+
 import click
 from flask.cli import with_appcontext
-from pprint import pformat
 
 from ..resources.cache_utils import StatsCache
 
@@ -50,7 +52,7 @@ def clear_all_cache_command(force, yes_i_know):
         click.confirm(
             "Are you sure you want to clear all cached statistics data? "
             "This will force recalculation of all statistics on next request.",
-            abort=True
+            abort=True,
         )
 
     with click.progressbar(length=1, label="Clearing cache...") as bar:
@@ -221,6 +223,7 @@ def list_cache_keys_command(limit, pattern):
     # Apply pattern filter if provided
     if pattern:
         import fnmatch
+
         keys = [key for key in keys if fnmatch.fnmatch(key, pattern)]
 
     # Apply limit
@@ -257,7 +260,7 @@ def list_cache_keys_command(limit, pattern):
 )
 @with_appcontext
 def test_cache_command(community_id, stat_name):
-    """Test cache functionality by setting and retrieving a test entry.
+    r"""Test cache functionality by setting and retrieving a test entry.
 
     This command tests the cache functionality by storing a test entry
     and then retrieving it to verify the cache is working correctly.
@@ -267,24 +270,26 @@ def test_cache_command(community_id, stat_name):
     - invenio community-stats cache test --community-id my-community \\
       --stat-name test_query
     """
-    cache = StatsCache()
+    cache = StatsCache(cache_prefix="test")
+
+    test_request_data = {"community_id": "global", "stat_name": "test"}
 
     # Test data
     test_data = {
         "test": True,
         "timestamp": "2024-01-01T00:00:00Z",
-        "message": "This is a test cache entry"
+        "message": "This is a test cache entry",
     }
 
     click.echo("Testing cache functionality...")
 
     # Test setting cache
     click.echo("Setting test cache entry...")
-    success = cache.set_cached_data(
-        test_data,
-        community_id=community_id,
-        stat_name=stat_name,
-        timeout=60  # 1 minute timeout for test
+    success = cache.set_cached_response(
+        "application/json",
+        test_request_data,
+        json.dumps(test_data),
+        timeout=60,  # 1 minute timeout for test
     )
 
     if not success:
@@ -295,10 +300,7 @@ def test_cache_command(community_id, stat_name):
 
     # Test getting cache
     click.echo("Retrieving test cache entry...")
-    cached_data = cache.get_cached_data(
-        community_id=community_id,
-        stat_name=stat_name
-    )
+    cached_data = cache.get_cached_response("application/json", test_request_data)
 
     if cached_data is None:
         click.echo("❌ Failed to retrieve test cache entry")
@@ -308,7 +310,13 @@ def test_cache_command(community_id, stat_name):
 
     # Clean up test entry
     click.echo("Cleaning up test cache entry...")
-    cache.invalidate_cache(community_id, stat_name)
-    click.echo("✅ Test cache entry cleaned up")
+    cache.invalidate_cache("test*")
+    cached_data_after = cache.get_cached_response("application/json", test_request_data)
+
+    if cached_data_after is None:
+        click.echo("✅ Test cache entry cleaned up")
+    else:
+        click.echo("❌ Failed to clean up test cache entry with `invalidate_cache`")
+        return 1
 
     click.echo("\n🎉 Cache functionality test completed successfully!")
