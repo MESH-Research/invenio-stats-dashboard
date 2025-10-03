@@ -17,7 +17,7 @@ from flask.cli import with_appcontext
 from halo import Halo
 
 from ..proxies import current_community_stats_service
-from ..tasks import format_agg_startup_message
+from ..tasks.aggregation_tasks import format_agg_startup_message
 
 
 def check_stats_enabled():

@@ -47,7 +47,7 @@ from .resources.serializers.wrapper_functions import (
     gzip_json_serializer_func,
     json_serializer_func,
 )
-from .tasks import CommunityStatsAggregationTask
+from .tasks.aggregation_tasks import CommunityStatsAggregationTask
 
 COMMUNITY_STATS_ENABLED = True
 COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
@@ -1085,3 +1085,10 @@ COMMUNITY_STATS_SERIALIZERS = {
     ),
     "application/xml": data_series_xml_serializer_func,
 }
+
+# will default to instance cache url with unique db number
+STATS_CACHE_REDIS_URL = None
+STATS_CACHE_REDIS_DB = 7
+STATS_CACHE_PREFIX = "stats_dashboard"
+STATS_CACHE_DEFAULT_TIMEOUT = None
+STATS_CACHE_COMPRESSION_METHOD = "gzip"

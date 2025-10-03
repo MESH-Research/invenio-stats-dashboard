@@ -20,7 +20,7 @@ from ..aggregations import register_aggregations
 from ..aggregations.bookmarks import CommunityBookmarkAPI
 from ..config import COMMUNITY_STATS_QUERIES
 from ..resources.api_queries import CommunityStatsResultsQuery
-from ..tasks import (
+from ..tasks.aggregation_tasks import (
     AggregationResponse,
     CommunityStatsAggregationTask,
     aggregate_community_record_stats,

@@ -10,6 +10,7 @@
 
 import json
 from pprint import pformat
+from typing import Any
 
 import click
 from flask.cli import with_appcontext
@@ -69,6 +70,62 @@ def clear_all_cache_command(force, yes_i_know):
         return 1
 
 
+@cache_cli.command(name="clear-pattern")
+@click.argument("pattern", required=True)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Skip confirmation prompt and clear immediately",
+)
+@with_appcontext
+def clear_pattern_cache_command(pattern, force):
+    r"""Clear cache entries matching a pattern.
+
+    This command removes all cached statistics entries that match the given
+    Redis key pattern. Use with caution as this can delete multiple entries.
+
+    Args:
+        pattern: Redis key pattern to match (e.g., "*global*", "*2023*")
+        force: Skip confirmation prompt and clear immediately
+
+    Examples:  # noqa:D412
+
+    \b
+    - invenio community-stats cache clear-pattern "*global*"
+    - invenio community-stats cache clear-pattern "*2023*" --force
+    - invenio community-stats cache clear-pattern "*record_delta*"
+    """
+    cache = StatsCache()
+
+    # Show what will be cleared
+    matching_keys = cache.list_cache_keys(pattern)
+
+    if not matching_keys:
+        click.echo(f"No cache entries found matching pattern: {pattern}")
+        return 0
+
+    click.echo(f"Found {len(matching_keys)} cache entries matching pattern: {pattern}")
+    for key in matching_keys[:10]:  # Show first 10 keys
+        click.echo(f"  {key}")
+    if len(matching_keys) > 10:
+        click.echo(f"  ... and {len(matching_keys) - 10} more")
+
+    # Confirm before clearing
+    if not force:
+        if not click.confirm("Do you want to clear these cache entries?"):
+            click.echo("Cache clearing cancelled")
+            return 0
+
+    # Clear the cache entries
+    success, deleted_count = cache.clear_all_cache(pattern)
+
+    if success:
+        click.echo(f"Successfully cleared {deleted_count} cache entries")
+    else:
+        click.echo("❌ Failed to clear cache entries")
+        return 1
+
+
 @cache_cli.command(name="clear-item")
 @click.argument("community_id")
 @click.argument("stat_name")
@@ -97,17 +154,21 @@ def clear_all_cache_command(force, yes_i_know):
 def clear_item_cache_command(
     community_id, stat_name, start_date, end_date, date_basis, content_type
 ):
-    """Clear a specific cached statistics item.
+    r"""Clear a specific cached statistics item.
 
     This command removes a specific cached statistics entry based on the
     provided parameters. If the exact cache entry is not found, no error
     will be reported.
 
-    Arguments:
+    Arguments:  #  noqa:D412
+
+    \b
     - community_id: Community ID or "global"
     - stat_name: Name of the statistics query
 
-    Examples:
+    Examples:  # noqua:D412
+
+    \b
     - invenio community-stats cache clear-item global record_snapshots
     - invenio community-stats cache clear-item my-community usage_delta \\
       --start-date 2024-01-01
@@ -129,14 +190,15 @@ def clear_item_cache_command(
         cache_params["content_type"] = content_type
 
     # Generate the cache key to show what will be cleared
-    cache_key = cache._generate_cache_key(**cache_params)
+    cache_key = cache._generate_response_cache_key(**cache_params)
 
     click.echo(f"Clearing cache entry: {cache_key}")
 
-    success = cache.invalidate_cache(community_id, stat_name)
+    # Clear the specific cache entry
+    success = cache.clear_cache_item(**cache_params)
 
     if success:
-        click.echo("✅ Cache entry cleared successfully")
+        click.echo("Cache entry cleared successfully")
     else:
         click.echo("❌ Failed to clear cache entry")
         return 1
@@ -320,3 +382,181 @@ def test_cache_command(community_id, stat_name):
         return 1
 
     click.echo("\n🎉 Cache functionality test completed successfully!")
+
+
+@cache_cli.command(name="generate")
+@click.option(
+    "--community-id",
+    multiple=True,
+    help=(
+        "Community ID(s) to generate cache for (can be specified multiple times). "
+        "If not specified, generates for all communities plus global."
+    ),
+)
+@click.option(
+    "--community-slug", multiple=True, help="Community slug(s) to generate cache for"
+)
+@click.option("--year", type=int, help="Single year to generate cache for")
+@click.option("--years", help="Year range to generate cache for (e.g., 2020-2023)")
+@click.option(
+    "--all-years",
+    is_flag=True,
+    help="Generate cache for all years since community creation",
+)
+@click.option(
+    "--async",
+    "async_mode",
+    is_flag=True,
+    help="Run cache generation asynchronously using Celery",
+)
+@click.option("--force", is_flag=True, help="Overwrite existing cache entries")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be done without actually generating cache",
+)
+@with_appcontext
+def generate_cache_command(
+    community_id, community_slug, year, years, all_years, async_mode, force, dry_run
+):
+    r"""Generate cached stats responses for all data series categories.
+
+    This command generates cached responses for the specified communities and years,
+    covering all data series categories (record_delta, usage_delta, etc.).
+
+    If no communities are specified, it will generate cache for all communities
+    and the global instance. Multiple community IDs can be specified using
+    --community-id multiple times.
+
+
+    Examples:  # noqa:D412
+
+    \b
+    - invenio community-stats cache generate --year 2023
+    - invenio community-stats cache generate --community-id 123 --year 2023
+    - invenio community-stats cache generate --community-id 123 --community-id 456 \\
+            --year 2023
+    - invenio community-stats cache generate --community-slug my-community \\
+            --years 2020-2023
+    - invenio community-stats cache generate --all-years --async
+    - invenio community-stats cache generate --community-id global --year 2023 --dry-run
+    """
+    from ..services.cached_response_service import CachedResponseService
+
+    try:
+        service = CachedResponseService()
+    except Exception as e:
+        click.echo(f"Failed to initialize cache service: {e}")
+        return 1
+
+    # Resolve slugs to IDs
+    community_ids = list(community_id)
+    for slug in community_slug:
+        try:
+            community_id_resolved = resolve_slug_to_id(slug)
+            community_ids.append(community_id_resolved)
+        except Exception as e:
+            click.echo(f"Failed to resolve community slug '{slug}': {e}")
+            return 1
+
+    # Add 'global' and all communities if no communities specified
+    if not community_ids:
+        community_ids = ["global"] + service._get_all_community_ids()
+
+    if all_years:
+        years_param: list[int] | str = "auto"
+    elif years:
+        try:
+            years_param = parse_year_range(years)
+        except ValueError as e:
+            click.echo(f"Invalid year range format: {e}")
+            return 1
+    elif year:
+        years_param = [year]
+    else:
+        years_param = "auto"  # Default to all years
+
+    if dry_run:
+        try:
+            show_dry_run_results(community_ids, years_param, service.categories)
+        except Exception as e:
+            click.echo(f"Failed to generate dry run results: {e}")
+            return 1
+    else:
+        try:
+            with click.progressbar(length=1, label="Generating cache...") as bar:
+                results = service.create(
+                    community_ids=community_ids,
+                    years=years_param,
+                    force=force,
+                    async_mode=async_mode,
+                )
+                bar.update(1)
+
+            report_results(results)
+
+        except Exception as e:
+            click.echo(f"Cache generation failed: {e}")
+            return 1
+
+
+def resolve_slug_to_id(slug: str) -> str:
+    """Resolve community slug to ID using existing community model."""
+    from invenio_communities.models import Community
+
+    community = Community.query.filter_by(slug=slug).first()
+    if community:
+        return str(community.id)
+    raise ValueError(f"Community with slug '{slug}' not found")
+
+
+def parse_year_range(year_range: str) -> list[int]:
+    """Parse year range string (e.g., '2020-2023') into list."""
+    try:
+        start, end = map(int, year_range.split("-"))
+        return list(range(start, end + 1))
+    except ValueError as e:
+        msg = f"Invalid year range format: {year_range}"
+        raise ValueError(msg) from e
+
+
+def show_dry_run_results(
+    community_ids: list[str], years: list[int] | str, categories: list[str]
+) -> None:
+    """Show what would be done in dry-run mode."""
+    if years == "auto":
+        years_display = "all years since creation"
+    elif isinstance(years, list):
+        years_display = f"years {min(years)}-{max(years)}"
+    else:
+        years_display = f"year {years}"
+
+    total_combinations = (
+        len(community_ids) * len(years) * len(categories)
+        if years != "auto"
+        else "unknown (depends on community creation dates)"
+    )
+
+    click.echo("Would generate cache for:")
+    click.echo(f"  Communities: {', '.join(community_ids)}")
+    click.echo(f"  Years: {years_display}")
+    click.echo(f"  Categories: {', '.join(categories)}")
+    click.echo(f"  Total combinations: {total_combinations}")
+
+
+def report_results(results: dict[str, Any]) -> None:
+    """Report execution results."""
+    if results.get("async"):
+        click.echo("Cache generation started in background")
+        click.echo(f"Task IDs: {results['task_ids']}")
+        click.echo(f"Total tasks: {results['task_count']}")
+    else:
+        click.echo("Cache generation completed")
+        click.echo(f"Success: {results['success']}, Failed: {results['failed']}")
+        if results["errors"]:
+            click.echo("❌ Errors:")
+            for error in results["errors"]:
+                click.echo(
+                    f"  {error['community_id']}/{error['year']}/"
+                    f"{error['category']}: {error['error']}"
+                )

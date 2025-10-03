@@ -14,7 +14,7 @@ from flask.cli import with_appcontext
 from halo import Halo
 
 from ..proxies import current_event_reindexing_service
-from ..tasks import reindex_usage_events_with_metadata
+from ..tasks.usage_reindexing_tasks import reindex_usage_events_with_metadata
 from ..utils.process_manager import ProcessManager
 from ..utils.usage_events import UsageEventFactory
 from .core_cli import check_stats_enabled

@@ -93,7 +93,7 @@ The `read` command requires the `COMMUNITY_STATS_ENABLED` configuration to be se
 
 #### `cache`
 
-Manage cached statistics data.
+Manage cached statistics data and proactively generate cache entries.
 
 ```bash
 invenio community-stats cache [SUBCOMMAND] [OPTIONS]
@@ -101,33 +101,287 @@ invenio community-stats cache [SUBCOMMAND] [OPTIONS]
 
 **Subcommands:**
 
+- `generate`: Generate cached responses for all data series categories
 - `clear-all`: Clear all cached statistics data
+- `clear-pattern`: Clear cache entries matching a pattern
 - `clear-item`: Clear a specific cached statistics item
 - `info`: Show cache information including size and item count
 - `list`: List all cached statistics keys
 - `test`: Test cache functionality
 
+##### `cache generate`
+
+Generate cached stats responses for all data series categories (record_delta, usage_delta, etc.) for specified communities and years.
+
+```bash
+invenio community-stats cache generate [OPTIONS]
+```
+
+**Options:**
+- `--community-id`: Community ID(s) to generate cache for (can be specified multiple times). If not specified, generates for all communities plus global.
+- `--community-slug`: Community slug(s) to generate cache for (can be specified multiple times).
+- `--year`: Single year to generate cache for.
+- `--years`: Year range to generate cache for (e.g., 2020-2023).
+- `--all-years`: Generate cache for all years since community creation.
+- `--async`: Run cache generation asynchronously using Celery.
+- `--force`: Overwrite existing cache entries.
+- `--dry-run`: Show what would be done without actually generating cache.
+
+**Description:**
+This command generates cached responses for all data series categories, including:
+- `record_delta` - Record count changes over time
+- `record_snapshot` - Record counts at specific points in time
+- `usage_delta` - Usage count changes over time
+- `usage_snapshot` - Usage counts at specific points in time
+- `record_delta_data_added` - Records added over time
+- `record_delta_data_removed` - Records removed over time
+- `usage_delta_data_views` - View count changes over time
+- `usage_delta_data_downloads` - Download count changes over time
+
 **Examples:**
 ```bash
-# Clear all cached data
+# Generate cache for all communities + global for 2023
+invenio community-stats cache generate --year 2023
+
+# Generate cache for specific community and year
+invenio community-stats cache generate --community-id 123 --year 2023
+
+# Generate cache for multiple communities
+invenio community-stats cache generate --community-id 123 --community-id 456 --year 2023
+
+# Generate cache for community by slug
+invenio community-stats cache generate --community-slug my-community --year 2023
+
+# Generate cache for year range
+invenio community-stats cache generate --community-id 123 --years 2020-2023
+
+# Generate cache for all years since community creation
+invenio community-stats cache generate --community-id 123 --all-years
+
+# Generate cache asynchronously using Celery
+invenio community-stats cache generate --community-id 123 --year 2023 --async
+
+# Dry run to see what would be done
+invenio community-stats cache generate --community-id 123 --year 2023 --dry-run
+
+# Overwrite existing cache entries
+invenio community-stats cache generate --community-id 123 --year 2023 --force
+```
+
+**Output Examples:**
+```bash
+# Dry run output
+$ invenio community-stats cache generate --year 2023 --dry-run
+Would generate cache for:
+  Communities: global, 123, 456, 789
+  Years: year 2023
+  Categories: record_delta, record_snapshot, usage_delta, usage_snapshot, record_delta_data_added, record_delta_data_removed, usage_delta_data_views, usage_delta_data_downloads
+  Total combinations: 32
+
+# Synchronous execution
+$ invenio community-stats cache generate --community-id 123 --year 2023
+Generating cache...
+✅ Cache generation completed
+📊 Success: 8, Failed: 0
+
+# Asynchronous execution
+$ invenio community-stats cache generate --community-id 123 --year 2023 --async
+Generating cache...
+✅ Cache generation started in background
+📋 Task IDs: ['abc123-def456-ghi789', 'jkl012-mno345-pqr678']
+📊 Total tasks: 8
+```
+
+##### `cache clear-all`
+
+Clear all cached statistics data from Redis.
+
+```bash
+invenio community-stats cache clear-all [OPTIONS]
+```
+
+**Options:**
+- `--force`: Skip confirmation prompt and clear all cache immediately.
+- `--yes-i-know`: Bypass confirmation prompt.
+
+**Description:**
+This command removes all cached statistics data from Redis. This will force all statistics queries to be recalculated on the next request.
+
+**Examples:**
+```bash
+# Clear all cached data (interactive)
 invenio community-stats cache clear-all
 
-# Clear specific cache entry
+# Clear all cached data (non-interactive)
+invenio community-stats cache clear-all --force --yes-i-know
+```
+
+##### `cache clear-pattern`
+
+Clear cache entries matching a Redis key pattern.
+
+```bash
+invenio community-stats cache clear-pattern <pattern> [OPTIONS]
+```
+
+**Arguments:**
+- `pattern`: Redis key pattern to match (e.g., "*global*", "*2023*", "*record_delta*").
+
+**Options:**
+- `--force`: Skip confirmation prompt and clear immediately.
+
+**Description:**
+This command removes all cached statistics entries that match the given Redis key pattern. It shows a preview of what will be cleared before performing the operation. Use with caution as this can delete multiple entries.
+
+**Examples:**
+```bash
+# Clear all global stats cache entries
+invenio community-stats cache clear-pattern "*global*"
+
+# Clear all 2023 data cache entries
+invenio community-stats cache clear-pattern "*2023*"
+
+# Clear all record delta cache entries
+invenio community-stats cache clear-pattern "*record_delta*"
+
+# Clear without confirmation prompt
+invenio community-stats cache clear-pattern "*global*" --force
+```
+
+**Pattern Examples:**
+- `*global*` - All cache entries containing "global"
+- `*2023*` - All cache entries containing "2023"
+- `*record_delta*` - All cache entries containing "record_delta"
+- `stats_dashboard:*community-123*` - All cache entries for community 123
+
+##### `cache clear-item`
+
+Clear a specific cached statistics item.
+
+```bash
+invenio community-stats cache clear-item <community-id> <stat-name> [OPTIONS]
+```
+
+**Arguments:**
+- `community-id`: The ID of the community (or "global" for global stats). **Required.**
+- `stat-name`: The name of the statistics query to clear. **Required.**
+
+**Options:**
+- `--start-date`: Start date for the cache entry (YYYY-MM-DD).
+- `--end-date`: End date for the cache entry (YYYY-MM-DD).
+- `--date-basis`: Date basis for the cache entry (added, created, published). Default: added.
+- `--content-type`: Content type for the cache entry.
+
+**Description:**
+This command removes a specific cached statistics entry based on the provided parameters. If the exact cache entry is not found, no error will be reported. The `community-id` and `stat-name` arguments are required - Click will display an error message if they are not provided.
+
+**Examples:**
+```bash
+# Clear specific cache entry (minimal required arguments)
 invenio community-stats cache clear-item global record_snapshots
 
-# Show cache information
+# Clear cache entry with specific date range
+invenio community-stats cache clear-item 123 record_delta --start-date 2023-01-01 --end-date 2023-12-31
+
+# Clear cache entry with specific date basis
+invenio community-stats cache clear-item 123 record_snapshot --date-basis published
+
+# Clear cache entry with content type
+invenio community-stats cache clear-item global usage_delta --content-type application/json
+```
+
+**Error Handling:**
+If required arguments are missing, Click will display an error message like:
+```
+Error: Missing argument 'COMMUNITY_ID'.
+Usage: invenio community-stats cache clear-item [OPTIONS] COMMUNITY_ID STAT_NAME
+```
+
+##### `cache info`
+
+Show cache information including size and item count.
+
+```bash
 invenio community-stats cache info
+```
 
-# List all cache keys
+**Description:**
+This command displays detailed information about the cache, including:
+- Cache type and Redis version
+- Memory usage (human-readable format)
+- Number of connected clients
+- Timestamp of the information
+
+**Example Output:**
+```bash
+$ invenio community-stats cache info
+Cache Information:
+  Type: Redis (Direct)
+  Redis Version: 7.2.5
+  Used Memory: 2.5 MB
+  Connected Clients: 16
+  Timestamp: 2025-01-02T15:30:45.123456
+```
+
+##### `cache list`
+
+List all cached statistics keys in Redis.
+
+```bash
 invenio community-stats cache list
+```
 
-# Test cache functionality
+**Description:**
+This command lists all cache keys that match the stats dashboard prefix pattern.
+
+**Example Output:**
+```bash
+$ invenio community-stats cache list
+Found 4 cache keys:
+  stats_dashboard:a11839c6a5d422d3c4d9648788dee7c1a46e8ac8dc6de08fbe21dca4fcaac710
+  stats_dashboard:6cbdeb7e24b466a449e91a779797715e25c64ce238a67a13f7ac66f588121989
+  stats_dashboard:c25599406871db725e80bdf58d9ee88edb8d732205787731de8931e851c3b00f
+  stats_dashboard:edf486b8ddc331f62e79671a35e7b923c3cfce8c11294ef187ac0f4b89df4ac8
+```
+
+##### `cache test`
+
+Test cache functionality by performing a complete cache cycle.
+
+```bash
 invenio community-stats cache test
+```
+
+**Description:**
+This command performs a comprehensive test of the cache functionality by:
+1. Creating a test cache entry
+2. Retrieving the cached data
+3. Verifying the data integrity
+4. Clearing the test entry
+
+**Example Output:**
+```bash
+$ invenio community-stats cache test
+Testing cache functionality...
+✅ Test cache entry created successfully
+✅ Test cache entry retrieved successfully
+✅ Data integrity verified
+✅ Test cache entry cleaned up
+
+🎉 Cache functionality test completed successfully!
 ```
 
 **Configuration Requirements:**
 
 The `cache` commands require the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the commands will exit with an error message.
+
+**Cache Configuration:**
+
+The cache system uses the following configuration variables:
+- `STATS_CACHE_REDIS_DB`: Redis database number for stats cache (default: 7)
+- `STATS_CACHE_PREFIX`: Cache key prefix (default: "stats_dashboard")
+- `STATS_CACHE_DEFAULT_TIMEOUT`: Default cache timeout in seconds (default: None for no expiration)
+- `STATS_CACHE_COMPRESSION_METHOD`: Compression method (default: "brotli")
 
 #### `status`
 

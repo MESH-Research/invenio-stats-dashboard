@@ -106,8 +106,8 @@ invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_api_bluepr
 invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
 
 [project.entry-points."invenio_celery.tasks"]
-invenio_stats_dashboard = "invenio_stats_dashboard.tasks:aggregate_community_record_stats"
-invenio_stats_dashboard_reindexing = "invenio_stats_dashboard.tasks:reindex_events_with_metadata"
+invenio_stats_dashboard = "invenio_stats_dashboard.tasks.aggregation_tasks:aggregate_community_record_stats"
+invenio_stats_dashboard_reindexing = "invenio_stats_dashboard.tasks.aggregation_tasks:reindex_events_with_metadata"
 invenio_stats_dashboard_progress = "invenio_stats_dashboard.tasks:get_reindexing_progress"
 
 [project.entry-points."invenio_base.finalize_app"]

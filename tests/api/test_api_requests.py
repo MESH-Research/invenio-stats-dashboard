@@ -35,7 +35,7 @@ from invenio_stats_dashboard.aggregations.usage_snapshot_aggs import (
     CommunityUsageSnapshotAggregator,
 )
 from invenio_stats_dashboard.proxies import current_event_reindexing_service
-from invenio_stats_dashboard.tasks import (
+from invenio_stats_dashboard.tasks.aggregation_tasks import (
     CommunityStatsAggregationTask,
     aggregate_community_record_stats,
 )

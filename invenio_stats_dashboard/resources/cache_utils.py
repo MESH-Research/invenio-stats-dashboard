@@ -172,6 +172,36 @@ class StatsCache:
             current_app.logger.warning(f"Cache invalidation error: {e}")
             return False
 
+    def clear_cache_item(
+        self,
+        content_type: str,
+        request_data: dict,
+    ) -> bool:
+        """Clear a specific cache item by its exact key.
+
+        Args:
+            content_type: Content type for the response
+            request_data: Full request data dict
+
+        Returns:
+            True if successful, False otherwise
+        """
+        cache_key = self._generate_response_cache_key(
+            content_type=content_type, request_data=request_data
+        )
+
+        try:
+            deleted_count = self.redis_client.delete(cache_key)
+            if deleted_count > 0:
+                current_app.logger.info(f"Cleared cache item: {cache_key}")
+                return True
+            else:
+                current_app.logger.info(f"Cache item not found: {cache_key}")
+                return False
+        except Exception as e:
+            current_app.logger.warning(f"Cache clear item error for key {cache_key}: {e}")
+            return False
+
     def clear_all_cache(self, pattern: str | None = None) -> tuple[bool, int]:
         """Clear all cache entries in the Redis database.
 
