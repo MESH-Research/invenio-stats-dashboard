@@ -56,4 +56,4 @@ jobs:
           PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,ignore::UserWarning"
         run: |
           chmod +x run-tests.sh
-          bash run-tests.sh
+          bash run-tests.sh -S
