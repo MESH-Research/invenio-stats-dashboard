@@ -8,6 +8,8 @@ import {
   Form,
   Select,
   Segment,
+  Input,
+  Grid,
 } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
@@ -16,6 +18,7 @@ import {
   addMonths,
   addYears,
   setDateParts,
+  createUTCDateFromParts,
 } from "../../utils/dates";
 
 const getDateRange = (todayDate, period, maxHistoryYears) => {
@@ -294,6 +297,7 @@ const dayPeriodOptions = [
   { key: "6months", text: i18next.t("Past 6 months"), value: "6months" },
   { key: "1year", text: i18next.t("Past year"), value: "1year" },
   { key: "allTime", text: i18next.t("All time"), value: "allTime" },
+  { key: "custom", text: i18next.t("Custom range"), value: "custom" },
 ];
 
 const weekPeriodOptions = [
@@ -304,6 +308,7 @@ const weekPeriodOptions = [
   { key: "12weeks", text: i18next.t("Past 12 weeks"), value: "12weeks" },
   { key: "24weeks", text: i18next.t("Past 24 weeks"), value: "24weeks" },
   { key: "allTime", text: i18next.t("All time"), value: "allTime" },
+  { key: "custom", text: i18next.t("Custom range"), value: "custom" },
 ];
 
 const monthPeriodOptions = [
@@ -312,6 +317,7 @@ const monthPeriodOptions = [
   { key: "6months", text: i18next.t("Past 6 months"), value: "6months" },
   { key: "12months", text: i18next.t("Past year"), value: "12months" },
   { key: "allTime", text: i18next.t("All time"), value: "allTime" },
+  { key: "custom", text: i18next.t("Custom range"), value: "custom" },
 ];
 
 const quarterPeriodOptions = [
@@ -329,6 +335,7 @@ const quarterPeriodOptions = [
   { key: "3quarters", text: i18next.t("Past 3 quarters"), value: "3quarters" },
   { key: "4quarters", text: i18next.t("Past 4 quarters"), value: "4quarters" },
   { key: "allTime", text: i18next.t("All time"), value: "allTime" },
+  { key: "custom", text: i18next.t("Custom range"), value: "custom" },
 ];
 
 const yearPeriodOptions = [
@@ -343,6 +350,7 @@ const yearPeriodOptions = [
   { key: "4years", text: i18next.t("Past 4 years"), value: "4years" },
   { key: "5years", text: i18next.t("Past 5 years"), value: "5years" },
   { key: "allTime", text: i18next.t("All time"), value: "allTime" },
+  { key: "custom", text: i18next.t("Custom range"), value: "custom" },
 ];
 
 const periodOptions = {
@@ -351,6 +359,358 @@ const periodOptions = {
   month: monthPeriodOptions,
   quarter: quarterPeriodOptions,
   year: yearPeriodOptions,
+};
+
+/** Validate the date
+ *
+ * @param {string} year - The year
+ * @param {string} month - The month
+ * @param {string} day - The day
+ * @param {string} fieldPrefix - The field prefix
+ * @returns {object} The errors
+ */
+const validateDate = (year, month, day, fieldPrefix) => {
+  const errors = {};
+
+  if (!year || !/^\d{4}$/.test(year)) {
+    errors[`${fieldPrefix}Year`] = i18next.t("Year must be 4 digits");
+  } else {
+    const yearNum = parseInt(year, 10);
+    if (yearNum < 1900 || yearNum > 2100) {
+      errors[`${fieldPrefix}Year`] = i18next.t("Year must be between 1900 and 2100");
+    }
+  }
+
+  if (!month || !/^\d{2}$/.test(month)) {
+    errors[`${fieldPrefix}Month`] = i18next.t("Month must be 2 digits");
+  } else {
+    const monthNum = parseInt(month, 10);
+    if (monthNum < 1 || monthNum > 12) {
+      errors[`${fieldPrefix}Month`] = i18next.t("Month must be between 01 and 12");
+    }
+  }
+
+  if (!day || !/^\d{2}$/.test(day)) {
+    errors[`${fieldPrefix}Day`] = i18next.t("Day must be 2 digits");
+  } else {
+    const dayNum = parseInt(day, 10);
+    if (dayNum < 1 || dayNum > 31) {
+      errors[`${fieldPrefix}Day`] = i18next.t("Day must be between 01 and 31");
+    }
+  }
+
+  if (!errors[`${fieldPrefix}Year`] && !errors[`${fieldPrefix}Month`] && !errors[`${fieldPrefix}Day`]) {
+    try {
+      const yearNum = parseInt(year, 10);
+      const monthNum = parseInt(month, 10);
+      const dayNum = parseInt(day, 10);
+      const testDate = createUTCDateFromParts(yearNum, monthNum, dayNum);
+
+      // Check if the date is valid (handles leap years, etc.)
+      if (testDate.getUTCFullYear() !== yearNum ||
+          testDate.getUTCMonth() !== monthNum - 1 ||
+          testDate.getUTCDate() !== dayNum) {
+        errors[`${fieldPrefix}Day`] = i18next.t("Invalid date");
+      }
+    } catch (e) {
+      errors[`${fieldPrefix}Day`] = i18next.t("Invalid date");
+    }
+  }
+
+  return errors;
+};
+
+/** Custom Date Range Popup Component
+ *
+ * @param {object} props - The component props
+ * @param {boolean} props.isOpen - Whether the popup is open
+ * @param {function} props.onClose - The function to close the popup
+ * @param {function} props.onSubmit - The function to submit the form
+ * @param {Date} props.initialStartDate - The initial start date
+ * @param {Date} props.initialEndDate - The initial end date
+ * @param {React.RefObject} props.triggerRef - The ref object to trigger the popup
+ *
+ * @returns {React.ReactElement} The CustomDateRangePopup component
+ */
+const CustomDateRangePopup = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialStartDate,
+  initialEndDate,
+  triggerRef,
+}) => {
+  const [startYear, setStartYear] = useState("");
+  const [startMonth, setStartMonth] = useState("");
+  const [startDay, setStartDay] = useState("");
+  const [endYear, setEndYear] = useState("");
+  const [endMonth, setEndMonth] = useState("");
+  const [endDay, setEndDay] = useState("");
+  const [errors, setErrors] = useState({});
+  const popupRef = useRef(null);
+
+  useEffect(() => {
+    if (initialStartDate && initialEndDate) {
+      setStartYear(initialStartDate.getUTCFullYear().toString());
+      setStartMonth((initialStartDate.getUTCMonth() + 1).toString().padStart(2, "0"));
+      setStartDay(initialStartDate.getUTCDate().toString().padStart(2, "0"));
+      setEndYear(initialEndDate.getUTCFullYear().toString());
+      setEndMonth((initialEndDate.getUTCMonth() + 1).toString().padStart(2, "0"));
+      setEndDay(initialEndDate.getUTCDate().toString().padStart(2, "0"));
+    } else {
+      const today = getCurrentUTCDate();
+      setStartYear(today.getUTCFullYear().toString());
+      setStartMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
+      setStartDay(today.getUTCDate().toString().padStart(2, "0"));
+      setEndYear(today.getUTCFullYear().toString());
+      setEndMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
+      setEndDay(today.getUTCDate().toString().padStart(2, "0"));
+    }
+  }, [initialStartDate, initialEndDate]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && isOpen) {
+        onClose();
+        if (triggerRef?.current) {
+          triggerRef.current.focus();
+        }
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isOpen, onClose, triggerRef]);
+
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const startErrors = validateDate(startYear, startMonth, startDay, "start");
+    const endErrors = validateDate(endYear, endMonth, endDay, "end");
+
+    const allErrors = { ...startErrors, ...endErrors };
+
+    if (Object.keys(allErrors).length === 0) {
+      try {
+        const startDate = createUTCDateFromParts(
+          parseInt(startYear, 10),
+          parseInt(startMonth, 10),
+          parseInt(startDay, 10)
+        );
+        const endDate = createUTCDateFromParts(
+          parseInt(endYear, 10),
+          parseInt(endMonth, 10),
+          parseInt(endDay, 10)
+        );
+
+        if (startDate > endDate) {
+          allErrors.endDay = i18next.t("End date must be after start date");
+        }
+      } catch (e) {
+        allErrors.endDay = i18next.t("Invalid date range");
+      }
+    }
+
+    setErrors(allErrors);
+
+    if (Object.keys(allErrors).length === 0) {
+      const startDate = createUTCDateFromParts(
+        parseInt(startYear, 10),
+        parseInt(startMonth, 10),
+        parseInt(startDay, 10)
+      );
+      const endDate = createUTCDateFromParts(
+        parseInt(endYear, 10),
+        parseInt(endMonth, 10),
+        parseInt(endDay, 10)
+      );
+
+      onSubmit({ start: startDate, end: endDate });
+      onClose();
+      if (triggerRef?.current) {
+        triggerRef.current.focus();
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    onClose();
+    if (triggerRef?.current) {
+      triggerRef.current.focus();
+    }
+  };
+
+  const handleClear = () => {
+    const today = getCurrentUTCDate();
+    setStartYear(today.getUTCFullYear().toString());
+    setStartMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
+    setStartDay(today.getUTCDate().toString().padStart(2, "0"));
+    setEndYear(today.getUTCFullYear().toString());
+    setEndMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
+    setEndDay(today.getUTCDate().toString().padStart(2, "0"));
+    setErrors({});
+  };
+
+  return (
+    <Popup
+      ref={popupRef}
+      open={isOpen}
+      onClose={onClose}
+      on="click"
+      position="bottom right"
+      wide
+      trigger={<div />}
+      className="custom-date-range-popup"
+    >
+      <Card>
+        <Card.Content>
+          <Card.Header>{i18next.t("Custom Date Range")}</Card.Header>
+          <Form onSubmit={handleSubmit} className="pt-10">
+            <Form.Group widths="equal">
+              <Form.Field>
+                <Grid>
+                  <Grid.Column width={3}>
+                    <Form.Field>
+                      <b>{i18next.t("From")}</b>
+                    </Form.Field>
+                  </Grid.Column>
+                  <Grid.Column width={5} className="pr-5">
+                    <Form.Field error={!!errors.startYear}>
+                      <label>{i18next.t("Year")}</label>
+                      <Input
+                        placeholder="YYYY"
+                        value={startYear}
+                        onChange={(e) => setStartYear(e.target.value)}
+                        maxLength={4}
+                      />
+                      {errors.startYear && (
+                        <div className="ui pointing red basic label">
+                          {errors.startYear}
+                        </div>
+                      )}
+                    </Form.Field>
+                  </Grid.Column>
+                  <Grid.Column width={4} className="pr-5 pl-5">
+                    <Form.Field error={!!errors.startMonth}>
+                      <label>{i18next.t("Month")}</label>
+                      <Input
+                        placeholder="MM"
+                        value={startMonth}
+                        onChange={(e) => setStartMonth(e.target.value)}
+                        maxLength={2}
+                      />
+                      {errors.startMonth && (
+                        <div className="ui pointing red basic label">
+                          {errors.startMonth}
+                        </div>
+                      )}
+                    </Form.Field>
+                  </Grid.Column>
+                  <Grid.Column width={4} className="pl-5">
+                    <Form.Field error={!!errors.startDay}>
+                      <label>{i18next.t("Day")}</label>
+                      <Input
+                        placeholder="DD"
+                        value={startDay}
+                        onChange={(e) => setStartDay(e.target.value)}
+                        maxLength={2}
+                      />
+                      {errors.startDay && (
+                        <div className="ui pointing red basic label">
+                          {errors.startDay}
+                        </div>
+                      )}
+                    </Form.Field>
+                  </Grid.Column>
+                </Grid>
+              </Form.Field>
+            </Form.Group>
+
+            <Form.Group widths="equal">
+              <Form.Field>
+                <Grid>
+                  <Grid.Column width={3}>
+                    <Form.Field>
+                      <b>{i18next.t("To")}</b>
+                    </Form.Field>
+                  </Grid.Column>
+                  <Grid.Column width={5} className="pr-5">
+                    <Form.Field error={!!errors.endYear}>
+                      <Input
+                        placeholder="YYYY"
+                        value={endYear}
+                        onChange={(e) => setEndYear(e.target.value)}
+                        maxLength={4}
+                      />
+                      {errors.endYear && (
+                        <div className="ui pointing red basic label">
+                          {errors.endYear}
+                        </div>
+                      )}
+                    </Form.Field>
+                  </Grid.Column>
+                  <Grid.Column width={4} className="pr-5 pl-5">
+                    <Form.Field error={!!errors.endMonth}>
+                      <Input
+                        placeholder="MM"
+                        value={endMonth}
+                        onChange={(e) => setEndMonth(e.target.value)}
+                        maxLength={2}
+                      />
+                      {errors.endMonth && (
+                        <div className="ui pointing red basic label">
+                          {errors.endMonth}
+                        </div>
+                      )}
+                    </Form.Field>
+                  </Grid.Column>
+                  <Grid.Column width={4} className="pl-5">
+                    <Form.Field error={!!errors.endDay}>
+                      <Input
+                        placeholder="DD"
+                        value={endDay}
+                        onChange={(e) => setEndDay(e.target.value)}
+                        maxLength={2}
+                      />
+                      {errors.endDay && (
+                        <div className="ui pointing red basic label">
+                          {errors.endDay}
+                        </div>
+                      )}
+                    </Form.Field>
+                  </Grid.Column>
+                </Grid>
+              </Form.Field>
+            </Form.Group>
+
+            <Form.Group className="pt-5 pb-0">
+              <Button type="submit" primary>
+                {i18next.t("Apply")}
+              </Button>
+              <Button type="button" onClick={handleClear}>
+                {i18next.t("Clear")}
+              </Button>
+              <Button type="button" onClick={handleCancel}>
+                {i18next.t("Cancel")}
+              </Button>
+            </Form.Group>
+          </Form>
+        </Card.Content>
+      </Card>
+    </Popup>
+  );
+};
+
+CustomDateRangePopup.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  initialStartDate: PropTypes.instanceOf(Date),
+  initialEndDate: PropTypes.instanceOf(Date),
+  triggerRef: PropTypes.object,
 };
 
 const DateRangeSelector = ({
@@ -364,7 +724,9 @@ const DateRangeSelector = ({
 }) => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isCustomRange, setIsCustomRange] = useState(false);
   const menuRef = useRef(null);
+  const customButtonRef = useRef(null);
   const todayDate = getCurrentUTCDate();
   const currentPeriodOptions = periodOptions[granularity];
   const [currentSelectedOption, setCurrentSelectedOption] = useState(
@@ -400,9 +762,50 @@ const DateRangeSelector = ({
   }, [granularity]);
 
   const handlePeriodChange = (e, { value }) => {
-    setCurrentSelectedOption(value);
-    const newDateRange = getDateRange(todayDate, value, maxHistoryYears);
+    if (value === "custom") {
+      setIsCustomRange(true);
+      setIsPopupOpen(true);
+      setIsOpen(false);
+    } else {
+      setCurrentSelectedOption(value);
+      setIsCustomRange(false);
+      const newDateRange = getDateRange(todayDate, value, maxHistoryYears);
+      setDateRange(newDateRange);
+
+      // Only update dataFetchRange if the new range extends beyond current dataFetchRange
+      if (
+        !dataFetchRange ||
+        newDateRange.start < dataFetchRange.start ||
+        newDateRange.end > dataFetchRange.end
+      ) {
+        setDataFetchRange(newDateRange);
+      }
+
+      setIsOpen(false);
+    }
+  };
+
+  const handleCustomRangeSubmit = (customDateRange) => {
+    setDateRange(customDateRange);
+    setCurrentSelectedOption("custom");
+    setIsCustomRange(true);
+
+    // Only update dataFetchRange if the new range extends beyond current dataFetchRange
+    if (
+      !dataFetchRange ||
+      customDateRange.start < dataFetchRange.start ||
+      customDateRange.end > dataFetchRange.end
+    ) {
+      setDataFetchRange(customDateRange);
+    }
+  };
+
+  const handleClearCustomRange = () => {
+    const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
+    const newDateRange = getDateRange(todayDate, defaultPeriod, maxHistoryYears);
     setDateRange(newDateRange);
+    setCurrentSelectedOption(defaultPeriod);
+    setIsCustomRange(false);
 
     // Only update dataFetchRange if the new range extends beyond current dataFetchRange
     if (
@@ -412,14 +815,7 @@ const DateRangeSelector = ({
     ) {
       setDataFetchRange(newDateRange);
     }
-
-    setIsOpen(false);
   };
-
-  // const handleCustomRangeChange = (startDate, endDate) => {
-  //   setDateRange({ start: startDate, end: endDate });
-  //   setIsPopupOpen(false);
-  // };
 
   const handleMenuOpen = () => {
     setIsOpen(true);
@@ -442,6 +838,15 @@ const DateRangeSelector = ({
         menuElement.style = "";
       }
     }, 100);
+  };
+
+  // Get display text for dropdown
+  const getDisplayText = () => {
+    if (isCustomRange) {
+      return i18next.t("Custom");
+    }
+    const selectedOption = currentPeriodOptions.find(option => option.value === currentSelectedOption);
+    return selectedOption ? selectedOption.text : currentPeriodOptions[0].text;
   };
 
   return (
@@ -469,65 +874,50 @@ const DateRangeSelector = ({
         onClose={handleMenuClose}
         onBlur={handleMenuClose}
         ref={menuRef}
+        text={getDisplayText()}
       />
-      {/* <Popup
-        content={
-          <Card>
-            <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>{i18next.t("Start Date")}</label>
-                  <input
-                    type="date"
-                    onChange={(e) => {
-                      const startDate = new Date(e.target.value);
-                      if (dateRange?.end) {
-                        handleCustomRangeChange(startDate, dateRange.end);
-                      }
-                    }}
-                  />
-                </Form.Field>
-                <Form.Field>
-                  <label>{i18next.t("End Date")}</label>
-                  <input
-                    type="date"
-                    onChange={(e) => {
-                      const endDate = new Date(e.target.value);
-                      if (dateRange?.start) {
-                        handleCustomRangeChange(dateRange.start, endDate);
-                      }
-                    }}
-                  />
-                </Form.Field>
-              </Form>
-            </Card.Content>
-          </Card>
-        }
-        on="click"
-        position="bottom right"
-        open={isPopupOpen}
-        onOpen={() => setIsPopupOpen(true)}
+
+      <Button
+        ref={customButtonRef}
+        fluid
+        icon="calendar"
+        labelPosition="right"
+        content={i18next.t("Custom")}
+        onClick={() => setIsPopupOpen(true)}
+        className="custom-range-button mt-10"
+      />
+
+      {isCustomRange && (
+        <Button
+          fluid
+          icon="refresh"
+          labelPosition="right"
+          content={i18next.t("Clear")}
+          onClick={handleClearCustomRange}
+          className="clear-custom-button mt-5"
+        />
+      )}
+
+      <CustomDateRangePopup
+        isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
-        trigger={
-          <Button
-            fluid
-            icon="calendar"
-            labelPosition="right"
-            content="custom range"
-            onClick={() => setIsPopupOpen(!isPopupOpen)}
-            className="custom-range-button mt-10"
-          />
-        }
-      /> */}
+        onSubmit={handleCustomRangeSubmit}
+        initialStartDate={dateRange?.start}
+        initialEndDate={dateRange?.end}
+        triggerRef={customButtonRef}
+      />
     </Segment>
   );
 };
 
 DateRangeSelector.propTypes = {
   dateRange: PropTypes.object,
+  dataFetchRange: PropTypes.object,
+  defaultRangeOptions: PropTypes.object,
   granularity: PropTypes.string,
   maxHistoryYears: PropTypes.number,
   setDateRange: PropTypes.func,
+  setDataFetchRange: PropTypes.func,
 };
 
 export { DateRangeSelector };

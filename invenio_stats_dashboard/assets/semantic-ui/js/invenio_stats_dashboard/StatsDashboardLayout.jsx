@@ -163,7 +163,6 @@ const StatsDashboardLayout = ({
 
   return (
     <StatsDashboardProvider value={contextValue}>
-      <>
         {showSubheader && (
           <div className="ui container fluid page-subheader-outer compact stats-dashboard-header ml-0-mobile mr-0-mobile">
             <div className="ui container stats-dashboard page-subheader flex align-items-center justify-space-between">
@@ -205,9 +204,14 @@ const StatsDashboardLayout = ({
                     name={tab.name}
                     onClick={handleTabChange}
                     active={selectedTab === tab.name}
+                    as="button"
+                    fluid
+                    tabIndex={0}
+                    aria-pressed={selectedTab === tab.name}
+                    role="tab"
                   >
+                    <span>{tab.label}</span>
                     <Icon name={tab.icon} />
-                    {tab.label}
                   </Menu.Item>
                 ))}
               </Menu>
@@ -260,7 +264,6 @@ const StatsDashboardLayout = ({
             </Grid.Column>
           </Grid.Row>
         </Container>
-      </>
     </StatsDashboardProvider>
   );
 };

@@ -7,7 +7,7 @@
 
 /* KCWorks Theme Variables for Stats Dashboard */
 @stats-primary: #276f86; /* KCWorks infoBlue */
-@stats-secondary: #1C4036; /* KCWorks ivy */
+@stats-secondary: #1c4036; /* KCWorks ivy */
 @stats-accent: #669999; /* KCWorks verdigris */
 @stats-accent-dark: #547d7d; /* KCWorks verdigrisDark */
 @stats-background: #eff6f4; /* KCWorks mint30 */
@@ -136,7 +136,17 @@
         text-align: left;
       }
       .button {
+        font-weight: normal;
+        padding-left: 1rem !important;
         background-color: transparent;
+        color: @stats-secondary !important;
+        border: 1px solid @stats-border;
+        box-shadow: none;
+        &.hover,
+        &.active {
+          background-color: darken(@stats-background, 5%) !important;
+          color: @stats-secondary !important;
+        }
       }
     }
     .ui.menu {
@@ -148,6 +158,25 @@
         border-left: 2px solid @stats-border;
         color: @stats-text !important;
         border-radius: 0;
+
+        // Button-specific styles for keyboard navigation
+        width: 100% !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        display: flex !important;
+        min-width: 100% !important;
+
+        // Multi-line text fixes
+        min-height: 3rem !important;
+        line-height: 1.4 !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+        padding-right: 1rem !important;
+
+        span {
+          text-align: left;
+        }
+
         &.active {
           background-color: transparent;
           border-left: 2px solid @stats-primary;
@@ -170,7 +199,9 @@
           background-color: @stats-background !important;
         }
         .icon {
-          float: right;
+          margin-left: 0.5rem !important;
+          margin-right: 0 !important;
+          height: 1.5rem;
         }
       }
     }
@@ -182,7 +213,7 @@
   }
   .buttons.separated {
     .button {
-        border-radius: 0.25rem;
+      border-radius: 0.25rem;
     }
     &.vertical {
       .button {
@@ -209,7 +240,6 @@
     padding: 1rem;
     background: #f8f9fa;
     border-radius: 4px;
-
   }
 
   .statistic {
@@ -242,7 +272,6 @@
     bottom: 0;
     min-height: 300px;
   }
-
 
   .stats-chart-loading-container {
     display: flex;
@@ -312,9 +341,7 @@
     height: 400px;
     min-height: 300px;
   }
-
 }
-
 
 .stats-chart-filter-selector {
   .ui.form fieldset {
@@ -328,6 +355,53 @@
       }
       .ui.radio.checkbox {
         margin-left: -1rem;
+      }
+    }
+  }
+}
+
+.custom-date-range-popup {
+  .card {
+    border: none;
+    box-shadow: none;
+
+    .form {
+      .fields {
+        .column {
+          .field {
+            label {
+              color: @stats-text-accent !important;
+            }
+          }
+          &:first-child {
+            .field {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            b {
+              display: block;
+              }
+            }
+          }
+        }
+        &:first-child {
+          .column:first-child {
+            .field {
+              padding-top: 1.5rem;
+            }
+          }
+        }
+        &:nth-child(3) {
+          padding-right: 0.25rem !important;
+          padding-left: 0.5rem !important;
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0 !important;
+        }
+      }
+      .button {
+        padding-right: 1rem !important;
+        padding-left: 1rem !important;
       }
     }
   }

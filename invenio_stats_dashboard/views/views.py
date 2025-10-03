@@ -235,11 +235,12 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
             # Cache the entire response
             json_data = json.dumps(results)
+            timeout = current_app.config.get("STATS_CACHE_DEFAULT_TIMEOUT", None)
             success = cache.set_cached_response(
                 content_type=content_type,
                 request_data=request_data,
                 response_data=json_data,
-                timeout=3600
+                timeout=timeout
             )
             current_app.logger.info(f"=== CACHE WRITE (ENTIRE RESPONSE) ===")
             current_app.logger.info(f"Content type: {content_type}")
