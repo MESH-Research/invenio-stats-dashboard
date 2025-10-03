@@ -343,37 +343,282 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span><span clas
 </section>
 <section id="cache">
 <h3><code class="docutils literal notranslate"><span class="pre">cache</span></code><a class="headerlink" href="#cache" title="Link to this heading">¶</a></h3>
-<p>Manage cached statistics data.</p>
+<p>Manage cached statistics data and proactively generate cache entries.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span><span class="o">[</span>SUBCOMMAND<span class="o">]</span><span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </pre></div>
 </div>
 <p><strong>Subcommands:</strong></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">generate</span></code>: Generate cached responses for all data series categories</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">clear-all</span></code>: Clear all cached statistics data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">clear-pattern</span></code>: Clear cache entries matching a pattern</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">clear-item</span></code>: Clear a specific cached statistics item</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">info</span></code>: Show cache information including size and item count</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">list</span></code>: List all cached statistics keys</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test</span></code>: Test cache functionality</p></li>
 </ul>
+<section id="cache-generate">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">generate</span></code><a class="headerlink" href="#cache-generate" title="Link to this heading">¶</a></h4>
+<p>Generate cached stats responses for all data series categories (record_delta, usage_delta, etc.) for specified communities and years.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--community-id</span></code>: Community ID(s) to generate cache for (can be specified multiple times). If not specified, generates for all communities plus global.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--community-slug</span></code>: Community slug(s) to generate cache for (can be specified multiple times).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--year</span></code>: Single year to generate cache for.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--years</span></code>: Year range to generate cache for (e.g., 2020-2023).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--all-years</span></code>: Generate cache for all years since community creation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--async</span></code>: Run cache generation asynchronously using Celery.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--force</span></code>: Overwrite existing cache entries.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code>: Show what would be done without actually generating cache.</p></li>
+</ul>
+<p><strong>Description:</strong>
+This command generates cached responses for all data series categories, including:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">record_delta</span></code> - Record count changes over time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">record_snapshot</span></code> - Record counts at specific points in time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usage_delta</span></code> - Usage count changes over time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usage_snapshot</span></code> - Usage counts at specific points in time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">record_delta_data_added</span></code> - Records added over time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">record_delta_data_removed</span></code> - Records removed over time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usage_delta_data_views</span></code> - View count changes over time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usage_delta_data_downloads</span></code> - Download count changes over time</p></li>
+</ul>
 <p><strong>Examples:</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear all cached data</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate cache for all communities + global for 2023</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span>
+
+<span class="c1"># Generate cache for specific community and year</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span>
+
+<span class="c1"># Generate cache for multiple communities</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--community-id<span class="w"> </span><span class="m">456</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span>
+
+<span class="c1"># Generate cache for community by slug</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-slug<span class="w"> </span>my-community<span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span>
+
+<span class="c1"># Generate cache for year range</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--years<span class="w"> </span><span class="m">2020</span>-2023
+
+<span class="c1"># Generate cache for all years since community creation</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--all-years
+
+<span class="c1"># Generate cache asynchronously using Celery</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span><span class="w"> </span>--async
+
+<span class="c1"># Dry run to see what would be done</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span><span class="w"> </span>--dry-run
+
+<span class="c1"># Overwrite existing cache entries</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span><span class="w"> </span>--force
+</pre></div>
+</div>
+<p><strong>Output Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dry run output</span>
+$<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span><span class="w"> </span>--dry-run
+Would<span class="w"> </span>generate<span class="w"> </span>cache<span class="w"> </span><span class="k">for</span>:
+<span class="w">  </span>Communities:<span class="w"> </span>global,<span class="w"> </span><span class="m">123</span>,<span class="w"> </span><span class="m">456</span>,<span class="w"> </span><span class="m">789</span>
+<span class="w">  </span>Years:<span class="w"> </span>year<span class="w"> </span><span class="m">2023</span>
+<span class="w">  </span>Categories:<span class="w"> </span>record_delta,<span class="w"> </span>record_snapshot,<span class="w"> </span>usage_delta,<span class="w"> </span>usage_snapshot,<span class="w"> </span>record_delta_data_added,<span class="w"> </span>record_delta_data_removed,<span class="w"> </span>usage_delta_data_views,<span class="w"> </span>usage_delta_data_downloads
+<span class="w">  </span>Total<span class="w"> </span>combinations:<span class="w"> </span><span class="m">32</span>
+
+<span class="c1"># Synchronous execution</span>
+$<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span>
+Generating<span class="w"> </span>cache...
+✅<span class="w"> </span>Cache<span class="w"> </span>generation<span class="w"> </span>completed
+📊<span class="w"> </span>Success:<span class="w"> </span><span class="m">8</span>,<span class="w"> </span>Failed:<span class="w"> </span><span class="m">0</span>
+
+<span class="c1"># Asynchronous execution</span>
+$<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span><span class="w"> </span>--async
+Generating<span class="w"> </span>cache...
+✅<span class="w"> </span>Cache<span class="w"> </span>generation<span class="w"> </span>started<span class="w"> </span><span class="k">in</span><span class="w"> </span>background
+📋<span class="w"> </span>Task<span class="w"> </span>IDs:<span class="w"> </span><span class="o">[</span><span class="s1">&#39;abc123-def456-ghi789&#39;</span>,<span class="w"> </span><span class="s1">&#39;jkl012-mno345-pqr678&#39;</span><span class="o">]</span>
+📊<span class="w"> </span>Total<span class="w"> </span>tasks:<span class="w"> </span><span class="m">8</span>
+</pre></div>
+</div>
+</section>
+<section id="cache-clear-all">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-all</span></code><a class="headerlink" href="#cache-clear-all" title="Link to this heading">¶</a></h4>
+<p>Clear all cached statistics data from Redis.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-all<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--force</span></code>: Skip confirmation prompt and clear all cache immediately.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--yes-i-know</span></code>: Bypass confirmation prompt.</p></li>
+</ul>
+<p><strong>Description:</strong>
+This command removes all cached statistics data from Redis. This will force all statistics queries to be recalculated on the next request.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear all cached data (interactive)</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-all
 
-<span class="c1"># Clear specific cache entry</span>
+<span class="c1"># Clear all cached data (non-interactive)</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-all<span class="w"> </span>--force<span class="w"> </span>--yes-i-know
+</pre></div>
+</div>
+</section>
+<section id="cache-clear-pattern">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-pattern</span></code><a class="headerlink" href="#cache-clear-pattern" title="Link to this heading">¶</a></h4>
+<p>Clear cache entries matching a Redis key pattern.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span>&lt;pattern&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Arguments:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pattern</span></code>: Redis key pattern to match (e.g., “<em>global</em>”, “<em>2023</em>”, “<em>record_delta</em>”).</p></li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--force</span></code>: Skip confirmation prompt and clear immediately.</p></li>
+</ul>
+<p><strong>Description:</strong>
+This command removes all cached statistics entries that match the given Redis key pattern. It shows a preview of what will be cleared before performing the operation. Use with caution as this can delete multiple entries.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear all global stats cache entries</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*global*&quot;</span>
+
+<span class="c1"># Clear all 2023 data cache entries</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*2023*&quot;</span>
+
+<span class="c1"># Clear all record delta cache entries</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*record_delta*&quot;</span>
+
+<span class="c1"># Clear without confirmation prompt</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*global*&quot;</span><span class="w"> </span>--force
+</pre></div>
+</div>
+<p><strong>Pattern Examples:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*global*</span></code> - All cache entries containing “global”</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*2023*</span></code> - All cache entries containing “2023”</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*record_delta*</span></code> - All cache entries containing “record_delta”</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats_dashboard:*community-123*</span></code> - All cache entries for community 123</p></li>
+</ul>
+</section>
+<section id="cache-clear-item">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-item</span></code><a class="headerlink" href="#cache-clear-item" title="Link to this heading">¶</a></h4>
+<p>Clear a specific cached statistics item.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-item<span class="w"> </span>&lt;community-id&gt;<span class="w"> </span>&lt;stat-name&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Arguments:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">community-id</span></code>: The ID of the community (or “global” for global stats). <strong>Required.</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stat-name</span></code>: The name of the statistics query to clear. <strong>Required.</strong></p></li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--start-date</span></code>: Start date for the cache entry (YYYY-MM-DD).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--end-date</span></code>: End date for the cache entry (YYYY-MM-DD).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--date-basis</span></code>: Date basis for the cache entry (added, created, published). Default: added.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--content-type</span></code>: Content type for the cache entry.</p></li>
+</ul>
+<p><strong>Description:</strong>
+This command removes a specific cached statistics entry based on the provided parameters. If the exact cache entry is not found, no error will be reported. The <code class="docutils literal notranslate"><span class="pre">community-id</span></code> and <code class="docutils literal notranslate"><span class="pre">stat-name</span></code> arguments are required - Click will display an error message if they are not provided.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear specific cache entry (minimal required arguments)</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-item<span class="w"> </span>global<span class="w"> </span>record_snapshots
 
-<span class="c1"># Show cache information</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>info
+<span class="c1"># Clear cache entry with specific date range</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-item<span class="w"> </span><span class="m">123</span><span class="w"> </span>record_delta<span class="w"> </span>--start-date<span class="w"> </span><span class="m">2023</span>-01-01<span class="w"> </span>--end-date<span class="w"> </span><span class="m">2023</span>-12-31
 
-<span class="c1"># List all cache keys</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>list
+<span class="c1"># Clear cache entry with specific date basis</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-item<span class="w"> </span><span class="m">123</span><span class="w"> </span>record_snapshot<span class="w"> </span>--date-basis<span class="w"> </span>published
 
-<span class="c1"># Test cache functionality</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span><span class="nb">test</span>
+<span class="c1"># Clear cache entry with content type</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-item<span class="w"> </span>global<span class="w"> </span>usage_delta<span class="w"> </span>--content-type<span class="w"> </span>application/json
+</pre></div>
+</div>
+<p><strong>Error Handling:</strong>
+If required arguments are missing, Click will display an error message like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Error</span><span class="p">:</span> <span class="n">Missing</span> <span class="n">argument</span> <span class="s1">&#39;COMMUNITY_ID&#39;</span><span class="o">.</span>
+<span class="n">Usage</span><span class="p">:</span> <span class="n">invenio</span> <span class="n">community</span><span class="o">-</span><span class="n">stats</span> <span class="n">cache</span> <span class="n">clear</span><span class="o">-</span><span class="n">item</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">COMMUNITY_ID</span> <span class="n">STAT_NAME</span>
+</pre></div>
+</div>
+</section>
+<section id="cache-info">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">info</span></code><a class="headerlink" href="#cache-info" title="Link to this heading">¶</a></h4>
+<p>Show cache information including size and item count.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>info
+</pre></div>
+</div>
+<p><strong>Description:</strong>
+This command displays detailed information about the cache, including:</p>
+<ul class="simple">
+<li><p>Cache type and Redis version</p></li>
+<li><p>Memory usage (human-readable format)</p></li>
+<li><p>Number of connected clients</p></li>
+<li><p>Timestamp of the information</p></li>
+</ul>
+<p><strong>Example Output:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>info
+Cache<span class="w"> </span>Information:
+<span class="w">  </span>Type:<span class="w"> </span>Redis<span class="w"> </span><span class="o">(</span>Direct<span class="o">)</span>
+<span class="w">  </span>Redis<span class="w"> </span>Version:<span class="w"> </span><span class="m">7</span>.2.5
+<span class="w">  </span>Used<span class="w"> </span>Memory:<span class="w"> </span><span class="m">2</span>.5<span class="w"> </span>MB
+<span class="w">  </span>Connected<span class="w"> </span>Clients:<span class="w"> </span><span class="m">16</span>
+<span class="w">  </span>Timestamp:<span class="w"> </span><span class="m">2025</span>-01-02T15:30:45.123456
+</pre></div>
+</div>
+</section>
+<section id="cache-list">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">list</span></code><a class="headerlink" href="#cache-list" title="Link to this heading">¶</a></h4>
+<p>List all cached statistics keys in Redis.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>list
+</pre></div>
+</div>
+<p><strong>Description:</strong>
+This command lists all cache keys that match the stats dashboard prefix pattern.</p>
+<p><strong>Example Output:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>list
+Found<span class="w"> </span><span class="m">4</span><span class="w"> </span>cache<span class="w"> </span>keys:
+<span class="w">  </span>stats_dashboard:a11839c6a5d422d3c4d9648788dee7c1a46e8ac8dc6de08fbe21dca4fcaac710
+<span class="w">  </span>stats_dashboard:6cbdeb7e24b466a449e91a779797715e25c64ce238a67a13f7ac66f588121989
+<span class="w">  </span>stats_dashboard:c25599406871db725e80bdf58d9ee88edb8d732205787731de8931e851c3b00f
+<span class="w">  </span>stats_dashboard:edf486b8ddc331f62e79671a35e7b923c3cfce8c11294ef187ac0f4b89df4ac8
+</pre></div>
+</div>
+</section>
+<section id="cache-test">
+<h4><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">test</span></code><a class="headerlink" href="#cache-test" title="Link to this heading">¶</a></h4>
+<p>Test cache functionality by performing a complete cache cycle.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span><span class="nb">test</span>
+</pre></div>
+</div>
+<p><strong>Description:</strong>
+This command performs a comprehensive test of the cache functionality by:</p>
+<ol class="arabic simple">
+<li><p>Creating a test cache entry</p></li>
+<li><p>Retrieving the cached data</p></li>
+<li><p>Verifying the data integrity</p></li>
+<li><p>Clearing the test entry</p></li>
+</ol>
+<p><strong>Example Output:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span><span class="nb">test</span>
+Testing<span class="w"> </span>cache<span class="w"> </span>functionality...
+✅<span class="w"> </span>Test<span class="w"> </span>cache<span class="w"> </span>entry<span class="w"> </span>created<span class="w"> </span>successfully
+✅<span class="w"> </span>Test<span class="w"> </span>cache<span class="w"> </span>entry<span class="w"> </span>retrieved<span class="w"> </span>successfully
+✅<span class="w"> </span>Data<span class="w"> </span>integrity<span class="w"> </span>verified
+✅<span class="w"> </span>Test<span class="w"> </span>cache<span class="w"> </span>entry<span class="w"> </span>cleaned<span class="w"> </span>up
+
+🎉<span class="w"> </span>Cache<span class="w"> </span>functionality<span class="w"> </span><span class="nb">test</span><span class="w"> </span>completed<span class="w"> </span>successfully!
 </pre></div>
 </div>
 <p><strong>Configuration Requirements:</strong></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">cache</span></code> commands require the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the commands will exit with an error message.</p>
+<p><strong>Cache Configuration:</strong></p>
+<p>The cache system uses the following configuration variables:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_CACHE_REDIS_DB</span></code>: Redis database number for stats cache (default: 7)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_CACHE_PREFIX</span></code>: Cache key prefix (default: “stats_dashboard”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_CACHE_DEFAULT_TIMEOUT</span></code>: Default cache timeout in seconds (default: None for no expiration)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_CACHE_COMPRESSION_METHOD</span></code>: Compression method (default: “brotli”)</p></li>
+</ul>
+</section>
 </section>
 <section id="status">
 <h3><code class="docutils literal notranslate"><span class="pre">status</span></code><a class="headerlink" href="#status" title="Link to this heading">¶</a></h3>
@@ -925,7 +1170,16 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>processes<
 <li><a class="reference internal" href="#core-commands">Core Commands</a><ul>
 <li><a class="reference internal" href="#aggregate"><code class="docutils literal notranslate"><span class="pre">aggregate</span></code></a></li>
 <li><a class="reference internal" href="#read"><code class="docutils literal notranslate"><span class="pre">read</span></code></a></li>
-<li><a class="reference internal" href="#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
+<li><a class="reference internal" href="#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a><ul>
+<li><a class="reference internal" href="#cache-generate"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">generate</span></code></a></li>
+<li><a class="reference internal" href="#cache-clear-all"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-all</span></code></a></li>
+<li><a class="reference internal" href="#cache-clear-pattern"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-pattern</span></code></a></li>
+<li><a class="reference internal" href="#cache-clear-item"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-item</span></code></a></li>
+<li><a class="reference internal" href="#cache-info"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">info</span></code></a></li>
+<li><a class="reference internal" href="#cache-list"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">list</span></code></a></li>
+<li><a class="reference internal" href="#cache-test"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">test</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#status"><code class="docutils literal notranslate"><span class="pre">status</span></code></a></li>
 <li><a class="reference internal" href="#destroy-indices"><code class="docutils literal notranslate"><span class="pre">destroy-indices</span></code></a></li>
 </ul>
