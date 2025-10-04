@@ -14,9 +14,13 @@ from typing import Any
 
 import click
 from flask.cli import with_appcontext
+from invenio_access.permissions import system_identity
+from invenio_communities.proxies import current_communities
+
 
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
+from ..tasks.cache_tasks import generate_cached_responses_task
 
 
 @click.group(name="cache")
@@ -498,16 +502,29 @@ def generate_cache_command(
             return 1
     else:
         try:
-            with click.progressbar(length=1, label="Generating cache...") as bar:
-                results = service.create(
+            if async_mode:
+                click.echo("Starting async cache generation...")
+                task = generate_cached_responses_task.delay(
                     community_ids=community_ids,
                     years=years_param,
                     force=force,
-                    async_mode=async_mode,
+                    async_mode=False,  # Task runs synchronously
+                    current_year_only=False
                 )
-                bar.update(1)
+                
+                click.echo(f"Task started with ID: {task.id}")
+                click.echo("Use Celery monitoring tools to track progress.")
+                return 0
+            else:
+                with click.progressbar(length=1, label="Generating cache...") as bar:
+                    results = service.create(
+                        community_ids=community_ids,
+                        years=years_param,
+                        force=force,
+                    )
+                    bar.update(1)
 
-            report_results(results)
+                report_results(results)
 
         except Exception as e:
             click.echo(f"Cache generation failed: {e}")
@@ -515,12 +532,18 @@ def generate_cache_command(
 
 
 def resolve_slug_to_id(slug: str) -> str:
-    """Resolve community slug to ID using existing community model."""
-    from invenio_communities.models import Community
-
-    community = Community.query.filter_by(slug=slug).first()
-    if community:
-        return str(community.id)
+    """Resolve community slug to ID using communities service."""
+    try:
+        communities_result = current_communities.service.search(
+            system_identity, 
+            params={"q": f"slug:{slug}"},
+            size=1
+        )
+        if communities_result.hits:
+            return communities_result.hits[0]["id"]
+    except Exception as e:
+        raise ValueError(f"Error searching for community with slug '{slug}': {e}")
+    
     raise ValueError(f"Community with slug '{slug}' not found")
 
 

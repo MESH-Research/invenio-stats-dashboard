@@ -11,13 +11,14 @@ from typing import Any
 
 import arrow
 from flask import current_app
-from invenio_communities.models import Community
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 
+from invenio_access.permissions import system_identity
+from invenio_communities.proxies import current_communities
+
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
-from ..tasks.cache_tasks import generate_cached_response_task
 
 
 class CachedResponseService:
@@ -74,10 +75,7 @@ class CachedResponseService:
                 if not self.exists(r.community_id, r.year, r.category)
             ]
 
-        if async_mode:
-            return self._create_async(responses)
-        else:
-            return self._create_sync(responses)
+        return self._create(responses)
 
     def read(
         self, community_id: str, year: int, category: str
@@ -204,9 +202,11 @@ class CachedResponseService:
             return []
 
     def _get_all_community_ids(self) -> list[str]:
-        """Get all community IDs from existing community model."""
+        """Get all community IDs from communities service."""
         try:
-            return [str(c.id) for c in Community.query.all()]
+            # Use scan to get all communities without size limits
+            communities_result = current_communities.service.scan(system_identity)
+            return [comm["id"] for comm in communities_result.hits]
         except Exception:
             current_app.logger.warning(
                 "Could not fetch community IDs, using global only"
@@ -243,9 +243,13 @@ class CachedResponseService:
     def _get_community_creation_year(self, community_id: str) -> int:
         """Get the creation year for a community."""
         try:
-            community = Community.query.get(community_id)
-            if community:
-                return community.created.year
+            community = current_communities.service.read(
+                system_identity, community_id
+            )
+            community_data = community.data
+            if "created" in community_data:
+                created_date = community_data["created"]
+                return arrow.get(created_date).year
         except Exception:
             pass
         return None
@@ -361,7 +365,7 @@ class CachedResponseService:
             )
             return False
 
-    def _create_sync(self, responses: list[CachedResponse]) -> dict[str, Any]:
+    def _create(self, responses: list[CachedResponse]) -> dict[str, Any]:
         """Create responses synchronously."""
         results = {"success": 0, "failed": 0, "errors": [], "responses": []}
 
@@ -381,22 +385,6 @@ class CachedResponseService:
                 })
 
         return results
-
-    def _create_async(self, responses: list[CachedResponse]) -> dict[str, Any]:
-        """Create responses asynchronously using Celery tasks."""
-        try:
-            task_ids = []
-            for response in responses:
-                task = generate_cached_response_task.delay(
-                    response.community_id, response.year, response.category
-                )
-                task_ids.append(task.id)
-
-            return {"async": True, "task_count": len(task_ids), "task_ids": task_ids}
-        except Exception as e:
-            current_app.logger.error(f"Failed to create async tasks: {e}")
-            # Fallback to sync
-            return self._create_sync(responses)
 
     def invalidate_cache(self, pattern: str | None = None) -> bool:
         """Invalidate cache entries matching the given pattern.

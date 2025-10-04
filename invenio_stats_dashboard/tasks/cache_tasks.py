@@ -13,7 +13,6 @@ from flask import current_app
 from celery.schedules import crontab
 
 from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
-from ..resources.cache_utils import StatsCache
 from ..services.cached_response_service import CachedResponseService
 
 
@@ -21,53 +20,8 @@ CachedResponsesGenerationTask = {
     "task": "invenio_stats_dashboard.tasks.generate_cached_responses_task",
     "schedule": crontab(minute="50", hour="*"),  # Run every hour at minute 50
     # community_ids, years, force, async_mode, current_year_only
-    "args": ("all", None, False, False, True),  
+    "args": ("all", None, False, False, True),
 }
-
-
-@shared_task
-def clear_expired_cache_task() -> dict:
-    """
-    Clear expired cache entries.
-
-    Returns:
-        dict - Results of the cleanup operation
-    """
-    try:
-        cache = StatsCache()
-        all_keys = cache.keys()
-
-        expired_count = 0
-        for key in all_keys:
-            try:
-                # Check if key has TTL
-                ttl = cache.redis_client.ttl(key)
-                if ttl == -2:  # Key doesn't exist
-                    continue
-                elif ttl == -1:  # Key exists but has no expiration
-                    continue
-                elif ttl > 0:  # Key has TTL but hasn't expired yet
-                    continue
-                else:  # Key has expired (TTL = 0)
-                    cache.redis_client.delete(key)
-                    expired_count += 1
-            except Exception as e:
-                current_app.logger.warning(f"Error checking TTL for key {key}: {e}")
-
-        current_app.logger.info(f"Cleared {expired_count} expired cache entries")
-
-        return {
-            'success': True,
-            'expired_count': expired_count,
-            'total_keys_checked': len(all_keys)
-        }
-
-    except Exception as e:
-        current_app.logger.error(f"Failed to clear expired cache: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
 
 
 @shared_task(ignore_result=False)
@@ -165,5 +119,4 @@ def generate_cached_responses_task(
             'success': False,
             'error': str(e)
         }
-
 
