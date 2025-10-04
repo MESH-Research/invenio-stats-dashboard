@@ -361,6 +361,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
                 - delta_doc.get("files", {}).get("removed", {}).get("data_volume", 0.0)
             ),
         )
+        new_dict["total_uploaders"] = (
+            new_dict.get("total_uploaders", 0) + delta_doc.get("uploaders", 0)
+        )
 
         # Update "all" subcounts by adding latest delta onto previous snapshot
         for subcount_key, config in self.subcount_configs.items():
