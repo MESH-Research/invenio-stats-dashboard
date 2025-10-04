@@ -61,7 +61,6 @@ class CachedResponse:
                     ),
                     "start_date": f"{self.year}-01-01",
                     "end_date": f"{self.year}-12-31",
-                    "category": self.category,
                 }
             }
         }
@@ -157,7 +156,7 @@ class CachedResponse:
 
         Stores just the data (not metadata) as JSON bytes, matching
         the existing cache format.
-        
+
         If data is already bytes (from cache passthrough), return as-is.
         Otherwise, encode dict to JSON bytes.
         """

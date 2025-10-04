@@ -11,11 +11,10 @@ from typing import Any
 
 import arrow
 from flask import current_app
-from invenio_search.proxies import current_search_client
-from invenio_search.utils import prefix_index
-
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
+from invenio_search.proxies import current_search_client
+from invenio_search.utils import prefix_index
 
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
@@ -31,26 +30,34 @@ class CachedResponseService:
     def __init__(self):
         """Initialize the service."""
         self.cache = StatsCache()
-        self.categories = [
-            "record_delta",
-            "record_snapshot",
-            "usage_delta",
-            "usage_snapshot",
-            "record_delta_data_added",
-            "record_delta_data_removed",
-            "usage_delta_data_views",
-            "usage_delta_data_downloads",
-        ]
+        self.categories = self._get_available_categories()
         self.default_timeout = current_app.config.get(
             "STATS_CACHE_DEFAULT_TIMEOUT", None
         )
+
+    def _get_available_categories(self) -> list[str]:
+        """Get available category queries from STATS_QUERIES configuration."""
+        configured_queries = current_app.config.get("STATS_QUERIES", {})
+
+        # Filter for category queries (those ending with "-category")
+        category_queries = [
+            query_name for query_name in configured_queries.keys()
+            if query_name.endswith("-category")
+        ]
+
+        if not category_queries:
+            current_app.logger.warning(
+                "No category queries found in STATS_QUERIES configuration"
+            )
+            return []
+
+        return category_queries
 
     def create(
         self,
         community_ids: str | list[str] | None = None,
         years: int | list[int] | str | None = None,
         force: bool = False,
-        async_mode: bool = False,
     ) -> Any:
         """Create cached responses for sets of communities, years, and categories.
 
@@ -58,24 +65,32 @@ class CachedResponseService:
             community_ids: str, list, or None - Community IDs to process
             years: int, list, str, or None - Years to process
             force: bool - Overwrite existing cache
-            async_mode: bool - Use Celery tasks
 
         Returns:
             dict - Results summary
         """
         community_ids = self._normalize_community_ids(community_ids)
-        years = self._normalize_years(years, community_ids)
+        years_per_community = self._normalize_years(years, community_ids)
 
-        responses = self._generate_all_response_objects(community_ids, years)
-
+        all_responses = self._generate_all_response_objects(
+            community_ids, years_per_community
+        )
         if not force:
-            responses = [
-                r
-                for r in responses
-                if not self.exists(r.community_id, r.year, r.category)
-            ]
+            skipped_count = 0
+            responses_to_process = []
+            for response in all_responses:
+                if self.exists(response.community_id, response.year, response.category):
+                    skipped_count += 1
+                else:
+                    responses_to_process.append(response)
+            responses = responses_to_process
+        else:
+            skipped_count = 0
+            responses = all_responses
 
-        return self._create(responses)
+        results = self._create(responses)
+        results['skipped'] = skipped_count
+        return results
 
     def read(
         self, community_id: str, year: int, category: str
@@ -188,18 +203,40 @@ class CachedResponseService:
 
     def _normalize_years(
         self, years: int | list[int] | str | None, community_ids: list[str]
-    ) -> list[int]:
-        """Convert various inputs to list of years."""
-        lifespan: list[int] = self._get_years_since_creation(community_ids)
-        first_year = sorted(lifespan)[0]
-        if years is None or years == "auto":
-            return lifespan
-        elif isinstance(years, int) and years in lifespan:
-            return [years]
-        elif isinstance(years, list):
-            return [y for y in years if int(y) >= first_year]
+    ) -> dict[str, list[int]]:
+        """Convert various inputs to years per community."""
+        result = {}
+
+        for community_id in community_ids:
+            # Get years valid for this specific community
+            community_lifespan = self._get_years_for_community(community_id)
+
+            if years is None or years == "auto":
+                result[community_id] = community_lifespan
+            elif isinstance(years, int):
+                if years in community_lifespan:
+                    result[community_id] = [years]
+                else:
+                    result[community_id] = []
+            elif isinstance(years, list):
+                result[community_id] = [y for y in years if y in community_lifespan]
+            else:
+                result[community_id] = []
+
+        return result
+
+    def _get_years_for_community(self, community_id: str) -> list[int]:
+        """Get valid years for a specific community based on its creation date."""
+        current_year = arrow.now().year
+
+        if community_id == "global":
+            first_record_year = self._get_first_record_creation_year()
+            return list(range(first_record_year, current_year + 1))
         else:
-            return []
+            creation_year = self._get_community_creation_year(community_id)
+            if not creation_year:
+                creation_year = self._get_first_record_creation_year()
+            return list(range(creation_year, current_year + 1))
 
     def _get_all_community_ids(self) -> list[str]:
         """Get all community IDs from communities service."""
@@ -213,68 +250,73 @@ class CachedResponseService:
             )
             return ["global"]
 
-    def _get_years_since_creation(self, community_ids: list[str]) -> list[int]:
-        """Get years since creation for given communities."""
-        years: set[int] = set()
-        current_year = arrow.now().year
-
-        for community_id in community_ids:
-            if community_id == "global":
-                first_record = self._get_first_record_creation_year()
-                years.update(range(first_record.year, current_year + 1))
-            else:
-                creation_year = self._get_community_creation_year(community_id)
-                if not creation_year:
-                    creation_year = self._get_first_record_creation_year()
-                years.update(range(creation_year, current_year + 1))
-
-        return sorted(list(years))
-
     def _get_first_record_creation_year(self) -> int:
         """Get the creation year for the first record."""
         first_record = current_search_client.search(
             index=prefix_index("rdmrecords-records"),
-            query={"match_all": {}},
-            size=1,
-            extra={"sort": [{"created": {"order": "asc"}}]},
+            body={
+                "query": {"match_all": {}},
+                "size": 1,
+                "sort": [{"created": {"order": "asc"}}]
+            }
         )
-        return first_record["hits"]["hits"][0]["_source"]["created"].year
+        created_date = first_record["hits"]["hits"][0]["_source"]["created"]
+        return arrow.get(created_date).year
 
-    def _get_community_creation_year(self, community_id: str) -> int:
-        """Get the creation year for a community."""
+    def _get_community_creation_year(self, community_id: str) -> int | None:
+        """Get the creation year for a community.
+
+        Because of issues with migrated community creation dates we base this on the
+        earliest stats-community-events records for each community.
+
+        Args:
+            community_id: The ID of the community to get the creation year for
+
+        Returns:
+            The creation year for the community, or None if no creation year is found
+        """
         try:
-            community = current_communities.service.read(
-                system_identity, community_id
+            earliest_event = current_search_client.search(
+                index=prefix_index("stats-community-events"),
+                body={
+                    "query": {"term": {"community_id": community_id}},
+                    "size": 1,
+                    "sort": [{"timestamp": {"order": "asc"}}]
+                }
             )
-            community_data = community.data
-            if "created" in community_data:
-                created_date = community_data["created"]
-                return arrow.get(created_date).year
-        except Exception:
-            pass
+
+            if earliest_event["hits"]["total"]["value"] > 0:
+                timestamp = earliest_event["hits"]["hits"][0]["_source"]["timestamp"]
+                return arrow.get(timestamp).year
+        except Exception as e:
+            current_app.logger.warning(
+                f"Could not find earliest event for community {community_id}: {e}"
+            )
         return None
 
     def _generate_all_response_objects(
-        self, community_ids: list[str], years: list[int]
+        self, community_ids: list[str], years: list[int] | dict[str, list[int]]
     ) -> list[CachedResponse]:
         """Generate CachedResponse objects for all combinations."""
         responses = []
 
         for community_id in community_ids:
-            for year in years:
+            # Get years for this specific community
+            if isinstance(years, dict):
+                community_years = years.get(community_id, [])
+            else:
+                # Fallback to original logic for backwards compatibility
+                community_years = years
+
+            for year in community_years:
                 for category in self.categories:
                     response = CachedResponse(community_id, year, category)
                     responses.append(response)
 
         return responses
 
-    # =========================================================================
-    # Business logic methods
-    # =========================================================================
-
     def generate_content(self, response: CachedResponse) -> dict[str, Any]:
-        """Generate the JSON content for cached response by executing
-        queries.
+        """Generate the JSON content by executing the data series queries.
 
         Args:
             response: CachedResponse instance to generate content for

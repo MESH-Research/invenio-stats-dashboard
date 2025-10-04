@@ -20,6 +20,7 @@ from invenio_communities.proxies import current_communities
 
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
+from ..services.cached_response_service import CachedResponseService
 from ..tasks.cache_tasks import generate_cached_responses_task
 
 
@@ -360,7 +361,7 @@ def test_cache_command(community_id, stat_name):
 
     click.echo("Testing cache functionality...")
 
-    # Test setting cache  
+    # Test setting cache
     click.echo("Setting test cache entry...")
     cache_key = CachedResponse.generate_cache_key(
         "application/json",
@@ -392,7 +393,7 @@ def test_cache_command(community_id, stat_name):
     # Clean up test entry
     click.echo("Cleaning up test cache entry...")
     success = cache.delete(cache_key)
-    
+
     if success:
         click.echo("✅ Test cache entry cleaned up")
     else:
@@ -414,12 +415,13 @@ def test_cache_command(community_id, stat_name):
 @click.option(
     "--community-slug", multiple=True, help="Community slug(s) to generate cache for"
 )
-@click.option("--year", type=int, help="Single year to generate cache for")
-@click.option("--years", help="Year range to generate cache for (e.g., 2020-2023)")
 @click.option(
-    "--all-years",
-    is_flag=True,
-    help="Generate cache for all years since community creation",
+    "--year", type=str,
+    multiple=True,
+    help=(
+        "Single year or year range to generate cache for (can be specified "
+        "multiple times)"
+    ),
 )
 @click.option(
     "--async",
@@ -435,7 +437,7 @@ def test_cache_command(community_id, stat_name):
 )
 @with_appcontext
 def generate_cache_command(
-    community_id, community_slug, year, years, all_years, async_mode, force, dry_run
+    community_id, community_slug, year, async_mode, force, dry_run
 ):
     r"""Generate cached stats responses for all data series categories.
 
@@ -446,6 +448,22 @@ def generate_cache_command(
     and the global instance. Multiple community IDs can be specified using
     --community-id multiple times.
 
+    Multiple years can be specified using --year multiple times or by
+    providing a year range (e.g., 2020-2023). If no years are specified, a
+    cached response will be generated for all years since community creation.
+
+    Arguments:  # noqa:D412
+
+    \b
+    - community_id: Community ID(s) to generate cache for
+      (can be specified multiple times)
+    - community_slug: Community slug(s) to generate cache for
+      (can be specified multiple times)
+    - year: Single year or year range to generate cache for
+      (can be specified multiple times)
+    - async_mode: Run cache generation asynchronously using Celery
+    - force: Overwrite existing cache entries
+    - dry_run: Show what would be done without actually generating cache
 
     Examples:  # noqa:D412
 
@@ -459,15 +477,12 @@ def generate_cache_command(
     - invenio community-stats cache generate --all-years --async
     - invenio community-stats cache generate --community-id global --year 2023 --dry-run
     """
-    from ..services.cached_response_service import CachedResponseService
-
     try:
         service = CachedResponseService()
     except Exception as e:
         click.echo(f"Failed to initialize cache service: {e}")
         return 1
 
-    # Resolve slugs to IDs
     community_ids = list(community_id)
     for slug in community_slug:
         try:
@@ -477,22 +492,20 @@ def generate_cache_command(
             click.echo(f"Failed to resolve community slug '{slug}': {e}")
             return 1
 
-    # Add 'global' and all communities if no communities specified
     if not community_ids:
         community_ids = ["global"] + service._get_all_community_ids()
 
-    if all_years:
-        years_param: list[int] | str = "auto"
-    elif years:
-        try:
-            years_param = parse_year_range(years)
-        except ValueError as e:
-            click.echo(f"Invalid year range format: {e}")
-            return 1
-    elif year:
-        years_param = [year]
-    else:
-        years_param = "auto"  # Default to all years
+    years_param: list[int] | str = "auto"
+    if year:
+        if isinstance(year, str):
+            if "-" in year:
+                years_param = parse_year_range(year)
+            else:
+                years_param = [int(year)]
+        elif isinstance(year, list | tuple):
+            years_param = [int(y) for y in year]
+        else:
+            years_param = "auto"
 
     if dry_run:
         try:
@@ -504,14 +517,14 @@ def generate_cache_command(
         try:
             if async_mode:
                 click.echo("Starting async cache generation...")
-                task = generate_cached_responses_task.delay(
+                task = generate_cached_responses_task.delay(  # type: ignore
                     community_ids=community_ids,
                     years=years_param,
                     force=force,
-                    async_mode=False,  # Task runs synchronously
+                    async_mode=True,
                     current_year_only=False
                 )
-                
+
                 click.echo(f"Task started with ID: {task.id}")
                 click.echo("Use Celery monitoring tools to track progress.")
                 return 0
@@ -535,7 +548,7 @@ def resolve_slug_to_id(slug: str) -> str:
     """Resolve community slug to ID using communities service."""
     try:
         communities_result = current_communities.service.search(
-            system_identity, 
+            system_identity,
             params={"q": f"slug:{slug}"},
             size=1
         )
@@ -543,7 +556,7 @@ def resolve_slug_to_id(slug: str) -> str:
             return communities_result.hits[0]["id"]
     except Exception as e:
         raise ValueError(f"Error searching for community with slug '{slug}': {e}")
-    
+
     raise ValueError(f"Community with slug '{slug}' not found")
 
 
@@ -561,24 +574,76 @@ def show_dry_run_results(
     community_ids: list[str], years: list[int] | str, categories: list[str]
 ) -> None:
     """Show what would be done in dry-run mode."""
-    if years == "auto":
-        years_display = "all years since creation"
-    elif isinstance(years, list):
-        years_display = f"years {min(years)}-{max(years)}"
-    else:
-        years_display = f"year {years}"
+    service = CachedResponseService()
 
-    total_combinations = (
-        len(community_ids) * len(years) * len(categories)
-        if years != "auto"
-        else "unknown (depends on community creation dates)"
-    )
+    years_per_community = service._normalize_years(years, community_ids)
+
+    # Calculate display info
+    all_years = set()
+    for community_years in years_per_community.values():
+        all_years.update(community_years)
+
+    if len(all_years) > 0:
+        years_display = f"years {min(all_years)}-{max(all_years)}"
+        total_combinations = sum(
+            len(years) * len(categories)
+            for years in years_per_community.values()
+        )
+    else:
+        years_display = "no valid years"
+        total_combinations = 0
 
     click.echo("Would generate cache for:")
     click.echo(f"  Communities: {', '.join(community_ids)}")
     click.echo(f"  Years: {years_display}")
     click.echo(f"  Categories: {', '.join(categories)}")
+
+    # Show per-community year breakdown
+    click.echo("  Year range per community:")
+    existing_count = 0
+    for community_id in community_ids:
+        community_years = years_per_community.get(community_id, [])
+        if len(community_years) > 0:
+            years_range = f"{min(community_years)}-{max(community_years)}"
+            combinations = len(community_years) * len(categories)
+            click.echo(f"    {community_id}: {years_range} ({combinations} entries)")
+
+            # Check existing entries for this community
+            for year in community_years:
+                for category in categories:
+                    if service.exists(community_id, year, category):
+                        existing_count += 1
+        else:
+            # Provide more specific messaging about why there are no valid years
+            if community_id == "global":
+                click.echo(f"    {community_id}: no valid years to cache (no records found)")
+            else:
+                # Check if this is because the requested time frame is before community existence
+                requested_years = []
+                if isinstance(years, list):
+                    requested_years = years
+                elif isinstance(years, int):
+                    requested_years = [years]
+
+                if requested_years:
+                    earliest_requested = min(requested_years)
+                    community_creation_year = service._get_community_creation_year(community_id)
+                    if community_creation_year and earliest_requested < community_creation_year:
+                        click.echo(f"    {community_id}: no valid years to cache (requested {min(requested_years)}-{max(requested_years)}, but community started in {community_creation_year})")
+                    else:
+                        click.echo(f"    {community_id}: no valid years to cache (no events found for this community)")
+                else:
+                    click.echo(f"    {community_id}: no valid years to cache (no events found for this community)")
+
     click.echo(f"  Total combinations: {total_combinations}")
+    if existing_count > 0:
+        click.echo(f"  Existing entries: {existing_count}")
+        click.echo(f"  New entries to create: {total_combinations - existing_count}")
+        click.echo("")
+        click.echo(f"⚠️  {existing_count} entries already exist in cache.")
+        click.echo("   Use --force to overwrite existing entries.")
+    else:
+        click.echo(f"  All {total_combinations} entries are new.")
 
 
 def report_results(results: dict[str, Any]) -> None:
@@ -589,8 +654,25 @@ def report_results(results: dict[str, Any]) -> None:
         click.echo(f"Total tasks: {results['task_count']}")
     else:
         click.echo("Cache generation completed")
-        click.echo(f"Success: {results['success']}, Failed: {results['failed']}")
-        if results["errors"]:
+
+        # Calculate skipped entries if we have the data
+        skipped = results.get('skipped', 0)
+        total_found = results['success'] + results['failed'] + skipped
+        if skipped > 0:
+            click.echo("Results:")
+            click.echo(f"  Success: {results['success']}")
+            click.echo(f"  Failed: {results['failed']}")
+            click.echo(f"  Skipped (already exist): {skipped}")
+            click.echo(f"  Total found: {total_found}")
+            click.echo("")
+            click.echo(
+                f"{skipped} entries were skipped because they already "
+                "exist in cache."
+            )
+            click.echo("   Use --force to overwrite existing entries.")
+        else:
+            click.echo(f"Success: {results['success']}, Failed: {results['failed']}")
+        if results.get("errors"):
             click.echo("❌ Errors:")
             for error in results["errors"]:
                 click.echo(
