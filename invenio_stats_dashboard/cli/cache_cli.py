@@ -15,6 +15,7 @@ from typing import Any
 import click
 from flask.cli import with_appcontext
 
+from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
 
 
@@ -57,7 +58,7 @@ def clear_all_cache_command(force, yes_i_know):
         )
 
     with click.progressbar(length=1, label="Clearing cache...") as bar:
-        success, deleted_count = cache.clear_all_cache()
+        success, deleted_count = cache.clear_all()
         bar.update(1)
 
     if success:
@@ -98,7 +99,7 @@ def clear_pattern_cache_command(pattern, force):
     cache = StatsCache()
 
     # Show what will be cleared
-    matching_keys = cache.list_cache_keys(pattern)
+    matching_keys = cache.keys(pattern)
 
     if not matching_keys:
         click.echo(f"No cache entries found matching pattern: {pattern}")
@@ -117,7 +118,7 @@ def clear_pattern_cache_command(pattern, force):
             return 0
 
     # Clear the cache entries
-    success, deleted_count = cache.clear_all_cache(pattern)
+    success, deleted_count = cache.clear_all(pattern)
 
     if success:
         click.echo(f"Successfully cleared {deleted_count} cache entries")
@@ -177,25 +178,28 @@ def clear_item_cache_command(
     """
     cache = StatsCache()
 
-    # Prepare parameters for cache key generation
-    cache_params = {
-        "community_id": community_id,
-        "stat_name": stat_name,
-        "start_date": start_date or "",
-        "end_date": end_date or "",
-        "date_basis": date_basis,
+    # Build request_data structure for key generation
+    request_data = {
+        stat_name: {
+            "params": {
+                "community_id": community_id,
+                "start_date": start_date or "",
+                "end_date": end_date or "",
+                "date_basis": date_basis,
+            }
+        }
     }
 
-    if content_type:
-        cache_params["content_type"] = content_type
-
     # Generate the cache key to show what will be cleared
-    cache_key = cache._generate_response_cache_key(**cache_params)
+    cache_key = CachedResponse.generate_cache_key(
+        content_type or "application/json",
+        request_data
+    )
 
     click.echo(f"Clearing cache entry: {cache_key}")
 
     # Clear the specific cache entry
-    success = cache.clear_cache_item(**cache_params)
+    success = cache.delete(cache_key)
 
     if success:
         click.echo("Cache entry cleared successfully")
@@ -276,7 +280,7 @@ def list_cache_keys_command(limit, pattern):
     """
     cache = StatsCache()
 
-    keys = cache.list_cache_keys()
+    keys = cache.keys()
 
     if not keys:
         click.echo("No cache entries found")
@@ -292,7 +296,7 @@ def list_cache_keys_command(limit, pattern):
     if limit > 0:
         keys = keys[:limit]
 
-    total_keys = len(cache.list_cache_keys())
+    total_keys = len(cache.keys())
     click.echo(f"Cache Keys (showing {len(keys)} of {total_keys}):")
     click.echo("=" * 60)
 
@@ -332,9 +336,16 @@ def test_cache_command(community_id, stat_name):
     - invenio community-stats cache test --community-id my-community \\
       --stat-name test_query
     """
-    cache = StatsCache(cache_prefix="test")
+    cache = StatsCache(cache_prefix="stats_test")
 
-    test_request_data = {"community_id": "global", "stat_name": "test"}
+    test_request_data = {
+        "test_stat": {
+            "params": {
+                "community_id": "global",
+                "stat_name": "test"
+            }
+        }
+    }
 
     # Test data
     test_data = {
@@ -345,12 +356,16 @@ def test_cache_command(community_id, stat_name):
 
     click.echo("Testing cache functionality...")
 
-    # Test setting cache
+    # Test setting cache  
     click.echo("Setting test cache entry...")
-    success = cache.set_cached_response(
+    cache_key = CachedResponse.generate_cache_key(
         "application/json",
         test_request_data,
-        json.dumps(test_data),
+        cache_prefix="stats_test"
+    )
+    success = cache.set(
+        cache_key,
+        json.dumps(test_data).encode('utf-8'),
         timeout=60,  # 1 minute timeout for test
     )
 
@@ -362,7 +377,7 @@ def test_cache_command(community_id, stat_name):
 
     # Test getting cache
     click.echo("Retrieving test cache entry...")
-    cached_data = cache.get_cached_response("application/json", test_request_data)
+    cached_data = cache.get(cache_key)
 
     if cached_data is None:
         click.echo("❌ Failed to retrieve test cache entry")
@@ -372,13 +387,12 @@ def test_cache_command(community_id, stat_name):
 
     # Clean up test entry
     click.echo("Cleaning up test cache entry...")
-    cache.invalidate_cache("test*")
-    cached_data_after = cache.get_cached_response("application/json", test_request_data)
-
-    if cached_data_after is None:
+    success = cache.delete(cache_key)
+    
+    if success:
         click.echo("✅ Test cache entry cleaned up")
     else:
-        click.echo("❌ Failed to clean up test cache entry with `invalidate_cache`")
+        click.echo("❌ Failed to clean up test cache entry")
         return 1
 
     click.echo("\n🎉 Cache functionality test completed successfully!")

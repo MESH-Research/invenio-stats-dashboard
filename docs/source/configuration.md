@@ -71,17 +71,90 @@ COMMUNITY_STATS_CATCHUP_INTERVAL = 365
 """Maximum number of days to catch up when aggregating historical data."""
 ```
 
-### Aggregation task locking
+### Task locking
 
-The following configuration variables control the locking mechanism for the aggregation task:
+The following configuration variables control the distributed locking mechanism for stats tasks:
 
 ```python
 STATS_DASHBOARD_LOCK_CONFIG = {
-    "enabled": True,  # Enable/disable distributed locking
-    "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
-    "lock_name": "community_stats_aggregation",  # Lock name
+    "enabled": True,  # Enable/disable distributed locking globally
+    "aggregation": {
+        "enabled": True,  # Enable/disable locking for aggregation tasks
+        "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
+        "lock_name": "community_stats_aggregation",  # Lock name
+    },
+    "response_caching": {
+        "enabled": True,  # Enable/disable locking for cache generation tasks
+        "lock_timeout": 3600,  # Lock timeout in seconds (1 hour)
+        "lock_name": "community_stats_cache_generation",  # Lock name
+    },
 }
 ```
+
+This configuration allows you to:
+- **Enable/disable locking globally** with the top-level `enabled` flag
+- **Configure each task type independently** with separate timeouts and lock names
+- **Allow concurrent execution** of different task types (aggregation and cache generation can run simultaneously)
+- **Prevent duplicate instances** of the same task type from running simultaneously
+
+### Cache generation scheduled tasks
+
+When `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` is set to `True`, both aggregation and cache generation tasks will run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.
+
+The schedule includes both tasks:
+
+```python
+from celery.schedules import crontab
+from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
+
+COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+    "stats-aggregate-community-record-stats": {
+        **CommunityStatsAggregationTask,  # Runs at minute 40
+    },
+    "stats-cache-hourly-generation": {
+        "task": "invenio_stats_dashboard.tasks.generate_hourly_cache_task",
+        "schedule": crontab(minute="50", hour="*"),  # Runs at minute 50
+    },
+}
+```
+
+#### Task timing
+
+By default, the cache generation task runs at minute 50 every hour, which is carefully timed to:
+- Run **10 minutes after** the stats aggregation task (minute 40) to ensure fresh data is available
+- Be **well-spaced** from other InvenioRDM scheduled tasks to avoid resource contention:
+  - minute 0: stats-aggregate-events
+  - minute 10: reindex-stats
+  - minute 25, 55: stats-process-events
+  - minute 40: stats-aggregate-community-record-stats
+  - minute 50: stats-cache-hourly-generation
+
+You can customize the schedule by overriding `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` in your `invenio.cfg` file:
+
+```python
+from celery.schedules import crontab
+from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
+
+COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+    "stats-aggregate-community-record-stats": {
+        **CommunityStatsAggregationTask,
+    },
+    "stats-cache-hourly-generation": {
+        "task": "invenio_stats_dashboard.tasks.generate_hourly_cache_task",
+        "schedule": crontab(minute="45", hour="*/2"),  # Run every 2 hours at minute 45
+    },
+}
+```
+
+#### What gets cached
+
+The hourly cache task generates cached responses for:
+- **All communities** in your instance
+- **The global stats** (instance-wide statistics)
+- **The current year** only
+- **All data series categories** (resource_types, subjects, languages, rights, funders, periodicals, publishers, affiliations, countries, referrers, file_types, access_statuses)
+
+This covers the most commonly accessed data and ensures that current year dashboard views load quickly. Historical data for previous years is cached on-demand when first accessed.
 
 ### Default range options
 
@@ -392,8 +465,8 @@ The following table provides a complete reference of all available configuration
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `COMMUNITY_STATS_ENABLED` | `True` | Enable/disable the entire module |
-| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `False` | Enable/disable scheduled aggregation tasks |
-| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for aggregation tasks |
+| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `False` | Enable/disable scheduled tasks (aggregation and cache generation) |
+| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for stats tasks (aggregation and cache generation) |
 | `COMMUNITY_STATS_CATCHUP_INTERVAL` | `365` | Maximum days to catch up when aggregating historical data |
 | `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
 | `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |

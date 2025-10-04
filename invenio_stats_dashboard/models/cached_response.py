@@ -1,29 +1,47 @@
 # Part of the Invenio-Stats-Dashboard extension for InvenioRDM
 # Copyright (C) 2025 Mesh Research
 #
-# Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
+# Invenio-Stats-Dashboard is free software; you can redistribute it and/or
+# modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """CachedResponse domain model for stats dashboard."""
 
+import hashlib
 import json
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
+import arrow
 from flask import current_app
 
 
 class CachedResponse:
-    """Represents a cached stats response for a specific community/year/category combination."""
+    """Domain model representing a cached stats response.
 
-    def __init__(self, community_id: str, year: int, category: str, cache_type: str = 'community'):
-        """
-        Initialize a cached response.
+    This is a pure data model that handles:
+    - Data structure and validation
+    - Cache key generation (knows what makes a response unique)
+    - Serialization/deserialization
+
+    It does NOT handle:
+    - Persistence (delegated to CachedResponseService + StatsCache)
+    - Query execution (delegated to CachedResponseService)
+    """
+
+    def __init__(
+        self,
+        community_id: str,
+        year: int,
+        category: str,
+        cache_type: str = "community",
+    ):
+        """Initialize a cached response.
 
         Args:
             community_id: Community ID or 'global' for global stats
             year: Year for the cached response
-            category: Data series category (e.g., 'record_delta', 'usage_delta')
+            category: Data series category (e.g., 'record_delta',
+                'usage_delta')
             cache_type: 'community' or 'global'
         """
         self.community_id = community_id
@@ -35,16 +53,31 @@ class CachedResponse:
         self._created_at = None
         self._expires_at = None
 
+        self.request_data = {
+            self.category: {
+                "params": {
+                    "community_id": (
+                        self.community_id if not self.is_global else "global"
+                    ),
+                    "start_date": f"{self.year}-01-01",
+                    "end_date": f"{self.year}-12-31",
+                    "category": self.category,
+                }
+            }
+        }
+
     @property
     def is_global(self) -> bool:
         """Check if this is a global stats response."""
-        return self.community_id == 'global'
+        return self.community_id == "global"
 
     @property
     def cache_key(self) -> str:
         """Get the cache key for this response."""
         if self._cache_key is None:
-            self._cache_key = self._generate_cache_key()
+            self._cache_key = self.generate_cache_key(
+                "application/json", self.request_data
+            )
         return self._cache_key
 
     @property
@@ -53,192 +86,119 @@ class CachedResponse:
         return self._data
 
     @property
+    def created_at(self) -> arrow.Arrow | None:
+        """Get the creation timestamp."""
+        return self._created_at
+
+    @property
+    def expires_at(self) -> arrow.Arrow | None:
+        """Get the expiration timestamp."""
+        return self._expires_at
+
+    @property
     def is_expired(self) -> bool:
         """Check if the cached response is expired."""
-        return self._expires_at and datetime.now() > self._expires_at
+        return self._expires_at and arrow.utcnow() > self._expires_at
 
-    def _generate_cache_key(self) -> str:
-        """Generate cache key using existing cache_utils logic."""
-        from ..resources.cache_utils import StatsCache
+    @staticmethod
+    def generate_cache_key(
+        content_type: str,
+        request_data: dict,
+        cache_prefix: str | None = None,
+    ) -> str:
+        """Generate a cache key for response caching.
 
-        # Create a mock request data structure that matches what the API expects
-        request_data = {
-            self.category: {
-                "params": {
-                    "community_id": self.community_id if not self.is_global else None,
-                    "start_date": f"{self.year}-01-01",
-                    "end_date": f"{self.year}-12-31",
-                    "category": self.category,
-                    "metric": "count"  # Default metric
-                }
-            }
-        }
+        The cache key is determined by the request data structure and
+        content type. This ensures consistent key generation across the
+        application.
 
-        # Use the existing cache key generation logic
-        cache = StatsCache()
-        return cache._generate_response_cache_key("application/json", request_data)
-
-    def generate_content(self) -> Dict[str, Any]:
-        """
-        Generate the JSON content for this cached response.
+        Args:
+            content_type: Content type for the response
+            request_data: Full request data dict
+            cache_prefix: Optional cache prefix override (defaults to
+                config value)
 
         Returns:
-            Generated response data
+            Cache key string
         """
-        from ..views.views import StatsDashboardAPIResource
+        if cache_prefix is None:
+            cache_prefix = current_app.config.get(
+                "STATS_CACHE_PREFIX", "stats_dashboard"
+            )
 
-        # Create request data that matches the API structure
-        request_data = {
-            self.category: {
-                "params": {
-                    "community_id": self.community_id if not self.is_global else None,
-                    "start_date": f"{self.year}-01-01",
-                    "end_date": f"{self.year}-12-31",
-                    "category": self.category,
-                    "metric": "count"
-                }
-            }
-        }
+        key_data = {"request_data": request_data}
+        if content_type:
+            key_data["content_type"] = content_type
 
-        # Use existing API resource logic to generate the response
-        resource = StatsDashboardAPIResource()
+        key_string = json.dumps(key_data, sort_keys=True)
+        key_hash = hashlib.sha256(key_string.encode()).hexdigest()
 
-        # Create a mock request context
-        class MockRequest:
-            def __init__(self, data):
-                self.json = data
-                self.content_type = "application/json"
-                self.get_json = lambda: data
+        return f"{cache_prefix}:{key_hash}"
 
-        # Generate the response using the existing logic
-        try:
-            # This is a simplified version - in practice, you'd need to call
-            # the actual query logic that the API uses
-            response_data = {
-                self.category: {
-                    "data": [],
-                    "metadata": {
-                        "community_id": self.community_id,
-                        "year": self.year,
-                        "category": self.category,
-                        "generated_at": datetime.now().isoformat()
-                    }
-                }
-            }
+    def set_data(
+        self,
+        data: dict[str, Any],
+        created_at: arrow.Arrow | None = None,
+        expires_at: arrow.Arrow | None = None,
+    ) -> None:
+        """Set the response data and metadata.
 
-            # Store the generated data
-            self._data = response_data
-            self._created_at = datetime.now()
-            self._expires_at = self._created_at + timedelta(days=30)  # 30-day TTL
+        Args:
+            data: Response data dictionary
+            created_at: Creation timestamp (defaults to now)
+            expires_at: Expiration timestamp (optional)
+        """
+        self._data = data
+        self._created_at = created_at or arrow.utcnow()
+        self._expires_at = expires_at
 
-            return response_data
+    def to_bytes(self) -> bytes:
+        """Convert to bytes for cache storage or response.
 
-        except Exception as e:
-            current_app.logger.error(f"Failed to generate content for {self.community_id}/{self.year}/{self.category}: {e}")
-            raise
-
-    def to_json(self) -> Dict[str, Any]:
-        """Convert the cached response to JSON format."""
-        return {
-            'community_id': self.community_id,
-            'year': self.year,
-            'category': self.category,
-            'cache_type': self.cache_type,
-            'cache_key': self.cache_key,
-            'data': self._data,
-            'created_at': self._created_at.isoformat() if self._created_at else None,
-            'expires_at': self._expires_at.isoformat() if self._expires_at else None
-        }
-
-    def save_to_cache(self) -> bool:
-        """Save this response to the cache using existing cache_utils."""
-        from ..resources.cache_utils import StatsCache
-
+        Stores just the data (not metadata) as JSON bytes, matching
+        the existing cache format.
+        
+        If data is already bytes (from cache passthrough), return as-is.
+        Otherwise, encode dict to JSON bytes.
+        """
         if self._data is None:
-            self.generate_content()
+            raise ValueError("Cannot serialize CachedResponse with no data")
+        # If already bytes (from cache passthrough), return as-is
+        if isinstance(self._data, bytes):
+            return self._data
+        # Otherwise encode dict to JSON bytes
+        return json.dumps(self._data).encode("utf-8")
 
-        # Create request data for cache storage
-        request_data = {
-            self.category: {
-                "params": {
-                    "community_id": self.community_id if not self.is_global else None,
-                    "start_date": f"{self.year}-01-01",
-                    "end_date": f"{self.year}-12-31",
-                    "category": self.category,
-                    "metric": "count"
-                }
-            }
-        }
+    @classmethod
+    def from_bytes(
+        cls,
+        data: bytes,
+        community_id: str,
+        year: int,
+        category: str,
+        cache_type: str = "community",
+        decode: bool = True,
+    ) -> "CachedResponse":
+        """Create CachedResponse from cached bytes.
 
-        cache = StatsCache()
-        json_data = json.dumps(self._data)
+        Args:
+            data: Cached data bytes
+            community_id: Community ID
+            year: Year
+            category: Category
+            cache_type: Cache type
+            decode: If True, decode bytes to dict. If False, store as bytes.
+                Only decode when you need to work with the data structure.
+                For passthrough (e.g. returning to client), keep as bytes.
 
-        # Use configured timeout or None for no expiration
-        timeout = current_app.config.get("STATS_CACHE_DEFAULT_TIMEOUT", None)
-
-        return cache.set_cached_response(
-            content_type="application/json",
-            request_data=request_data,
-            response_data=json_data,
-            timeout=timeout
-        )
-
-    def load_from_cache(self) -> bool:
-        """Load this response from the cache using existing cache_utils."""
-        from ..resources.cache_utils import StatsCache
-
-        # Create request data for cache lookup
-        request_data = {
-            self.category: {
-                "params": {
-                    "community_id": self.community_id if not self.is_global else None,
-                    "start_date": f"{self.year}-01-01",
-                    "end_date": f"{self.year}-12-31",
-                    "category": self.category,
-                    "metric": "count"
-                }
-            }
-        }
-
-        cache = StatsCache()
-        cached_data = cache.get_cached_response(
-            content_type="application/json",
-            request_data=request_data
-        )
-
-        if cached_data:
-            try:
-                self._data = json.loads(cached_data.decode('utf-8'))
-                return True
-            except Exception as e:
-                current_app.logger.warning(f"Failed to parse cached data: {e}")
-                return False
-
-        return False
-
-    def delete_from_cache(self) -> bool:
-        """Delete this response from the cache using existing cache_utils."""
-        from ..resources.cache_utils import StatsCache
-
-        # Create request data for cache deletion
-        request_data = {
-            self.category: {
-                "params": {
-                    "community_id": self.community_id if not self.is_global else None,
-                    "start_date": f"{self.year}-01-01",
-                    "end_date": f"{self.year}-12-31",
-                    "category": self.category,
-                    "metric": "count"
-                }
-            }
-        }
-
-        cache = StatsCache()
-        cache_key = cache._generate_response_cache_key("application/json", request_data)
-
-        try:
-            cache.redis_client.delete(cache_key)
-            return True
-        except Exception as e:
-            current_app.logger.warning(f"Failed to delete cache key {cache_key}: {e}")
-            return False
+        Returns:
+            Hydrated CachedResponse instance
+        """
+        response = cls(community_id, year, category, cache_type)
+        if decode:
+            response._data = json.loads(data.decode("utf-8"))
+        else:
+            # Store as bytes for passthrough - no unnecessary decode/encode
+            response._data = data
+        # We don't know the original timestamps from cached bytes
+        return response

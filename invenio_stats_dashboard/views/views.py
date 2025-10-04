@@ -25,8 +25,8 @@ from invenio_communities.views.decorators import pass_community
 from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
+from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
-from ..resources.serializers.basic_serializers import StatsJSONSerializer
 
 
 def global_stats_dashboard():
@@ -172,13 +172,13 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
             # Check for cached entire response first
             cache = StatsCache()
-            cached_response = cache.get_cached_response(
-                content_type=content_type,
-                request_data=request_data
+            cache_key = CachedResponse.generate_cache_key(
+                content_type, request_data
             )
+            cached_response = cache.get(cache_key)
 
             if cached_response is not None:
-                current_app.logger.info(f"=== CACHE HIT (ENTIRE RESPONSE) ===")
+                current_app.logger.info("=== CACHE HIT (ENTIRE RESPONSE) ===")
                 current_app.logger.info(f"Content type: {content_type}")
 
                 # For JSON content types, return cached bytes directly
@@ -195,7 +195,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                     return results
 
             # Cache miss - build results dictionary
-            current_app.logger.info(f"=== CACHE MISS (ENTIRE RESPONSE) ===")
+            current_app.logger.info("=== CACHE MISS (ENTIRE RESPONSE) ===")
             current_app.logger.info(f"Content type: {content_type}")
 
             results = {}
@@ -236,18 +236,20 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
             # Cache the entire response
             json_data = json.dumps(results)
             timeout = current_app.config.get("STATS_CACHE_DEFAULT_TIMEOUT", None)
-            success = cache.set_cached_response(
-                content_type=content_type,
-                request_data=request_data,
-                response_data=json_data,
+            # Convert timeout from days to seconds if specified
+            if timeout:
+                timeout = timeout * 86400
+            success = cache.set(
+                cache_key,
+                json_data.encode('utf-8'),
                 timeout=timeout
             )
-            current_app.logger.info(f"=== CACHE WRITE (ENTIRE RESPONSE) ===")
+            current_app.logger.info("=== CACHE WRITE (ENTIRE RESPONSE) ===")
             current_app.logger.info(f"Content type: {content_type}")
             current_app.logger.info(f"Cache write success: {success}")
 
             # Debug: Show what keys are in Redis after this write
-            all_keys = cache.list_cache_keys()
+            all_keys = cache.keys()
             current_app.logger.info(f"Total keys in Redis: {len(all_keys)}")
             for key in all_keys[:5]:  # Show first 5 stats keys
                 current_app.logger.info(f"  Key: {key}")

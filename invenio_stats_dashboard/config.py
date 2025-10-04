@@ -47,7 +47,9 @@ from .resources.serializers.wrapper_functions import (
     gzip_json_serializer_func,
     json_serializer_func,
 )
+
 from .tasks.aggregation_tasks import CommunityStatsAggregationTask
+from .tasks.cache_tasks import CachedResponsesGenerationTask
 
 COMMUNITY_STATS_ENABLED = True
 COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
@@ -56,7 +58,24 @@ COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
     "stats-aggregate-community-record-stats": {
         **CommunityStatsAggregationTask,
     },
+    "stats-cache-hourly-generation": {
+        **CachedResponsesGenerationTask,
+    },
 }
+"""Celery beat schedule for stats tasks.
+
+Includes both aggregation and cache generation tasks:
+- stats-aggregate-community-record-stats: Runs at minute 40 every hour
+- stats-cache-hourly-generation: Runs at minute 50 every hour (10 minutes
+  after aggregation to ensure fresh data is available)
+
+This timing is spaced from other InvenioRDM tasks:
+- minute 0: stats-aggregate-events
+- minute 10: reindex-stats
+- minute 25, 55: stats-process-events
+- minute 40: stats-aggregate-community-record-stats
+- minute 50: stats-cache-hourly-generation
+"""
 
 COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
 
@@ -77,11 +96,19 @@ STATS_DASHBOARD_UI_SUBCOUNTS: dict[str, dict] = {
     "access_statuses": {},
 }
 
-# Distributed lock configuration for aggregation tasks
+# Distributed lock configuration for stats tasks
 STATS_DASHBOARD_LOCK_CONFIG = {
-    "enabled": True,  # Enable/disable distributed locking
-    "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
-    "lock_name": "community_stats_aggregation",  # Lock name
+    "enabled": True,  # Enable/disable distributed locking globally
+    "aggregation": {
+        "enabled": True,  # Enable/disable locking for aggregation tasks
+        "lock_timeout": 86400,  # Lock timeout in seconds (24 hours)
+        "lock_name": "community_stats_aggregation",  # Lock name
+    },
+    "response_caching": {
+        "enabled": True,  # Enable/disable locking for cache generation tasks
+        "lock_timeout": 3600,  # Lock timeout in seconds (1 hour)
+        "lock_name": "community_stats_cache_generation",  # Lock name
+    },
 }
 
 STATS_DASHBOARD_TEMPLATES = {

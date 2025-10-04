@@ -6,70 +6,23 @@
 
 """Celery tasks for cache generation."""
 
+import arrow
 from celery import shared_task
 from flask import current_app
 
-from ..models.cached_response import CachedResponse
+from celery.schedules import crontab
+
+from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
+from ..resources.cache_utils import StatsCache
+from ..services.cached_response_service import CachedResponseService
 
 
-@shared_task
-def generate_cached_response_task(community_id: str, year: int, category: str) -> dict:
-    """
-    Generate a single cached response using CachedResponse.
-
-    Args:
-        community_id: Community ID or 'global'
-        year: Year for the cached response
-        category: Data series category
-
-    Returns:
-        dict - Task result with success status and details
-    """
-    try:
-        response = CachedResponse(community_id, year, category)
-        response.generate_content()
-        response.save_to_cache()
-
-        current_app.logger.info(
-            f"Successfully generated cache for {community_id}/{year}/{category}"
-        )
-
-        return {
-            'success': True,
-            'community_id': community_id,
-            'year': year,
-            'category': category,
-            'cache_key': response.cache_key
-        }
-    except Exception as e:
-        current_app.logger.error(
-            f"Failed to generate cache for {community_id}/{year}/{category}: {e}"
-        )
-        return {
-            'success': False,
-            'community_id': community_id,
-            'year': year,
-            'category': category,
-            'error': str(e)
-        }
-
-
-@shared_task
-def generate_batch_cache_task(community_year_category_triples: list) -> list:
-    """
-    Generate multiple cached responses in batch.
-
-    Args:
-        community_year_category_triples: List of (community_id, year, category) tuples
-
-    Returns:
-        list - Results for each task
-    """
-    results = []
-    for community_id, year, category in community_year_category_triples:
-        result = generate_cached_response_task(community_id, year, category)
-        results.append(result)
-    return results
+CachedResponsesGenerationTask = {
+    "task": "invenio_stats_dashboard.tasks.generate_cached_responses_task",
+    "schedule": crontab(minute="50", hour="*"),  # Run every hour at minute 50
+    # community_ids, years, force, async_mode, current_year_only
+    "args": ("all", None, False, False, True),  
+}
 
 
 @shared_task
@@ -81,10 +34,8 @@ def clear_expired_cache_task() -> dict:
         dict - Results of the cleanup operation
     """
     try:
-        from ..resources.cache_utils import StatsCache
-
         cache = StatsCache()
-        all_keys = cache.list_cache_keys()
+        all_keys = cache.keys()
 
         expired_count = 0
         for key in all_keys:
@@ -117,3 +68,102 @@ def clear_expired_cache_task() -> dict:
             'success': False,
             'error': str(e)
         }
+
+
+@shared_task(ignore_result=False)
+def generate_cached_responses_task(
+    community_ids: str | list[str] | None = None,
+    years: int | list[int] | str | None = None,
+    force: bool = False,
+    async_mode: bool = False,
+    current_year_only: bool = False,
+) -> dict:
+    """
+    Generate cached responses using CachedResponseService.
+
+    This task can be used for both scheduled runs and manual CLI operations.
+    It uses the existing CachedResponseService to generate cache for specified
+    communities and years.
+
+    Uses distributed locking to prevent multiple instances from running
+    simultaneously.
+
+    Args:
+        community_ids: Community IDs to process ('all', list, or None for all)
+        years: Years to process (int, list, or None for auto)
+        force: Whether to overwrite existing cache
+        async_mode: Whether to use async Celery tasks (not used in scheduled runs)
+        current_year_only: Whether to override years with current year only
+
+    Returns:
+        dict - Summary of the cache generation operation
+    """
+    try:
+        if current_year_only:
+            years = arrow.now().year
+
+        # Get lock configuration
+        lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
+        global_enabled = lock_config.get("enabled", True)
+        caching_config = lock_config.get("response_caching", {})
+        lock_enabled = global_enabled and caching_config.get("enabled", True)
+        lock_timeout = caching_config.get("lock_timeout", 3600)
+        lock_name = caching_config.get("lock_name", "community_stats_cache_generation")
+
+        service = CachedResponseService()
+
+        if lock_enabled:
+            lock = AggregationTaskLock(lock_name, timeout=lock_timeout)
+            try:
+                with lock:
+                    current_app.logger.info(
+                        f"Acquired cache generation lock, starting cache generation"
+                    )
+                    result = service.create(
+                        community_ids=community_ids,
+                        years=years,
+                        force=force,
+                        async_mode=async_mode
+                    )
+                    current_app.logger.info(
+                        f"Cache generation completed: {result}"
+                    )
+
+                    return result
+                    
+            except TaskLockAcquisitionError:
+                current_app.logger.warning(
+                    "Cache generation task skipped - another instance is already running"
+                )
+                return {
+                    'success': False,
+                    'skipped': True,
+                    'reason': 'Another cache generation task is already running',
+                    'community_ids': community_ids,
+                    'years': years
+                }
+        else:
+            # Run without locking
+            current_app.logger.info(
+                f"Running cache generation without distributed lock"
+            )
+            result = service.create(
+                community_ids=community_ids,
+                years=years,
+                force=force,
+                async_mode=async_mode
+            )
+            current_app.logger.info(
+                f"Cache generation completed: {result}"
+            )
+
+            return result
+
+    except Exception as e:
+        current_app.logger.error(f"Cache generation task failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+

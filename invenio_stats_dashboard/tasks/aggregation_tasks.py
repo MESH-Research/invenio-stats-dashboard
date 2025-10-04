@@ -338,9 +338,11 @@ def aggregate_community_record_stats(
 ) -> AggregationResponse:
     """Aggregate community record stats from created records."""
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
-    lock_enabled = lock_config.get("enabled", True)
-    lock_timeout = lock_config.get("lock_timeout", 3600)
-    lock_name = lock_config.get("lock_name", "community_stats_aggregation")
+    global_enabled = lock_config.get("enabled", True)
+    aggregation_config = lock_config.get("aggregation", {})
+    lock_enabled = global_enabled and aggregation_config.get("enabled", True)
+    lock_timeout = aggregation_config.get("lock_timeout", 86400)
+    lock_name = aggregation_config.get("lock_name", "community_stats_aggregation")
 
     if lock_enabled:
         lock = AggregationTaskLock(lock_name, timeout=lock_timeout)

@@ -118,7 +118,8 @@ class InvenioStatsDashboard:
     def init_config(self, app):
         """Initialize configuration."""
         for k in dir(config):
-            if k.startswith("STATS_DASHBOARD_") or k.startswith("COMMUNITY_STATS_"):
+            if (k.startswith("STATS_DASHBOARD_")
+                    or k.startswith("COMMUNITY_STATS_")):
                 app.config.setdefault(k, getattr(config, k))
 
         if not app.config.get("COMMUNITY_STATS_ENABLED", True):
@@ -136,8 +137,8 @@ class InvenioStatsDashboard:
         else:
             app.logger.info(
                 "Community stats scheduled tasks are disabled. "
-                "Scheduled aggregation tasks will not run, but manual "
-                "aggregation is still possible."
+                "Scheduled aggregation and cache generation tasks will not "
+                "run, but manual operations are still possible."
             )
 
         existing_events = app.config.get("STATS_EVENTS", {})
