@@ -319,16 +319,92 @@ an InvenioRDM instance or as environment variables.</p>
 </pre></div>
 </div>
 </section>
-<section id="aggregation-task-locking">
-<h2>Aggregation task locking<a class="headerlink" href="#aggregation-task-locking" title="Link to this heading">¶</a></h2>
-<p>The following configuration variables control the locking mechanism for the aggregation task:</p>
+<section id="task-locking">
+<h2>Task locking<a class="headerlink" href="#task-locking" title="Link to this heading">¶</a></h2>
+<p>The following configuration variables control the distributed locking mechanism for stats tasks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LOCK_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable distributed locking</span>
-    <span class="s2">&quot;lock_timeout&quot;</span><span class="p">:</span> <span class="mi">86400</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (24 hours)</span>
-    <span class="s2">&quot;lock_name&quot;</span><span class="p">:</span> <span class="s2">&quot;community_stats_aggregation&quot;</span><span class="p">,</span>  <span class="c1"># Lock name</span>
+    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable distributed locking globally</span>
+    <span class="s2">&quot;aggregation&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable locking for aggregation tasks</span>
+        <span class="s2">&quot;lock_timeout&quot;</span><span class="p">:</span> <span class="mi">86400</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (24 hours)</span>
+        <span class="s2">&quot;lock_name&quot;</span><span class="p">:</span> <span class="s2">&quot;community_stats_aggregation&quot;</span><span class="p">,</span>  <span class="c1"># Lock name</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;response_caching&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable locking for cache generation tasks</span>
+        <span class="s2">&quot;lock_timeout&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (1 hour)</span>
+        <span class="s2">&quot;lock_name&quot;</span><span class="p">:</span> <span class="s2">&quot;community_stats_cache_generation&quot;</span><span class="p">,</span>  <span class="c1"># Lock name</span>
+    <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>This configuration allows you to:</p>
+<ul class="simple">
+<li><p><strong>Enable/disable locking globally</strong> with the top-level <code class="docutils literal notranslate"><span class="pre">enabled</span></code> flag</p></li>
+<li><p><strong>Configure each task type independently</strong> with separate timeouts and lock names</p></li>
+<li><p><strong>Allow concurrent execution</strong> of different task types (aggregation and cache generation can run simultaneously)</p></li>
+<li><p><strong>Prevent duplicate instances</strong> of the same task type from running simultaneously</p></li>
+</ul>
+</section>
+<section id="cache-generation-scheduled-tasks">
+<h2>Cache generation scheduled tasks<a class="headerlink" href="#cache-generation-scheduled-tasks" title="Link to this heading">¶</a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, both aggregation and cache generation tasks will run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.</p>
+<p>The schedule includes both tasks:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">celery.schedules</span><span class="w"> </span><span class="kn">import</span> <span class="n">crontab</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
+
+<span class="n">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>  <span class="c1"># Runs at minute 40</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;stats-cache-hourly-generation&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.tasks.generate_hourly_cache_task&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;schedule&quot;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s2">&quot;50&quot;</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">),</span>  <span class="c1"># Runs at minute 50</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="task-timing">
+<h3>Task timing<a class="headerlink" href="#task-timing" title="Link to this heading">¶</a></h3>
+<p>By default, the cache generation task runs at minute 50 every hour, which is carefully timed to:</p>
+<ul class="simple">
+<li><p>Run <strong>10 minutes after</strong> the stats aggregation task (minute 40) to ensure fresh data is available</p></li>
+<li><p>Be <strong>well-spaced</strong> from other InvenioRDM scheduled tasks to avoid resource contention:</p>
+<ul>
+<li><p>minute 0: stats-aggregate-events</p></li>
+<li><p>minute 10: reindex-stats</p></li>
+<li><p>minute 25, 55: stats-process-events</p></li>
+<li><p>minute 40: stats-aggregate-community-record-stats</p></li>
+<li><p>minute 50: stats-cache-hourly-generation</p></li>
+</ul>
+</li>
+</ul>
+<p>You can customize the schedule by overriding <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span></code> in your <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">celery.schedules</span><span class="w"> </span><span class="kn">import</span> <span class="n">crontab</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
+
+<span class="n">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;stats-cache-hourly-generation&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.tasks.generate_hourly_cache_task&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;schedule&quot;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s2">&quot;45&quot;</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="s2">&quot;*/2&quot;</span><span class="p">),</span>  <span class="c1"># Run every 2 hours at minute 45</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="what-gets-cached">
+<h3>What gets cached<a class="headerlink" href="#what-gets-cached" title="Link to this heading">¶</a></h3>
+<p>The hourly cache task generates cached responses for:</p>
+<ul class="simple">
+<li><p><strong>All communities</strong> in your instance</p></li>
+<li><p><strong>The global stats</strong> (instance-wide statistics)</p></li>
+<li><p><strong>The current year</strong> only</p></li>
+<li><p><strong>All data series categories</strong> (resource_types, subjects, languages, rights, funders, periodicals, publishers, affiliations, countries, referrers, file_types, access_statuses)</p></li>
+</ul>
+<p>This covers the most commonly accessed data and ensures that current year dashboard views load quickly. Historical data for previous years is cached on-demand when first accessed.</p>
+</section>
 </section>
 <section id="default-range-options">
 <h2>Default range options<a class="headerlink" href="#default-range-options" title="Link to this heading">¶</a></h2>
@@ -637,11 +713,11 @@ range for each granularity level.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
-<td><p>Enable/disable scheduled aggregation tasks</p></td>
+<td><p>Enable/disable scheduled tasks (aggregation and cache generation)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
-<td><p>Celery beat schedule for aggregation tasks</p></td>
+<td><p>Celery beat schedule for stats tasks (aggregation and cache generation)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CATCHUP_INTERVAL</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">365</span></code></p></td>
@@ -852,7 +928,12 @@ range for each granularity level.</p>
 <li><a class="reference internal" href="#scheduled-tasks-enable-disable">Scheduled Tasks Enable/Disable</a></li>
 <li><a class="reference internal" href="#view-download-event-migration">View/Download event migration</a></li>
 <li><a class="reference internal" href="#task-scheduling-and-aggregation">Task scheduling and aggregation</a></li>
-<li><a class="reference internal" href="#aggregation-task-locking">Aggregation task locking</a></li>
+<li><a class="reference internal" href="#task-locking">Task locking</a></li>
+<li><a class="reference internal" href="#cache-generation-scheduled-tasks">Cache generation scheduled tasks</a><ul>
+<li><a class="reference internal" href="#task-timing">Task timing</a></li>
+<li><a class="reference internal" href="#what-gets-cached">What gets cached</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#default-range-options">Default range options</a></li>
 <li><a class="reference internal" href="#menu-configuration">Menu configuration</a></li>
 <li><a class="reference internal" href="#dashboard-layout-and-components">Dashboard layout and components</a></li>
