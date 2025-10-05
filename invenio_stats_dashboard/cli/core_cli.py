@@ -18,6 +18,7 @@ from halo import Halo
 
 from ..proxies import current_community_stats_service
 from ..tasks.aggregation_tasks import format_agg_startup_message
+from ..utils.process_manager import ProcessManager
 
 
 def check_stats_enabled():
@@ -60,9 +61,12 @@ def check_scheduled_tasks_enabled(command="aggregate"):
     help="The end date to aggregate stats for (YYYY-MM-DD)",
 )
 @click.option(
-    "--eager",
-    is_flag=True,
-    help="Run aggregation eagerly (synchronously)",
+    "--eager/--no-eager",
+    default=True,
+    help=(
+        "Run aggregation eagerly (synchronously). "
+        "Use --no-eager for async Celery execution."
+    ),
 )
 @click.option(
     "--update-bookmark",
@@ -96,14 +100,14 @@ def aggregate_stats_command(
     verbose,
     force,
 ):
-    """Aggregate community record statistics.
+    r"""Aggregate community record statistics.
 
     This command manually triggers the aggregation of statistics for one or more
     communities or the global instance. Aggregation processes usage events and
     community events to generate daily statistics.
 
 
-    Examples:
+    Examples:  #
 
     \b
     - invenio community-stats aggregate
@@ -163,6 +167,154 @@ def aggregate_stats_command(
         click.echo("Aggregation completed successfully.")
 
 
+@click.command(name="aggregate-background")
+@click.option(
+    "--community-id",
+    type=str,
+    multiple=True,
+    help="The UUID or slug of the community to aggregate stats for",
+)
+@click.option(
+    "--start-date",
+    type=str,
+    help="The start date to aggregate stats for (YYYY-MM-DD)",
+)
+@click.option(
+    "--end-date",
+    type=str,
+    help="The end date to aggregate stats for (YYYY-MM-DD)",
+)
+@click.option(
+    "--update-bookmark",
+    is_flag=True,
+    default=True,
+    help="Update the bookmark after aggregation",
+)
+@click.option(
+    "--ignore-bookmark",
+    is_flag=True,
+    help="Ignore the bookmark and process all records",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Show detailed timing information for each aggregator",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Force aggregation even if scheduled tasks are disabled",
+)
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory to store PID and status files.",
+)
+@with_appcontext
+def aggregate_stats_background_command(
+    community_id,
+    start_date,
+    end_date,
+    update_bookmark,
+    ignore_bookmark,
+    verbose,
+    force,
+    pid_dir,
+):
+    r"""Start aggregation in the background with process management.
+
+    This command provides the same functionality as `aggregate` but runs in the
+    background with full process management capabilities. It allows you to start
+    long-running aggregation processes without blocking the terminal.
+
+    The aggregation runs eagerly (synchronously within the background process),
+    not as a Celery task.
+
+    Examples:
+    \b
+    - invenio community-stats aggregate-background
+    - invenio community-stats aggregate-background \\
+        --community-id my-community-id
+    - invenio community-stats aggregate-background \\
+        --start-date 2024-01-01 --end-date 2024-01-31
+    - invenio community-stats aggregate-background \\
+        --verbose --ignore-bookmark
+    - invenio community-stats aggregate-background \\
+        --pid-dir /var/run/invenio-community-stats
+
+    Process management:
+    \b
+    - Monitor: invenio community-stats processes status aggregation
+    - Cancel: invenio community-stats processes cancel aggregation
+    - View logs: invenio community-stats processes status aggregation \\
+        --show-log
+    """
+    check_stats_enabled()
+
+    # Only check scheduled tasks if not forcing the operation
+    if not force:
+        check_scheduled_tasks_enabled(command="aggregate")
+
+    # Build the command to run
+    cmd = [
+        "invenio",
+        "community-stats",
+        "aggregate",
+        "--eager",  # Force eager execution in background process
+    ]
+
+    # Define option mappings for cleaner command building
+    option_mappings = [
+        ("--start-date", start_date),
+        ("--end-date", end_date),
+    ]
+
+    # Add single-value options
+    for option, value in option_mappings:
+        if value:
+            cmd.extend([option, value])
+
+    # Add multi-value options
+    if community_id:
+        for cid in community_id:
+            cmd.extend(["--community-id", cid])
+
+    # Add flag options
+    if ignore_bookmark:
+        cmd.append("--ignore-bookmark")
+    if verbose:
+        cmd.append("--verbose")
+    if force:
+        cmd.append("--force")
+    # Note: update-bookmark defaults to True, so we don't need to add it
+
+    process_manager = ProcessManager(
+        "aggregation", pid_dir, package_prefix="invenio-community-stats"
+    )
+
+    try:
+        pid = process_manager.start_background_process(cmd)
+        click.echo("\nBackground aggregation started successfully!")
+        click.echo(f"Process ID: {pid}")
+        click.echo(f"Command: {' '.join(cmd)}")
+
+        click.echo("\nMonitor progress:")
+        click.echo("  invenio community-stats processes status aggregation")
+        click.echo("  invenio community-stats processes status aggregation --show-log")
+
+        click.echo("\nCancel if needed:")
+        click.echo("  invenio community-stats processes cancel aggregation")
+
+    except RuntimeError as e:
+        click.echo(f"Failed to start background aggregation: {e}")
+        return 1
+
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}")
+        return 1
+
+
 @click.command(name="read")
 @click.option(
     "--community-id",
@@ -198,7 +350,7 @@ def aggregate_stats_command(
 )
 @with_appcontext
 def read_stats_command(community_id, start_date, end_date, query_type):
-    """Read and display statistics data for a community or instance.
+    r"""Read and display statistics data for a community or instance.
 
     This command retrieves and displays aggregated statistics data for a
     specific community or the global instance. It can show various types of
@@ -340,7 +492,7 @@ def _generate_completeness_bar(agg_status, start_date, total_days, bar_length=30
 )
 @with_appcontext
 def status_command(community_id, verbose):
-    """Get aggregation status for communities.
+    r"""Get aggregation status for communities.
 
     This command provides a comprehensive overview of the aggregation status
     for community statistics. It shows bookmark dates, document counts, and

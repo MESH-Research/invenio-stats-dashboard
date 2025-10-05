@@ -553,7 +553,7 @@ def resolve_slug_to_id(slug: str) -> str:
             size=1
         )
         if communities_result.hits:
-            return communities_result.hits[0]["id"]
+            return str(communities_result.hits[0]["id"])
     except Exception as e:
         raise ValueError(f"Error searching for community with slug '{slug}': {e}")
 

@@ -16,6 +16,7 @@ The process management system provides:
 
 Each background command creates a process with a specific name for monitoring and management:
 
+- **`aggregation`** - For `aggregate-background` command
 - **`event-migration`** - For `migrate-events-background` command
 - **`community-event-generation`** - For `generate-community-events-background` command
 - **`usage-event-generation`** - For `generate-usage-events-background` command
@@ -26,7 +27,34 @@ These process names are used with the monitoring commands:
 
 ## New CLI Commands
 
-### 1. `migrate-events-background`
+### 1. `aggregate-background`
+
+Start community statistics aggregation in the background with full process management.
+
+```bash
+# Basic background aggregation
+invenio community-stats aggregate-background
+
+# With custom parameters
+invenio community-stats aggregate-background \
+  --community-id my-community-slug \
+  --start-date 2024-01-01 \
+  --end-date 2024-01-31 \
+  --verbose
+
+# Custom PID directory
+invenio community-stats aggregate-background \
+  --pid-dir /var/run/invenio-community-stats
+```
+
+**Features:**
+- Runs the same aggregation logic as `aggregate` but in background
+- Creates PID files for process tracking
+- Captures all output to log files
+- Provides immediate feedback with monitoring commands
+- Runs eagerly (synchronously within the background process)
+
+### 2. `migrate-events-background`
 
 Start event migration in the background with full process management.
 
@@ -53,7 +81,7 @@ invenio community-stats migrate-events-background \
 - Captures all output to log files
 - Provides immediate feedback with monitoring commands
 
-### 2. `generate-community-events-background`
+### 3. `generate-community-events-background`
 
 Start community event generation in the background with full process management.
 
@@ -82,7 +110,7 @@ invenio community-stats generate-community-events-background \
 - Provides immediate feedback with monitoring commands
 - Supports filtering by community IDs and/or record IDs
 
-### 3. `generate-usage-events-background`
+### 4. `generate-usage-events-background`
 
 Start usage event generation in the background with full process management.
 
@@ -109,7 +137,7 @@ invenio community-stats generate-usage-events-background \
 - Provides immediate feedback with monitoring commands
 - Supports configurable date ranges, events per record, and enrichment options
 
-### 4. `process-status`
+### 5. `process-status`
 
 Monitor the status of a running background process.
 
@@ -135,7 +163,7 @@ invenio community-stats process-status event-migration --pid-dir /var/run/kcwork
 - Current task description
 - Recent log output (optional)
 
-### 5. `cancel-process`
+### 6. `cancel-process`
 
 Gracefully cancel a running background process.
 
@@ -156,7 +184,7 @@ invenio community-stats cancel-process event-migration --pid-dir /var/run/kcwork
 3. If graceful shutdown fails, sends SIGKILL
 4. Cleans up PID and status files
 
-### 6. `list-processes`
+### 7. `list-processes`
 
 List all currently running background processes.
 
@@ -200,7 +228,25 @@ The process manager creates the following files in the PID directory (default: `
 
 ## Use Cases
 
-### 1. Long-Running Migrations
+### 1. Background Statistics Aggregation
+
+```bash
+# Start aggregation in background
+invenio community-stats aggregate-background \
+  --verbose \
+  --ignore-bookmark
+
+# Check progress periodically
+invenio community-stats processes status aggregation
+
+# Monitor with logs
+invenio community-stats processes status aggregation --show-log
+
+# Cancel if needed
+invenio community-stats processes cancel aggregation
+```
+
+### 2. Long-Running Migrations
 
 ```bash
 # Start migration in background
@@ -218,7 +264,7 @@ invenio community-stats process-status event-migration --show-log
 invenio community-stats cancel-process event-migration
 ```
 
-### 2. Production Deployments
+### 3. Production Deployments
 
 ```bash
 # Use custom PID directory for production
@@ -234,7 +280,7 @@ invenio community-stats process-status event-migration --pid-dir /var/run/inveni
 invenio community-stats list-processes --pid-dir /var/run/invenio-community-stats
 ```
 
-### 3. Community Event Generation
+### 4. Community Event Generation
 
 ```bash
 # Start community event generation in background
@@ -251,7 +297,7 @@ invenio community-stats process-status community-event-generation --show-log
 invenio community-stats cancel-process community-event-generation
 ```
 
-### 4. Development and Testing
+### 5. Development and Testing
 
 ```bash
 # Start with limited batches for testing
@@ -266,7 +312,7 @@ watch -n 5 'invenio community-stats process-status event-migration'
 invenio community-stats cancel-process event-migration
 ```
 
-### 5. Usage Event Generation
+### 6. Usage Event Generation
 
 ```bash
 # Start usage event generation in background
@@ -372,6 +418,8 @@ rm -f /tmp/usage-event-generation.*
 
 The new process management commands complement the existing CLI:
 
+- `aggregate` - Synchronous execution (existing, default eager=True)
+- `aggregate-background` - Background execution with management (new)
 - `generate-community-events` - Synchronous execution (existing)
 - `generate-community-events-background` - Background execution with management (new)
 - `generate-usage-events` - Synchronous execution (existing)

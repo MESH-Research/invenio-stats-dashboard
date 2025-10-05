@@ -1,4 +1,4 @@
-## CLI Commands
+# CLI Commands
 
 The `invenio-stats-dashboard` module provides CLI commands for managing statistics infrastructure, migrating events, and monitoring progress. All commands are available as subcommands under the `invenio community-stats` command, organized into command groups.
 
@@ -13,16 +13,18 @@ invenio community-stats aggregate [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id`: The UUID or slug of the community to aggregate stats for. Can be specified multiple times. If not specified, aggregates for all communities and the global instance.
 - `--start-date`: The start date to aggregate stats for (YYYY-MM-DD). Default: creation/publication/adding of the first record.
 - `--end-date`: The end date to aggregate stats for (YYYY-MM-DD). Default: today.
-- `--eager`: Run aggregation eagerly (synchronously) rather than asynchronously.
+- `--eager/--no-eager`: Run aggregation eagerly (synchronously). Default: True (synchronous). Use `--no-eager` for asynchronous Celery execution (blocks until complete).
 - `--update-bookmark`: Update the progress bookmark after aggregation (default: True).
 - `--ignore-bookmark`: Ignore the progress bookmark and force a full re-aggregation.
 - `--verbose`: Show detailed timing information for each aggregator.
 - `--force`: Force aggregation even if scheduled tasks are disabled. Bypasses the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration check.
 
 **Examples:**
+
 ```bash
 # Aggregate stats for all communities and the global instance
 invenio community-stats aggregate
@@ -33,11 +35,14 @@ invenio community-stats aggregate --community-id my-community-id
 # Aggregate stats for specific date range
 invenio community-stats aggregate --start-date 2024-01-01 --end-date 2024-01-31
 
-# Force eager aggregation with verbose output
-invenio community-stats aggregate --eager --ignore-bookmark --verbose
+# Run with verbose output
+invenio community-stats aggregate --ignore-bookmark --verbose
 
 # Force aggregation when scheduled tasks are disabled
 invenio community-stats aggregate --force --verbose
+
+# Run asynchronously via Celery (blocks until complete, but runs in worker)
+invenio community-stats aggregate --no-eager --verbose
 ```
 
 **Configuration Requirements:**
@@ -53,6 +58,72 @@ The `aggregate` command requires specific configuration settings to function pro
 - If `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` is `False` and `--force` is not provided, the command will exit with an error message suggesting to use `--force`.
 - When `--force` is used, the command will log that it's bypassing the scheduled tasks check.
 
+#### `aggregate-background`
+
+Start community statistics aggregation in the background with full process management.
+
+```bash
+invenio community-stats aggregate-background [OPTIONS]
+```
+
+This command provides the same functionality as `aggregate` but runs in the background as a separate process, allowing you to start long-running aggregations without blocking your terminal. The aggregation runs eagerly (synchronously within the background process), not as a Celery task.
+
+**Options:**
+
+- `--community-id`: The UUID or slug of the community to aggregate stats for. Can be specified multiple times.
+- `--start-date`: The start date to aggregate stats for (YYYY-MM-DD).
+- `--end-date`: The end date to aggregate stats for (YYYY-MM-DD).
+- `--update-bookmark`: Update the progress bookmark after aggregation (default: True).
+- `--ignore-bookmark`: Ignore the progress bookmark and force a full re-aggregation.
+- `--verbose`: Show detailed timing information for each aggregator.
+- `--force`: Force aggregation even if scheduled tasks are disabled.
+- `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
+
+**Examples:**
+
+```bash
+# Start aggregation in background
+invenio community-stats aggregate-background
+
+# Aggregate specific community with verbose output
+invenio community-stats aggregate-background --community-id my-community --verbose
+
+# Aggregate with date range
+invenio community-stats aggregate-background --start-date 2024-01-01 --end-date 2024-01-31
+
+# Use custom PID directory for production
+invenio community-stats aggregate-background --pid-dir /var/run/invenio-community-stats
+
+# Monitor the background process
+invenio community-stats processes status aggregation
+
+# View logs from the background process
+invenio community-stats processes status aggregation --show-log
+
+# Cancel the background process if needed
+invenio community-stats processes cancel aggregation
+```
+
+**Process Management:**
+
+After starting a background aggregation, you can:
+
+- Monitor progress: `invenio community-stats processes status aggregation`
+- View logs: `invenio community-stats processes status aggregation --show-log`
+- Cancel process: `invenio community-stats processes cancel aggregation`
+
+The command creates the following files in the PID directory:
+
+- `invenio-community-stats-aggregation.pid`: Process ID
+- `invenio-community-stats-aggregation.status`: JSON status information
+- `invenio-community-stats-aggregation.log`: Process output and logs
+
+**When to Use:**
+
+- Use `aggregate` for interactive execution with immediate results
+- Use `aggregate-background` for long-running aggregations that you want to monitor separately
+- Use `aggregate --no-eager` if you need Celery task execution (though it still blocks)
+
 #### `read`
 
 Read and display statistics data for a community or instance.
@@ -62,6 +133,7 @@ invenio community-stats read [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id`: The ID of the community to read stats for (default: "global").
 - `--start-date`: The start date to read stats for (default: yesterday).
 - `--end-date`: The end date to read stats for (default: today).
@@ -76,6 +148,7 @@ invenio community-stats read [OPTIONS]
   - `community-usage-snapshot`
 
 **Examples:**
+
 ```bash
 # Read global stats for yesterday
 invenio community-stats read
@@ -118,6 +191,7 @@ invenio community-stats cache generate [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id`: Community ID(s) to generate cache for (can be specified multiple times). If not specified, generates for all communities plus global.
 - `--community-slug`: Community slug(s) to generate cache for (can be specified multiple times).
 - `--year`: Single year to generate cache for.
@@ -129,6 +203,7 @@ invenio community-stats cache generate [OPTIONS]
 
 **Description:**
 This command generates cached responses for all data series categories, including:
+
 - `record_delta` - Record count changes over time
 - `record_snapshot` - Record counts at specific points in time
 - `usage_delta` - Usage count changes over time
@@ -139,6 +214,7 @@ This command generates cached responses for all data series categories, includin
 - `usage_delta_data_downloads` - Download count changes over time
 
 **Examples:**
+
 ```bash
 # Generate cache for all communities + global for 2023
 invenio community-stats cache generate --year 2023
@@ -169,6 +245,7 @@ invenio community-stats cache generate --community-id 123 --year 2023 --force
 ```
 
 **Output Examples:**
+
 ```bash
 # Dry run output
 $ invenio community-stats cache generate --year 2023 --dry-run
@@ -201,6 +278,7 @@ invenio community-stats cache clear-all [OPTIONS]
 ```
 
 **Options:**
+
 - `--force`: Skip confirmation prompt and clear all cache immediately.
 - `--yes-i-know`: Bypass confirmation prompt.
 
@@ -208,6 +286,7 @@ invenio community-stats cache clear-all [OPTIONS]
 This command removes all cached statistics data from Redis. This will force all statistics queries to be recalculated on the next request.
 
 **Examples:**
+
 ```bash
 # Clear all cached data (interactive)
 invenio community-stats cache clear-all
@@ -225,15 +304,18 @@ invenio community-stats cache clear-pattern <pattern> [OPTIONS]
 ```
 
 **Arguments:**
-- `pattern`: Redis key pattern to match (e.g., "*global*", "*2023*", "*record_delta*").
+
+- `pattern`: Redis key pattern to match (e.g., "_global_", "_2023_", "_record_delta_").
 
 **Options:**
+
 - `--force`: Skip confirmation prompt and clear immediately.
 
 **Description:**
 This command removes all cached statistics entries that match the given Redis key pattern. It shows a preview of what will be cleared before performing the operation. Use with caution as this can delete multiple entries.
 
 **Examples:**
+
 ```bash
 # Clear all global stats cache entries
 invenio community-stats cache clear-pattern "*global*"
@@ -249,6 +331,7 @@ invenio community-stats cache clear-pattern "*global*" --force
 ```
 
 **Pattern Examples:**
+
 - `*global*` - All cache entries containing "global"
 - `*2023*` - All cache entries containing "2023"
 - `*record_delta*` - All cache entries containing "record_delta"
@@ -263,10 +346,12 @@ invenio community-stats cache clear-item <community-id> <stat-name> [OPTIONS]
 ```
 
 **Arguments:**
+
 - `community-id`: The ID of the community (or "global" for global stats). **Required.**
 - `stat-name`: The name of the statistics query to clear. **Required.**
 
 **Options:**
+
 - `--start-date`: Start date for the cache entry (YYYY-MM-DD).
 - `--end-date`: End date for the cache entry (YYYY-MM-DD).
 - `--date-basis`: Date basis for the cache entry (added, created, published). Default: added.
@@ -276,6 +361,7 @@ invenio community-stats cache clear-item <community-id> <stat-name> [OPTIONS]
 This command removes a specific cached statistics entry based on the provided parameters. If the exact cache entry is not found, no error will be reported. The `community-id` and `stat-name` arguments are required - Click will display an error message if they are not provided.
 
 **Examples:**
+
 ```bash
 # Clear specific cache entry (minimal required arguments)
 invenio community-stats cache clear-item global record_snapshots
@@ -292,6 +378,7 @@ invenio community-stats cache clear-item global usage_delta --content-type appli
 
 **Error Handling:**
 If required arguments are missing, Click will display an error message like:
+
 ```
 Error: Missing argument 'COMMUNITY_ID'.
 Usage: invenio community-stats cache clear-item [OPTIONS] COMMUNITY_ID STAT_NAME
@@ -307,12 +394,14 @@ invenio community-stats cache info
 
 **Description:**
 This command displays detailed information about the cache, including:
+
 - Cache type and Redis version
 - Memory usage (human-readable format)
 - Number of connected clients
 - Timestamp of the information
 
 **Example Output:**
+
 ```bash
 $ invenio community-stats cache info
 Cache Information:
@@ -335,6 +424,7 @@ invenio community-stats cache list
 This command lists all cache keys that match the stats dashboard prefix pattern.
 
 **Example Output:**
+
 ```bash
 $ invenio community-stats cache list
 Found 4 cache keys:
@@ -354,12 +444,14 @@ invenio community-stats cache test
 
 **Description:**
 This command performs a comprehensive test of the cache functionality by:
+
 1. Creating a test cache entry
 2. Retrieving the cached data
 3. Verifying the data integrity
 4. Clearing the test entry
 
 **Example Output:**
+
 ```bash
 $ invenio community-stats cache test
 Testing cache functionality...
@@ -378,6 +470,7 @@ The `cache` commands require the `COMMUNITY_STATS_ENABLED` configuration to be s
 **Cache Configuration:**
 
 The cache system uses the following configuration variables:
+
 - `STATS_CACHE_REDIS_DB`: Redis database number for stats cache (default: 7)
 - `STATS_CACHE_PREFIX`: Cache key prefix (default: "stats_dashboard")
 - `STATS_CACHE_DEFAULT_TIMEOUT`: Default cache timeout in seconds (default: None for no expiration)
@@ -392,6 +485,7 @@ invenio community-stats status [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id, -c`: The ID of the community to check status for. Can be specified multiple times to check status for multiple communities. If not provided, checks all communities.
 - `--verbose, -v`: Show detailed information for each aggregation.
 
@@ -405,10 +499,12 @@ This command provides a comprehensive overview of the aggregation status for com
 - **Completeness visualization**: ASCII bar charts showing the proportion of time covered by each aggregation
 
 The command supports two output modes:
+
 - **Concise mode (default)**: One line per aggregation with abbreviated names and compact completeness bars
 - **Verbose mode (`--verbose`)**: Detailed information including all the information listed above.
 
 **Examples:**
+
 ```bash
 # Check status for all communities (concise view)
 invenio community-stats status
@@ -439,6 +535,7 @@ invenio community-stats destroy-indices [OPTIONS]
 ```
 
 **Options:**
+
 - `--yes-i-know`: Skip confirmation prompt (required for non-interactive use).
 - `--force`: Force deletion even if some indices don't exist (ignore 404 errors).
 
@@ -468,6 +565,7 @@ However, if the original view/download indices have been deleted after migration
 ```
 
 **Examples:**
+
 ```bash
 # Destroy all invenio-stats-dashboard indices (interactive)
 invenio community-stats destroy-indices
@@ -486,6 +584,7 @@ The `destroy-indices` command requires the `COMMUNITY_STATS_ENABLED` configurati
 **Output Examples:**
 
 Concise mode:
+
 ```
 Community: my-research-community (a1b2c3d4-e5f6-7890-abcd-ef1234567890)
 ------------------------------------------------------------
@@ -510,6 +609,7 @@ invenio community-stats community-events generate [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id`: The ID of the community to generate events for. Can be specified multiple times.
 - `--record-ids`: The IDs of the records to generate events for. Can be specified multiple times.
 - `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
@@ -517,6 +617,7 @@ invenio community-stats community-events generate [OPTIONS]
 - `--show-progress`: Show progress information during processing (default: True).
 
 **Examples:**
+
 ```bash
 # Generate events for all records
 invenio community-stats community-events generate
@@ -540,6 +641,7 @@ invenio community-stats community-events status [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id`: The ID of the community to check. Can be specified multiple times.
 - `--record-ids`: The IDs of the records to check. Can be specified multiple times.
 - `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
@@ -547,6 +649,7 @@ invenio community-stats community-events status [OPTIONS]
 - `--community-details`: Show detailed community information.
 
 **Examples:**
+
 ```bash
 # Check status for all communities
 invenio community-stats community-events status
@@ -567,6 +670,7 @@ invenio community-stats community-events generate-background [OPTIONS]
 ```
 
 **Options:**
+
 - `--community-id`: The ID of the community to generate events for. Can be specified multiple times.
 - `--record-ids`: The IDs of the records to generate events for. Can be specified multiple times.
 - `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
@@ -574,6 +678,7 @@ invenio community-stats community-events generate-background [OPTIONS]
 - `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
 
 **Examples:**
+
 ```bash
 # Start background event generation for all records
 invenio community-stats community-events generate-background
@@ -586,6 +691,7 @@ invenio community-stats community-events generate-background --pid-dir /var/run/
 ```
 
 **Process Management:**
+
 - Process name: `community-event-generation`
 - Monitor progress: `invenio community-stats processes status community-event-generation`
 - Cancel process: `invenio community-stats processes cancel community-event-generation`
@@ -602,6 +708,7 @@ invenio community-stats usage-events generate [OPTIONS]
 ```
 
 **Options:**
+
 - `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
 - `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
 - `--event-start-date`: Start date for event timestamps (YYYY-MM-DD). If not provided, uses start-date.
@@ -614,6 +721,7 @@ invenio community-stats usage-events generate [OPTIONS]
 - `--use-migrated-indices`: Use migrated indices with -v2.0.0 suffix when they exist.
 
 **Examples:**
+
 ```bash
 # Generate 5 events per record for all records
 invenio community-stats usage-events generate
@@ -643,6 +751,7 @@ invenio community-stats usage-events generate-background [OPTIONS]
 ```
 
 **Options:**
+
 - `--start-date`: Start date for filtering records by creation date (YYYY-MM-DD). If not provided, uses earliest record creation date.
 - `--end-date`: End date for filtering records by creation date (YYYY-MM-DD). If not provided, uses current date.
 - `--event-start-date`: Start date for event timestamps (YYYY-MM-DD). If not provided, uses start-date.
@@ -653,6 +762,7 @@ invenio community-stats usage-events generate-background [OPTIONS]
 - `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
 
 **Examples:**
+
 ```bash
 # Start background usage event generation
 invenio community-stats usage-events generate-background
@@ -669,6 +779,7 @@ invenio community-stats usage-events generate-background --pid-dir /var/run/inve
 ```
 
 **Process Management:**
+
 - Process name: `usage-event-generation`
 - Monitor progress: `invenio community-stats processes status usage-event-generation`
 - Cancel process: `invenio community-stats processes cancel usage-event-generation`
@@ -683,6 +794,7 @@ invenio community-stats usage-events migrate [OPTIONS]
 ```
 
 **Options:**
+
 - `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
 - `--max-batches, -b`: Maximum batches to process per month (default from `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`).
 - `--batch-size`: Number of events to process per batch (default from `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`; max 10,000).
@@ -692,6 +804,7 @@ invenio community-stats usage-events migrate [OPTIONS]
 - `--delete-old-indices`: Delete old indices after migration (default is to keep them).
 
 **Examples:**
+
 ```bash
 # Basic migration for all event types
 invenio community-stats usage-events migrate
@@ -718,6 +831,7 @@ invenio community-stats usage-events migrate-background [OPTIONS]
 ```
 
 **Options:**
+
 - `--event-types, -e`: Event types to migrate (view, download). Can be specified multiple times. Defaults to both.
 - `--max-batches, -b`: Maximum batches to process per month.
 - `--batch-size`: Number of events to process per batch (default: 1000).
@@ -726,6 +840,7 @@ invenio community-stats usage-events migrate-background [OPTIONS]
 - `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
 
 **Examples:**
+
 ```bash
 # Start background migration for all event types
 invenio community-stats usage-events migrate-background
@@ -742,6 +857,7 @@ invenio community-stats usage-events migrate-background --pid-dir /var/run/inven
 ```
 
 **Process Management:**
+
 - Process name: `event-migration`
 - Monitor progress: `invenio community-stats processes status event-migration`
 - Cancel process: `invenio community-stats processes cancel event-migration`
@@ -756,9 +872,11 @@ invenio community-stats usage-events status [OPTIONS]
 ```
 
 **Options:**
+
 - `--show-bookmarks`: Show detailed bookmark information for each month.
 
 **Examples:**
+
 ```bash
 # Show basic migration status
 invenio community-stats usage-events status
@@ -776,11 +894,13 @@ invenio community-stats usage-events clear-bookmarks [OPTIONS]
 ```
 
 **Options:**
+
 - `--event-type`: Event type to clear bookmarks for (view, download). Can be specified multiple times.
 - `--months`: Months to clear bookmarks for (YYYY-MM). Can be specified multiple times.
 - `--fresh-start`: Clear all bookmarks and start fresh.
 
 **Examples:**
+
 ```bash
 # Clear bookmarks for all months and event types
 invenio community-stats usage-events clear-bookmarks --fresh-start
@@ -805,14 +925,17 @@ invenio community-stats processes status <process-name> [OPTIONS]
 ```
 
 **Arguments:**
+
 - `process-name`: Name of the process to monitor (e.g., `event-migration`, `community-event-generation`, `usage-event-generation`).
 
 **Options:**
+
 - `--show-log`: Show recent log output from the process.
 - `--log-lines`: Number of log lines to show (default: 20).
 - `--pid-dir`: Directory containing PID and status files (default: `/tmp`).
 
 **Examples:**
+
 ```bash
 # Check basic status
 invenio community-stats processes status event-migration
@@ -833,13 +956,16 @@ invenio community-stats processes cancel <process-name> [OPTIONS]
 ```
 
 **Arguments:**
+
 - `process-name`: Name of the process to cancel (e.g., `event-migration`, `community-event-generation`, `usage-event-generation`).
 
 **Options:**
+
 - `--timeout`: Seconds to wait for graceful shutdown before force kill (default: 30).
 - `--pid-dir`: Directory containing PID files (default: `/tmp`).
 
 **Examples:**
+
 ```bash
 # Cancel with default timeout
 invenio community-stats processes cancel event-migration
@@ -857,10 +983,12 @@ invenio community-stats processes list [OPTIONS]
 ```
 
 **Options:**
+
 - `--pid-dir`: Directory containing PID files (default: `/tmp`).
 - `--package-only`: Only show processes managed by invenio-stats-dashboard.
 
 **Examples:**
+
 ```bash
 # List all processes
 invenio community-stats processes list
