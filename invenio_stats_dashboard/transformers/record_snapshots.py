@@ -6,10 +6,7 @@
 
 """Record snapshot data series transformer classes."""
 
-from pprint import pformat
 from typing import Any
-
-from flask import current_app
 
 from .base import (
     DataSeries,
@@ -195,7 +192,8 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         # For record snapshots, map total_* metrics to frontend-expected names
         if "global" in metrics:
             metrics["global"] = [
-                metric.replace("total_", "") for metric in metrics["global"] if metric != "total_files"
+                metric.replace("total_", "") for metric in metrics["global"]
+                if metric != "total_files"
             ] + ["data_volume", "file_count"]
 
         # For subcounts, split files into data_volume and file_count
@@ -206,6 +204,16 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
                 ] + ["data_volume", "file_count"]
 
         return metrics
+
+    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
+        """Get default metrics for record snapshot data when no documents exist."""
+        # Standard record snapshot metrics that should always be available
+        global_metrics = ["records", "parents", "uploaders", "data_volume", "file_count"]
+        subcount_metrics = ["records", "parents", "data_volume", "file_count"]
+        return {
+            "global": global_metrics,
+            "subcount": subcount_metrics,
+        }
 
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given subcount and metric."""

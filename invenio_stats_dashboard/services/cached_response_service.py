@@ -58,13 +58,15 @@ class CachedResponseService:
         community_ids: str | list[str] | None = None,
         years: int | list[int] | str | None = None,
         force: bool = False,
-    ) -> Any:
+        async_mode: bool = False,
+    ) -> dict[str, Any]:
         """Create cached responses for sets of communities, years, and categories.
 
         Args:
             community_ids: str, list, or None - Community IDs to process
             years: int, list, str, or None - Years to process
             force: bool - Overwrite existing cache
+            async_mode: bool - Whether to use async Celery tasks (not implemented yet)
 
         Returns:
             dict - Results summary
@@ -166,7 +168,8 @@ class CachedResponseService:
         """
         if category:
             response = CachedResponse(community_id, year, category)
-            return self.cache.delete(response.cache_key)
+            success: bool = self.cache.delete(response.cache_key)
+            return success
         else:
             results = []
             for cat in self.categories:
@@ -261,7 +264,7 @@ class CachedResponseService:
             }
         )
         created_date = first_record["hits"]["hits"][0]["_source"]["created"]
-        return arrow.get(created_date).year
+        return int(arrow.get(created_date).year)
 
     def _get_community_creation_year(self, community_id: str) -> int | None:
         """Get the creation year for a community.
@@ -287,7 +290,7 @@ class CachedResponseService:
 
             if earliest_event["hits"]["total"]["value"] > 0:
                 timestamp = earliest_event["hits"]["hits"][0]["_source"]["timestamp"]
-                return arrow.get(timestamp).year
+                return int(arrow.get(timestamp).year)
         except Exception as e:
             current_app.logger.warning(
                 f"Could not find earliest event for community {community_id}: {e}"
@@ -398,9 +401,10 @@ class CachedResponseService:
             if self.default_timeout:
                 timeout = self.default_timeout * 86400  # to seconds
 
-            return self.cache.set(
+            success: bool = self.cache.set(
                 response.cache_key, response.to_bytes(), timeout=timeout
             )
+            return success
         except Exception as e:
             current_app.logger.error(
                 f"Failed to save response {response.cache_key}: {e}"
@@ -438,6 +442,8 @@ class CachedResponseService:
         Returns:
             True if successful, False otherwise
         """
+        success: bool
+        count: int
         success, count = self.cache.clear_all(pattern)
         if success and count > 0:
             current_app.logger.info(f"Invalidated {count} cache entries")
@@ -453,7 +459,8 @@ class CachedResponseService:
         Returns:
             List of cache keys
         """
-        return self.cache.keys(pattern)
+        keys: list[str] = self.cache.keys(pattern)
+        return keys
 
     def get_cache_info(self) -> dict[str, Any]:
         """Get information about the cache.
@@ -461,7 +468,8 @@ class CachedResponseService:
         Returns:
             Dictionary with cache information
         """
-        return self.cache.get_cache_info()
+        info: dict[str, Any] = self.cache.get_cache_info()
+        return info
 
     def get_cache_size_info(self) -> dict[str, Any]:
         """Get detailed cache size information.
@@ -469,4 +477,5 @@ class CachedResponseService:
         Returns:
             Dictionary with cache size information
         """
-        return self.cache.get_cache_size_info()
+        size_info: dict[str, Any] = self.cache.get_cache_size_info()
+        return size_info

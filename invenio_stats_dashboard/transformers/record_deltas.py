@@ -258,6 +258,18 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
             "subcount": subcount_metrics,
         }
 
+    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
+        """Get default metrics for record delta data when no documents exist."""
+        # Standard record delta metrics that should always be available
+        global_metrics = [
+            "records", "file_count", "data_volume", "parents", "uploaders"
+        ]
+        subcount_metrics = ["records", "file_count", "data_volume", "parents"]
+        return {
+            "global": global_metrics,
+            "subcount": subcount_metrics,
+        }
+
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given subcount and metric."""
         # Set appropriate value type based on metric

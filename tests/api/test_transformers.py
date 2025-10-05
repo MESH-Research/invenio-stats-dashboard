@@ -190,9 +190,9 @@ class TestRecordSnapshotDataSeriesSet:
 
         # Check global metrics
         global_metrics = [
-            "total_records",
-            "total_parents",
-            "total_uploaders",
+            "records",
+            "parents",
+            "uploaders",
             "file_count",
             "data_volume",
         ]
@@ -223,7 +223,7 @@ class TestRecordSnapshotDataSeriesSet:
                 )
 
         # Verify data points exist
-        assert len(result["global"]["total_records"]) == 1  # Single global series
+        assert len(result["global"]["records"]) == 1  # Single global series
 
         # Check that subcounts with data have series
         for subcount in subcounts_with_data:
@@ -246,7 +246,7 @@ class TestRecordSnapshotDataSeriesSet:
         assert len(result["file_presence"]["data_volume"][0]["data"]) == 2
 
         # Verify data point format
-        global_records_series = result["global"]["total_records"][0]
+        global_records_series = result["global"]["records"][0]
         assert "data" in global_records_series
         assert len(global_records_series["data"]) == 2  # Two data points (two days)
 
@@ -319,10 +319,8 @@ class TestRecordSnapshotDataSeriesSet:
             )
 
         # Check that global series still exists
-        assert len(result["global"]["total_records"]) == 1
-        assert (
-            result["global"]["total_records"][0]["data"][0]["value"][1] == 0
-        )  # No records
+        assert len(result["global"]["records"]) == 1
+        assert result["global"]["records"][0]["data"][0]["value"][1] == 0  # No records
 
     def test_record_snapshot_file_presence_processing(self, running_app: RunningApp):
         """Test file_presence special subcount processing."""
@@ -391,7 +389,7 @@ class TestRecordSnapshotDataSeriesSet:
         result = series_set.build()
 
         # Check that we have 3 data points for each series
-        global_records_series = result["global"]["total_records"][0]
+        global_records_series = result["global"]["records"][0]
         assert len(global_records_series["data"]) == 3
 
         # Check dates are in order
@@ -418,9 +416,9 @@ class TestRecordSnapshotDataSeriesSet:
 
         # Check global metrics
         expected_global_metrics = [
-            "total_records",
-            "total_parents",
-            "total_uploaders",
+            "records",
+            "parents",
+            "uploaders",
             "file_count",
             "data_volume",
         ]

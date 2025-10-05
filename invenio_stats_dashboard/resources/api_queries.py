@@ -38,7 +38,7 @@ class CommunityStatsResultsQueryBase(Query):
         Base implementation returns the index as-is. Child classes can override
         to append the date_basis suffix.
         """
-        return self.index
+        return str(self.index)
 
     def run(
         self,

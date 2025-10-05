@@ -420,6 +420,10 @@ class DataSeriesSet(ABC):
         # Discover available metrics from document structures
         discovered_metrics = self._discover_metrics_from_documents()
 
+        # If no documents, generate zero-filled data series for standard metrics
+        if not self.documents:
+            discovered_metrics = self._get_default_metrics_for_empty_data()
+
         # Create ALL DataSeriesArray objects upfront
         for subcount in self.series_keys:
             if subcount in self.special_subcounts:
@@ -561,6 +565,20 @@ class DataSeriesSet(ABC):
             "global": sorted(list(global_metrics)),
             "subcount": sorted(list(subcount_metrics)),
         }
+
+    @abstractmethod
+    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
+        """Get default metrics for zero-filled data series when no documents exist.
+
+        This ensures that the UI always has consistent data series structure even for
+        years with no data, preventing chart rendering issues.
+
+        Returns:
+            Dictionary with "global" and "subcount" keys containing standard metrics
+        """
+        raise NotImplementedError(
+            "Subclasses must implement _get_default_metrics_for_empty_data"
+        )
 
     @abstractmethod
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:

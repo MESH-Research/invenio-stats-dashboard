@@ -235,7 +235,6 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
                    {metric_name: [data_series_objects]}}}
             base_path: Base path for the temporary directory
         """
-
         # Level 0: Series sets (e.g., "record-delta-category",
         # "usage-snapshot-category")
         for series_set_name, series_set_data in data.items():
@@ -258,10 +257,10 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
                 os.makedirs(category_path, exist_ok=True)
 
                 # Level 2: Metrics (e.g., "data_volume", "file_count", "records")
-                for metric_name, metric_data in category_data.items():
+                for _metric_name, metric_data in category_data.items():
                     if isinstance(metric_data, list):
                         # Handle list of data series objects
-                        for i, data_series in enumerate(metric_data):
+                        for _i, data_series in enumerate(metric_data):
                             if isinstance(data_series, dict) and "id" in data_series:
                                 self._create_csv_file(data_series, category_path)
 
@@ -343,7 +342,7 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
 
             os.unlink(archive_path)
 
-            filename = f"{filename_prefix}.tar.gz"
+            # filename = f"{filename_prefix}.tar.gz"
             return compressed_data
 
     def _create_excel_workbooks(self, data: dict, base_path: str) -> None:
@@ -713,7 +712,7 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
         xml_string = ET.tostring(root, encoding="unicode", xml_declaration=True)
 
         # Generate community-specific filename
-        filename_prefix = self._get_filename_prefix(community_id, "xml")
+        # filename_prefix = self._get_filename_prefix(community_id, "xml")
         return xml_string
 
     def _get_filename_prefix(

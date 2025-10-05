@@ -14,12 +14,12 @@ from .basic_serializers import (
     StatsJSONSerializer,
     StatsXMLSerializer,
 )
-from .data_series_serializers import (
-    BrotliStatsJSONSerializer,
-    DataSeriesCSVSerializer,
-    DataSeriesExcelSerializer,
-    DataSeriesXMLSerializer,
-    GzipStatsJSONSerializer,
+from .data_series_serializers import (  # type: ignore
+    BrotliStatsJSONSerializer,  # type: ignore
+    DataSeriesCSVSerializer,  # type: ignore
+    DataSeriesExcelSerializer,  # type: ignore
+    DataSeriesXMLSerializer,  # type: ignore
+    GzipStatsJSONSerializer,  # type: ignore
 )
 
 

@@ -48,10 +48,10 @@ class CachedResponse:
         self.year = year
         self.category = category
         self.cache_type = cache_type
-        self._cache_key = None
-        self._data = None
-        self._created_at = None
-        self._expires_at = None
+        self._cache_key: str | None = None
+        self._data: Any | bytes | None = None
+        self._created_at: arrow.Arrow | None = None
+        self._expires_at: arrow.Arrow | None = None
 
         self.request_data = {
             self.category: {
@@ -97,7 +97,7 @@ class CachedResponse:
     @property
     def is_expired(self) -> bool:
         """Check if the cached response is expired."""
-        return self._expires_at and arrow.utcnow() > self._expires_at
+        return self._expires_at is not None and arrow.utcnow() > self._expires_at
 
     @staticmethod
     def generate_cache_key(
@@ -125,7 +125,7 @@ class CachedResponse:
                 "STATS_CACHE_PREFIX", "stats_dashboard"
             )
 
-        key_data = {"request_data": request_data}
+        key_data: dict[str, Any] = {"request_data": request_data}
         if content_type:
             key_data["content_type"] = content_type
 

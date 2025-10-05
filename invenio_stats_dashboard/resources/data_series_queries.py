@@ -6,8 +6,6 @@
 
 """Data series API query classes for invenio-stats-dashboard."""
 
-from pprint import pformat
-
 import arrow
 from flask import Response, current_app
 from invenio_access.permissions import system_identity
@@ -43,7 +41,7 @@ class DataSeriesQueryBase(Query):
         Base implementation returns the index as-is. Child classes can override
         to append the date_basis suffix.
         """
-        return self.index
+        return str(self.index)
 
     def run(
         self,
@@ -122,12 +120,17 @@ class DataSeriesQueryBase(Query):
 
             count = agg_search.count()
             if count == 0:
-                raise ValueError(
+                # Return empty data series instead of raising an exception
+                # This allows the UI to display zero-filled charts for empty years
+                current_app.logger.info(
                     f"No results found for community {community_id}"
-                    f" for the period {start_date} to {end_date}"
+                    f" for the period {start_date} to {end_date} - "
+                    f"returning empty data series"
                 )
-            response = agg_search.execute()
-            documents = [h["_source"].to_dict() for h in response.hits.hits]
+                documents = []
+            else:
+                response = agg_search.execute()
+                documents = [h["_source"].to_dict() for h in response.hits.hits]
         except AssertionError as e:
             current_app.logger.error(f"Index does not exist: {self.index} {e}")
             documents = []
@@ -237,7 +240,7 @@ class CategoryDataSeriesQueryBase(Query):
         Base implementation returns the index as-is. Child classes can override
         to append the date_basis suffix.
         """
-        return self.index
+        return str(self.index)
 
     def run(
         self,
@@ -312,12 +315,17 @@ class CategoryDataSeriesQueryBase(Query):
 
             count = agg_search.count()
             if count == 0:
-                raise ValueError(
+                # Return empty data series instead of raising an exception
+                # This allows the UI to display zero-filled charts for empty years
+                current_app.logger.info(
                     f"No results found for community {community_id}"
-                    f" for the period {start_date} to {end_date}"
+                    f" for the period {start_date} to {end_date} - "
+                    f"returning empty data series"
                 )
-            response = agg_search.execute()
-            documents = [h["_source"].to_dict() for h in response.hits.hits]
+                documents = []
+            else:
+                response = agg_search.execute()
+                documents = [h["_source"].to_dict() for h in response.hits.hits]
         except AssertionError as e:
             current_app.logger.error(f"Index does not exist: {self.index} {e}")
             documents = []

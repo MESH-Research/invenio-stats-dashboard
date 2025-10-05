@@ -9,6 +9,7 @@
 import arrow
 from celery import shared_task
 from flask import current_app
+from typing import Any
 
 from celery.schedules import crontab
 
@@ -31,9 +32,8 @@ def generate_cached_responses_task(
     force: bool = False,
     async_mode: bool = False,
     current_year_only: bool = False,
-) -> dict:
-    """
-    Generate cached responses using CachedResponseService.
+) -> dict[str, Any]:
+    """Generate cached responses using CachedResponseService.
 
     This task can be used for both scheduled runs and manual CLI operations.
     It uses the existing CachedResponseService to generate cache for specified
@@ -73,7 +73,7 @@ def generate_cached_responses_task(
                     current_app.logger.info(
                         f"Acquired cache generation lock, starting cache generation"
                     )
-                    result = service.create(
+                    result: dict[str, Any] = service.create(
                         community_ids=community_ids,
                         years=years,
                         force=force,
@@ -84,7 +84,7 @@ def generate_cached_responses_task(
                     )
 
                     return result
-                    
+
             except TaskLockAcquisitionError:
                 current_app.logger.warning(
                     "Cache generation task skipped - another instance is already running"
@@ -101,17 +101,17 @@ def generate_cached_responses_task(
             current_app.logger.info(
                 f"Running cache generation without distributed lock"
             )
-            result = service.create(
+            result_no_lock: dict[str, Any] = service.create(
                 community_ids=community_ids,
                 years=years,
                 force=force,
                 async_mode=async_mode
             )
             current_app.logger.info(
-                f"Cache generation completed: {result}"
+                f"Cache generation completed: {result_no_lock}"
             )
 
-            return result
+            return result_no_lock
 
     except Exception as e:
         current_app.logger.error(f"Cache generation task failed: {e}")

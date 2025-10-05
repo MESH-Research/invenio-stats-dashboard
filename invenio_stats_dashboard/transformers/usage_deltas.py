@@ -137,6 +137,19 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
 
         return {"global": metrics, "subcount": metrics}
 
+    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
+        """Get default metrics for usage delta data when no documents exist."""
+        # Standard usage delta metrics that should always be available
+        metrics = [
+            "data_volume", "download_unique_files", "download_unique_parents",
+            "download_unique_records", "download_visitors", "downloads",
+            "view_unique_parents", "view_unique_records", "view_visitors", "views"
+        ]
+        return {
+            "global": metrics,
+            "subcount": metrics,
+        }
+
     def _create_series_array(self, series_key: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given series key and metric."""
         if series_key == "global":

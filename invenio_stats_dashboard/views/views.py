@@ -10,6 +10,7 @@ This module contains the views for the Invenio Stats Dashboard.
 """
 
 import json
+from typing import Any
 
 from flask import (
     Blueprint,
@@ -92,7 +93,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
     view_name = "stats_dashboard_api"
 
-    def _get_cached_data(self, query_name: str, query_params: dict) -> bytes | None:
+    def _get_cached_data(self, query_name: str, query_params: dict[str, Any]) -> bytes | None:
         """Get cached data for the given query parameters.
 
         Args:
@@ -106,11 +107,14 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
         cache_params = self._prepare_cache_params(
             query_name, query_params, "application/json"
         )
-        return cache.get_cached_data(**cache_params)
+        cache_key = CachedResponse.generate_cache_key(
+            "application/json", {query_name: {"params": cache_params}}
+        )
+        return cache.get(cache_key)  # type: ignore
 
     def _prepare_cache_params(
-        self, query_name: str, query_params: dict, content_type: str
-    ) -> dict:
+        self, query_name: str, query_params: dict[str, Any], content_type: str
+    ) -> dict[str, Any]:
         """Prepare cache parameters from query_params with defaults.
 
         Args:
