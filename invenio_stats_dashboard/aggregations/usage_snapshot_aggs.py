@@ -272,9 +272,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                         update_totals(new_dict[key], delta_doc[key], k)  # type: ignore[literal-required] # noqa: E501
                     elif isinstance(value, list):
                         for item in value:
-                            current_app.logger.debug(
-                                f"Updating subcount {k} with item {item}"
-                            )
                             matching_item = next(
                                 (
                                     existing_item

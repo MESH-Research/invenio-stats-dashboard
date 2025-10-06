@@ -1401,7 +1401,6 @@ class EventReindexingService:
             return membership
         except Exception as e:
             current_app.logger.error(f"Failed to fetch community membership: {e}")
-            current_app.logger.error(f"Exception type: {type(e).__name__}")
             current_app.logger.error(f"Exception details: {str(e)}")
             # If the main method fails, try the fallback for all records
             current_app.logger.info("Using fallback for all records due to exception")
@@ -1483,7 +1482,6 @@ class EventReindexingService:
             current_app.logger.error(
                 f"Failed to get fallback community membership: {e}"
             )
-            current_app.logger.error(f"Exception type: {type(e).__name__}")
             current_app.logger.error(f"Exception details: {str(e)}")
             return {}
 

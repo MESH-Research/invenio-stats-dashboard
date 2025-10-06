@@ -615,9 +615,6 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 day_iteration_duration = (
                     day_iteration_end_time - day_iteration_start_time
                 )
-                current_app.logger.debug(
-                    f"Record day {total_days_processed}: {day_iteration_duration:.2f}s"
-                )
 
                 yield (document, day_iteration_duration)
 
