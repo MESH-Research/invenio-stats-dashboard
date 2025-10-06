@@ -7,6 +7,7 @@
 
 """Service for managing cached stats responses."""
 
+from collections.abc import Callable
 from typing import Any
 
 import arrow
@@ -59,6 +60,7 @@ class CachedResponseService:
         years: int | list[int] | str | None = None,
         force: bool = False,
         async_mode: bool = False,
+        progress_callback: Callable | None = None,
     ) -> dict[str, Any]:
         """Create cached responses for sets of communities, years, and categories.
 
@@ -67,6 +69,8 @@ class CachedResponseService:
             years: int, list, str, or None - Years to process
             force: bool - Overwrite existing cache
             async_mode: bool - Whether to use async Celery tasks (not implemented yet)
+            progress_callback: Callable - Optional callback function for progress
+                updates. Called with (current, total, message) parameters
 
         Returns:
             dict - Results summary
@@ -90,7 +94,7 @@ class CachedResponseService:
             skipped_count = 0
             responses = all_responses
 
-        results = self._create(responses)
+        results = self._create(responses, progress_callback)
         results['skipped'] = skipped_count
         return results
 
@@ -411,12 +415,22 @@ class CachedResponseService:
             )
             return False
 
-    def _create(self, responses: list[CachedResponse]) -> dict[str, Any]:
+    def _create(
+        self, responses: list[CachedResponse], progress_callback: Callable | None = None
+    ) -> dict[str, Any]:
         """Create responses synchronously."""
         results = {"success": 0, "failed": 0, "errors": [], "responses": []}
+        total_responses = len(responses)
 
-        for response in responses:
+        for i, response in enumerate(responses):
             try:
+                # Call progress callback before processing
+                if progress_callback:
+                    message = (
+                        f"Processing {response.community_id}/"
+                        f"{response.year}/{response.category}"
+                    )
+                    progress_callback(i, total_responses, message)
                 self.generate_content(response)
                 self._save_response(response)
                 results["success"] += 1  # type:ignore
@@ -429,6 +443,10 @@ class CachedResponseService:
                     "category": response.category,
                     "error": str(e),
                 })
+
+        # Call progress callback for completion
+        if progress_callback:
+            progress_callback(total_responses, total_responses, "Completed")
 
         return results
 

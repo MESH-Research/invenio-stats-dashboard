@@ -292,9 +292,9 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 )
             )
 
-        combined_results = self._merge_field_results(
-            [cast(list[dict[str, Any]], result_list) for result_list in agg_results]
-        )
+        combined_results = self._merge_field_results([
+            cast(list[dict[str, Any]], result_list) for result_list in agg_results
+        ])
 
         return cast(list[RecordDeltaSubcountItem], list(combined_results.values()))
 
@@ -340,70 +340,64 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 )
             )
 
-            subcount_list.append(
-                {
-                    "id": key,
-                    "label": label,  # type: ignore
-                    "records": {
-                        "added": {
-                            "metadata_only": (
-                                added.get("without_files", {}).get("doc_count", 0)
-                            ),
-                            "with_files": (
-                                added.get("with_files", {}).get("doc_count", 0)
-                            ),
-                        },
-                        "removed": {
-                            "metadata_only": (
-                                removed.get("without_files", {}).get("doc_count", 0)
-                            ),
-                            "with_files": (
-                                removed.get("with_files", {}).get("doc_count", 0)
-                            ),
-                        },
+            subcount_list.append({
+                "id": key,
+                "label": label,  # type: ignore
+                "records": {
+                    "added": {
+                        "metadata_only": (
+                            added.get("without_files", {}).get("doc_count", 0)
+                        ),
+                        "with_files": (added.get("with_files", {}).get("doc_count", 0)),
                     },
-                    "parents": {
-                        "added": {
-                            "metadata_only": (
-                                added.get("without_files", {})
-                                .get("unique_parents", {})
-                                .get("value", 0)
-                            ),
-                            "with_files": (
-                                added.get("with_files", {})
-                                .get("unique_parents", {})
-                                .get("value", 0)
-                            ),
-                        },
-                        "removed": {
-                            "metadata_only": (
-                                removed.get("without_files", {})
-                                .get("unique_parents", {})
-                                .get("value", 0)
-                            ),
-                            "with_files": (
-                                removed.get("with_files", {})
-                                .get("unique_parents", {})
-                                .get("value", 0)
-                            ),
-                        },
+                    "removed": {
+                        "metadata_only": (
+                            removed.get("without_files", {}).get("doc_count", 0)
+                        ),
+                        "with_files": (
+                            removed.get("with_files", {}).get("doc_count", 0)
+                        ),
                     },
-                    "files": {
-                        "added": {
-                            "file_count": added.get("file_count", {}).get("value", 0),
-                            "data_volume": (
-                                added.get("total_bytes", {}).get("value", 0.0)
-                            ),
-                        },
-                        "removed": {
-                            "file_count": removed.get("file_count", {}).get("value", 0),
-                            "data_volume": (
-                                removed.get("total_bytes", {}).get("value", 0.0)
-                            ),
-                        },
+                },
+                "parents": {
+                    "added": {
+                        "metadata_only": (
+                            added.get("without_files", {})
+                            .get("unique_parents", {})
+                            .get("value", 0)
+                        ),
+                        "with_files": (
+                            added.get("with_files", {})
+                            .get("unique_parents", {})
+                            .get("value", 0)
+                        ),
                     },
-                }
-            )
+                    "removed": {
+                        "metadata_only": (
+                            removed.get("without_files", {})
+                            .get("unique_parents", {})
+                            .get("value", 0)
+                        ),
+                        "with_files": (
+                            removed.get("with_files", {})
+                            .get("unique_parents", {})
+                            .get("value", 0)
+                        ),
+                    },
+                },
+                "files": {
+                    "added": {
+                        "file_count": added.get("file_count", {}).get("value", 0),
+                        "data_volume": (added.get("total_bytes", {}).get("value", 0.0)),
+                    },
+                    "removed": {
+                        "file_count": removed.get("file_count", {}).get("value", 0),
+                        "data_volume": (
+                            removed.get("total_bytes", {}).get("value", 0.0)
+                        ),
+                    },
+                },
+            })
 
         return subcount_list
 
@@ -428,9 +422,10 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                         key
                     ].get("label"):
                         merged_results[key]["label"] = value.get("label")
-                    merged_results[key] = self._merge_field_results(
-                        [[merged_results[key]], [value]]
-                    )
+                    merged_results[key] = self._merge_field_results([
+                        [merged_results[key]],
+                        [value],
+                    ])
                 elif isinstance(value, int | float):
                     merged_results[key] += value
 
@@ -583,18 +578,14 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 else:
                     day_end_date = day.ceil("day")
 
+                    add_idx = "stats-community-records-delta-added"
+                    publish_idx = "stats-community-records-delta-published"
                     day_search_added = query_builder.build_query(
                         day_start_date.format("YYYY-MM-DDTHH:mm:ss"),
                         day_end_date.format("YYYY-MM-DDTHH:mm:ss"),
                         community_id=community_id,
-                        use_included_dates=(
-                            self.aggregation_index
-                            == "stats-community-records-delta-added"
-                        ),
-                        use_published_dates=(
-                            self.aggregation_index
-                            == "stats-community-records-delta-published"
-                        ),
+                        use_included_dates=(self.aggregation_index == add_idx),
+                        use_published_dates=(self.aggregation_index == publish_idx),
                     )
                     day_results_added = day_search_added.execute()
                     aggs_added = day_results_added.aggregations.to_dict()

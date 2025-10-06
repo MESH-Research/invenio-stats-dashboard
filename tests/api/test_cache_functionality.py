@@ -6,226 +6,297 @@
 
 """Tests for cache functionality."""
 
-import pytest
-from unittest.mock import Mock, patch
+import json
 
+import pytest
+
+from invenio_stats_dashboard.models.cached_response import CachedResponse
 from invenio_stats_dashboard.resources.cache_utils import StatsCache
 
 
-class MockRedisClient:
-    """Mock Redis client for testing."""
-
-    def __init__(self):
-        self._cache = {}
-
-    def get(self, key: str):
-        """Get value from mock Redis."""
-        return self._cache.get(key)
-
-    def setex(self, key: str, timeout: int, value) -> bool:
-        """Set value in mock Redis with expiration."""
-        self._cache[key] = value
-        return True
-
-    def delete(self, key: str) -> int:
-        """Delete value from mock Redis."""
-        if key in self._cache:
-            del self._cache[key]
-            return 1
-        return 0
-
-    def info(self):
-        """Get Redis info."""
-        return {
-            "redis_version": "6.2.0",
-            "used_memory_human": "1.00M",
-            "connected_clients": "1"
-        }
-
-
 @pytest.fixture
-def mock_redis():
-    """Mock Redis client for testing."""
-    return MockRedisClient()
-
-
-@pytest.fixture
-def stats_cache(mock_redis):
-    """StatsCache instance with mock Redis client."""
-    with patch('redis.from_url', return_value=mock_redis):
-        return StatsCache()
+def stats_cache():
+    """StatsCache instance using real Redis."""
+    return StatsCache()
 
 
 @pytest.fixture
 def sample_data():
     """Sample data for testing."""
     return {
-        "global": {
-            "views": [
-                {
-                    "id": "global-views",
-                    "name": "Global Views",
-                    "data": [
-                        {"date": "2024-01-01", "value": 100},
-                        {"date": "2024-01-02", "value": 150},
-                    ]
-                }
+        "record_delta": {
+            "data": [
+                {"date": "2024-01-01", "value": 100},
+                {"date": "2024-01-02", "value": 150},
             ]
         }
     }
 
 
-def test_cache_key_generation(stats_cache):
-    """Test cache key generation."""
-    key1 = stats_cache._generate_cache_key(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31",
-        date_basis="added"
-    )
+def test_cache_key_generation(running_app, db):
+    """Test cache key generation using CachedResponse."""
+    # Test that same parameters generate same key
+    request_data1 = {
+        "record_delta": {
+            "params": {
+                "community_id": "global",
+                "start_date": "2024-01-01",
+                "end_date": "2024-01-31",
+                "date_basis": "added",
+            }
+        }
+    }
 
-    key2 = stats_cache._generate_cache_key(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31",
-        date_basis="added"
-    )
+    request_data2 = {
+        "record_delta": {
+            "params": {
+                "community_id": "global",
+                "start_date": "2024-01-01",
+                "end_date": "2024-01-31",
+                "date_basis": "added",
+            }
+        }
+    }
+
+    key1 = CachedResponse.generate_cache_key("application/json", request_data1)
+    key2 = CachedResponse.generate_cache_key("application/json", request_data2)
 
     # Same parameters should generate same key
     assert key1 == key2
+    assert key1.startswith("stats_dashboard:")
 
     # Different parameters should generate different keys
-    key3 = stats_cache._generate_cache_key(
-        community_id="community-123",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31",
-        date_basis="added"
-    )
+    request_data3 = {
+        "record_delta": {
+            "params": {
+                "community_id": "community-123",
+                "start_date": "2024-01-01",
+                "end_date": "2024-01-31",
+                "date_basis": "added",
+            }
+        }
+    }
 
+    key3 = CachedResponse.generate_cache_key("application/json", request_data3)
     assert key1 != key3
 
 
-def test_cache_set_and_get(stats_cache, sample_data):
+def test_cache_set_and_get(running_app, db, stats_cache, sample_data):
     """Test setting and getting cached data."""
+    cache_key = "test_key"
+    data_bytes = json.dumps(sample_data).encode('utf-8')
+
     # Initially no data should be cached
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    cached_data = stats_cache.get(cache_key)
     assert cached_data is None
 
     # Set data in cache
-    success = stats_cache.set_cached_data(
-        data=sample_data,
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    success = stats_cache.set(cache_key, data_bytes)
     assert success is True
 
     # Now data should be cached
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    cached_data = stats_cache.get(cache_key)
     assert cached_data is not None
-    assert isinstance(cached_data, bytes)  # Should be compressed
+    assert isinstance(cached_data, bytes)
+    assert cached_data == data_bytes
 
 
-def test_cache_invalidation(stats_cache, sample_data):
-    """Test cache invalidation."""
+def test_cache_set_with_timeout(running_app, db, stats_cache, sample_data):
+    """Test setting cached data with timeout."""
+    cache_key = "test_key_timeout"
+    data_bytes = json.dumps(sample_data).encode('utf-8')
+
+    # Set data in cache with timeout
+    success = stats_cache.set(cache_key, data_bytes, timeout=3600)
+    assert success is True
+
+    # Data should be cached
+    cached_data = stats_cache.get(cache_key)
+    assert cached_data is not None
+    assert cached_data == data_bytes
+
+
+def test_cache_delete(running_app, db, stats_cache, sample_data):
+    """Test cache deletion."""
+    cache_key = "test_key_delete"
+    data_bytes = json.dumps(sample_data).encode('utf-8')
+
     # Set data in cache
-    stats_cache.set_cached_data(
-        data=sample_data,
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    stats_cache.set(cache_key, data_bytes)
 
     # Verify data is cached
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    cached_data = stats_cache.get(cache_key)
     assert cached_data is not None
 
-    # Invalidate cache
-    success = stats_cache.invalidate_cache(
-        community_id="global",
-        stat_name="test_stat"
-    )
+    # Delete cache entry
+    success = stats_cache.delete(cache_key)
     assert success is True
 
     # Data should no longer be cached
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    cached_data = stats_cache.get(cache_key)
     assert cached_data is None
 
 
-def test_cache_compression(stats_cache, sample_data):
-    """Test that cached data is compressed."""
+def test_cache_keys_listing(running_app, db, stats_cache, sample_data):
+    """Test listing cache keys."""
+    # Set some test data
+    stats_cache.set("stats_dashboard:key1", b"data1")
+    stats_cache.set("stats_dashboard:key2", b"data2")
+    stats_cache.set("other_prefix:key3", b"data3")
+
+    # List all keys with default pattern
+    keys = stats_cache.keys()
+    assert len(keys) == 3
+    assert "stats_dashboard:key1" in keys
+    assert "stats_dashboard:key2" in keys
+    assert "other_prefix:key3" in keys
+
+    # List keys with specific pattern
+    stats_keys = stats_cache.keys("stats_dashboard:*")
+    assert len(stats_keys) == 2
+    assert "stats_dashboard:key1" in stats_keys
+    assert "stats_dashboard:key2" in stats_keys
+
+
+def test_cache_clear_all(running_app, db, stats_cache, sample_data):
+    """Test clearing all cache entries."""
+    # Set some test data
+    stats_cache.set("stats_dashboard:key1", b"data1")
+    stats_cache.set("stats_dashboard:key2", b"data2")
+    stats_cache.set("other_prefix:key3", b"data3")
+
+    # Clear all stats dashboard keys
+    success, deleted_count = stats_cache.clear_all("stats_dashboard:*")
+    assert success is True
+    assert deleted_count == 2
+
+    # Stats keys should be gone
+    assert stats_cache.get("stats_dashboard:key1") is None
+    assert stats_cache.get("stats_dashboard:key2") is None
+
+    # Other keys should remain
+    assert stats_cache.get("other_prefix:key3") is not None
+
+
+def test_cache_info(running_app, db, stats_cache):
+    """Test getting cache information."""
+    info = stats_cache.get_cache_info()
+
+    assert "cache_type" in info
+    assert info["cache_type"] == "Redis (Direct)"
+    assert "redis_version" in info
+    assert "used_memory_human" in info
+    assert "connected_clients" in info
+    assert "timestamp" in info
+
+
+def test_cache_size_info(running_app, db, stats_cache, sample_data):
+    """Test getting cache size information."""
+    # Set some test data
+    stats_cache.set("stats_dashboard:key1", b"data1")
+    stats_cache.set("stats_dashboard:key2", b"data2")
+
+    size_info = stats_cache.get_cache_size_info()
+
+    assert "key_count" in size_info
+    assert size_info["key_count"] == 2
+    assert "total_memory_bytes" in size_info
+    assert "total_memory_human" in size_info
+    assert "cache_prefix" in size_info
+    assert size_info["cache_prefix"] == "stats_dashboard"
+    assert "timestamp" in size_info
+
+
+def test_cache_with_real_redis_operations(running_app, db, stats_cache, sample_data):
+    """Test cache operations with real Redis backend."""
+    # Test basic set/get operations
+    cache_key = "test_real_redis_key"
+    data_bytes = json.dumps(sample_data).encode('utf-8')
+
     # Set data in cache
-    stats_cache.set_cached_data(
-        data=sample_data,
-        community_id="global",
-        stat_name="test_stat"
-    )
+    success = stats_cache.set(cache_key, data_bytes)
+    assert success is True
 
-    # Get cached data
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat"
-    )
-
+    # Get data from cache
+    cached_data = stats_cache.get(cache_key)
     assert cached_data is not None
-    assert isinstance(cached_data, bytes)
+    assert cached_data == data_bytes
 
-    # The compressed data should be smaller than the original JSON
-    import json
-    original_json = json.dumps(sample_data).encode('utf-8')
-    assert len(cached_data) < len(original_json)
+    # Test with timeout
+    timeout_key = "test_timeout_key"
+    success = stats_cache.set(timeout_key, data_bytes, timeout=60)
+    assert success is True
+
+    # Verify timeout key exists
+    timeout_data = stats_cache.get(timeout_key)
+    assert timeout_data is not None
+
+    # Test key listing
+    keys = stats_cache.keys()
+    assert cache_key in keys
+    assert timeout_key in keys
+
+    # Test pattern matching
+    test_keys = stats_cache.keys("test_*")
+    assert cache_key in test_keys
+    assert timeout_key in test_keys
+
+    # Test deletion
+    success = stats_cache.delete(cache_key)
+    assert success is True
+
+    # Verify deletion
+    deleted_data = stats_cache.get(cache_key)
+    assert deleted_data is None
+
+    # Test clear all
+    success, deleted_count = stats_cache.clear_all("test_*")
+    assert success is True
+    assert deleted_count >= 1  # At least the timeout_key should be deleted
 
 
-def test_cache_with_different_parameters(stats_cache, sample_data):
-    """Test cache behavior with different parameters."""
-    # Cache data for one set of parameters
-    stats_cache.set_cached_data(
-        data=sample_data,
+def test_cache_integration_with_cached_response(
+    running_app, db, stats_cache, sample_data
+):
+    """Test cache integration with CachedResponse model."""
+    # Create a CachedResponse instance
+    cached_response = CachedResponse(
         community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
+        year=2024,
+        category="record_delta"
     )
 
-    # Different date range should not return cached data
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-02-01",
-        end_date="2024-02-28"
-    )
-    assert cached_data is None
+    # Set data on the response
+    cached_response.set_data(sample_data)
 
-    # Same parameters should return cached data
-    cached_data = stats_cache.get_cached_data(
-        community_id="global",
-        stat_name="test_stat",
-        start_date="2024-01-01",
-        end_date="2024-01-31"
-    )
+    # Get the cache key
+    cache_key = cached_response.cache_key
+    assert cache_key.startswith("stats_dashboard:")
+
+    # Convert to bytes and store in cache
+    data_bytes = cached_response.to_bytes()
+    success = stats_cache.set(cache_key, data_bytes)
+    assert success is True
+
+    # Retrieve from cache
+    cached_data = stats_cache.get(cache_key)
     assert cached_data is not None
+    assert cached_data == data_bytes
+
+    # Create another CachedResponse from cached bytes
+    restored_response = CachedResponse.from_bytes(
+        cached_data,
+        community_id="global",
+        year=2024,
+        category="record_delta",
+        decode=True
+    )
+
+    # Verify the data was restored correctly
+    assert restored_response.data == sample_data
+    assert restored_response.community_id == "global"
+    assert restored_response.year == 2024
+    assert restored_response.category == "record_delta"
+
+    # Clean up
+    stats_cache.delete(cache_key)

@@ -529,13 +529,38 @@ def generate_cache_command(
                 click.echo("Use Celery monitoring tools to track progress.")
                 return 0
             else:
-                with click.progressbar(length=1, label="Generating cache...") as bar:
+                # First, determine the total number of responses to process
+                all_responses = service._generate_all_response_objects(
+                    community_ids, service._normalize_years(years_param, community_ids)
+                )
+                if not force:
+                    responses_to_process = [
+                        r for r in all_responses
+                        if not service.exists(r.community_id, r.year, r.category)
+                    ]
+                else:
+                    responses_to_process = all_responses
+
+                total_responses = len(responses_to_process)
+
+                if total_responses == 0:
+                    click.echo("No cache entries to generate.")
+                    return 0
+
+                # Create progress callback function
+                def progress_callback(current, total, message):
+                    bar.update(1)
+                    bar.label = message
+
+                with click.progressbar(
+                    length=total_responses, label="Generating cache..."
+                ) as bar:
                     results = service.create(
                         community_ids=community_ids,
                         years=years_param,
                         force=force,
+                        progress_callback=progress_callback,
                     )
-                    bar.update(1)
 
                 report_results(results)
 
@@ -616,9 +641,12 @@ def show_dry_run_results(
         else:
             # Provide more specific messaging about why there are no valid years
             if community_id == "global":
-                click.echo(f"    {community_id}: no valid years to cache (no records found)")
+                click.echo(
+                    f"    {community_id}: no valid years to cache (no records found)"
+                )
             else:
-                # Check if this is because the requested time frame is before community existence
+                # Check if this is because the requested time frame is before
+                # community existence
                 requested_years = []
                 if isinstance(years, list):
                     requested_years = years
@@ -627,13 +655,29 @@ def show_dry_run_results(
 
                 if requested_years:
                     earliest_requested = min(requested_years)
-                    community_creation_year = service._get_community_creation_year(community_id)
-                    if community_creation_year and earliest_requested < community_creation_year:
-                        click.echo(f"    {community_id}: no valid years to cache (requested {min(requested_years)}-{max(requested_years)}, but community started in {community_creation_year})")
+                    community_creation_year = service._get_community_creation_year(
+                        community_id
+                    )
+                    if (
+                        community_creation_year
+                        and earliest_requested < community_creation_year
+                    ):
+                        click.echo(
+                            f"    {community_id}: no valid years to cache "
+                            f"(requested {min(requested_years)}-"
+                            f"{max(requested_years)}, "
+                            f"but community started in {community_creation_year})"
+                        )
                     else:
-                        click.echo(f"    {community_id}: no valid years to cache (no events found for this community)")
+                        click.echo(
+                            f"    {community_id}: no valid years to cache "
+                            f"(no events found for this community)"
+                        )
                 else:
-                    click.echo(f"    {community_id}: no valid years to cache (no events found for this community)")
+                    click.echo(
+                        f"    {community_id}: no valid years to cache "
+                        f"(no events found for this community)"
+                    )
 
     click.echo(f"  Total combinations: {total_combinations}")
     if existing_count > 0:
