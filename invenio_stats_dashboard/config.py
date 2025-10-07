@@ -47,7 +47,6 @@ from .resources.serializers.wrapper_functions import (
     gzip_json_serializer_func,
     json_serializer_func,
 )
-
 from .tasks.aggregation_tasks import CommunityStatsAggregationTask
 from .tasks.cache_tasks import CachedResponsesGenerationTask
 
@@ -522,22 +521,22 @@ STATS_DASHBOARD_LAYOUT = {
 
 
 COMMUNITY_STATS_QUERIES = {
-    "community-record-delta-created": {
-        "cls": CommunityRecordDeltaResultsQuery,
-        "permission_factory": CommunityStatsPermissionFactory,
-        "params": {
-            "index": "stats-community-records-delta-created",
-            "doc_type": "community-record-delta-created-agg",
-        },
-    },
-    "community-record-delta-published": {
-        "cls": CommunityRecordDeltaResultsQuery,
-        "permission_factory": CommunityStatsPermissionFactory,
-        "params": {
-            "index": "stats-community-records-delta-published",
-            "doc_type": "community-record-delta-published-agg",
-        },
-    },
+    # "community-record-delta-created": {
+    #     "cls": CommunityRecordDeltaResultsQuery,
+    #     "permission_factory": CommunityStatsPermissionFactory,
+    #     "params": {
+    #         "index": "stats-community-records-delta-created",
+    #         "doc_type": "community-record-delta-created-agg",
+    #     },
+    # },
+    # "community-record-delta-published": {
+    #     "cls": CommunityRecordDeltaResultsQuery,
+    #     "permission_factory": CommunityStatsPermissionFactory,
+    #     "params": {
+    #         "index": "stats-community-records-delta-published",
+    #         "doc_type": "community-record-delta-published-agg",
+    #     },
+    # },
     "community-record-delta-added": {
         "cls": CommunityRecordDeltaResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
@@ -546,14 +545,14 @@ COMMUNITY_STATS_QUERIES = {
             "doc_type": "community-record-delta-added-agg",
         },
     },
-    "community-record-snapshot-created": {
-        "cls": CommunityRecordSnapshotResultsQuery,
-        "permission_factory": CommunityStatsPermissionFactory,
-        "params": {
-            "index": "stats-community-records-snapshot-created",
-            "doc_type": "community-record-snapshot-created-agg",
-        },
-    },
+    # "community-record-snapshot-created": {
+    #     "cls": CommunityRecordSnapshotResultsQuery,
+    #     "permission_factory": CommunityStatsPermissionFactory,
+    #     "params": {
+    #         "index": "stats-community-records-snapshot-created",
+    #         "doc_type": "community-record-snapshot-created-agg",
+    #     },
+    # },
     "community-record-snapshot-added": {
         "cls": CommunityRecordSnapshotResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
@@ -562,14 +561,14 @@ COMMUNITY_STATS_QUERIES = {
             "doc_type": "community-record-snapshot-added-agg",
         },
     },
-    "community-record-snapshot-published": {
-        "cls": CommunityRecordSnapshotResultsQuery,
-        "permission_factory": CommunityStatsPermissionFactory,
-        "params": {
-            "index": "stats-community-records-snapshot-published",
-            "doc_type": "community-record-snapshot-published-agg",
-        },
-    },
+    # "community-record-snapshot-published": {
+    #     "cls": CommunityRecordSnapshotResultsQuery,
+    #     "permission_factory": CommunityStatsPermissionFactory,
+    #     "params": {
+    #         "index": "stats-community-records-snapshot-published",
+    #         "doc_type": "community-record-snapshot-published-agg",
+    #     },
+    # },
     "community-usage-delta": {
         "cls": CommunityUsageDeltaResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,

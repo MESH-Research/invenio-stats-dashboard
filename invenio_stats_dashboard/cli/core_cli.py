@@ -337,11 +337,11 @@ def aggregate_stats_background_command(
 @click.option(
     "--query-type",
     type=click.Choice([
-        "community-record-delta-created",
-        "community-record-delta-published",
+        # "community-record-delta-created",
+        # "community-record-delta-published",
         "community-record-delta-added",
-        "community-record-snapshot-created",
-        "community-record-snapshot-published",
+        # "community-record-snapshot-created",
+        # "community-record-snapshot-published",
         "community-record-snapshot-added",
         "community-usage-delta",
         "community-usage-snapshot",

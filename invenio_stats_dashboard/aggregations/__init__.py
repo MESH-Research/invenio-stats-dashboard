@@ -26,16 +26,16 @@ from .usage_snapshot_aggs import CommunityUsageSnapshotAggregator
 def register_aggregations():
     """Register the aggregations for community statistics."""
     return {
-        "community-records-snapshot-created-agg": {
-            "templates": (
-                "invenio_stats_dashboard.search_indices.search_templates."
-                "stats_community_records_snapshot_created"
-            ),
-            "cls": CommunityRecordsSnapshotCreatedAggregator,
-            "params": {
-                "client": current_search_client,
-            },
-        },
+        # "community-records-snapshot-created-agg": {
+        #     "templates": (
+        #         "invenio_stats_dashboard.search_indices.search_templates."
+        #         "stats_community_records_snapshot_created"
+        #     ),
+        #     "cls": CommunityRecordsSnapshotCreatedAggregator,
+        #     "params": {
+        #         "client": current_search_client,
+        #     },
+        # },
         "community-records-snapshot-added-agg": {
             "templates": (
                 "invenio_stats_dashboard.search_indices.search_templates."
@@ -46,33 +46,33 @@ def register_aggregations():
                 "client": current_search_client,
             },
         },
-        "community-records-snapshot-published-agg": {
-            "templates": (
-                "invenio_stats_dashboard.search_indices.search_templates."
-                "stats_community_records_snapshot_published"
-            ),
-            "cls": CommunityRecordsSnapshotPublishedAggregator,
-            "params": {
-                "client": current_search_client,
-            },
-        },
-        "community-records-delta-created-agg": {
-            "templates": (
-                "invenio_stats_dashboard.search_indices.search_templates."
-                "stats_community_records_delta_created"
-            ),
-            "cls": CommunityRecordsDeltaCreatedAggregator,
-            "params": {
-                "client": current_search_client,
-            },
-        },
-        "community-records-delta-published-agg": {
-            "templates": (
-                "invenio_stats_dashboard.search_indices.search_templates."
-                "stats_community_records_delta_published"
-            ),
-            "cls": CommunityRecordsDeltaPublishedAggregator,
-        },
+        # "community-records-snapshot-published-agg": {
+        #     "templates": (
+        #         "invenio_stats_dashboard.search_indices.search_templates."
+        #         "stats_community_records_snapshot_published"
+        #     ),
+        #     "cls": CommunityRecordsSnapshotPublishedAggregator,
+        #     "params": {
+        #         "client": current_search_client,
+        #     },
+        # },
+        # "community-records-delta-created-agg": {
+        #     "templates": (
+        #         "invenio_stats_dashboard.search_indices.search_templates."
+        #         "stats_community_records_delta_created"
+        #     ),
+        #     "cls": CommunityRecordsDeltaCreatedAggregator,
+        #     "params": {
+        #         "client": current_search_client,
+        #     },
+        # },
+        # "community-records-delta-published-agg": {
+        #     "templates": (
+        #         "invenio_stats_dashboard.search_indices.search_templates."
+        #         "stats_community_records_delta_published"
+        #     ),
+        #     "cls": CommunityRecordsDeltaPublishedAggregator,
+        # },
         "community-records-delta-added-agg": {
             "templates": (
                 "invenio_stats_dashboard.search_indices.search_templates."

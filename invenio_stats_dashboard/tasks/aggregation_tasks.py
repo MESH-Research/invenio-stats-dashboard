@@ -313,11 +313,11 @@ CommunityStatsAggregationTask = {
     "args": (
         (
             "community-usage-delta-agg",
-            "community-records-delta-created-agg",
-            "community-records-delta-published-agg",
+            # "community-records-delta-created-agg",
+            # "community-records-delta-published-agg",
             "community-records-delta-added-agg",
-            "community-records-snapshot-created-agg",
-            "community-records-snapshot-published-agg",
+            # "community-records-snapshot-created-agg",
+            # "community-records-snapshot-published-agg",
             "community-records-snapshot-added-agg",
             "community-usage-snapshot-agg",
         ),
