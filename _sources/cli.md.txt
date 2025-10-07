@@ -164,6 +164,56 @@ invenio community-stats read --community-id my-community --query-type community-
 
 The `read` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
 
+#### `clear-bookmarks`
+
+Clear aggregation bookmarks for community statistics.
+
+```bash
+invenio community-stats clear-bookmarks [OPTIONS]
+```
+
+**Options:**
+
+- `--community-id`: The UUID or slug of the community to clear bookmarks for. Can be specified multiple times.
+- `--aggregation-type`: The aggregation type to clear bookmarks for. Can be specified multiple times.
+- `--all-communities`: Clear bookmarks for all communities.
+- `--all-aggregation-types`: Clear bookmarks for all aggregation types.
+- `--confirm`: Confirm that you want to clear bookmarks without prompting.
+
+**Available Aggregation Types:**
+
+- `community-records-delta-created-agg`
+- `community-records-delta-published-agg`
+- `community-records-delta-added-agg`
+- `community-records-snapshot-created-agg`
+- `community-records-snapshot-published-agg`
+- `community-records-snapshot-added-agg`
+- `community-usage-delta-agg`
+- `community-usage-snapshot-agg`
+
+**Examples:**
+
+```bash
+# Clear all bookmarks for all communities and aggregation types
+invenio community-stats clear-bookmarks --all-communities --all-aggregation-types
+
+# Clear bookmarks for a specific community
+invenio community-stats clear-bookmarks --community-id my-community-id
+
+# Clear bookmarks for a specific aggregation type across all communities
+invenio community-stats clear-bookmarks --aggregation-type community-records-delta-created-agg
+
+# Clear bookmarks for multiple communities and types
+invenio community-stats clear-bookmarks --community-id comm1 --community-id comm2 --confirm
+
+# Clear all bookmarks without prompting
+invenio community-stats clear-bookmarks --all-communities --all-aggregation-types --confirm
+```
+
+**Configuration Requirements:**
+
+The `clear-bookmarks` command requires the `COMMUNITY_STATS_ENABLED` configuration to be set to `True`. If disabled, the command will exit with an error message.
+
 #### `cache`
 
 Manage cached statistics data and proactively generate cache entries.

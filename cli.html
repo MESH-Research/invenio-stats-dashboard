@@ -405,6 +405,51 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span><span clas
 <p><strong>Configuration Requirements:</strong></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">read</span></code> command requires the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the command will exit with an error message.</p>
 </section>
+<section id="clear-bookmarks">
+<h3><code class="docutils literal notranslate"><span class="pre">clear-bookmarks</span></code><a class="headerlink" href="#clear-bookmarks" title="Link to this heading">¶</a></h3>
+<p>Clear aggregation bookmarks for community statistics.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>clear-bookmarks<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--community-id</span></code>: The UUID or slug of the community to clear bookmarks for. Can be specified multiple times.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--aggregation-type</span></code>: The aggregation type to clear bookmarks for. Can be specified multiple times.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--all-communities</span></code>: Clear bookmarks for all communities.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--all-aggregation-types</span></code>: Clear bookmarks for all aggregation types.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--confirm</span></code>: Confirm that you want to clear bookmarks without prompting.</p></li>
+</ul>
+<p><strong>Available Aggregation Types:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">community-records-delta-created-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-records-delta-published-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-records-delta-added-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-records-snapshot-created-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-records-snapshot-published-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-records-snapshot-added-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-usage-delta-agg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">community-usage-snapshot-agg</span></code></p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear all bookmarks for all communities and aggregation types</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>clear-bookmarks<span class="w"> </span>--all-communities<span class="w"> </span>--all-aggregation-types
+
+<span class="c1"># Clear bookmarks for a specific community</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>clear-bookmarks<span class="w"> </span>--community-id<span class="w"> </span>my-community-id
+
+<span class="c1"># Clear bookmarks for a specific aggregation type across all communities</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>clear-bookmarks<span class="w"> </span>--aggregation-type<span class="w"> </span>community-records-delta-created-agg
+
+<span class="c1"># Clear bookmarks for multiple communities and types</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>clear-bookmarks<span class="w"> </span>--community-id<span class="w"> </span>comm1<span class="w"> </span>--community-id<span class="w"> </span>comm2<span class="w"> </span>--confirm
+
+<span class="c1"># Clear all bookmarks without prompting</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>clear-bookmarks<span class="w"> </span>--all-communities<span class="w"> </span>--all-aggregation-types<span class="w"> </span>--confirm
+</pre></div>
+</div>
+<p><strong>Configuration Requirements:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">clear-bookmarks</span></code> command requires the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration to be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. If disabled, the command will exit with an error message.</p>
+</section>
 <section id="cache">
 <h3><code class="docutils literal notranslate"><span class="pre">cache</span></code><a class="headerlink" href="#cache" title="Link to this heading">¶</a></h3>
 <p>Manage cached statistics data and proactively generate cache entries.</p>
@@ -1235,6 +1280,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>processes<
 <li><a class="reference internal" href="#aggregate"><code class="docutils literal notranslate"><span class="pre">aggregate</span></code></a></li>
 <li><a class="reference internal" href="#aggregate-background"><code class="docutils literal notranslate"><span class="pre">aggregate-background</span></code></a></li>
 <li><a class="reference internal" href="#read"><code class="docutils literal notranslate"><span class="pre">read</span></code></a></li>
+<li><a class="reference internal" href="#clear-bookmarks"><code class="docutils literal notranslate"><span class="pre">clear-bookmarks</span></code></a></li>
 <li><a class="reference internal" href="#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a><ul>
 <li><a class="reference internal" href="#cache-generate"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">generate</span></code></a></li>
 <li><a class="reference internal" href="#cache-clear-all"><code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-all</span></code></a></li>
