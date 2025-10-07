@@ -623,3 +623,149 @@ def status_command(community_id, verbose):
 
     click.echo("\n" + "=" * 80)
     return 0
+
+
+@click.command(name="clear-bookmarks")
+@click.option(
+    "--community-id",
+    type=str,
+    multiple=True,
+    help="The UUID or slug of the community to clear bookmarks for. "
+    "Can be specified multiple times.",
+)
+@click.option(
+    "--aggregation-type",
+    type=str,
+    multiple=True,
+    help="The aggregation type to clear bookmarks for. "
+    "Can be specified multiple times.",
+)
+@click.option(
+    "--all-communities",
+    is_flag=True,
+    help="Clear bookmarks for all communities",
+)
+@click.option(
+    "--all-aggregation-types",
+    is_flag=True,
+    help="Clear bookmarks for all aggregation types",
+)
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm that you want to clear bookmarks without prompting",
+)
+@with_appcontext
+def clear_bookmarks_command(
+    community_id,
+    aggregation_type,
+    all_communities,
+    all_aggregation_types,
+    confirm,
+):
+    r"""Clear aggregation bookmarks for community statistics.
+
+    This command clears the progress bookmarks that track aggregation state for
+    community statistics. When bookmarks are cleared, the next aggregation run
+    will start from the beginning of the data range instead of continuing from
+    the last processed date.
+
+    Bookmarks are stored per community and per aggregation type, allowing for
+    fine-grained control over which bookmarks to clear.
+
+    Available aggregation types:
+    - community-records-delta-created-agg
+    - community-records-delta-published-agg
+    - community-records-delta-added-agg
+    - community-records-snapshot-created-agg
+    - community-records-snapshot-published-agg
+    - community-records-snapshot-added-agg
+    - community-usage-delta-agg
+    - community-usage-snapshot-agg
+
+    Examples:
+
+    \b
+    - invenio community-stats clear-bookmarks --all-communities --all-aggregation-types
+    - invenio community-stats clear-bookmarks --community-id my-community-id
+    - invenio community-stats clear-bookmarks --aggregation-type \\
+        community-records-delta-created-agg
+    - invenio community-stats clear-bookmarks --community-id comm1 \\
+        --community-id comm2 --confirm
+    """
+    check_stats_enabled()
+
+    # Validate that we have some criteria for what to clear
+    if (not community_id and not all_communities and not aggregation_type
+            and not all_aggregation_types):
+        click.echo("❌ Error: You must specify at least one of:")
+        click.echo("  --community-id, --all-communities, --aggregation-type, "
+                   "or --all-aggregation-types")
+        return 1
+
+    # Convert community_id tuple to list
+    community_ids = list(community_id) if community_id else None
+    aggregation_types = list(aggregation_type) if aggregation_type else None
+
+    # Show what will be cleared
+    click.echo("🗑️  Clearing aggregation bookmarks...")
+
+    if all_communities:
+        click.echo("  Communities: ALL")
+    elif community_ids:
+        click.echo(f"  Communities: {', '.join(community_ids)}")
+    else:
+        click.echo("  Communities: ALL (default)")
+
+    if all_aggregation_types:
+        click.echo("  Aggregation types: ALL")
+    elif aggregation_types:
+        click.echo(f"  Aggregation types: {', '.join(aggregation_types)}")
+    else:
+        click.echo("  Aggregation types: ALL (default)")
+
+    # Confirm before proceeding
+    if not confirm:
+        if not click.confirm("\n⚠️  This will clear aggregation bookmarks. Continue?"):
+            click.echo("Operation cancelled.")
+            return 0
+
+    # Call the service to clear bookmarks
+    try:
+        with Halo(text="Clearing bookmarks...", spinner="dots"):
+            result = current_community_stats_service.clear_aggregation_bookmarks(
+                community_ids=community_ids,
+                aggregation_types=aggregation_types,
+                all_communities=all_communities,
+                all_aggregation_types=all_aggregation_types,
+            )
+
+        if not result["success"]:
+            click.echo(f"❌ Error: {result['error']}")
+            return 1
+
+        # Display results
+        total_cleared = result["total_cleared"]
+        if total_cleared > 0:
+            click.echo(f"\n✅ Successfully cleared {total_cleared} bookmark(s)")
+
+            # Show detailed results
+            for comm_id, comm_data in result["cleared"].items():
+                comm_slug = comm_data["slug"]
+                click.echo(f"\n  Community: {comm_slug} ({comm_id})")
+
+                for agg_type, count in comm_data["aggregation_types"].items():
+                    if count > 0:
+                        # Abbreviate aggregation type name for display
+                        short_name = agg_type.replace("community-records-", "").replace(
+                            "-agg", ""
+                        )
+                        click.echo(f"    {short_name}: {count} bookmark(s)")
+        else:
+            click.echo("\n📭 No bookmarks were found to clear")
+
+    except Exception as e:
+        click.echo(f"❌ Error clearing bookmarks: {str(e)}")
+        return 1
+
+    return 0

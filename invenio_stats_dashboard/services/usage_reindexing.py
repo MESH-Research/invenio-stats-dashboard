@@ -237,6 +237,24 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
     @_ensure_index_exists
     def get_bookmark(self, task_id: str, refresh_time=60):
         """Get last event_id and timestamp for a reindexing task."""
+        try:
+            response = self.client.get(
+                index=prefix_index(self.bookmark_index),
+                id=task_id
+            )
+            if response.get("found"):
+                source = response["_source"]
+                return {
+                    "task_id": source["task_id"],
+                    "last_event_id": source["last_event_id"],
+                    "last_event_timestamp": arrow.get(source["last_event_timestamp"]),
+                }
+        except Exception:
+            # Fall back to query-based approach for backward compatibility
+            # in case there are old bookmarks without consistent IDs
+            pass
+
+        # Fallback: query for bookmarks (handles legacy data)
         query_bookmark = (
             Search(using=self.client, index=prefix_index(self.bookmark_index))
             .query(

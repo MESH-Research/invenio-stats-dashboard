@@ -677,3 +677,126 @@ class CommunityStatsService:
             result["communities"].append(community_status)
 
         return result
+
+    def clear_aggregation_bookmarks(
+        self,
+        community_ids: list[str] | None = None,
+        aggregation_types: list[str] | None = None,
+        all_communities: bool = False,
+        all_aggregation_types: bool = False,
+    ) -> dict[str, Any]:
+        """Clear aggregation bookmarks for specified communities and aggregation types.
+
+        Args:
+            community_ids: List of community IDs to clear bookmarks for. If None
+                and not all_communities, will clear for all communities.
+            aggregation_types: List of aggregation types to clear bookmarks for. If None
+                and not all_aggregation_types, will clear for all aggregation types.
+            all_communities: If True, clear bookmarks for all communities
+            all_aggregation_types: If True, clear bookmarks for all aggregation types
+
+        Returns:
+            Dictionary with results including number of bookmarks cleared per
+                community/type
+        """
+        # Get available aggregation types
+        available_agg_types = list(register_aggregations().keys())
+        if "community-events-agg" in available_agg_types:
+            # Skip community events aggregator
+            available_agg_types.remove("community-events-agg")
+
+        # Determine which aggregation types to clear
+        if all_aggregation_types:
+            agg_types_to_clear = available_agg_types
+        elif aggregation_types:
+            agg_types_to_clear = [
+                t for t in aggregation_types if t in available_agg_types
+            ]
+            if not agg_types_to_clear:
+                return {
+                    "success": False,
+                    "error": f"No valid aggregation types found. "
+                             f"Available: {available_agg_types}",
+                    "cleared": {}
+                }
+        else:
+            agg_types_to_clear = available_agg_types
+
+        # Get communities to clear bookmarks for
+        if all_communities or not community_ids:
+            try:
+                communities_result = current_communities.service.search(
+                    system_identity, size=1000
+                )
+                communities_to_clear = [
+                    {"id": comm["id"], "slug": comm.get("slug", "")}
+                    for comm in communities_result.hits
+                ]
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to retrieve communities: {str(e)}",
+                    "cleared": {}
+                }
+        else:
+            communities_to_clear = []
+            for community_id in community_ids:
+                try:
+                    community = current_communities.service.read(
+                        system_identity, community_id
+                    )
+                    communities_to_clear.append({
+                        "id": community.id,
+                        "slug": community.data.get("slug", "")
+                    })
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"Community {community_id} not found: {str(e)}",
+                        "cleared": {}
+                    }
+
+        # Clear bookmarks for each community and aggregation type
+        results = {
+            "success": True,
+            "cleared": {},
+            "total_cleared": 0
+        }
+
+        for community in communities_to_clear:
+            comm_id = community["id"]
+            comm_slug = community["slug"]
+            results["cleared"][comm_id] = {
+                "slug": comm_slug,
+                "aggregation_types": {}
+            }
+
+            for agg_type in agg_types_to_clear:
+                try:
+                    bookmark_api = CommunityBookmarkAPI(
+                        self.client, agg_type, "day"
+                    )
+
+                    if all_communities and all_aggregation_types:
+                        # Clear all bookmarks for this aggregation type
+                        cleared_count = bookmark_api.clear_all_bookmarks(
+                            aggregation_type=agg_type
+                        )
+                    else:
+                        # Clear bookmarks for this specific community and aggregation
+                        # type
+                        cleared_count = bookmark_api.clear_bookmark(comm_id)
+
+                    results["cleared"][comm_id]["aggregation_types"][agg_type] = (
+                        cleared_count
+                    )
+                    results["total_cleared"] += cleared_count
+
+                except Exception as e:
+                    current_app.logger.warning(
+                        f"Failed to clear bookmarks for community {comm_id} "
+                        f"and aggregation type {agg_type}: {e}"
+                    )
+                    results["cleared"][comm_id]["aggregation_types"][agg_type] = 0
+
+        return results
