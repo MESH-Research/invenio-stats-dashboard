@@ -338,6 +338,8 @@ class CommunityAggregatorBase(StatAggregator):
 
         results = []
         for community_id in communities_to_aggregate:
+            current_app.logger.debug(f"start_date: {start_date}")
+            current_app.logger.debug(f"end_date: {end_date}")
             try:
                 first_event_date, last_event_date = self._find_first_event_date(
                     community_id
@@ -387,6 +389,8 @@ class CommunityAggregatorBase(StatAggregator):
                     f"aggregations without the community events: {e}"
                 )
                 continue
+            current_app.logger.debug(f"upper_limit: {upper_limit}")
+            current_app.logger.debug(f"lower_limit: {lower_limit}")
 
             # upper_limit could legitimately be < lower_limit if we spent this iteration
             # indexing prior community add/remove events. If so, skip this community

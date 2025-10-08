@@ -732,7 +732,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             start_date, last_event_date, community_id, end_date=end_date
         )
         if should_skip:
-            current_app.logger.warning(
+            current_app.logger.info(
                 f"Skipping usage delta aggregation for {community_id} - "
                 f"no events after {start_date}"
             )

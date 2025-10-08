@@ -7,6 +7,7 @@
 """Queries for the stats dashboard."""
 
 from typing import Any
+
 import arrow
 from flask import current_app
 from invenio_search.proxies import current_search_client
@@ -16,9 +17,9 @@ from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 from .utils.utils import (
+    get_subcount_combine_subfields,
     get_subcount_field,
     get_subcount_label_includes,
-    get_subcount_combine_subfields,
 )
 
 
@@ -131,14 +132,12 @@ def get_relevant_record_ids_from_events(
             }
         ]
 
-        should_clauses.append(
-            {
-                "bool": {
-                    "must": must_clauses,
-                    "must_not": must_not_clauses,
-                }
+        should_clauses.append({
+            "bool": {
+                "must": must_clauses,
+                "must_not": must_not_clauses,
             }
-        )
+        })
 
     # Execute the query
     query = {
@@ -295,9 +294,9 @@ class CommunityUsageDeltaQuery:
 
         # Add community filter if not global
         if community_id != "global":
-            query_dict["query"]["bool"]["must"].append(
-                {"term": {"community_ids": community_id}}
-            )
+            query_dict["query"]["bool"]["must"].append({
+                "term": {"community_ids": community_id}
+            })
 
         # Add subcount aggregations
         query_dict["aggs"].update(self._make_subcount_aggregations_dict(event_type))
@@ -638,13 +637,13 @@ class CommunityRecordDeltaQuery:
 
             if find_deleted:
                 must_clauses.append({"term": {"is_deleted": True}})
-                must_clauses.append(
-                    {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
-                )
+                must_clauses.append({
+                    "range": {date_series_field: {"gte": start_date, "lte": end_date}}
+                })
             else:
-                must_clauses.append(
-                    {"range": {date_series_field: {"gte": start_date, "lte": end_date}}}
-                )
+                must_clauses.append({
+                    "range": {date_series_field: {"gte": start_date, "lte": end_date}}
+                })
         else:
             # Get relevant record IDs from the events index
             record_ids = get_relevant_record_ids_from_events(
@@ -741,19 +740,12 @@ class CommunityRecordDeltaQuery:
         # Handle combined subfields (like affiliations.id and affiliations.name)
         combine_subfields = get_subcount_combine_subfields(records_config, field_index)
         if combine_subfields:
-            current_app.logger.error(
-                f"Creating combine_subfields aggregations for {subcount_key}: "
-                f"{combine_subfields}"
-            )
             for field in combine_subfields:
                 field_name = field.split(".")[-1]
                 if field_index > 0:
                     agg_name = f"{subcount_key}_{field_index}_{field_name}"
                 else:
                     agg_name = f"{subcount_key}_{field_name}"
-                current_app.logger.error(
-                    f"Creating aggregation '{agg_name}' for field '{field}'"
-                )
                 sub_aggs[agg_name] = self._make_subcount_agg_dict(
                     field, label_field, label_includes
                 )

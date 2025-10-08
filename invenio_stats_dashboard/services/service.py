@@ -42,28 +42,42 @@ class CommunityStatsService:
 
     def aggregate_stats(
         self,
-        community_ids: list[str],
-        start_date: str,
-        end_date: str,
+        community_ids: list[str] | None = None,
+        aggregation_types: list[str] | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         eager: bool = True,
         update_bookmark: bool = True,
         ignore_bookmark: bool = False,
         verbose: bool = False,
-        force: bool = False,
     ) -> AggregationResponse:
         """Aggregate statistics for a community.
 
+        Available aggregation types are the ones configure in the
+        COMMUNITY_STATS_AGGREGATIONS config variable.
+
         Args:
             community_ids: List of community IDs to aggregate stats for
+            aggregation_types: List of configured aggregation types to run
             start_date: Start date for aggregation
             end_date: End date for aggregation
             eager: Whether to run eagerly (synchronously)
             update_bookmark: Whether to update bookmarks after aggregation
             ignore_bookmark: Whether to ignore existing bookmarks
             verbose: Whether to show detailed timing information
-            force: Whether to force aggregation even if scheduled tasks are disabled
+
+        Returns:
+            AggregationResponse object
         """
-        args = CommunityStatsAggregationTask["args"]
+        agg_type_args = CommunityStatsAggregationTask["args"]
+        current_app.logger.debug(f"agg_type_args: {agg_type_args}")
+        if aggregation_types is not None and len(aggregation_types) > 0:
+            disallowed = [a for a in aggregation_types if a not in agg_type_args[0]]
+            if len(disallowed) > 0:
+                raise ValueError(
+                    f"Some specified aggregation types are not configured: {disallowed}"
+                )
+            agg_type_args = [a for a in agg_type_args[0] if a in aggregation_types]
         if eager:
             current_app.logger.error(
                 f"Aggregating stats eagerly for communities: {community_ids}"
@@ -71,10 +85,10 @@ class CommunityStatsService:
             try:
                 # For eager execution, call the function directly
                 current_app.logger.error(
-                    f"Calling aggregate_community_record_stats with args: {args}"
+                    f"Calling aggregate_community_record_stats with args: {agg_type_args}"
                 )
                 results = aggregate_community_record_stats(
-                    *args,
+                    agg_type_args,
                     start_date=start_date,
                     end_date=end_date,
                     update_bookmark=update_bookmark,
@@ -83,9 +97,8 @@ class CommunityStatsService:
                     verbose=verbose,
                     eager=eager,
                 )
-                current_app.logger.error(
-                    f"Stats aggregated eagerly for communities: {community_ids}, "
-                    f"results type: {type(results)}"
+                current_app.logger.info(
+                    f"Stats aggregated eagerly for communities: {community_ids}"
                 )
             except Exception as e:
                 current_app.logger.error(
@@ -94,12 +107,12 @@ class CommunityStatsService:
                 )
                 raise
         else:
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Aggregating stats asynchronously for communities: {community_ids}"
             )
             # For async execution, use the Celery task
             task_run = aggregate_community_record_stats.delay(
-                *args,
+                *agg_type_args,
                 start_date=start_date,
                 end_date=end_date,
                 update_bookmark=update_bookmark,
@@ -108,8 +121,8 @@ class CommunityStatsService:
                 verbose=verbose,
                 eager=eager,
             )
-            current_app.logger.error(
-                f"Stats aggregation task run asynchronously for communities: "
+            current_app.logger.info(
+                f"Stats aggregation task is running asynchronously for communities: "
                 f"{community_ids}"
             )
             task_id = task_run.id
@@ -129,44 +142,6 @@ class CommunityStatsService:
                     "formatted_report_verbose": "No results available",
                 },
             )
-
-    def aggregate_stats_direct(
-        self,
-        community_ids: list[str],
-        start_date: str,
-        end_date: str,
-        eager: bool = True,
-        update_bookmark: bool = True,
-        ignore_bookmark: bool = False,
-        verbose: bool = False,
-    ) -> AggregationResponse:
-        """Aggregate statistics for a community directly, bypassing config checks.
-
-        This method allows direct aggregation even when scheduled tasks are disabled.
-        It's useful for manual aggregation or when called programmatically.
-
-        Args:
-            community_ids: List of community IDs to aggregate stats for
-            start_date: Start date for aggregation
-            end_date: End date for aggregation
-            eager: Whether to run eagerly (synchronously)
-            update_bookmark: Whether to update bookmarks after aggregation
-            ignore_bookmark: Whether to ignore existing bookmarks
-            verbose: Whether to show detailed timing information
-
-        Returns:
-            AggregationResponse with aggregation results
-        """
-        return self.aggregate_stats(
-            community_ids=community_ids,
-            start_date=start_date,
-            end_date=end_date,
-            eager=eager,
-            update_bookmark=update_bookmark,
-            ignore_bookmark=ignore_bookmark,
-            verbose=verbose,
-            force=True,
-        )
 
     def count_records_needing_events(
         self,
@@ -375,8 +350,7 @@ class CommunityStatsService:
 
                 current_app.logger.info(f"Generating events for record: {record_id}")
                 current_app.logger.info(
-                    f"Record {record_id} belongs to communities: "
-                    f"{record_communities}"
+                    f"Record {record_id} belongs to communities: {record_communities}"
                 )
 
                 # Always process global community, plus communities the record
@@ -569,9 +543,10 @@ class CommunityStatsService:
                     community = current_communities.service.read(
                         system_identity, community_id
                     )
-                    communities.append(
-                        {"id": community.id, "slug": community.data.get("slug", "")}
-                    )
+                    communities.append({
+                        "id": community.id,
+                        "slug": community.data.get("slug", ""),
+                    })
                 except Exception as e:
                     return {
                         "communities": [],
@@ -716,8 +691,8 @@ class CommunityStatsService:
                 return {
                     "success": False,
                     "error": f"No valid aggregation types found. "
-                             f"Available: {available_agg_types}",
-                    "cleared": {}
+                    f"Available: {available_agg_types}",
+                    "cleared": {},
                 }
         else:
             agg_types_to_clear = available_agg_types
@@ -736,7 +711,7 @@ class CommunityStatsService:
                 return {
                     "success": False,
                     "error": f"Failed to retrieve communities: {str(e)}",
-                    "cleared": {}
+                    "cleared": {},
                 }
         else:
             communities_to_clear = []
@@ -747,35 +722,26 @@ class CommunityStatsService:
                     )
                     communities_to_clear.append({
                         "id": community.id,
-                        "slug": community.data.get("slug", "")
+                        "slug": community.data.get("slug", ""),
                     })
                 except Exception as e:
                     return {
                         "success": False,
                         "error": f"Community {community_id} not found: {str(e)}",
-                        "cleared": {}
+                        "cleared": {},
                     }
 
         # Clear bookmarks for each community and aggregation type
-        results = {
-            "success": True,
-            "cleared": {},
-            "total_cleared": 0
-        }
+        results = {"success": True, "cleared": {}, "total_cleared": 0}
 
         for community in communities_to_clear:
             comm_id = community["id"]
             comm_slug = community["slug"]
-            results["cleared"][comm_id] = {
-                "slug": comm_slug,
-                "aggregation_types": {}
-            }
+            results["cleared"][comm_id] = {"slug": comm_slug, "aggregation_types": {}}
 
             for agg_type in agg_types_to_clear:
                 try:
-                    bookmark_api = CommunityBookmarkAPI(
-                        self.client, agg_type, "day"
-                    )
+                    bookmark_api = CommunityBookmarkAPI(self.client, agg_type, "day")
 
                     if all_communities and all_aggregation_types:
                         # Clear all bookmarks for this aggregation type

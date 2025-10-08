@@ -164,7 +164,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         # to snapshot
         # The snapshot can run for any day where delta data exists
         if delta_bookmark_date.date() < start_date.date():
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Usage delta aggregator for {community_id} has not processed "
                 f"data for the requested period. Delta bookmark: "
                 f"{delta_bookmark_date.date()}, Snapshot start_date: "

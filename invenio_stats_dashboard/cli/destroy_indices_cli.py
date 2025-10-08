@@ -105,6 +105,8 @@ STATS_DASHBOARD_INDICES = [
     "*stats-community-usage-snapshot*",
     "*events-stats-record-view-*-v2.0.0",
     "*events-stats-file-download-*-v2.0.0",
+    "*stats-bookmarks-community*",
+    "*stats-bookmarks-reindexing*",
 ]
 
 
@@ -115,8 +117,7 @@ STATS_DASHBOARD_INDICES = [
     callback=abort_if_false,
     expose_value=False,
     prompt=(
-        "Do you know that you are going to destroy all "
-        "invenio-stats-dashboard indices?"
+        "Do you know that you are going to destroy all invenio-stats-dashboard indices?"
     ),
     help="Skip the confirmation prompt (required for non-interactive use).",
 )

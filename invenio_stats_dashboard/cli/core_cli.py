@@ -51,6 +51,12 @@ def check_scheduled_tasks_enabled(command="aggregate"):
     help="The UUID or slug of the community to aggregate stats for",
 )
 @click.option(
+    "--aggregation-type",
+    type=str,
+    multiple=True,
+    help="The type of aggregation to be performed. Can be specified multiple times.",
+)
+@click.option(
     "--start-date",
     type=str,
     help="The start date to aggregate stats for (YYYY-MM-DD)",
@@ -92,6 +98,7 @@ def check_scheduled_tasks_enabled(command="aggregate"):
 @with_appcontext
 def aggregate_stats_command(
     community_id,
+    aggregation_type,
     start_date,
     end_date,
     eager,
@@ -106,31 +113,41 @@ def aggregate_stats_command(
     communities or the global instance. Aggregation processes usage events and
     community events to generate daily statistics.
 
+    If no aggregation type is specified, it will run all configured aggregation
+    types. By default these are:
+
+    - community-records-delta-created-agg (currently disabled by default)
+    - community-records-delta-published-agg (currently disabled by default)
+    - community-records-delta-added-agg
+    - community-records-snapshot-created-agg (currently disabled by default)
+    - community-records-snapshot-published-agg (currently disabled by default)
+    - community-records-snapshot-added-agg
+    - community-usage-delta-agg
+    - community-usage-snapshot-agg
+
 
     Examples:  #
 
-    \b
     - invenio community-stats aggregate
     - invenio community-stats aggregate --community-id my-community-id
     - invenio community-stats aggregate --start-date 2024-01-01 --end-date 2024-01-31
     """
     check_stats_enabled()
 
-    # Only check scheduled tasks if not forcing the operation
     if not force:
         check_scheduled_tasks_enabled(command="aggregate")
     else:
-        # Log that we're bypassing the scheduled tasks check
         current_app.logger.info(
             "Bypassing scheduled tasks check due to --force flag. "
             "Running aggregation directly."
         )
 
     community_ids = list(community_id) if community_id else None
+    aggregation_types = list(aggregation_type) if aggregation_type else None
 
-    # Display startup configuration using centralized function
     startup_message = format_agg_startup_message(
         community_ids=community_ids,
+        aggregation_types=aggregation_types,
         start_date=start_date,
         end_date=end_date,
         eager=eager,
@@ -143,13 +160,13 @@ def aggregate_stats_command(
     with Halo(text="Aggregating stats...", spinner="dots"):
         result = current_community_stats_service.aggregate_stats(
             community_ids=community_ids,
+            aggregation_types=aggregation_types,
             start_date=start_date,
             end_date=end_date,
             eager=eager,
             update_bookmark=update_bookmark,
             ignore_bookmark=ignore_bookmark,
             verbose=verbose,
-            force=force,
         )
 
     # Display results
@@ -674,11 +691,11 @@ def clear_bookmarks_command(
     fine-grained control over which bookmarks to clear.
 
     Available aggregation types:
-    - community-records-delta-created-agg
-    - community-records-delta-published-agg
+    - community-records-delta-created-agg (currently disabled by default)
+    - community-records-delta-published-agg (currently disabled by default)
     - community-records-delta-added-agg
-    - community-records-snapshot-created-agg
-    - community-records-snapshot-published-agg
+    - community-records-snapshot-created-agg (currently disabled by default)
+    - community-records-snapshot-published-agg (currently disabled by default)
     - community-records-snapshot-added-agg
     - community-usage-delta-agg
     - community-usage-snapshot-agg
@@ -696,11 +713,17 @@ def clear_bookmarks_command(
     check_stats_enabled()
 
     # Validate that we have some criteria for what to clear
-    if (not community_id and not all_communities and not aggregation_type
-            and not all_aggregation_types):
+    if (
+        not community_id
+        and not all_communities
+        and not aggregation_type
+        and not all_aggregation_types
+    ):
         click.echo("❌ Error: You must specify at least one of:")
-        click.echo("  --community-id, --all-communities, --aggregation-type, "
-                   "or --all-aggregation-types")
+        click.echo(
+            "  --community-id, --all-communities, --aggregation-type, "
+            "or --all-aggregation-types"
+        )
         return 1
 
     # Convert community_id tuple to list

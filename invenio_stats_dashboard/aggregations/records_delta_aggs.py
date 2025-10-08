@@ -17,7 +17,7 @@ from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 from ..queries import CommunityRecordDeltaQuery
-from ..utils.utils import get_subcount_field, get_subcount_combine_subfields
+from ..utils.utils import get_subcount_combine_subfields, get_subcount_field
 from .base import CommunityAggregatorBase
 from .types import (
     RecordDeltaDocument,
@@ -543,7 +543,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             start_date, end_date, last_event_date, community_id
         )
         if should_skip:
-            current_app.logger.error(
+            current_app.logger.info(
                 f"Skipping delta aggregation for {community_id} - "
                 f"no relevant records after {start_date}"
             )
@@ -559,8 +559,9 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
 
         total_days_processed = 0
         for year in range(start_date.year, end_date.year + 1):
-            year_start_date = max(arrow.get(f"{year}-01-01"), start_date)
-            year_end_date = min(arrow.get(f"{year}-12-31"), end_date)
+            year_start_date = max(arrow.get(f"{year}-01-01"), start_date.floor("day"))
+            calendar_year_end = arrow.get(f"{year}-12-31").ceil("day")
+            year_end_date = min(calendar_year_end, end_date.ceil("day"))
 
             index_name = prefix_index(f"{self.aggregation_index}-{year}")
 

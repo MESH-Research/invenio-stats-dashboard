@@ -76,6 +76,7 @@ class AggregationResponse(TypedDict):
 
 def format_agg_startup_message(
     community_ids=None,
+    aggregation_types=None,
     start_date=None,
     end_date=None,
     eager=False,
@@ -87,6 +88,7 @@ def format_agg_startup_message(
 
     Args:
         community_ids: List of community IDs or None for all
+        aggregation_types: List of aggregation types or None for all
         start_date: Start date string or None
         end_date: End date string or None
         eager: Whether running in eager mode
@@ -103,6 +105,9 @@ def format_agg_startup_message(
     lines.append("=" * 60)
     lines.append(f"Start date: {start_date or 'Not specified (using bookmark)'}")
     lines.append(f"End date: {end_date or 'Not specified (using current date)'}")
+
+    communities_str = ", ".join(community_ids) if community_ids else "All communities"
+    lines.append(f"Aggregation types: {communities_str}")
 
     communities_str = ", ".join(community_ids) if community_ids else "All communities"
     lines.append(f"Communities: {communities_str}")
@@ -404,7 +409,6 @@ def _run_aggregation(
     parsed_end_date = dateutil_parse(end_date) if end_date else None
     results: list[AggregatorResult] = []
 
-    # Log startup configuration
     startup_config = format_agg_startup_message(
         community_ids=community_ids,
         start_date=str(start_date) if start_date else None,
