@@ -69,15 +69,17 @@ class CommunityStatsService:
         Returns:
             AggregationResponse object
         """
-        agg_type_args = CommunityStatsAggregationTask["args"]
-        current_app.logger.debug(f"agg_type_args: {agg_type_args}")
+        agg_args = CommunityStatsAggregationTask["args"]
+        current_app.logger.debug(f"agg_type_args: {agg_args}")
         if aggregation_types is not None and len(aggregation_types) > 0:
-            disallowed = [a for a in aggregation_types if a not in agg_type_args[0]]
+            disallowed = [a for a in aggregation_types if a not in agg_args[0]]
             if len(disallowed) > 0:
                 raise ValueError(
                     f"Some specified aggregation types are not configured: {disallowed}"
                 )
-            agg_type_args = [a for a in agg_type_args[0] if a in aggregation_types]
+            agg_type_args = [a for a in agg_args[0] if a in aggregation_types]
+            agg_args = (agg_type_args, *agg_args[1:])
+
         if eager:
             current_app.logger.error(
                 f"Aggregating stats eagerly for communities: {community_ids}"
@@ -85,10 +87,10 @@ class CommunityStatsService:
             try:
                 # For eager execution, call the function directly
                 current_app.logger.error(
-                    f"Calling aggregate_community_record_stats with args: {agg_type_args}"
+                    f"Calling aggregate_community_record_stats with args: {agg_args}"
                 )
                 results = aggregate_community_record_stats(
-                    agg_type_args,
+                    *agg_args,
                     start_date=start_date,
                     end_date=end_date,
                     update_bookmark=update_bookmark,
@@ -112,7 +114,7 @@ class CommunityStatsService:
             )
             # For async execution, use the Celery task
             task_run = aggregate_community_record_stats.delay(
-                *agg_type_args,
+                *agg_args,
                 start_date=start_date,
                 end_date=end_date,
                 update_bookmark=update_bookmark,
