@@ -218,6 +218,11 @@ class ProcessManager:
     def cleanup(self):
         """Clean up PID and status files."""
         try:
+            # If the managed process is still running, do not delete tracking files.
+            pid = self.get_pid()
+            if pid and psutil.pid_exists(pid):
+                return
+
             if self.pid_file.exists():
                 self.pid_file.unlink()
             if self.status_file.exists():
