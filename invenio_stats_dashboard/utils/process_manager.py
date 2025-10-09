@@ -97,6 +97,14 @@ class ProcessManager:
             }
         )
 
+        # Best-effort: if PID file is missing (e.g., due to permissions race), try again
+        if not self.pid_file.exists():
+            try:
+                with open(self.pid_file, "w") as f:
+                    f.write(str(pid))
+            except Exception:
+                pass
+
         click.echo(f"Started {self.process_name} in background (PID: {pid})")
         click.echo(f"PID file: {self.pid_file}")
         click.echo(f"Log file: {self.log_file}")
@@ -113,35 +121,72 @@ class ProcessManager:
         return pid
 
     def is_running(self) -> bool:
-        """Check if the process is currently running."""
-        if not self.pid_file.exists():
+        """Check if the process is currently running.
+
+        Falls back to the status file if the PID file is missing.
+        """
+        pid: int | None = None
+
+        # Primary source: PID file
+        if self.pid_file.exists():
+            try:
+                with open(self.pid_file) as f:
+                    pid = int(f.read().strip())
+            except (ValueError, FileNotFoundError):
+                pid = None
+
+        # Fallback: status file
+        if pid is None:
+            status = self.get_status() or {}
+            raw_pid = status.get("pid") if isinstance(status, dict) else None
+            try:
+                pid = int(raw_pid) if raw_pid is not None else None
+            except (TypeError, ValueError):
+                pid = None
+
+        if pid is None:
+            # No way to determine running state
             return False
 
-        try:
-            with open(self.pid_file) as f:
-                pid = int(f.read().strip())
-
-            # Check if process exists and is running
-            if not psutil.pid_exists(pid):
-                self.cleanup()
-                return False
-
-            process = psutil.Process(pid)
-            return bool(process.is_running())
-
-        except (ValueError, FileNotFoundError, psutil.NoSuchProcess):
+        # Check if process exists and is running
+        if not psutil.pid_exists(pid):
             self.cleanup()
             return False
 
+        try:
+            process = psutil.Process(pid)
+            running = bool(process.is_running())
+        except psutil.NoSuchProcess:
+            running = False
+
+        if running and not self.pid_file.exists():
+            # Recreate missing PID file for stability
+            try:
+                with open(self.pid_file, "w") as f:
+                    f.write(str(pid))
+            except Exception:
+                pass
+
+        if not running:
+            self.cleanup()
+        return running
+
     def get_pid(self) -> int | None:
         """Get the PID of the running process."""
-        if not self.pid_file.exists():
-            return None
+        # Try PID file first
+        if self.pid_file.exists():
+            try:
+                with open(self.pid_file) as f:
+                    return int(f.read().strip())
+            except (ValueError, FileNotFoundError):
+                pass
 
+        # Fallback to status file
+        status = self.get_status() or {}
+        raw_pid = status.get("pid") if isinstance(status, dict) else None
         try:
-            with open(self.pid_file) as f:
-                return int(f.read().strip())
-        except (ValueError, FileNotFoundError):
+            return int(raw_pid) if raw_pid is not None else None
+        except (TypeError, ValueError):
             return None
 
     def get_status(self) -> dict[str, Any] | None:
@@ -216,9 +261,12 @@ class ProcessManager:
             return False
 
     def cleanup(self):
-        """Clean up PID and status files."""
+        """Clean up PID and status files.
+
+        Skips deletion if the background process still appears to be running,
+        based on either the PID file or the status file.
+        """
         try:
-            # If the managed process is still running, do not delete tracking files.
             pid = self.get_pid()
             if pid and psutil.pid_exists(pid):
                 return
@@ -271,38 +319,66 @@ class ProcessMonitor:
 
     def show_status(self, show_log: bool = False, log_lines: int = 20):
         """Display the current process status."""
-        if not self.pid_file.exists():
-            click.echo(f"❌ Process {self.process_name} is not running")
-            return
-
         status = self._get_status()
-        if not status:
-            click.echo(f"❌ Could not read status for {self.process_name}")
+        # Try to determine PID from pidfile first, then status
+        pid: int | None = None
+        if self.pid_file.exists():
+            try:
+                with open(self.pid_file) as f:
+                    pid = int(f.read().strip())
+            except (ValueError, FileNotFoundError):
+                pid = None
+        if pid is None and isinstance(status, dict):
+            raw_pid = status.get("pid")
+            try:
+                pid = int(raw_pid) if raw_pid is not None else None
+            except (TypeError, ValueError):
+                pid = None
+
+        if status is None and pid is None:
+            click.echo(f"❌ Process {self.process_name} is not running")
             return
 
         # Display status information
         click.echo(f"📊 Process Status: {self.process_name}")
         click.echo("=" * 50)
-        click.echo(f"PID: {status.get('pid', 'Unknown')}")
-        click.echo(f"Status: {status.get('status', 'Unknown')}")
+        if isinstance(status, dict):
+            click.echo(f"PID: {status.get('pid', 'Unknown')}")
+            click.echo(f"Status: {status.get('status', 'Unknown')}")
 
-        if "start_time" in status:
-            start_time = time.time() - status["start_time"]
-            hours = int(start_time // 3600)
-            minutes = int((start_time % 3600) // 60)
-            seconds = int(start_time % 60)
-            click.echo(f"Runtime: {hours:02d}:{minutes:02d}:{seconds:02d}")
+            if "start_time" in status:
+                try:
+                    start_time = time.time() - float(status["start_time"])  # type: ignore[arg-type]
+                    hours = int(start_time // 3600)
+                    minutes = int((start_time % 3600) // 60)
+                    seconds = int(start_time % 60)
+                    click.echo(f"Runtime: {hours:02d}:{minutes:02d}:{seconds:02d}")
+                except Exception:
+                    pass
 
-        if "progress" in status:
-            progress = status["progress"]
-            progress_bar = "█" * int(progress / 2) + "░" * (50 - int(progress / 2))
-            click.echo(f"Progress: [{progress_bar}] {progress:.1f}%")
+            if "progress" in status:
+                try:
+                    progress = float(status["progress"])  # type: ignore[index]
+                    progress_bar = (
+                        "█" * int(progress / 2) + "░" * (50 - int(progress / 2))
+                    )
+                    click.echo(f"Progress: [{progress_bar}] {progress:.1f}%")
+                except Exception:
+                    pass
 
-        if "current_task" in status:
-            click.echo(f"Current Task: {status['current_task']}")
+            if "current_task" in status:
+                try:
+                    click.echo(f"Current Task: {status['current_task']}")
+                except Exception:
+                    pass
 
-        if "command" in status:
-            click.echo(f"Command: {status['command']}")
+            if "command" in status:
+                try:
+                    click.echo(f"Command: {status['command']}")
+                except Exception:
+                    pass
+        else:
+            click.echo("No status file found")
 
         # Check if process is actually running
         if self._is_process_running():
@@ -330,18 +406,37 @@ class ProcessMonitor:
             return None
 
     def _is_process_running(self) -> bool:
-        """Check if the process is actually running."""
+        """Check if the process is actually running.
+
+        Falls back to the status file if the PID file is missing.
+        """
+        pid: int | None = None
+
+        if self.pid_file.exists():
+            try:
+                with open(self.pid_file) as f:
+                    pid = int(f.read().strip())
+            except (ValueError, FileNotFoundError):
+                pid = None
+
+        if pid is None:
+            status = self._get_status() or {}
+            raw_pid = status.get("pid") if isinstance(status, dict) else None
+            try:
+                pid = int(raw_pid) if raw_pid is not None else None
+            except (TypeError, ValueError):
+                pid = None
+
+        if pid is None:
+            return False
+
+        if not psutil.pid_exists(pid):
+            return False
+
         try:
-            with open(self.pid_file) as f:
-                pid = int(f.read().strip())
-
-            if not psutil.pid_exists(pid):
-                return False
-
             process = psutil.Process(pid)
             return bool(process.is_running())
-
-        except (ValueError, FileNotFoundError, psutil.NoSuchProcess):
+        except psutil.NoSuchProcess:
             return False
 
     def _get_log_tail(self, lines: int) -> str:
