@@ -4,6 +4,8 @@
 import os
 import tempfile
 
+from openpyxl import load_workbook
+
 from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
     DataSeriesExcelSerializer
 )
@@ -13,62 +15,81 @@ class TestDataSeriesExcelSerializer:
     """Test the DataSeriesExcelSerializer functionality."""
 
     def test_excel_workbook_creation(self):
-        """Test the Excel workbook creation functionality."""
-        # Sample data structure similar to sample_usage_delta_data_series
+        """Test consolidated Excel workbook creation."""
+        # Sample data with query->category->metric structure
         test_data = {
-            "access_statuses": {
-                "data_volume": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 3072.0],
-                                "valueType": "filesize",
-                            },
-                            {
-                                "readableDate": "Jun 2, 2025",
-                                "value": ["2025-06-02", 4096.0],
-                                "valueType": "filesize",
-                            }
-                        ],
-                        "id": "metadata-only",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ],
-                "downloads": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 3],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "metadata-only",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ]
-            },
-            "countries": {
-                "views": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 1],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "US",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ]
+            "usage-snapshot-category": {
+                "access_statuses": {
+                    "data_volume": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3072.0],
+                                    "valueType": "filesize",
+                                },
+                                {
+                                    "readableDate": "Jun 2, 2025",
+                                    "value": ["2025-06-02", 4096.0],
+                                    "valueType": "filesize",
+                                }
+                            ],
+                            "id": "metadata-only",
+                            "label": "Metadata Only",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ],
+                    "downloads": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "metadata-only",
+                            "label": "Metadata Only",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        },
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 5],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "open",
+                            "label": "Open Access",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ]
+                },
+                "countries": {
+                    "views": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 1],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "US",
+                            "label": "United States",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ]
+                }
             }
         }
 
@@ -78,9 +99,41 @@ class TestDataSeriesExcelSerializer:
         with tempfile.TemporaryDirectory() as temp_dir:
             serializer._create_excel_workbooks(test_data, temp_dir)
 
-            # Check if Excel files were created
-            assert os.path.exists(os.path.join(temp_dir, "access_statuses.xlsx"))
+            # Check workbooks created (one per category)
+            assert os.path.exists(
+                os.path.join(temp_dir, "access_statuses.xlsx")
+            )
             assert os.path.exists(os.path.join(temp_dir, "countries.xlsx"))
+
+            # Load and verify access_statuses workbook
+            wb = load_workbook(
+                os.path.join(temp_dir, "access_statuses.xlsx")
+            )
+            sheet_names = wb.sheetnames
+            assert "data_volume" in sheet_names
+            assert "downloads" in sheet_names
+
+            # Verify data_volume sheet has correct structure
+            ws = wb["data_volume"]
+            assert ws.cell(row=1, column=1).value == "id"
+            assert ws.cell(row=1, column=2).value == "label"
+            assert ws.cell(row=1, column=3).value == "date"
+            assert ws.cell(row=1, column=4).value == "value"
+            assert ws.cell(row=1, column=5).value == "units"
+
+            # Verify data rows
+            assert ws.cell(row=2, column=1).value == "metadata-only"
+            assert ws.cell(row=2, column=2).value == "Metadata Only"
+            assert ws.cell(row=2, column=3).value == "2025-06-01"
+            assert ws.cell(row=2, column=4).value == 3072.0
+            assert ws.cell(row=2, column=5).value == "bytes"
+
+            # Verify downloads sheet consolidates multiple series
+            ws = wb["downloads"]
+            assert ws.cell(row=2, column=1).value == "metadata-only"
+            assert ws.cell(row=2, column=5).value == "unique downloads"
+            assert ws.cell(row=3, column=1).value == "open"
+            assert ws.cell(row=3, column=2).value == "Open Access"
 
     def test_sheet_name_sanitization(self):
         """Test sheet name sanitization for Excel compatibility."""
@@ -108,65 +161,141 @@ class TestDataSeriesExcelSerializer:
             invalid_chars = ['\\', '/', '?', '*', '[', ']']
             assert not any(char in result for char in invalid_chars)
 
-    def test_data_addition_to_sheet(self):
-        """Test adding data to Excel sheets."""
+    def test_consolidated_data_addition(self):
+        """Test adding consolidated data to Excel sheets."""
         serializer = DataSeriesExcelSerializer()
 
-        test_obj = {
-            "id": "test-id",
-            "data": [
-                {
-                    "readableDate": "Jun 1, 2025",
-                    "value": ["2025-06-01", 100],
-                    "valueType": "number",
-                },
-                {
-                    "readableDate": "Jun 2, 2025",
-                    "value": ["2025-06-02", 200],
-                    "valueType": "number",
-                }
-            ]
-        }
+        test_data_series = [
+            {
+                "id": "en",
+                "label": "English",
+                "data": [
+                    {
+                        "readableDate": "Jun 1, 2025",
+                        "value": ["2025-06-01", 100],
+                        "valueType": "number",
+                    },
+                    {
+                        "readableDate": "Jun 2, 2025",
+                        "value": ["2025-06-02", 200],
+                        "valueType": "number",
+                    }
+                ]
+            },
+            {
+                "id": "fr",
+                "label": "French",
+                "data": [
+                    {
+                        "readableDate": "Jun 1, 2025",
+                        "value": ["2025-06-01", 50],
+                        "valueType": "number",
+                    }
+                ]
+            }
+        ]
 
-        # Create a mock worksheet (we can't easily test openpyxl without it)
-        # This test mainly verifies the logic doesn't crash
-        try:
-            from openpyxl import Workbook
-            wb = Workbook()
-            ws = wb.active
-            serializer._add_data_to_sheet(ws, test_obj, 1)
-            # If we get here without error, the method works
-            assert True
-        except ImportError:
-            # Skip test if openpyxl not available
-            assert True
+        from openpyxl import Workbook
+        wb = Workbook()
+        ws = wb.active
+        assert ws is not None  # Type guard for linter
+        serializer._add_consolidated_data_to_sheet(
+            ws, "views", test_data_series
+        )
+
+        # Verify header
+        assert ws.cell(row=1, column=1).value == "id"
+        assert ws.cell(row=1, column=2).value == "label"
+        assert ws.cell(row=1, column=3).value == "date"
+        assert ws.cell(row=1, column=4).value == "value"
+        assert ws.cell(row=1, column=5).value == "units"
+
+        # Verify first series data
+        assert ws.cell(row=2, column=1).value == "en"
+        assert ws.cell(row=2, column=2).value == "English"
+        assert ws.cell(row=2, column=3).value == "2025-06-01"
+        assert ws.cell(row=2, column=4).value == 100
+        assert ws.cell(row=2, column=5).value == "unique views"
+
+        # Verify second data point from first series
+        assert ws.cell(row=3, column=1).value == "en"
+        assert ws.cell(row=3, column=3).value == "2025-06-02"
+        assert ws.cell(row=3, column=4).value == 200
+
+        # Verify second series data
+        assert ws.cell(row=4, column=1).value == "fr"
+        assert ws.cell(row=4, column=2).value == "French"
+        assert ws.cell(row=4, column=3).value == "2025-06-01"
+        assert ws.cell(row=4, column=4).value == 50
 
     def test_empty_data_handling(self):
-        """Test handling of empty or invalid data."""
+        """Test handling of empty or completely missing data."""
         serializer = DataSeriesExcelSerializer()
 
-        # Test with empty data
+        # Test with completely empty data
         with tempfile.TemporaryDirectory() as temp_dir:
             serializer._create_excel_workbooks({}, temp_dir)
             # Should not crash and create no files
             assert len(os.listdir(temp_dir)) == 0
 
-        # Test with invalid data structure
-        invalid_data = {
-            "level1": "not_a_dict"
+        # Test with data that has no actual data series
+        # but valid structure
+        empty_category_data = {
+            "usage-snapshot": {
+                "languages": {
+                    "views": [],
+                    "downloads": []
+                }
+            }
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            serializer._create_excel_workbooks(invalid_data, temp_dir)
-            # Should not crash and create no files
-            assert len(os.listdir(temp_dir)) == 0
+            serializer._create_excel_workbooks(
+                empty_category_data, temp_dir
+            )
+            # Should create a workbook with "No Data" sheet
+            assert os.path.exists(os.path.join(temp_dir, "languages.xlsx"))
 
-    def test_fallback_to_csv(self):
-        """Test fallback to CSV when openpyxl is not available."""
+            wb = load_workbook(
+                os.path.join(temp_dir, "languages.xlsx")
+            )
+            assert "No Data" in wb.sheetnames
+            ws = wb["No Data"]
+            assert "No Data Available" in str(ws.cell(row=1, column=1).value)
+            assert "languages" in str(ws.cell(row=2, column=1).value).lower()
+
+    def test_partial_empty_data(self):
+        """Test handling categories with both empty and populated metrics."""
         serializer = DataSeriesExcelSerializer()
 
-        # This test verifies the fallback mechanism exists
-        # In a real scenario, we'd mock the import
+        test_data = {
+            "usage-snapshot": {
+                "languages": {
+                    "views": [
+                        {
+                            "id": "en",
+                            "label": "English",
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 10],
+                                    "valueType": "number",
+                                }
+                            ]
+                        }
+                    ],
+                    "downloads": []  # Empty metric
+                }
+            }
+        }
 
-        # The method should exist and handle the fallback
-        assert hasattr(serializer, '_fallback_to_csv')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            serializer._create_excel_workbooks(test_data, temp_dir)
+
+            # Should create workbook with only the views sheet
+            wb = load_workbook(
+                os.path.join(temp_dir, "languages.xlsx")
+            )
+            assert "views" in wb.sheetnames
+            assert "downloads" not in wb.sheetnames
+            assert "No Data" not in wb.sheetnames

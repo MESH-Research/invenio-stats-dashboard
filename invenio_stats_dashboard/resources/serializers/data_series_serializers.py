@@ -130,9 +130,10 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
     ) -> bytes:
         """Serialize nested dictionary data to compressed CSV folder structure.
 
-        Creates a temporary nested folder structure that mirrors the top two levels
-        of the input dictionary, with CSV files for each inner object containing
-        date/value pairs from the data.value list.
+        Creates a temporary nested folder structure with consolidated CSV files.
+        Each CSV file contains all data points for a specific metric, with columns
+        for id, label, date, value, and units to distinguish between different
+        subcount items and clarify the unit of measurement.
 
         Args:
             data: Nested dictionary with structure like sample_usage_delta_data_series
@@ -227,7 +228,7 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
             return None
 
     def _create_nested_csv_structure(self, data: dict, base_path: str) -> None:
-        """Create nested folder structure with CSV files.
+        """Create nested folder structure with consolidated CSV files.
 
         Args:
             data: Nested dictionary data with structure:
@@ -256,54 +257,113 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
                 category_path = os.path.join(series_set_path, safe_category_name)
                 os.makedirs(category_path, exist_ok=True)
 
-                # Level 2: Metrics (e.g., "data_volume", "file_count", "records")
-                for _metric_name, metric_data in category_data.items():
+                # Level 2: Metrics
+                # (e.g., "data_volume", "file_count", "records")
+                for metric_name, metric_data in category_data.items():
                     if isinstance(metric_data, list):
-                        # Handle list of data series objects
-                        for _i, data_series in enumerate(metric_data):
-                            if isinstance(data_series, dict) and "id" in data_series:
-                                self._create_csv_file(data_series, category_path)
+                        # Create consolidated CSV for all series in metric
+                        self._create_consolidated_csv_file(
+                            metric_name, metric_data, category_path
+                        )
 
-    def _create_csv_file(self, obj: dict, directory_path: str) -> None:
-        """Create a CSV file for a single data object.
+    def _create_consolidated_csv_file(
+        self, metric_name: str, data_series_list: list, directory_path: str
+    ) -> None:
+        """Create a single consolidated CSV file for all data series in a metric.
 
         Args:
-            obj: Object containing id and data fields
+            metric_name: Name of the metric
+            data_series_list: List of data series objects
             directory_path: Directory where CSV file should be created
         """
-        obj_id = obj.get("id", "unknown")
-        safe_id = secure_filename(str(obj_id))
-        csv_filename = f"{safe_id}.csv"
+        if not data_series_list:
+            return
+
+        safe_metric_name = secure_filename(str(metric_name))
+        csv_filename = f"{safe_metric_name}.csv"
         csv_path = os.path.join(directory_path, csv_filename)
 
-        # Extract data points from the object
-        data_points = obj.get("data", [])
+        # Get the unit for this metric
+        unit = self._get_metric_unit(metric_name)
+        if unit is None:
+            unit = ""  # Default to empty string if no unit found
 
-        if not isinstance(data_points, list):
-            return
+        # Collect all data points from all series
+        all_rows = []
 
-        if not data_points:
-            return
+        for data_series in data_series_list:
+            if not isinstance(data_series, dict):
+                continue
 
-        # Write CSV file with date/value pairs
-        with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(["date", "value"])  # Header row
+            series_id = data_series.get("id", "unknown")
+            series_label = data_series.get("label", "")
 
-            rows_written = 0
+            # Handle label which might be a dict
+            # (e.g., {"en": "English"})
+            if isinstance(series_label, dict):
+                # Try to get English label, fallback to first
+                # available
+                series_label = series_label.get(
+                    "en", next(iter(series_label.values()), "")
+                )
+
+            data_points = data_series.get("data", [])
+
+            if not isinstance(data_points, list):
+                continue
+
             for data_point in data_points:
                 if isinstance(data_point, dict):
-                    # Extract date and value from data_point.value array
+                    # Extract date and value from data_point
                     value_array = data_point.get("value", [])
-                    if isinstance(value_array, list) and len(value_array) >= 2:
+                    if (
+                        isinstance(value_array, list)
+                        and len(value_array) >= 2
+                    ):
                         date_val = value_array[0]
                         numeric_val = value_array[1]
-                        csvwriter.writerow([date_val, numeric_val])
-                        rows_written += 1
-                    else:
-                        pass  # Skip invalid value_array
-                else:
-                    pass  # Skip invalid data_point
+                        all_rows.append(
+                            [series_id, series_label, date_val,
+                             numeric_val, unit]
+                        )
+
+        # Only write file if we have data
+        if not all_rows:
+            return
+
+        # Write consolidated CSV file
+        with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
+            csvwriter = csv.writer(csvfile)
+            # Header row
+            csvwriter.writerow(["id", "label", "date", "value", "units"])
+            csvwriter.writerows(all_rows)
+
+    def _get_metric_unit(self, metric_name: str) -> str | None:
+        """Get unit for metric based on name.
+
+        Args:
+            metric_name: Name of the metric
+
+        Returns:
+            Unit string or None
+        """
+        unit_mapping = {
+            "data_volume": "bytes",
+            "downloads": "unique downloads",
+            "views": "unique views",
+            "download_unique_files": "unique files downloaded",
+            "download_unique_parents": "unique parents of downloaded files",
+            "download_unique_records": "unique records downloaded",
+            "view_unique_parents": "unique parents of viewed records",
+            "view_unique_records": "unique records viewed",
+            "download_visitors": "unique visitors who downloaded",
+            "view_visitors": "unique visitors who viewed",
+            "records": "records",
+            "file_count": "files",
+            "parents": "parent records",
+            "uploaders": "unique uploaders",
+        }
+        return unit_mapping.get(metric_name.lower())
 
 
 class DataSeriesExcelSerializer(StatsExcelSerializer):
@@ -314,8 +374,9 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
     ) -> bytes:
         """Serialize nested dictionary data to compressed Excel workbook archive.
 
-        Creates separate Excel workbooks for each top-level series, with one sheet
-        per second-level series containing data points in rows and columns.
+        Creates separate Excel workbooks for each category, with one sheet per
+        metric. Each sheet contains consolidated data with id, label, date, value,
+        and units columns.
 
         Args:
             data: Nested dictionary with structure like sample_usage_delta_data_series
@@ -342,85 +403,174 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
 
             os.unlink(archive_path)
 
-            # filename = f"{filename_prefix}.tar.gz"
             return compressed_data
 
     def _create_excel_workbooks(self, data: dict, base_path: str) -> None:
-        """Create Excel workbooks for each top-level series.
+        """Create Excel workbooks for each category with sheets per metric.
 
         Args:
-            data: Nested dictionary data
+            data: Nested dictionary with structure:
+                  {query: {category: {metric: [data_series_objects]}}}
             base_path: Base path for the temporary directory
         """
-        for level1_key, level1_value in data.items():
-            if not isinstance(level1_value, dict):
+        # Reorganize data by category across all queries
+        # {category: {metric: [data_series_objects]}}
+        categories_data = {}
+
+        for _query_name, query_data in data.items():
+            if not isinstance(query_data, dict):
                 continue
 
-            # Create workbook for this top-level series
-            wb = Workbook()
-            # Remove default sheet
-            wb.remove(wb.active)
-
-            # Create sheets for each second-level series
-            for level2_key, level2_value in level1_value.items():
-                if not isinstance(level2_value, list):
+            for category_name, category_data in query_data.items():
+                if not isinstance(category_data, dict):
                     continue
 
-                # Create sheet for this second-level series
-                sheet_name = self._sanitize_sheet_name(str(level2_key))
+                # Initialize category if not exists
+                if category_name not in categories_data:
+                    categories_data[category_name] = {}
+
+                # Add metrics from this query to the category
+                for metric_name, metric_data in category_data.items():
+                    if not isinstance(metric_data, list):
+                        continue
+
+                    # Initialize metric list if not exists
+                    if metric_name not in categories_data[category_name]:
+                        categories_data[category_name][metric_name] = []
+
+                    # Add data series to metric
+                    categories_data[category_name][metric_name].extend(
+                        metric_data
+                    )
+
+        # Create one workbook per category
+        for category_name, metrics_data in categories_data.items():
+            wb = Workbook()
+            # Keep track of whether we created any sheets
+            sheets_created = 0
+
+            # Create one sheet per metric
+            for metric_name, data_series_list in metrics_data.items():
+                # Skip empty metrics
+                if not data_series_list:
+                    continue
+
+                # Remove default sheet only before creating first sheet
+                if sheets_created == 0 and wb.active:
+                    wb.remove(wb.active)
+
+                sheet_name = self._sanitize_sheet_name(str(metric_name))
                 ws = wb.create_sheet(title=sheet_name)
 
-                # Add ID as header at top of sheet
-                ws.cell(row=1, column=1, value="ID")
-                ws.cell(row=1, column=2, value=str(level2_key))
+                # Add consolidated data to sheet
+                self._add_consolidated_data_to_sheet(
+                    ws, metric_name, data_series_list
+                )
+                sheets_created += 1
 
-                # Process inner objects (third level)
-                current_row = 3  # Start after header
-                for inner_obj in level2_value:
-                    if isinstance(inner_obj, dict) and "id" in inner_obj:
-                        self._add_data_to_sheet(ws, inner_obj, current_row)
-                        current_row += 1
+            # If no sheets were created, add a "No Data" sheet
+            if sheets_created == 0:
+                if wb.active:
+                    ws = wb.active
+                    ws.title = "No Data"
+                else:
+                    ws = wb.create_sheet(title="No Data")
 
-            # Style the workbook
-            self._style_workbook(wb)
+                # Add message
+                ws.cell(row=1, column=1, value="No Data Available")
+                ws.cell(
+                    row=2,
+                    column=1,
+                    value=f"No data available for category: {category_name}",
+                )
+                ws.cell(
+                    row=3,
+                    column=1,
+                    value="This may indicate no activity during the "
+                    "requested period.",
+                )
+
+                # Style the message
+                header_font = Font(bold=True, size=14)
+                ws.cell(row=1, column=1).font = header_font
+            else:
+                # Style the workbook with data
+                self._style_workbook(wb)
 
             # Save workbook to file
-            safe_level1_key = secure_filename(str(level1_key))
-            excel_filename = f"{safe_level1_key}.xlsx"
+            safe_category_name = secure_filename(str(category_name))
+            excel_filename = f"{safe_category_name}.xlsx"
             excel_path = os.path.join(base_path, excel_filename)
             wb.save(excel_path)
 
-    def _add_data_to_sheet(self, ws, obj: dict, start_row: int) -> None:
-        """Add data from an object to an Excel sheet.
+    def _add_consolidated_data_to_sheet(
+        self, ws, metric_name: str, data_series_list: list
+    ) -> None:
+        """Add consolidated data to Excel sheet.
 
         Args:
             ws: Excel worksheet
-            obj: Object containing id and data fields
-            start_row: Starting row number
+            metric_name: Name of the metric
+            data_series_list: List of data series objects
         """
-        obj_id = obj.get("id", "unknown")
+        # Get the unit for this metric
+        unit = self._get_metric_unit(metric_name)
+        if unit is None:
+            unit = ""
 
-        # Add object ID in first column
-        ws.cell(row=start_row, column=1, value=str(obj_id))
+        # Add header row
+        ws.cell(row=1, column=1, value="id")
+        ws.cell(row=1, column=2, value="label")
+        ws.cell(row=1, column=3, value="date")
+        ws.cell(row=1, column=4, value="value")
+        ws.cell(row=1, column=5, value="units")
 
-        # Add data points in subsequent columns
-        data_points = obj.get("data", [])
-        if isinstance(data_points, list):
-            col = 2
+        # Collect all data points from all series
+        current_row = 2
+
+        for data_series in data_series_list:
+            if not isinstance(data_series, dict):
+                continue
+
+            series_id = data_series.get("id", "unknown")
+            series_label = data_series.get("label", "")
+
+            # Handle label which might be a dict
+            # (e.g., {"en": "English"})
+            if isinstance(series_label, dict):
+                # Try to get English label, fallback to first
+                # available
+                series_label = series_label.get(
+                    "en", next(iter(series_label.values()), "")
+                )
+
+            data_points = data_series.get("data", [])
+
+            if not isinstance(data_points, list):
+                continue
+
             for data_point in data_points:
                 if isinstance(data_point, dict):
-                    # Extract date and value from data_point.value array
+                    # Extract date and value from data_point
                     value_array = data_point.get("value", [])
-                    if isinstance(value_array, list) and len(value_array) >= 2:
+                    if (
+                        isinstance(value_array, list)
+                        and len(value_array) >= 2
+                    ):
                         date_val = value_array[0]
                         numeric_val = value_array[1]
 
-                        # Add date in one column
-                        ws.cell(row=start_row, column=col, value=date_val)
-                        col += 1
-                        # Add value in next column
-                        ws.cell(row=start_row, column=col, value=numeric_val)
-                        col += 1
+                        # Add row with all columns
+                        ws.cell(row=current_row, column=1, value=series_id)
+                        ws.cell(
+                            row=current_row, column=2, value=series_label
+                        )
+                        ws.cell(row=current_row, column=3, value=date_val)
+                        ws.cell(
+                            row=current_row, column=4, value=numeric_val
+                        )
+                        ws.cell(row=current_row, column=5, value=unit)
+                        current_row += 1
 
     def _sanitize_sheet_name(self, name: str) -> str:
         """Sanitize sheet name for Excel compatibility.
@@ -494,6 +644,74 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
                 return f"data_series_{format_type}_{safe_id}"
         else:
             return f"data_series_{format_type}"
+
+    def _get_community_metadata(self, community_id: str) -> dict | None:
+        """Get community metadata from the communities service.
+
+        Args:
+            community_id: Community identifier
+
+        Returns:
+            Dictionary with community metadata or None if not found
+        """
+        try:
+            # Get the community using the service
+            community_result = current_communities.service.read(
+                id_=community_id, identity=g.identity
+            )
+            community_data = community_result.data
+
+            # Extract relevant metadata
+            metadata = community_data.get("metadata", {})
+            links = community_data.get("links", {})
+
+            # Get the community URL
+            community_url = links.get("self_html", "")
+            if not community_url:
+                # Construct URL from site configuration
+                site_ui_url = current_app.config.get("SITE_UI_URL", "")
+                slug = metadata.get("slug", community_id)
+                community_url = f"{site_ui_url}/communities/{slug}"
+
+            return {
+                "title": metadata.get("title", ""),
+                "description": metadata.get("description", ""),
+                "slug": metadata.get("slug", ""),
+                "url": community_url,
+            }
+        except Exception as e:
+            current_app.logger.warning(
+                f"Failed to retrieve community metadata for "
+                f"{community_id}: {e}"
+            )
+            return None
+
+    def _get_metric_unit(self, metric_name: str) -> str | None:
+        """Get unit for metric based on name.
+
+        Args:
+            metric_name: Name of the metric
+
+        Returns:
+            Unit string or None
+        """
+        unit_mapping = {
+            "data_volume": "bytes",
+            "downloads": "unique downloads",
+            "views": "unique views",
+            "download_unique_files": "unique files downloaded",
+            "download_unique_parents": "unique parents of downloaded files",
+            "download_unique_records": "unique records downloaded",
+            "view_unique_parents": "unique parents of viewed records",
+            "view_unique_records": "unique records viewed",
+            "download_visitors": "unique visitors who downloaded",
+            "view_visitors": "unique visitors who viewed",
+            "records": "records",
+            "file_count": "files",
+            "parents": "parent records",
+            "uploaders": "unique uploaders",
+        }
+        return unit_mapping.get(metric_name.lower())
 
 
 class DataSeriesXMLSerializer(StatsXMLSerializer):
