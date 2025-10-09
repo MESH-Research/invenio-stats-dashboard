@@ -223,9 +223,6 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
             ]
             series_array._initialized = True
 
-            current_app.logger.error(
-                f"Created FilePresenceRecordDeltaDataSeries for metric={metric}"
-            )
             return series_array
         raise NotImplementedError(f"Special subcount {subcount} not implemented")
 
@@ -262,7 +259,11 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
         """Get default metrics for record delta data when no documents exist."""
         # Standard record delta metrics that should always be available
         global_metrics = [
-            "records", "file_count", "data_volume", "parents", "uploaders"
+            "records",
+            "file_count",
+            "data_volume",
+            "parents",
+            "uploaders",
         ]
         subcount_metrics = ["records", "file_count", "data_volume", "parents"]
         return {

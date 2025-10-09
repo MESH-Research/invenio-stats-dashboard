@@ -112,20 +112,8 @@ class CachedResponseService:
             CachedResponse if found in cache, None otherwise
         """
         response = CachedResponse(community_id, year, category)
-        cached_data = self.cache.get(response.cache_key)
-
-        if cached_data:
-            try:
-                return CachedResponse.from_bytes(
-                    cached_data, community_id, year, category
-                )
-            except Exception as e:
-                current_app.logger.warning(
-                    f"Failed to deserialize cached response for "
-                    f"{community_id}/{year}/{category}: {e}"
-                )
-                return None
-
+        if response.load_from_cache():
+            return response
         return None
 
     def read_all(self, community_id: str, year: int) -> list[CachedResponse]:
@@ -136,27 +124,6 @@ class CachedResponseService:
             if response:
                 responses.append(response)
         return responses
-
-    def update(self, community_id: str, year: int, category: str, data: Any) -> bool:
-        """Update a cached response with new data.
-
-        Args:
-            community_id: Community ID
-            year: Year
-            category: Category
-            data: New data to store
-
-        Returns:
-            True if successful, False otherwise
-        """
-        response = CachedResponse(community_id, year, category)
-
-        expires_at = None
-        if self.default_timeout:
-            expires_at = arrow.utcnow().shift(days=self.default_timeout)
-
-        response.set_data(data, expires_at=expires_at)
-        return self._save_response(response)
 
     def delete(self, community_id: str, year: int, category: str | None = None) -> bool:
         """Delete cached response(s).
@@ -322,98 +289,25 @@ class CachedResponseService:
 
         return responses
 
-    def generate_content(self, response: CachedResponse) -> dict[str, Any]:
-        """Generate the JSON content by executing the data series queries.
+
+    def get_or_create(self, request_data: dict, as_json_bytes: bool = False
+                      ) -> bytes | dict | list:
+        """Get cached response or generate new one.
 
         Args:
-            response: CachedResponse instance to generate content for
+            request_data: Raw request data from API
+            as_json_bytes: If True, return JSON bytes. If False, return Python dict.
 
         Returns:
-            Generated response data dictionary
-
-        Raises:
-            ValueError: If query or parameters are invalid
+            JSON bytes if as_json_bytes=True, otherwise Python dict
         """
-        try:
-            results = {}
-            configured_queries = current_app.config.get("STATS_QUERIES", {})
-            allowed_params = {
-                "community_id",
-                "start_date",
-                "end_date",
-                "category",
-                "metric",
-                "date_basis",
-            }
+        # Create CachedResponse and let it handle cache/generation
+        response = CachedResponse.from_request_data(request_data)
+        response.get_or_generate()
 
-            for query_name, query_data in response.request_data.items():
-                query_params = query_data.get("params", {})
+        # Return in requested format
+        return response.bytes_data if as_json_bytes else response.object_data
 
-                if query_name not in configured_queries:
-                    raise ValueError(f"Unknown query: {query_name}")
-
-                if any([p for p in query_params.keys() if p not in allowed_params]):
-                    raise ValueError(
-                        f"Unknown parameter in request body for query {query_name}"
-                    )
-
-                query_config = configured_queries[query_name]
-                query_class = query_config["cls"]
-                query_index = query_config["params"]["index"]
-
-                query_instance = query_class(name=query_name, index=query_index)
-                raw_json = query_instance.run(**{
-                    k: v for k, v in query_params.items() if k in allowed_params
-                })
-
-                results[query_name] = raw_json
-
-            # Update response with generated data and timestamps
-            expires_at = None
-            if self.default_timeout:
-                expires_at = arrow.utcnow().shift(days=self.default_timeout)
-
-            response.set_data(results, expires_at=expires_at)
-
-            return results
-
-        except Exception as e:
-            current_app.logger.error(
-                f"Failed to generate content for "
-                f"{response.community_id}/{response.year}/{response.category}: {e}"
-            )
-            raise
-
-    def _save_response(self, response: CachedResponse) -> bool:
-        """Save a response to the cache.
-
-        Args:
-            response: CachedResponse instance to save
-
-        Returns:
-            True if successful, False otherwise
-        """
-        if response.data is None:
-            current_app.logger.warning(
-                f"Cannot save response {response.cache_key} with no data"
-            )
-            return False
-
-        try:
-            # Convert timeout from days to seconds if needed
-            timeout = None
-            if self.default_timeout:
-                timeout = self.default_timeout * 86400  # to seconds
-
-            success: bool = self.cache.set(
-                response.cache_key, response.to_bytes(), timeout=timeout
-            )
-            return success
-        except Exception as e:
-            current_app.logger.error(
-                f"Failed to save response {response.cache_key}: {e}"
-            )
-            return False
 
     def _create(
         self, responses: list[CachedResponse], progress_callback: Callable | None = None
@@ -431,8 +325,11 @@ class CachedResponseService:
                         f"{response.year}/{response.category}"
                     )
                     progress_callback(i, total_responses, message)
-                self.generate_content(response)
-                self._save_response(response)
+
+                # Generate and save in one go
+                response.generate()
+                response.save_to_cache()
+
                 results["success"] += 1  # type:ignore
                 results["responses"].append(response)  # type:ignore
             except Exception as e:

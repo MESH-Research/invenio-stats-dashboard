@@ -106,6 +106,26 @@ class StatsCache:
             current_app.logger.warning(f"Cache set error for key {key}: {e}")
             return False
 
+    def get_ttl(self, key: str) -> int | None:
+        """Get the TTL (time to live) for a cache key in seconds.
+
+        Args:
+            key: Cache key
+
+        Returns:
+            TTL in seconds, -1 if key exists with no expiration, None if key
+            doesn't exist
+        """
+        try:
+            ttl = self.redis_client.ttl(key)
+            if ttl == -2:  # Key doesn't exist
+                return None
+            # Returns -1 for no expiration, or seconds until expiration
+            return ttl  # type: ignore
+        except Exception as e:
+            current_app.logger.warning(f"Cache TTL error for key {key}: {e}")
+            return None
+
     def delete(self, key: str) -> bool:
         """Delete a cache entry.
 

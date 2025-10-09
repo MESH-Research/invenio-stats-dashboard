@@ -17,7 +17,6 @@ from flask.cli import with_appcontext
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 
-
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
 from ..services.cached_response_service import CachedResponseService

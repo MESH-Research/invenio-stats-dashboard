@@ -267,14 +267,15 @@ def test_cache_integration_with_cached_response(
     )
 
     # Set data on the response
-    cached_response.set_data(sample_data)
+    cached_response._object_data = sample_data
+    cached_response._bytes_data = None
 
     # Get the cache key
     cache_key = cached_response.cache_key
     assert cache_key.startswith("stats_dashboard:")
 
     # Convert to bytes and store in cache
-    data_bytes = cached_response.to_bytes()
+    data_bytes = cached_response.bytes_data
     success = stats_cache.set(cache_key, data_bytes)
     assert success is True
 
@@ -293,7 +294,7 @@ def test_cache_integration_with_cached_response(
     )
 
     # Verify the data was restored correctly
-    assert restored_response.data == sample_data
+    assert restored_response.object_data == sample_data
     assert restored_response.community_id == "global"
     assert restored_response.year == 2024
     assert restored_response.category == "record_delta"
