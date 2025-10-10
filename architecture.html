@@ -310,6 +310,50 @@
 </div>
 <p>There is one index for each year, suffixed like this: <code class="docutils literal notranslate"><span class="pre">stats-community-events-2021</span></code>. The indices are collectively aliased to <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code>.</p>
 </section>
+<section id="community-events-initialization-check">
+<h3>Community events initialization check<a class="headerlink" href="#community-events-initialization-check" title="Link to this heading">¶</a></h3>
+<p>The aggregator classes depend on the existence of community events in the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index to perform their calculations efficiently. To ensure that aggregations can proceed without expensive per-record checks, the system includes an automatic initialization check and error handling mechanism.</p>
+<p><strong>Initialization Check Process:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Upfront Validation</strong>: At the start of each aggregation run, the base aggregator class (<code class="docutils literal notranslate"><span class="pre">CommunityAggregatorBase</span></code>) performs a single, efficient check to verify that the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index exists and contains records.</p></li>
+<li><p><strong>Error Detection</strong>: If the index doesn’t exist or is empty, the aggregator raises a <code class="docutils literal notranslate"><span class="pre">CommunityEventsNotInitializedError</span></code> exception instead of proceeding with expensive per-record checks.</p></li>
+<li><p><strong>Automatic Initialization</strong>: The Celery aggregation task (<code class="docutils literal notranslate"><span class="pre">aggregate_community_record_stats</span></code>) catches this exception and automatically runs the bulk community events creation process using the existing <code class="docutils literal notranslate"><span class="pre">CommunityStatsService.generate_record_community_events()</span></code> method.</p></li>
+<li><p><strong>Graceful Displacement</strong>: Rather than retrying the aggregation after initialization (which could take hours for large repositories), the current aggregation run is gracefully displaced. The task logs that initialization was completed and that the next scheduled run will proceed normally.</p></li>
+</ol>
+<p><strong>Benefits of This Approach:</strong></p>
+<ul class="simple">
+<li><p><strong>Performance</strong>: Eliminates expensive per-aggregation checks that were causing significant slowdowns</p></li>
+<li><p><strong>Automatic Recovery</strong>: No manual intervention required when community events are missing</p></li>
+<li><p><strong>Resource Efficiency</strong>: Uses the existing bulk creation logic rather than duplicating functionality</p></li>
+<li><p><strong>Lock Safety</strong>: The aggregation task lock ensures no race conditions during initialization</p></li>
+<li><p><strong>Clear Logging</strong>: Detailed messages explain what’s happening and what to expect</p></li>
+</ul>
+<p><strong>When This Occurs:</strong></p>
+<p>This mechanism primarily handles the edge case of new installations where there are pre-existing records but no community events have been generated yet. In normal operation, community events are created automatically when records are added to or removed from communities through the standard service components.</p>
+</section>
+<section id="usage-events-migration-check">
+<h3>Usage events migration check<a class="headerlink" href="#usage-events-migration-check" title="Link to this heading">¶</a></h3>
+<p>The usage aggregator classes (delta and snapshot) depend on the existence of migrated usage events that include <code class="docutils literal notranslate"><span class="pre">community_ids</span></code> fields to perform their calculations efficiently. To ensure that usage aggregations can proceed without expensive per-event checks, the system includes an automatic migration check and error handling mechanism.</p>
+<p><strong>Migration Check Process:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Upfront Validation</strong>: At the start of each aggregation run, usage aggregator classes perform a single, efficient check to verify that the usage event indices (<code class="docutils literal notranslate"><span class="pre">events-stats-record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">events-stats-file-download</span></code>) exist and contain events with <code class="docutils literal notranslate"><span class="pre">community_ids</span></code> fields.</p></li>
+<li><p><strong>Error Detection</strong>: If the indices don’t exist or events lack the <code class="docutils literal notranslate"><span class="pre">community_ids</span></code> field, the aggregator raises a <code class="docutils literal notranslate"><span class="pre">UsageEventsNotMigratedError</span></code> exception instead of proceeding with expensive per-event checks.</p></li>
+<li><p><strong>Automatic Migration</strong>: The Celery aggregation task (<code class="docutils literal notranslate"><span class="pre">aggregate_community_record_stats</span></code>) catches this exception and automatically runs the usage events migration process using the existing <code class="docutils literal notranslate"><span class="pre">EventReindexingService.reindex_events_with_metadata()</span></code> method.</p></li>
+<li><p><strong>Graceful Displacement</strong>: Rather than retrying the aggregation after migration (which could take hours for large repositories), the current aggregation run is gracefully displaced. The task logs that migration was completed and that the next scheduled run will proceed normally.</p></li>
+</ol>
+<p><strong>Benefits of This Approach:</strong></p>
+<ul class="simple">
+<li><p><strong>Performance</strong>: Eliminates expensive per-event checks that were causing significant slowdowns</p></li>
+<li><p><strong>Automatic Recovery</strong>: No manual intervention required when usage events need migration</p></li>
+<li><p><strong>Resource Efficiency</strong>: Uses the existing migration logic rather than duplicating functionality</p></li>
+<li><p><strong>Lock Safety</strong>: The aggregation task lock ensures no race conditions during migration</p></li>
+<li><p><strong>Clear Logging</strong>: Detailed messages explain what’s happening and what to expect</p></li>
+</ul>
+<p><strong>When This Occurs:</strong></p>
+<p>This mechanism primarily handles the edge case of installations where there are pre-existing usage events that haven’t been migrated to include community metadata. In normal operation, new usage events are automatically enriched with community information when they are indexed.</p>
+<p><strong>Execution Order:</strong></p>
+<p>The usage events migration check follows the community events initialization check in execution order, ensuring that community events are available before attempting to migrate usage events that depend on them.</p>
+</section>
 <section id="enriched-record-usage-events">
 <h3>Enriched record usage events<a class="headerlink" href="#enriched-record-usage-events" title="Link to this heading">¶</a></h3>
 <p>In order to efficiently aggregate usage statistics by community, and in order to provide subcounts based on record metadata fields, the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> module enriches the standard <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> usage events with community and record metadata fields. This is done by overriding the default <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> index templates for the <code class="docutils literal notranslate"><span class="pre">stats-events-record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">stats-events-file-download</span></code> indices.</p>
@@ -1188,6 +1232,8 @@ This class can create usage events with or without the enriched metadata fields 
 <li><a class="reference internal" href="#building-on-the-invenio-stats-module">Building on the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module</a></li>
 <li><a class="reference internal" href="#data-layer">Data layer</a><ul>
 <li><a class="reference internal" href="#community-membership-events">Community membership events</a></li>
+<li><a class="reference internal" href="#community-events-initialization-check">Community events initialization check</a></li>
+<li><a class="reference internal" href="#usage-events-migration-check">Usage events migration check</a></li>
 <li><a class="reference internal" href="#enriched-record-usage-events">Enriched record usage events</a></li>
 <li><a class="reference internal" href="#aggregated-statistics">Aggregated statistics</a></li>
 <li><a class="reference internal" href="#daily-record-deltas">Daily record deltas</a></li>

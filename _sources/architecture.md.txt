@@ -50,6 +50,62 @@ The `stats-community-events` index is configured by the index template at `searc
 
 There is one index for each year, suffixed like this: `stats-community-events-2021`. The indices are collectively aliased to `stats-community-events`.
 
+#### Community events initialization check
+
+The aggregator classes depend on the existence of community events in the `stats-community-events` index to perform their calculations efficiently. To ensure that aggregations can proceed without expensive per-record checks, the system includes an automatic initialization check and error handling mechanism.
+
+**Initialization Check Process:**
+
+1. **Upfront Validation**: At the start of each aggregation run, the base aggregator class (`CommunityAggregatorBase`) performs a single, efficient check to verify that the `stats-community-events` index exists and contains records.
+
+2. **Error Detection**: If the index doesn't exist or is empty, the aggregator raises a `CommunityEventsNotInitializedError` exception instead of proceeding with expensive per-record checks.
+
+3. **Automatic Initialization**: The Celery aggregation task (`aggregate_community_record_stats`) catches this exception and automatically runs the bulk community events creation process using the existing `CommunityStatsService.generate_record_community_events()` method.
+
+4. **Graceful Displacement**: Rather than retrying the aggregation after initialization (which could take hours for large repositories), the current aggregation run is gracefully displaced. The task logs that initialization was completed and that the next scheduled run will proceed normally.
+
+**Benefits of This Approach:**
+
+- **Performance**: Eliminates expensive per-aggregation checks that were causing significant slowdowns
+- **Automatic Recovery**: No manual intervention required when community events are missing
+- **Resource Efficiency**: Uses the existing bulk creation logic rather than duplicating functionality
+- **Lock Safety**: The aggregation task lock ensures no race conditions during initialization
+- **Clear Logging**: Detailed messages explain what's happening and what to expect
+
+**When This Occurs:**
+
+This mechanism primarily handles the edge case of new installations where there are pre-existing records but no community events have been generated yet. In normal operation, community events are created automatically when records are added to or removed from communities through the standard service components.
+
+#### Usage events migration check
+
+The usage aggregator classes (delta and snapshot) depend on the existence of migrated usage events that include `community_ids` fields to perform their calculations efficiently. To ensure that usage aggregations can proceed without expensive per-event checks, the system includes an automatic migration check and error handling mechanism.
+
+**Migration Check Process:**
+
+1. **Upfront Validation**: At the start of each aggregation run, usage aggregator classes perform a single, efficient check to verify that the usage event indices (`events-stats-record-view` and `events-stats-file-download`) exist and contain events with `community_ids` fields.
+
+2. **Error Detection**: If the indices don't exist or events lack the `community_ids` field, the aggregator raises a `UsageEventsNotMigratedError` exception instead of proceeding with expensive per-event checks.
+
+3. **Automatic Migration**: The Celery aggregation task (`aggregate_community_record_stats`) catches this exception and automatically runs the usage events migration process using the existing `EventReindexingService.reindex_events_with_metadata()` method.
+
+4. **Graceful Displacement**: Rather than retrying the aggregation after migration (which could take hours for large repositories), the current aggregation run is gracefully displaced. The task logs that migration was completed and that the next scheduled run will proceed normally.
+
+**Benefits of This Approach:**
+
+- **Performance**: Eliminates expensive per-event checks that were causing significant slowdowns
+- **Automatic Recovery**: No manual intervention required when usage events need migration
+- **Resource Efficiency**: Uses the existing migration logic rather than duplicating functionality
+- **Lock Safety**: The aggregation task lock ensures no race conditions during migration
+- **Clear Logging**: Detailed messages explain what's happening and what to expect
+
+**When This Occurs:**
+
+This mechanism primarily handles the edge case of installations where there are pre-existing usage events that haven't been migrated to include community metadata. In normal operation, new usage events are automatically enriched with community information when they are indexed.
+
+**Execution Order:**
+
+The usage events migration check follows the community events initialization check in execution order, ensuring that community events are available before attempting to migrate usage events that depend on them.
+
 #### Enriched record usage events
 
 In order to efficiently aggregate usage statistics by community, and in order to provide subcounts based on record metadata fields, the `invenio-stats-dashboard` module enriches the standard `invenio-stats` usage events with community and record metadata fields. This is done by overriding the default `invenio-stats` index templates for the `stats-events-record-view` and `stats-events-file-download` indices.
