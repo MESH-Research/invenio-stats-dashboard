@@ -352,8 +352,6 @@ class CommunityAggregatorBase(StatAggregator):
             current_app.logger.debug(f"upper_limit: {upper_limit}")
             current_app.logger.debug(f"lower_limit: {lower_limit}")
 
-            next_bookmark = arrow.get(upper_limit).format("YYYY-MM-DDTHH:mm:ss.SSS")
-
             agg_iter_generator = self.agg_iter(
                 community_id,
                 lower_limit,
@@ -434,11 +432,64 @@ class CommunityAggregatorBase(StatAggregator):
                     )
                     continue
 
-                self.bookmark_api.set_bookmark(community_id, next_bookmark)
+                self._update_bookmark(community_id, community_docs_info)
 
         # Refresh all indices to make documents available for subsequent aggregators
         self.client.indices.refresh(index=f"{self.aggregation_index}-*")
         return results
+
+    def _update_bookmark(
+        self, community_id: str, community_docs_info: list[dict]
+    ) -> bool:
+        """Update the bookmark for a community based on the last processed document.
+        
+        Args:
+            community_id: The community ID
+            community_docs_info: List of document info dictionaries from the aggregation
+            
+        Returns:
+            True if bookmark was updated successfully, False if it should be skipped
+        """
+        if not community_docs_info:
+            current_app.logger.warning(
+                f"No documents were processed for {community_id}, "
+                f"skipping bookmark update"
+            )
+            return False
+        
+        last_doc_info = community_docs_info[-1]
+        date_info = last_doc_info.get("date_info", {})
+        period_start = date_info.get("period_start")
+        snapshot_date = date_info.get("snapshot_date")
+        
+        latest_date = None
+        try:
+            if period_start:
+                latest_date = arrow.get(period_start)
+            elif snapshot_date:
+                latest_date = arrow.get(snapshot_date)
+        except (arrow.parser.ParserError, ValueError) as e:
+            current_app.logger.warning(
+                f"Failed to parse date for {community_id}: {e}, "
+                f"skipping bookmark update"
+            )
+            return False
+        
+        if not latest_date:
+            current_app.logger.warning(
+                f"No period_start or snapshot_date found in last document for "
+                f"{community_id}, skipping bookmark update"
+            )
+            return False
+        
+        next_bookmark = latest_date.format("YYYY-MM-DDTHH:mm:ss.SSS")
+        current_app.logger.debug(
+            f"Setting bookmark for {community_id} to last "
+            f"processed date: {next_bookmark}"
+        )
+        
+        self.bookmark_api.set_bookmark(community_id, next_bookmark)
+        return True
 
     def delete_aggregation(
         self,
