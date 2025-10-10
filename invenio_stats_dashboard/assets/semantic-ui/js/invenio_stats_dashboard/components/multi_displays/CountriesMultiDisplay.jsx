@@ -11,7 +11,7 @@ import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { CHART_COLORS } from "../../constants";
 import {
-  transformMultiDisplayData,
+  transformCountryMultiDisplayData,
   assembleMultiDisplayRows,
   extractUsageBasedData,
   generateMultiDisplayChartOptions
@@ -31,7 +31,7 @@ const TopCountriesMultiDisplay = ({
   // Extract and process countries data
   const rawCountries = extractUsageBasedData(stats, 'countriesByView', 'views', dateRange);
 
-  const { transformedData, otherData, totalCount } = transformMultiDisplayData(
+  const { transformedData, otherData, totalCount } = transformCountryMultiDisplayData(
     rawCountries,
     pageSize,
     "metadata.country.id",

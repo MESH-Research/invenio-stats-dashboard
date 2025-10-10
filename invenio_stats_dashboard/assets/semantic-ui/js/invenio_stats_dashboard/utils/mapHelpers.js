@@ -9,44 +9,56 @@ import countriesGeoJson from '../components/maps/data/countries.json';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
 /**
- * Create a lookup map from country codes to internationalized country names
+ * Convert a single country code to both GeoJSON name and display name
+ * @param {string} countryCode - ISO 3166-1 alpha-2 country code
+ * @returns {Object} Object with geoJsonName and displayName properties
+ */
+const getCountryNames = (countryCode) => {
+  if (!countryCode || typeof countryCode !== 'string') {
+    return { geoJsonName: countryCode || '', displayName: countryCode || '' };
+  }
+
+  const currentLocale = i18next.language || 'en';
+
+  // Get display name using Intl.DisplayNames
+  let displayName = countryCode;
+  try {
+    const displayNames = new Intl.DisplayNames([currentLocale], { type: 'region' });
+    displayName = displayNames.of(countryCode) || countryCode;
+  } catch (error) {
+    console.warn(`Failed to get internationalized name for country code ${countryCode}:`, error);
+  }
+
+  // Get GeoJSON name
+  let geoJsonName = countryCode;
+  if (countriesGeoJson && countriesGeoJson.features) {
+    const feature = countriesGeoJson.features.find(f =>
+      f.properties && f.properties['ISO3166-1-Alpha-2'] === countryCode
+    );
+    if (feature && feature.properties && feature.properties.name) {
+      geoJsonName = feature.properties.name;
+    }
+  }
+
+  return {
+    geoJsonName: geoJsonName,
+    displayName: displayName
+  };
+};
+
+/**
+ * Create a lookup map from country codes to both GeoJSON names and display names
  * Only processes countries that actually have data points for efficiency
  * @param {Array} countryCodes - Array of country codes that have data points
- * @returns {Map} Map with country codes as keys and internationalized names as values
+ * @returns {Map} Map with country codes as keys and objects with geoJsonName and displayName as values
  */
 const createCountryNameLookup = (countryCodes) => {
   const lookup = new Map();
 
-  const currentLocale = i18next.language || 'en';
-  const displayNames = new Intl.DisplayNames([currentLocale], { type: 'region' });
-
   if (countryCodes && countryCodes.length > 0) {
-    const countryCodeSet = new Set(countryCodes);
-
-    const geoJsonCountryMap = new Map();
-    if (countriesGeoJson && countriesGeoJson.features) {
-      countriesGeoJson.features.forEach(feature => {
-        if (feature.properties && feature.properties['ISO3166-1-Alpha-2'] && feature.properties.name) {
-          const countryCode = feature.properties['ISO3166-1-Alpha-2'];
-          // Only store countries that have data points
-          if (countryCodeSet.has(countryCode)) {
-            geoJsonCountryMap.set(countryCode, feature.properties.name);
-          }
-        }
-      });
-    }
-
     countryCodes.forEach(countryCode => {
-      try {
-        const internationalizedName = displayNames.of(countryCode);
-        const geoJsonName = geoJsonCountryMap.get(countryCode);
-        lookup.set(countryCode, internationalizedName || geoJsonName || countryCode);
-      } catch (error) {
-        // Fallback to GeoJSON name if Intl.DisplayNames fails
-        console.warn(`Failed to get internationalized name for country code ${countryCode}:`, error);
-        const geoJsonName = geoJsonCountryMap.get(countryCode);
-        lookup.set(countryCode, geoJsonName || countryCode);
-      }
+      const countryNames = getCountryNames(countryCode);
+      lookup.set(countryCode, countryNames);
     });
   }
 
@@ -140,7 +152,9 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
             const countryCode = countryName;
 
             // Use the lookup we created
-            const readableName = countryNameLookup.get(countryCode) || countryCode;
+            const countryInfo = countryNameLookup.get(countryCode);
+            const geoJsonName = countryInfo?.geoJsonName || countryCode;
+            const displayName = countryInfo?.displayName || countryCode;
 
             const numericValue = parseInt(value, 10) || 0;
 
@@ -148,10 +162,10 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
               // For snapshot data, we only want the latest value per country
               // Since we filtered with latest=true, each country should have only one data point
               countryDataMap.set(countryCode, {
-                name: readableName, // Use readable name for ECharts matching (matches GeoJSON name field)
+                name: geoJsonName, // Use GeoJSON name for ECharts matching (matches GeoJSON name field)
                 value: numericValue,
                 originalName: countryCode,
-                readableName: readableName // Add readable name for display
+                readableName: displayName // Add display name for user interface
               });
             } else {
               // For delta data, we sum all values for each country
@@ -160,10 +174,10 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
                 existing.value += numericValue;
               } else {
                 countryDataMap.set(countryCode, {
-                  name: readableName, // Use readable name for ECharts matching (matches GeoJSON name field)
+                  name: geoJsonName, // Use GeoJSON name for ECharts matching (matches GeoJSON name field)
                   value: numericValue,
                   originalName: countryCode,
-                  readableName: readableName // Add readable name for display
+                  readableName: displayName // Add display name for user interface
                 });
               }
             }
@@ -176,4 +190,4 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
   return Array.from(countryDataMap.values());
 };
 
-export { extractCountryMapData };
+export { extractCountryMapData, getCountryNames };

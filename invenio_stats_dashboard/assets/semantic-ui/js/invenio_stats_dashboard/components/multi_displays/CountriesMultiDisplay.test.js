@@ -8,7 +8,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { TopCountriesMultiDisplay } from './CountriesMultiDisplay';
 import { filterSeriesArrayByDate } from '../../utils';
-import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
+import { transformCountryMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
 
 // Mock only the external dependencies
 jest.mock('@translations/invenio_stats_dashboard/i18next', () => ({
@@ -45,6 +45,29 @@ jest.mock('../../constants', () => ({
   }
 }));
 
+jest.mock('../../components/maps/data/countries.json', () => ({
+  features: [
+    {
+      properties: {
+        'ISO3166-1-Alpha-2': 'US',
+        name: 'United States'
+      }
+    },
+    {
+      properties: {
+        'ISO3166-1-Alpha-2': 'CA',
+        name: 'Canada'
+      }
+    },
+    {
+      properties: {
+        'ISO3166-1-Alpha-2': 'GB',
+        name: 'United Kingdom'
+      }
+    }
+  ]
+}));
+
 describe('TopCountriesMultiDisplay', () => {
   const mockUseStatsDashboard = require('../../context/StatsDashboardContext').useStatsDashboard;
 
@@ -77,9 +100,9 @@ describe('TopCountriesMultiDisplay', () => {
     });
   });
 
-  describe('transformMultiDisplayData (helper function)', () => {
+  describe('transformCountryMultiDisplayData (helper function)', () => {
     it('should return empty data when input is null', () => {
-      const result = transformMultiDisplayData(null, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(null, 10, 'metadata.country.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -89,7 +112,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should return empty data when input is undefined', () => {
-      const result = transformMultiDisplayData(undefined, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(undefined, 10, 'metadata.country.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -99,7 +122,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should return empty data when input is not an array', () => {
-      const result = transformMultiDisplayData('not an array', 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData('not an array', 10, 'metadata.country.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -127,7 +150,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 2, 'metadata.country.id');
 
       expect(result.totalCount).toBe(250);
       expect(result.transformedData).toHaveLength(2);
@@ -156,7 +179,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
       expect(result.transformedData).toHaveLength(3);
@@ -178,7 +201,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
 
       expect(result.totalCount).toBe(100);
       expect(result.transformedData[0].percentage).toBe(80); // 80/100 * 100
@@ -194,7 +217,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
 
       expect(result.transformedData[0].link).toBe('/search?q=metadata.country.id:united-states');
     });
@@ -213,7 +236,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
 
       expect(result.transformedData).toHaveLength(2);
 
@@ -259,7 +282,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 2, 'metadata.country.id');
 
       expect(result.otherData).toBeTruthy();
       expect(result.otherData).toHaveProperty('id', 'other');
@@ -285,7 +308,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
 
       expect(result.otherData).toBeNull();
     });
@@ -299,7 +322,7 @@ describe('TopCountriesMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
 
       expect(result.totalCount).toBe(0);
       expect(result.transformedData[0].percentage).toBe(0);
@@ -514,7 +537,7 @@ describe('TopCountriesMultiDisplay', () => {
       const filteredData = filterSeriesArrayByDate(mockCountriesData, dateRange, true);
 
       // Then transform the filtered data using our helper function
-      const result = transformMultiDisplayData(filteredData, 10, 'metadata.country.id');
+      const result = transformCountryMultiDisplayData(filteredData, 10, 'metadata.country.id');
 
       expect(result.totalCount).toBe(225); // 150 + 75
       expect(result.transformedData).toHaveLength(2);

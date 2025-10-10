@@ -10,6 +10,8 @@ import { CHART_COLORS, RECORD_START_BASES } from '../constants';
 import { extractLocalizedLabel } from '../api/dataTransformer';
 import { filterSeriesArrayByDate } from './filters';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
+import { getCountryNames } from './mapHelpers';
+
 
 /**
  * Transform multi-display data into chart-ready format
@@ -41,6 +43,70 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
     const localizedName = extractLocalizedLabel(item.name, currentLanguage);
     return {
       name: localizedName,
+      value: value,
+      percentage: percentage,
+      id: item.id,
+      link: searchField ? `/search?q=${searchField}:${item.id}` : null,
+      itemStyle: {
+        color: colorPalette[index % colorPalette.length][1]
+      }
+    };
+  });
+
+  const otherData = otherItems.length > 0 ? otherItems.reduce((acc, item) => {
+    acc.value += item?.data?.[0]?.value?.[1] || 0;
+    return acc;
+  }, {
+    id: "other",
+    name: i18next.t("Other"),
+    value: 0,
+    itemStyle: {
+      color: colorPalette[colorPalette.length - 1][1]
+    }
+  }) : null;
+
+  if (otherData) {
+    otherData.percentage = totalCount > 0 ? Math.round((otherData.value / totalCount) * 100) : 0;
+  }
+
+  return {
+    transformedData,
+    otherData,
+    totalCount
+  };
+};
+
+/**
+ * Transform multi-display data for countries into chart-ready format
+ * This function specifically handles country codes and converts them to readable names
+ *
+ * @param {Array} rawData - Array of country data items from the API
+ * @param {number} pageSize - Number of top items to show individually
+ * @param {string} searchField - Field name for search links (e.g., 'metadata.country.id')
+ * @param {Array} colorPalette - Array of color arrays for chart styling
+ * @returns {Object} Object containing transformedData, otherData, and totalCount
+ */
+const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary) => {
+  if (!rawData || !Array.isArray(rawData)) {
+    return {
+      transformedData: [],
+      otherData: null,
+      totalCount: 0
+    };
+  }
+
+  const totalCount = rawData.reduce((sum, item) => sum + item?.data?.[0]?.value?.[1] || 0, 0);
+
+  const topXItems = rawData.slice(0, pageSize);
+  const otherItems = rawData.slice(pageSize);
+
+  const transformedData = topXItems.map((item, index) => {
+    const value = item?.data?.[0]?.value?.[1] || 0;
+    const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
+    const countryCode = item.name || item.id;
+    const countryName = getCountryNames(countryCode).displayName;
+    return {
+      name: countryName,
       value: value,
       percentage: percentage,
       id: item.id,
@@ -252,6 +318,7 @@ const generateMultiDisplayChartOptions = (transformedData, otherData, availableV
 
 export {
   transformMultiDisplayData,
+  transformCountryMultiDisplayData,
   assembleMultiDisplayRows,
   extractRecordBasedData,
   extractUsageBasedData,

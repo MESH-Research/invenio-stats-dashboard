@@ -14,11 +14,11 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 const createUTCDate = (date) => {
   if (date instanceof Date) {
     return date;
-  } else if (typeof date === 'string') {
+  } else if (typeof date === "string") {
     // If the string doesn't have time components, assume UTC midnight
-    if (!date.includes('T') && !date.includes(':')) {
+    if (!date.includes("T") && !date.includes(":")) {
       // Parse YYYY-MM-DD or YYYY-MM format and create UTC date
-      const parts = date.split('-');
+      const parts = date.split("-");
       if (parts.length === 3) {
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10);
@@ -34,7 +34,7 @@ const createUTCDate = (date) => {
         // For YYYY format, use January 1st of the year
         return new Date(Date.UTC(year, 0, 1));
       }
-      return new Date(date + 'T00:00:00.000Z');
+      return new Date(date + "T00:00:00.000Z");
     } else {
       return new Date(date);
     }
@@ -59,8 +59,8 @@ const createUTCDateFromParts = (year, month, day) => {
  * @returns {Date} Current UTC date
  */
 const getCurrentUTCDate = () => {
-  const today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD
-  return new Date(today + 'T00:00:00.000Z');
+  const today = new Date().toISOString().split("T")[0]; // Get YYYY-MM-DD
+  return new Date(today + "T00:00:00.000Z");
 };
 
 /**
@@ -119,9 +119,9 @@ const setDateParts = (date, { year, month, day }) => {
  * @returns {string} The locale-appropriate range separator
  */
 const getLocaleDateSeparator = (locale) => {
-  const yearFormatter = new Intl.DateTimeFormat(locale, { year: 'numeric' });
-  const startDate = new Date('2024-01-01');
-  const endDate = new Date('2025-01-01');
+  const yearFormatter = new Intl.DateTimeFormat(locale, { year: "numeric" });
+  const startDate = new Date("2024-01-01");
+  const endDate = new Date("2025-01-01");
   const yearRange = yearFormatter.formatRange(startDate, endDate);
   const startYear = yearFormatter.format(startDate);
   const endYear = yearFormatter.format(endDate);
@@ -138,18 +138,18 @@ const getLocaleDateSeparator = (locale) => {
 const formatQuarter = (quarterInput) => {
   let year, quarter;
 
-  if (typeof quarterInput === 'string' && quarterInput.includes('Q')) {
+  if (typeof quarterInput === "string" && quarterInput.includes("Q")) {
     // Handle quarter string format (e.g., "2024-Q1")
-    [year, quarter] = quarterInput.split('-Q');
+    [year, quarter] = quarterInput.split("-Q");
   } else if (quarterInput instanceof Date) {
     // Handle Date object - calculate quarter from month
     year = quarterInput.getUTCFullYear();
     quarter = Math.floor(quarterInput.getUTCMonth() / 3) + 1;
   } else {
-    return '';
+    return "";
   }
 
-  return `${i18next.t('Q')}${quarter} ${year}`;
+  return `${i18next.t("Q")}${quarter} ${year}`;
 };
 
 /**
@@ -170,35 +170,44 @@ const readableGranularDate = (date, granularity) => {
   const dateObj = date instanceof Date ? date : createUTCDate(date);
 
   switch (granularity) {
-    case 'quarter':
-      return formatDate(dateObj, 'quarter');
+    case "quarter":
+      return formatDate(dateObj, "quarter");
 
-    case 'week':
+    case "week":
       // Find the Monday of the week containing the provided date
       const dayOfWeek = dateObj.getUTCDay();
       let monday;
-      if (dayOfWeek !== 1) { // 1 = Monday
+      if (dayOfWeek !== 1) {
+        // 1 = Monday
         const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, so it's 6 days from Monday
-        monday = new Date(Date.UTC(
-          dateObj.getUTCFullYear(),
-          dateObj.getUTCMonth(),
-          dateObj.getUTCDate() - daysFromMonday
-        ));
+        monday = new Date(
+          Date.UTC(
+            dateObj.getUTCFullYear(),
+            dateObj.getUTCMonth(),
+            dateObj.getUTCDate() - daysFromMonday,
+          ),
+        );
       } else {
         monday = dateObj;
       }
 
-      const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6));
-      return formatDateRange({ start: monday, end: sunday }, 'day', true);
+      const sunday = new Date(
+        Date.UTC(
+          monday.getUTCFullYear(),
+          monday.getUTCMonth(),
+          monday.getUTCDate() + 6,
+        ),
+      );
+      return formatDateRange({ start: monday, end: sunday }, "day", true);
 
-    case 'month':
-      return formatDate(dateObj, 'month');
+    case "month":
+      return formatDate(dateObj, "month");
 
-    case 'year':
-      return formatDate(dateObj, 'year');
+    case "year":
+      return formatDate(dateObj, "year");
 
     default:
-      return formatDate(dateObj, 'day', true);
+      return formatDate(dateObj, "day", true);
   }
 };
 
@@ -207,58 +216,69 @@ const readableGranularDate = (date, granularity) => {
  * @param {string|Date} date - The date to format (string or Date object)
  * @param {string} granularity - The granularity to format ('day', 'month', 'year') or undefined for full date
  * @param {boolean} useShortMonth - Whether to use short month names (default: false)
- * @param {boolean} isStartDate - Whether this is the start date in a range (default: false)
- * @param {string|Date} endDate - The end date to compare with (required if isStartDate is true)
+ * @param {string|Date} endDate - The end date for a range. If present, the date is formatted as a range.
  * @returns {string} The formatted date string
  */
-const formatDate = (date, granularity = 'day', useShortMonth = false, endDate = null) => {
+const formatDate = (
+  date,
+  granularity = "day",
+  useShortMonth = false,
+  endDate = null,
+) => {
   if (!date) {
-    return '';
+    return "";
   }
 
   // Handle quarter strings that can't be converted to a Date object
-  if (typeof date === 'string' && date.includes('Q')) {
+  if (typeof date === "string" && date.includes("Q")) {
     return formatQuarter(date);
   }
 
   // If we have an endDate, delegate to formatDateRange
   if (endDate) {
-    return formatDateRange({ start: date, end: endDate }, granularity, useShortMonth);
+    return formatDateRange(
+      { start: date, end: endDate },
+      granularity,
+      useShortMonth,
+    );
   }
 
   const dateObj = createUTCDate(date);
 
   switch (granularity) {
-    case 'year':
+    case "year":
       return new Intl.DateTimeFormat(i18next.language, {
-        year: 'numeric',
-        timeZone: 'UTC'
+        year: "numeric",
+        timeZone: "UTC",
       }).format(dateObj);
 
-    case 'quarter':
+    case "quarter":
       return formatQuarter(dateObj);
 
-    case 'month':
+    case "month":
       return new Intl.DateTimeFormat(i18next.language, {
-        year: 'numeric',
-        month: useShortMonth ? 'short' : 'long',
-        timeZone: 'UTC'
+        year: "numeric",
+        month: useShortMonth ? "short" : "long",
+        timeZone: "UTC",
       }).format(dateObj);
 
-    case 'day':
+    case "day":
     default:
-      const dateStyle = useShortMonth ? 'medium' : 'long';
+      const dateStyle = useShortMonth ? "medium" : "long";
       return new Intl.DateTimeFormat(i18next.language, {
         dateStyle: dateStyle,
-        timeZone: 'UTC'
+        timeZone: "UTC",
       }).format(dateObj);
   }
-
 };
 
-const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) => {
+const formatDateRange = (
+  dateRange,
+  granularity = "day",
+  useShortMonth = false,
+) => {
   if (!dateRange || !dateRange.start || !dateRange.end) {
-    return '';
+    return "";
   }
 
   // Convert date strings to Date objects
@@ -266,20 +286,20 @@ const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) 
   const endDate = createUTCDate(dateRange.end);
 
   switch (granularity) {
-    case 'year':
+    case "year":
       return new Intl.DateTimeFormat(i18next.language, {
-        year: 'numeric',
-        timeZone: 'UTC'
+        year: "numeric",
+        timeZone: "UTC",
       }).formatRange(startDate, endDate);
 
-    case 'month':
+    case "month":
       return new Intl.DateTimeFormat(i18next.language, {
-        year: 'numeric',
-        month: useShortMonth ? 'short' : 'long',
-        timeZone: 'UTC'
+        year: "numeric",
+        month: useShortMonth ? "short" : "long",
+        timeZone: "UTC",
       }).formatRange(startDate, endDate);
 
-    case 'quarter':
+    case "quarter":
       // Use built-in Intl to get locale-appropriate separator
       const separator = getLocaleDateSeparator(i18next.language);
 
@@ -288,12 +308,12 @@ const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) 
 
       return startQuarter + separator + endQuarter;
 
-    case 'day':
+    case "day":
     default:
-      const dateStyle = useShortMonth ? 'medium' : 'long';
+      const dateStyle = useShortMonth ? "medium" : "long";
       return new Intl.DateTimeFormat(i18next.language, {
         dateStyle: dateStyle,
-        timeZone: 'UTC'
+        timeZone: "UTC",
       }).formatRange(startDate, endDate);
   }
 };
@@ -309,7 +329,7 @@ const formatDateRange = (dateRange, granularity = 'day', useShortMonth = false) 
  */
 const formatRelativeTimestamp = (timestamp) => {
   if (!timestamp) {
-    return 'Unknown';
+    return "Unknown";
   }
 
   const date = new Date(timestamp);
@@ -320,9 +340,10 @@ const formatRelativeTimestamp = (timestamp) => {
   const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
 
   // Check if same day
-  const isSameDay = dateUTC.getUTCDate() === nowUTC.getUTCDate() &&
-                   dateUTC.getUTCMonth() === nowUTC.getUTCMonth() &&
-                   dateUTC.getUTCFullYear() === nowUTC.getUTCFullYear();
+  const isSameDay =
+    dateUTC.getUTCDate() === nowUTC.getUTCDate() &&
+    dateUTC.getUTCMonth() === nowUTC.getUTCMonth() &&
+    dateUTC.getUTCFullYear() === nowUTC.getUTCFullYear();
 
   // Check if same week (Monday to Sunday)
   const getWeekStart = (d) => {
@@ -341,40 +362,40 @@ const formatRelativeTimestamp = (timestamp) => {
   if (isSameDay) {
     // Same day: show time only
     return new Intl.DateTimeFormat(i18next.language, {
-      hour: 'numeric',
-      minute: '2-digit',
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'UTC'
+      timeZone: "UTC",
     }).format(date);
   } else if (isSameWeek) {
     // Same week: show day + time
     return new Intl.DateTimeFormat(i18next.language, {
-      weekday: 'short',
-      hour: 'numeric',
-      minute: '2-digit',
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'UTC'
+      timeZone: "UTC",
     }).format(date);
   } else if (isSameYear) {
     // Same year: show month + day + time
     return new Intl.DateTimeFormat(i18next.language, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'UTC'
+      timeZone: "UTC",
     }).format(date);
   } else {
     // Different year: show full date + time
     return new Intl.DateTimeFormat(i18next.language, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'UTC'
+      timeZone: "UTC",
     }).format(date);
   }
 };
@@ -391,5 +412,5 @@ export {
   readableGranularDate,
   formatDate,
   formatDateRange,
-  formatRelativeTimestamp
+  formatRelativeTimestamp,
 };
