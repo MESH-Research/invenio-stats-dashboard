@@ -16,6 +16,7 @@ from .core_cli import (
     aggregate_stats_background_command,
     aggregate_stats_command,
     clear_bookmarks_command,
+    clear_lock_command,
     read_stats_command,
     status_command,
 )
@@ -33,6 +34,7 @@ def cli():
 cli.add_command(aggregate_stats_command)
 cli.add_command(aggregate_stats_background_command)
 cli.add_command(clear_bookmarks_command)
+cli.add_command(clear_lock_command)
 cli.add_command(read_stats_command)
 cli.add_command(status_command)
 cli.add_command(destroy_indices_command)

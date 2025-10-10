@@ -792,3 +792,68 @@ def clear_bookmarks_command(
         return 1
 
     return 0
+
+
+@click.command(name="clear-lock")
+@click.option(
+    "--lock-name",
+    default="community_stats_aggregation",
+    help="Name of the lock to clear (default: community_stats_aggregation)",
+)
+@click.option(
+    "--list-locks",
+    is_flag=True,
+    help="List all lock keys in the cache",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be cleared without actually clearing",
+)
+@with_appcontext
+def clear_lock_command(lock_name, list_locks, dry_run):
+    r"""Clear stuck invenio-stats-dashboard task locks.
+
+    This command connects to the same Redis cache that invenio-stats-dashboard uses
+    and manually removes stuck lock keys that prevent aggregation tasks from running.
+
+    Lock names commonly used:
+    - community_stats_aggregation (default)
+    - community_stats_cache_generation
+
+    Examples:
+
+    \b
+    - invenio community-stats clear-lock
+    - invenio community-stats clear-lock --lock-name community_stats_cache_generation
+    - invenio community-stats clear-lock --list-locks
+    - invenio community-stats clear-lock --dry-run
+    """
+    check_stats_enabled()
+
+    if list_locks:
+        result = current_community_stats_service.list_aggregation_locks()
+        if result["success"]:
+            click.echo(f"🔍 {result['message']}")
+            if result["count"] > 0:
+                for lock in result["locks"]:
+                    click.echo(f"  - {lock['key']}: {lock['value']}")
+            else:
+                click.echo("ℹ️  No lock keys found in cache")
+        else:
+            click.echo(f"❌ {result['message']}")
+            return 1
+        return 0
+
+    result = current_community_stats_service.clear_aggregation_lock(lock_name, dry_run)
+
+    if result["success"]:
+        click.echo(f"ℹ️  {result['message']}")
+        if result.get("cleared"):
+            click.echo("\n✅ Lock clearing completed successfully!")
+            click.echo("You should now be able to run aggregation tasks again.")
+        return 0
+    else:
+        click.echo(f"❌ {result['message']}")
+        click.echo("Check your Redis connection and try again.")
+        return 1

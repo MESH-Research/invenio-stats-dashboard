@@ -11,6 +11,7 @@ from typing import Any, cast
 import arrow
 from flask import Flask, current_app
 from invenio_access.permissions import system_identity
+from invenio_cache import current_cache
 from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
@@ -776,3 +777,114 @@ class CommunityStatsService:
                 results["cleared"] = {comm_id: comm_entry}
 
         return results
+
+    def clear_aggregation_lock(
+        self, lock_name: str = "community_stats_aggregation", dry_run: bool = False
+    ) -> dict[str, Any]:
+        """Clear a specific lock from the cache.
+        
+        Args:
+            lock_name: The name of the lock to clear (without 'lock:' prefix)
+            dry_run: If True, only show what would be cleared without actually clearing
+            
+        Returns:
+            Dictionary with success status and details about the operation
+        """
+        full_lock_key = f"lock:{lock_name}"
+        
+        try:
+            # Check if the lock exists
+            current_value = current_cache.get(full_lock_key)
+            
+            if current_value is None:
+                return {
+                    "success": True,
+                    "message": f"Lock '{full_lock_key}' not found (already cleared or never existed)",
+                    "lock_key": full_lock_key,
+                    "lock_value": None,
+                    "cleared": False,
+                }
+                
+            if dry_run:
+                return {
+                    "success": True,
+                    "message": f"DRY RUN: Would clear lock '{full_lock_key}'",
+                    "lock_key": full_lock_key,
+                    "lock_value": current_value,
+                    "cleared": False,
+                }
+                
+            # Clear the lock
+            success = current_cache.delete(full_lock_key)
+            
+            if success:
+                return {
+                    "success": True,
+                    "message": f"Successfully cleared lock '{full_lock_key}'",
+                    "lock_key": full_lock_key,
+                    "lock_value": current_value,
+                    "cleared": True,
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Failed to clear lock '{full_lock_key}'",
+                    "lock_key": full_lock_key,
+                    "lock_value": current_value,
+                    "cleared": False,
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error clearing lock '{full_lock_key}': {e}",
+                "lock_key": full_lock_key,
+                "lock_value": None,
+                "cleared": False,
+                "error": str(e),
+            }
+
+    def list_aggregation_locks(self) -> dict[str, Any]:
+        """List all lock keys in the cache.
+        
+        Returns:
+            Dictionary with success status and list of all lock keys
+        """
+        try:
+            # Get all keys that start with 'lock:'
+            all_keys = current_cache.cache._read_client.keys("lock:*")
+            
+            if not all_keys:
+                return {
+                    "success": True,
+                    "message": "No lock keys found in cache",
+                    "locks": [],
+                    "count": 0,
+                }
+                
+            locks = []
+            for key in all_keys:
+                # Decode bytes to string if needed
+                if isinstance(key, bytes):
+                    key = key.decode('utf-8')
+                value = current_cache.get(key)
+                locks.append({
+                    "key": key,
+                    "value": value,
+                })
+                
+            return {
+                "success": True,
+                "message": f"Found {len(locks)} lock keys",
+                "locks": locks,
+                "count": len(locks),
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error listing locks: {e}",
+                "locks": [],
+                "count": 0,
+                "error": str(e),
+            }
