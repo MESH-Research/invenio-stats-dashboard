@@ -308,11 +308,15 @@ class ChartConfigBuilder {
         },
       }));
     } else {
+      const isSingleSeries = aggregatedData.length === 1;
+      const effectiveChartType = chartType || aggregatedData[0]?.type || "bar";
+
       this.config.series = aggregatedData.map((series) => ({
         ...this.config.series,
         name: series.name,
         type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
-        stack: stacked ? "Total" : undefined,
+        // Give single series bars a stack identifier to center them like stacked bars
+        stack: stacked ? "Total" : (isSingleSeries && effectiveChartType === "bar" ? "single" : undefined),
         data: series.data,
         label: {
           ...this.config.series.label,
@@ -513,6 +517,9 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
     return data;
   }
 
+  // Detect if this is delta data (should be summed) or snapshot data (should take last value)
+  const isDeltaData = !isDataCumulative(data);
+
   const aggregatedSeries = data.map((series) => {
     if (!series.data || series.data.length === 0) {
       return { ...series, data: [] };
@@ -554,16 +561,21 @@ const aggregateData = (data, granularity, isSubcounts = false) => {
         });
       } else {
         const current = aggregatedPoints.get(key);
-        // Always take the last value of each time period
-        // Ensure both dates are Date objects for proper comparison
-        const currentDate =
-          current.lastDate instanceof Date
-            ? current.lastDate
-            : new Date(current.lastDate);
-        const pointDate = date instanceof Date ? date : new Date(date);
-        if (pointDate > currentDate) {
-          current.value = value;
-          current.lastDate = date;
+        if (isDeltaData) {
+          // For delta data, sum the values within each aggregation period
+          current.value += value;
+        } else {
+          // For snapshot data, take the last value of each time period
+          // Ensure both dates are Date objects for proper comparison
+          const currentDate =
+            current.lastDate instanceof Date
+              ? current.lastDate
+              : new Date(current.lastDate);
+          const pointDate = date instanceof Date ? date : new Date(date);
+          if (pointDate > currentDate) {
+            current.value = value;
+            current.lastDate = date;
+          }
         }
       }
     });
@@ -674,6 +686,98 @@ const formatXAxisLabel = (value, granularity) => {
     default:
       return "{day|" + day + "}";
   }
+};
+
+/**
+ * Extracts series data for a specific metric from yearly data.
+ *
+ * @param {Array} data - Array of yearly data objects, each containing global and breakdown metrics
+ * @param {string} selectedMetric - The metric to extract (e.g., 'records', 'views', 'downloads')
+ * @param {string|null} displaySeparately - Breakdown category to extract from, or null for global data
+ * @returns {Array} Array of series objects for the selected metric across all years
+ */
+const extractSeriesForMetric = (data, selectedMetric, displaySeparately) => {
+  if (!data || !Array.isArray(data)) return [];
+
+  const yearlySeries = data
+    .map((yearlyData) => {
+      if (!yearlyData) return [];
+
+      if (displaySeparately && yearlyData[displaySeparately]) {
+        return yearlyData[displaySeparately][selectedMetric] || [];
+      } else {
+        return yearlyData.global?.[selectedMetric] || [];
+      }
+    })
+    .flat(); // Combine all series from all years
+
+  console.log("yearlySeries for metric:", yearlySeries);
+  console.log("displaySeparately:", displaySeparately);
+  console.log("selectedMetric:", selectedMetric);
+  return yearlySeries;
+};
+
+/**
+ * Prepares series data for chart display by merging, filtering, and naming.
+ *
+ * For global view (displaySeparately = null): merges multiple yearly series into a single series
+ * For breakdown view (displaySeparately = category): keeps series separate for stacking
+ *
+ * @param {Array} seriesArray - Array of series objects extracted from yearly data
+ * @param {string|null} displaySeparately - Breakdown category name or null for global view
+ * @param {string} selectedMetric - The metric being displayed (used for naming)
+ * @param {Object} dateRange - Date range object with start/end dates for filtering
+ * @returns {Array} Array of processed series ready for aggregation and display
+ */
+const prepareDataSeries = (seriesArray, displaySeparately, selectedMetric, dateRange) => {
+  // Lazy merge: only merge the series we're actually going to display
+  let seriesToProcess = seriesArray;
+  if (seriesArray.length > 1 && !displaySeparately) {
+    // For global view, merge multiple yearly series into one
+    const mergedData = seriesArray.reduce((acc, series) => {
+      if (series.data) acc.push(...series.data);
+      return acc;
+    }, []);
+
+    seriesToProcess = [{
+      ...seriesArray[0],
+      data: mergedData
+    }];
+  }
+
+  const filteredData = filterSeriesArrayByDate(seriesToProcess, dateRange);
+  console.log("filteredData", filteredData);
+
+  // Add names to the series based on the breakdown category or metric type
+  const currentLanguage = i18next.language || "en";
+  const namedSeries = filteredData.map((series, index) => {
+    if (displaySeparately) {
+      // For breakdown view, use the breakdown category name
+      const seriesName = series.name || `Series ${index + 1}`;
+      const localizedName = extractLocalizedLabel(
+        seriesName,
+        currentLanguage,
+      );
+      return {
+        ...series,
+        name: localizedName,
+      };
+    } else {
+      // For global view, use the metric name
+      const seriesName = selectedMetric || `Series ${index + 1}`;
+      const localizedName = extractLocalizedLabel(
+        seriesName,
+        currentLanguage,
+      );
+      return {
+        ...series,
+        name: localizedName,
+      };
+    }
+  });
+  console.log("namedSeries", namedSeries);
+
+  return namedSeries;
 };
 
 /** deprecated */
@@ -788,24 +892,7 @@ const StatsChart = ({
   const [aggregatedData, setAggregatedData] = useState([]);
 
   const seriesArray = useMemo(() => {
-    if (!data || !Array.isArray(data)) return [];
-
-    const allSeries = data
-      .map((yearlyData) => {
-        if (!yearlyData) return [];
-
-        if (displaySeparately && yearlyData[displaySeparately]) {
-          return yearlyData[displaySeparately][selectedMetric] || [];
-        } else {
-          return yearlyData.global?.[selectedMetric] || [];
-        }
-      })
-      .flat(); // Combine all series from all years
-
-    console.log("seriesToProcess (yearly array):", allSeries);
-    console.log("displaySeparately:", displaySeparately);
-    console.log("selectedMetric:", selectedMetric);
-    return allSeries;
+    return extractSeriesForMetric(data, selectedMetric, displaySeparately);
   }, [data, selectedMetric, displaySeparately]);
 
   // Check if there's any data to display
@@ -818,40 +905,10 @@ const StatsChart = ({
   }, [seriesArray, isLoading]);
 
   useEffect(() => {
-    const filteredData = filterSeriesArrayByDate(seriesArray, dateRange);
-    console.log("filteredData", filteredData);
-
-    // Add names to the series based on the breakdown category or metric type
-    const currentLanguage = i18next.language || "en";
-    const namedSeries = filteredData.map((series, index) => {
-      if (displaySeparately) {
-        // For breakdown view, use the breakdown category name
-        const seriesName = series.name || `Series ${index + 1}`;
-        const localizedName = extractLocalizedLabel(
-          seriesName,
-          currentLanguage,
-        );
-        return {
-          ...series,
-          name: localizedName,
-        };
-      } else {
-        // For global view, use the metric name
-        const seriesName = selectedMetric || `Series ${index + 1}`;
-        const localizedName = extractLocalizedLabel(
-          seriesName,
-          currentLanguage,
-        );
-        return {
-          ...series,
-          name: localizedName,
-        };
-      }
-    });
-    console.log("namedSeries", namedSeries);
+    const preparedSeries = prepareDataSeries(seriesArray, displaySeparately, selectedMetric, dateRange);
 
     const aggregatedData = aggregateData(
-      namedSeries,
+      preparedSeries,
       granularity,
       displaySeparately,
     );
@@ -885,7 +942,6 @@ const StatsChart = ({
   const chartOptions = useMemo(() => {
     const baseConfig = displaySeparately ? SEPARATE_CHART_CONFIG : CHART_CONFIG;
 
-    // Build the config using the builder pattern
     const finalConfig = new ChartConfigBuilder(baseConfig)
       .withTooltip(showTooltip, tooltipConfig)
       .withGrid(showGrid, gridConfig)
