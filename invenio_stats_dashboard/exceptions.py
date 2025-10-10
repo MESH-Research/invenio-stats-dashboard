@@ -41,3 +41,15 @@ class DeltaDataGapError(ValueError):
     """Exception raised when there's a gap in delta data for snapshot aggregation."""
 
     pass
+
+
+class CommunityEventsNotInitializedError(Exception):
+    """Exception raised when community events index is not initialized."""
+
+    pass
+
+
+class UsageEventsNotMigratedError(Exception):
+    """Exception raised when usage events have not been migrated to include community_ids."""
+
+    pass

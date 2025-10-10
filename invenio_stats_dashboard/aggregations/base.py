@@ -9,6 +9,7 @@
 import copy
 import datetime
 import time
+from abc import abstractmethod
 from collections.abc import Generator
 from typing import Any
 
@@ -26,9 +27,11 @@ from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
-from ..exceptions import CommunityEventIndexingError, DeltaDataGapError
-from ..proxies import current_community_stats_service
-from .bookmarks import CommunityBookmarkAPI, CommunityEventBookmarkAPI
+from ..exceptions import (
+    DeltaDataGapError,
+    CommunityEventsNotInitializedError,
+)
+from .bookmarks import CommunityBookmarkAPI
 from .types import (
     RecordDeltaDocument,
     RecordSnapshotDocument,
@@ -187,88 +190,56 @@ class CommunityAggregatorBase(StatAggregator):
             upper_limit = lower_limit.shift(days=self.catchup_interval)
         return upper_limit
 
-    def _index_missing_community_events_with_retry(
-        self,
-        community_id: str,
-        upper_limit: arrow.Arrow,
-        lower_limit: arrow.Arrow,
-        first_index_event_date: arrow.Arrow,
-        last_index_event_date: arrow.Arrow,
-        max_retries: int = 3,
-        base_delay: float = 1.0,
-    ) -> arrow.Arrow:
-        """Index missing community events with retry logic and exponential backoff."""
-        for attempt in range(max_retries):
-            try:
-                return self._index_missing_community_events(
-                    community_id,
-                    upper_limit,
-                    lower_limit,
-                    first_index_event_date,
-                    last_index_event_date,
-                )
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    raise CommunityEventIndexingError(
-                        f"Failed to index community events for {community_id} "
-                        f"after {max_retries} attempts: {e}"
-                    ) from e
+    def _check_community_events_initialized(self) -> None:
+        """Check if community events index exists and has records.
 
-                delay = base_delay * (2**attempt)
-                time.sleep(delay)
-
-        # Never reached due to exception above, but needed for type checker
-        raise CommunityEventIndexingError(
-            f"Failed to index community events for {community_id} "
-            f"after {max_retries} attempts"
-        )
-
-    def _index_missing_community_events(
-        self,
-        community_id: str,
-        upper_limit: arrow.Arrow,
-        lower_limit: arrow.Arrow,
-        first_index_event_date: arrow.Arrow,
-        last_index_event_date: arrow.Arrow,
-    ) -> arrow.Arrow:
-        """Index missing community events using bookmarks when available.
-
-        Uses the community event bookmark to track the furthest point of continuous
-        indexing. Falls back to querying the index if no bookmark exists.
-
-        Returns:
-            The adjusted upper_limit for aggregation.
+        Raises:
+            CommunityEventsNotInitializedError: If the community events index
+                doesn't exist or has no records.
         """
-        event_bookmark_api = CommunityEventBookmarkAPI(self.client)
-
-        indexing_end_date = min(upper_limit, last_index_event_date.ceil("day"))
-
-        indexing_start_date = None
-
-        bookmark_date = event_bookmark_api.get_bookmark(community_id)
-        if bookmark_date:
-            indexing_start_date = bookmark_date
-        else:
-            indexing_start_date = first_index_event_date
-
-        if indexing_start_date >= indexing_end_date:
-            return upper_limit
-
         try:
-            current_community_stats_service.generate_record_community_events(
-                community_ids=[community_id],
-                end_date=indexing_end_date.format("YYYY-MM-DD"),
-                start_date=indexing_start_date.format("YYYY-MM-DD"),
-            )
+            # Check if the community events index exists
+            if not self.client.indices.exists(
+                index=prefix_index("stats-community-events")
+            ):
+                raise CommunityEventsNotInitializedError(
+                    "Community events index does not exist. "
+                    "Please run community events initialization first."
+                )
 
-            event_bookmark_api.set_bookmark(community_id, indexing_end_date.isoformat())
+            # Check if the index has any records
+            search = Search(
+                using=self.client, index=prefix_index("stats-community-events")
+            )
+            count = search.count()
+
+            if count == 0:
+                raise CommunityEventsNotInitializedError(
+                    "Community events index exists but has no records. "
+                    "Please run community events initialization first."
+                )
 
         except Exception as e:
-            raise CommunityEventIndexingError(
-                f"Community event indexing failed for {community_id}: {e}"
+            if isinstance(e, CommunityEventsNotInitializedError):
+                raise
+            # If it's a different exception (e.g., connection error), wrap it
+            raise CommunityEventsNotInitializedError(
+                f"Failed to check community events initialization: {e}"
             ) from e
 
-        return upper_limit
+    @abstractmethod
+    def _check_usage_events_migrated(self) -> None:
+        """Check if usage events have been migrated to include community_ids.
+
+        This method should be implemented by usage aggregators to verify that
+        view and download events have been migrated to include community_ids fields.
+        Non-usage aggregators should override this method with a pass statement.
+
+        Raises:
+            UsageEventsNotMigratedError: If usage events indices don't exist
+                or events lack community_ids fields.
+        """
+        pass
 
     def run(
         self,
@@ -313,6 +284,12 @@ class CommunityAggregatorBase(StatAggregator):
         """
         start_date = arrow.get(start_date) if start_date else None
         end_date = arrow.get(end_date) if end_date else None
+
+        # Check if community events are initialized before proceeding
+        self._check_community_events_initialized()
+        
+        # Check if usage events have been migrated (for usage aggregators)
+        self._check_usage_events_migrated()
 
         # If no records have been indexed there is nothing to aggregate
         if (
@@ -372,31 +349,8 @@ class CommunityAggregatorBase(StatAggregator):
             first_event_date_safe = first_event_date or arrow.utcnow()
             last_event_date_safe = last_event_date or arrow.utcnow()
 
-            # Check that community add/remove events have been indexed for the desired
-            # period and if not, index them first.
-            try:
-                upper_limit = self._index_missing_community_events_with_retry(
-                    community_id,
-                    upper_limit,
-                    lower_limit,
-                    first_event_date_safe,
-                    last_event_date_safe,
-                )
-            except CommunityEventIndexingError as e:
-                current_app.logger.error(
-                    f"Could not perform aggregations for {community_id}. "
-                    f"Error indexing community events, and we cannot perform "
-                    f"aggregations without the community events: {e}"
-                )
-                continue
             current_app.logger.debug(f"upper_limit: {upper_limit}")
             current_app.logger.debug(f"lower_limit: {lower_limit}")
-
-            # upper_limit could legitimately be < lower_limit if we spent this iteration
-            # indexing prior community add/remove events. If so, skip this community
-            # iteration without updating the bookmark or performing aggregations
-            if upper_limit < lower_limit:
-                continue
 
             next_bookmark = arrow.get(upper_limit).format("YYYY-MM-DDTHH:mm:ss.SSS")
 

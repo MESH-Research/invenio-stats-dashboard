@@ -45,6 +45,10 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         self.aggregation_index = "stats-community-records-snapshot-created"
         self.event_date_field = "record_created_date"
 
+    def _check_usage_events_migrated(self) -> None:
+        """Override abstract method - checking done in usage delta aggregator."""
+        pass
+
     @property
     def use_included_dates(self):
         """Whether to use included dates for community queries."""

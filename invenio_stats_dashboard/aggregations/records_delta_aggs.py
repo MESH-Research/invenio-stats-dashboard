@@ -56,6 +56,10 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             "term", community_id=community_id
         )
 
+    def _check_usage_events_migrated(self) -> None:
+        """Override abstract method - checking done in usage delta aggregator."""
+        pass
+
     def _should_skip_aggregation(  # type: ignore[override]
         self,
         start_date: arrow.Arrow,

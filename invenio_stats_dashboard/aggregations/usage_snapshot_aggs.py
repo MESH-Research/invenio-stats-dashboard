@@ -11,7 +11,10 @@ import numbers
 import arrow
 from flask import current_app
 from invenio_search.proxies import current_search_client
+from invenio_search.utils import prefix_index
+from opensearchpy.helpers.search import Search
 
+from ..exceptions import UsageEventsNotMigratedError
 from ..queries import (
     CommunityUsageSnapshotQuery,
 )
@@ -45,6 +48,10 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         self.aggregation_index = "stats-community-usage-snapshot"
         self.event_date_field = "period_start"
         self.query_builder = CommunityUsageSnapshotQuery(client=self.client)
+
+    def _check_usage_events_migrated(self) -> None:
+        """Override abstract method - checking done in usage delta aggregator."""
+        pass
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow

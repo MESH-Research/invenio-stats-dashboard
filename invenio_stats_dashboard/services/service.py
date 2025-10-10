@@ -734,12 +734,14 @@ class CommunityStatsService:
                     }
 
         # Clear bookmarks for each community and aggregation type
-        results = {"success": True, "cleared": {}, "total_cleared": 0}
+        results: dict[str, Any] = {"success": True, "cleared": {}, "total_cleared": 0}
 
         for community in communities_to_clear:
             comm_id = community["id"]
             comm_slug = community["slug"]
-            results["cleared"][comm_id] = {"slug": comm_slug, "aggregation_types": {}}
+
+            comm_entry: dict[str, Any] = {"slug": comm_slug, "aggregation_types": {}}
+            agg_types_map: dict[str, int] = {}
 
             for agg_type in agg_types_to_clear:
                 try:
@@ -755,9 +757,7 @@ class CommunityStatsService:
                         # type
                         cleared_count = bookmark_api.clear_bookmark(comm_id)
 
-                    results["cleared"][comm_id]["aggregation_types"][agg_type] = (
-                        cleared_count
-                    )
+                    agg_types_map[agg_type] = cleared_count
                     results["total_cleared"] += cleared_count
 
                 except Exception as e:
@@ -765,6 +765,14 @@ class CommunityStatsService:
                         f"Failed to clear bookmarks for community {comm_id} "
                         f"and aggregation type {agg_type}: {e}"
                     )
-                    results["cleared"][comm_id]["aggregation_types"][agg_type] = 0
+                    agg_types_map[agg_type] = 0
+
+            comm_entry["aggregation_types"] = agg_types_map
+            # Assign once to avoid nested indexed assignment on a dynamic type
+            cleared_map = results.get("cleared")
+            if isinstance(cleared_map, dict):
+                cleared_map[comm_id] = comm_entry
+            else:
+                results["cleared"] = {comm_id: comm_entry}
 
         return results

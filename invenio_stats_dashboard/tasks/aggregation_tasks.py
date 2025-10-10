@@ -19,7 +19,11 @@ from invenio_cache import current_cache
 from invenio_search.proxies import current_search_client
 from invenio_stats.proxies import current_stats
 
-from ..exceptions import TaskLockAcquisitionError
+from ..exceptions import (
+    CommunityEventsNotInitializedError,
+    TaskLockAcquisitionError,
+    UsageEventsNotMigratedError,
+)
 
 
 # TypedDict definitions for aggregation response objects
@@ -63,6 +67,7 @@ class AggregatorResult(TypedDict):
     communities_processed: list[str]
     community_details: list[CommunityDetail]
     error_details: list[int | dict]
+    status: str  # Status message (e.g., "completed", "displaced by initialization")
 
 
 class AggregationResponse(TypedDict):
@@ -172,6 +177,7 @@ def _format_aggregation_report(
         lines.append(f"Duration: {duration}")
         lines.append(f"Documents indexed: {docs_indexed:,}")
         lines.append(f"Errors: {errors:,}")
+        lines.append(f"Status: {aggr_timing.get('status', 'completed')}")
         if communities_count > 0:
             lines.append(f"Communities processed: {communities_count}")
 
@@ -394,6 +400,258 @@ def aggregate_community_record_stats(
         )
 
 
+def _handle_community_events_error(
+    aggr_name: str, 
+    aggr_duration: str, 
+    parsed_start_date, 
+    parsed_end_date
+) -> AggregatorResult:
+    """Handle CommunityEventsNotInitializedError by running initialization.
+    
+    Args:
+        aggr_name: Name of the aggregator that failed
+        aggr_duration: Duration string for the aggregator
+        parsed_start_date: Parsed start date
+        parsed_end_date: Parsed end date
+        
+    Returns:
+        Assembled AggregatorResult for the displaced aggregator
+    """
+    current_app.logger.error(
+        f"Community events not initialized for aggregator {aggr_name}"
+    )
+    current_app.logger.info(
+        "Running community events initialization. This may take a while..."
+    )
+    
+    # Import here to avoid circular imports
+    from ..proxies import current_community_stats_service
+    
+    try:
+        # Run bulk community events creation
+        current_community_stats_service.generate_record_community_events()
+        current_app.logger.info(
+            "Community events initialization completed successfully"
+        )
+        
+        # Don't retry aggregation - just log that this run was displaced
+        current_app.logger.info(
+            "Aggregation run displaced by community events initialization. "
+            "Next scheduled run will proceed normally."
+        )
+        
+        # Return assembled result for the displaced aggregator
+        return _assemble_aggregation_results(
+            raw_result=[],
+            aggr_name=aggr_name,
+            aggr_duration=aggr_duration,
+            processed_communities=[],
+            parsed_start_date=parsed_start_date,
+            parsed_end_date=parsed_end_date,
+            status="displaced by community events initialization",
+        )
+        
+    except Exception as init_error:
+        current_app.logger.error(
+            f"Failed to initialize community events: {init_error}"
+        )
+        current_app.logger.error(
+            f"Skipping aggregator {aggr_name} due to initialization failure"
+        )
+        
+        # Return assembled result for the failed aggregator
+        return _assemble_aggregation_results(
+            raw_result=[],
+            aggr_name=aggr_name,
+            aggr_duration=aggr_duration,
+            processed_communities=[],
+            parsed_start_date=parsed_start_date,
+            parsed_end_date=parsed_end_date,
+            status="failed - community events initialization error",
+        )
+
+
+def _handle_usage_events_error(
+    aggr_name: str, 
+    aggr_duration: str, 
+    parsed_start_date, 
+    parsed_end_date
+) -> AggregatorResult:
+    """Handle UsageEventsNotMigratedError by running migration.
+    
+    Args:
+        aggr_name: Name of the aggregator that failed
+        aggr_duration: Duration string for the aggregator
+        parsed_start_date: Parsed start date
+        parsed_end_date: Parsed end date
+        
+    Returns:
+        Assembled AggregatorResult for the displaced aggregator
+    """
+    current_app.logger.error(
+        f"Usage events not migrated for aggregator {aggr_name}"
+    )
+    current_app.logger.info(
+        "Running usage events migration. This may take a while..."
+    )
+    
+    # Import here to avoid circular imports
+    from ..proxies import current_event_reindexing_service
+    
+    try:
+        # Run usage events migration
+        current_event_reindexing_service.reindex_events_with_metadata()
+        current_app.logger.info(
+            "Usage events migration completed successfully"
+        )
+        
+        # Don't retry aggregation - just log that this run was displaced
+        current_app.logger.info(
+            "Aggregation run displaced by usage events migration. "
+            "Next scheduled run will proceed normally."
+        )
+        
+        # Return assembled result for the displaced aggregator
+        return _assemble_aggregation_results(
+            raw_result=[],
+            aggr_name=aggr_name,
+            aggr_duration=aggr_duration,
+            processed_communities=[],
+            parsed_start_date=parsed_start_date,
+            parsed_end_date=parsed_end_date,
+            status="displaced by usage events migration",
+        )
+        
+    except Exception as migration_error:
+        current_app.logger.error(
+            f"Failed to migrate usage events: {migration_error}"
+        )
+        current_app.logger.error(
+            f"Skipping aggregator {aggr_name} due to migration failure"
+        )
+        
+        # Return assembled result for the failed aggregator
+        return _assemble_aggregation_results(
+            raw_result=[],
+            aggr_name=aggr_name,
+            aggr_duration=aggr_duration,
+            processed_communities=[],
+            parsed_start_date=parsed_start_date,
+            parsed_end_date=parsed_end_date,
+            status="failed - usage events migration error",
+        )
+
+
+def _assemble_aggregation_results(
+    raw_result: list,
+    aggr_name: str,
+    aggr_duration: str,
+    processed_communities: list[str],
+    parsed_start_date,
+    parsed_end_date,
+    status: str = "completed",
+) -> AggregatorResult:
+    """Assemble aggregation results from raw aggregator output.
+    
+    Args:
+        raw_result: Raw result from aggregator.run()
+        aggr_name: Name of the aggregator
+        aggr_duration: Formatted duration string
+        processed_communities: List of community IDs processed
+        parsed_start_date: Parsed start date
+        parsed_end_date: Parsed end date
+        status: Status message (e.g., "completed", "displaced by initialization")
+        
+    Returns:
+        Assembled AggregatorResult dictionary
+    """
+    # Extract detailed results information
+    aggr_docs_indexed = 0
+    aggr_errors = 0
+    aggr_communities: set[str] = set()
+    aggr_error_details: list[int | dict] = []
+    community_details: list[CommunityDetail] = []
+
+    if isinstance(raw_result, list):
+        for i, community_result in enumerate(raw_result):
+            response_object: CommunityDetail = {
+                "community_id": "",
+                "index_name": "",
+                "docs_indexed": 0,
+                "errors": 0,
+                "error_details": [],
+                "documents": [],
+                "date_range_requested": {
+                    "start_date": (
+                        str(parsed_start_date) if parsed_start_date else None
+                    ),
+                    "end_date": str(parsed_end_date) if parsed_end_date else None,
+                },
+            }
+            if isinstance(community_result, tuple) and len(community_result) >= 2:
+                response_object["docs_indexed"] = community_result[0]
+                response_object["errors"] = community_result[1]
+                aggr_docs_indexed += community_result[0]
+
+                # Get detailed document information if available
+                docs_info = (
+                    community_result[2] if len(community_result) >= 3 else []
+                )
+                doc_infos: list[DocumentInfo] = [
+                    {
+                        "document_id": d["document_id"],
+                        "date_info": d["date_info"],
+                        "generation_time": d["generation_time"],
+                    }
+                    for d in docs_info
+                ]
+                response_object["documents"] = doc_infos
+
+                if docs_info and len(docs_info) > 0:
+                    response_object["community_id"] = docs_info[0].get(
+                        "community_id", ""
+                    )
+                    response_object["index_name"] = docs_info[0].get(
+                        "index_name", ""
+                    )
+                else:
+                    if i < len(processed_communities):
+                        response_object["community_id"] = processed_communities[i]
+                    else:
+                        response_object["community_id"] = f"community_{i}"
+                    response_object["index_name"] = ""
+
+                aggr_communities.add(response_object["community_id"])
+
+                errors = community_result[1]
+                if isinstance(errors, int):
+                    response_object["errors"] = errors
+                    response_object["error_details"] = []
+                    aggr_errors += errors
+                elif isinstance(errors, list):
+                    response_object["errors"] = len(errors)
+                    response_object["error_details"] = errors
+                    aggr_errors += len(errors)
+                    aggr_error_details.extend(errors)
+                else:
+                    response_object["errors"] = 0
+                    response_object["error_details"] = []
+
+                community_details.append(response_object)
+
+    return {
+        "aggregator": aggr_name,
+        "duration_formatted": aggr_duration,
+        "docs_indexed": aggr_docs_indexed,
+        "errors": aggr_errors,
+        "communities_count": len(aggr_communities),
+        "communities_processed": list(aggr_communities),
+        "community_details": community_details,
+        "error_details": aggr_error_details,
+        "status": status,
+    }
+
+
 def _run_aggregation(
     aggregations: list[str],
     start_date: str | None = None,
@@ -434,107 +692,72 @@ def _run_aggregation(
         if community_ids:
             params["community_ids"] = community_ids
         aggregator = aggr_cfg.cls(name=aggr_cfg.name, **params)
-        raw_result = aggregator.run(
-            parsed_start_date, parsed_end_date, update_bookmark, ignore_bookmark
-        )
-
-        # Get the actual communities that were processed by the aggregator
-        processed_communities = getattr(aggregator, "communities_to_aggregate", [])
-
-        if hasattr(aggregator, "aggregation_index") and aggregator.aggregation_index:
-            current_search_client.indices.refresh(
-                index=f"*{aggregator.aggregation_index}*"
+        
+        try:
+            raw_result = aggregator.run(
+                parsed_start_date, parsed_end_date, update_bookmark, ignore_bookmark
             )
+            
+            # Get the actual communities that were processed by the aggregator
+            processed_communities = getattr(aggregator, "communities_to_aggregate", [])
 
-        aggr_end_time = time.time()
-        aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
+            if (
+                hasattr(aggregator, "aggregation_index") 
+                and aggregator.aggregation_index
+            ):
+                current_search_client.indices.refresh(
+                    index=f"*{aggregator.aggregation_index}*"
+                )
+            
+            # Calculate duration after successful run
+            aggr_end_time = time.time()
+            aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
+            
+            # Assemble successful result
+            result = _assemble_aggregation_results(
+                raw_result,
+                aggr_name,
+                aggr_duration,
+                processed_communities,
+                parsed_start_date,
+                parsed_end_date,
+                "completed",
+            )
+            results.append(result)
 
-        # Extract detailed results information
-        aggr_docs_indexed = 0
-        aggr_errors = 0
-        aggr_communities: set[str] = set()
-        aggr_error_details: list[int | dict] = []
-        community_details: list[CommunityDetail] = []
+        except CommunityEventsNotInitializedError:
+            # Calculate duration after error occurs
+            aggr_end_time = time.time()
+            aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
+            
+            # Handle community events error and break out of loop
+            result = _handle_community_events_error(
+                aggr_name, aggr_duration, parsed_start_date, parsed_end_date
+            )
+            results.append(result)
+            current_app.logger.info(
+                "Stopping aggregation run due to community events initialization"
+            )
+            break
+            
+        except UsageEventsNotMigratedError:
+            # Calculate duration after error occurs
+            aggr_end_time = time.time()
+            aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
+            
+            # Handle usage events error and break out of loop
+            result = _handle_usage_events_error(
+                aggr_name, aggr_duration, parsed_start_date, parsed_end_date
+            )
+            results.append(result)
+            current_app.logger.info(
+                "Stopping aggregation run due to usage events migration"
+            )
+            break
 
-        if isinstance(raw_result, list):
-            for i, community_result in enumerate(raw_result):
-                response_object: CommunityDetail = {
-                    "community_id": "",
-                    "index_name": "",
-                    "docs_indexed": 0,
-                    "errors": 0,
-                    "error_details": [],
-                    "documents": [],
-                    "date_range_requested": {
-                        "start_date": (
-                            str(parsed_start_date) if parsed_start_date else None
-                        ),
-                        "end_date": str(parsed_end_date) if parsed_end_date else None,
-                    },
-                }
-                if isinstance(community_result, tuple) and len(community_result) >= 2:
-                    response_object["docs_indexed"] = community_result[0]
-                    response_object["errors"] = community_result[1]
-                    aggr_docs_indexed += community_result[0]
-
-                    # Get detailed document information if available
-                    docs_info = (
-                        community_result[2] if len(community_result) >= 3 else []
-                    )
-                    doc_infos: list[DocumentInfo] = [
-                        {
-                            "document_id": d["document_id"],
-                            "date_info": d["date_info"],
-                            "generation_time": d["generation_time"],
-                        }
-                        for d in docs_info
-                    ]
-                    response_object["documents"] = doc_infos
-
-                    if docs_info and len(docs_info) > 0:
-                        response_object["community_id"] = docs_info[0].get(
-                            "community_id", ""
-                        )
-                        response_object["index_name"] = docs_info[0].get(
-                            "index_name", ""
-                        )
-                    else:
-                        if i < len(processed_communities):
-                            response_object["community_id"] = processed_communities[i]
-                        else:
-                            response_object["community_id"] = f"community_{i}"
-                        response_object["index_name"] = ""
-
-                    aggr_communities.add(response_object["community_id"])
-
-                    errors = community_result[1]
-                    if isinstance(errors, int):
-                        response_object["errors"] = errors
-                        response_object["error_details"] = []
-                        aggr_errors += errors
-                    elif isinstance(errors, list):
-                        response_object["errors"] = len(errors)
-                        response_object["error_details"] = errors
-                        aggr_errors += len(errors)
-                        aggr_error_details.extend(errors)
-                    else:
-                        response_object["errors"] = 0
-                        response_object["error_details"] = []
-
-                    community_details.append(response_object)
-
-        results.append({
-            "aggregator": aggr_name,
-            "duration_formatted": aggr_duration,
-            "docs_indexed": aggr_docs_indexed,
-            "errors": aggr_errors,
-            "communities_count": len(aggr_communities),
-            "communities_processed": list(aggr_communities),
-            "community_details": community_details,
-            "error_details": aggr_error_details,
-        })
-
-        current_app.logger.info(f"Completed aggregator: {aggr_name} in {aggr_duration}")
+        current_app.logger.info(
+            f"Completed aggregator: {aggr_name} in {aggr_duration}"
+        )
 
     total_end_time = time.time()
     total_duration = str(timedelta(seconds=total_end_time - total_start_time))

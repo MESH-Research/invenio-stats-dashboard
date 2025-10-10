@@ -18,6 +18,7 @@ from opensearchpy import AttrDict, AttrList
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
+from ..exceptions import UsageEventsNotMigratedError
 from ..queries import CommunityUsageDeltaQuery
 from ..utils.utils import (
     get_subcount_combine_subfields,
@@ -63,6 +64,73 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         self.event_date_field = "timestamp"
         self.event_community_query_term = lambda community_id: Q("match_all")
         self.query_builder = CommunityUsageDeltaQuery(client=self.client)
+
+    def _check_usage_events_migrated(self) -> None:
+        """Check if usage events have been migrated to include community_ids.
+
+        Raises:
+            UsageEventsNotMigratedError: If usage events indices don't exist
+                or events lack community_ids fields.
+        """
+        try:
+            # Check both view and download event indices
+            for _event_type, event_index in self.event_index:
+                # Check if the index exists
+                if not self.client.indices.exists(index=prefix_index(event_index)):
+                    raise UsageEventsNotMigratedError(
+                        f"Usage events index '{event_index}' does not exist. "
+                        "Please run usage events migration first."
+                    )
+
+                # Check if the index has any records
+                search = Search(using=self.client, index=prefix_index(event_index))
+                count = search.count()
+
+                if count == 0:
+                    # Empty index is OK - no events to migrate
+                    continue
+
+                # Check if events have community_ids field by sampling a few records
+                sample_search = Search(
+                    using=self.client, index=prefix_index(event_index)
+                )
+                sample_search = sample_search[:10]  # Sample first 10 records
+                sample_search = sample_search.source(["community_ids"])
+                
+                try:
+                    results = sample_search.execute()
+                    if results.hits.total.value > 0:
+                        # Check if any of the sampled records have community_ids
+                        has_community_ids = False
+                        for hit in results.hits:
+                            if (
+                                hasattr(hit, 'community_ids') 
+                                and hit.community_ids is not None
+                            ):
+                                has_community_ids = True
+                                break
+                        
+                        if not has_community_ids:
+                            raise UsageEventsNotMigratedError(
+                                f"Usage events in '{event_index}' lack community_ids field. "
+                                "Please run usage events migration first."
+                            )
+                except Exception as e:
+                    if isinstance(e, UsageEventsNotMigratedError):
+                        raise
+                    # If we can't sample, assume migration is needed
+                    raise UsageEventsNotMigratedError(
+                        f"Could not verify migration status for '{event_index}': {e}. "
+                        "Please run usage events migration first."
+                    ) from e
+
+        except Exception as e:
+            if isinstance(e, UsageEventsNotMigratedError):
+                raise
+            # If it's a different exception (e.g., connection error), wrap it
+            raise UsageEventsNotMigratedError(
+                f"Failed to check usage events migration: {e}"
+            ) from e
 
     def _should_skip_aggregation(
         self,
