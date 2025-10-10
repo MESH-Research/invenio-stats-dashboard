@@ -948,16 +948,20 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             days=-1
         ):
             current_iteration_date = previous_snapshot_date.shift(days=1)
+            # FIXME: Add +1 to match delta aggregator's inclusive range calculation
+            # Delta aggregators use _get_end_date() which creates inclusive ranges
             end_date = min(
-                end_date, previous_snapshot_date.shift(days=self.catchup_interval)
+                end_date, previous_snapshot_date.shift(days=self.catchup_interval + 1)
             )
         elif not previous_snapshot_date:  # No previous snapshot
             if first_event_date is None:
                 # No events exist, return empty generator
                 return
             current_iteration_date = first_event_date
+            # FIXME: Add +1 to match delta aggregator's inclusive range calculation
+            # Delta aggregators use _get_end_date() which creates inclusive ranges
             end_date = min(
-                end_date, current_iteration_date.shift(days=self.catchup_interval)
+                end_date, current_iteration_date.shift(days=self.catchup_interval + 1)
             )
 
         if first_event_date is None:
