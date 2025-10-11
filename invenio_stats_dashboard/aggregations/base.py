@@ -83,6 +83,9 @@ class CommunityAggregatorBase(StatAggregator):
         self.chunk_size_reduction_factor = current_app.config.get(
             "COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR", 0.7
         )
+        self.chunk_size_growth_factor = current_app.config.get(
+            "COMMUNITY_STATS_CHUNK_GROWTH_FACTOR", 1.05
+        )
         # Current working chunk size (starts at initial, adapts during operation)
         self.current_chunk_size = self.initial_chunk_size
         # Field name for searching community event indices - overridden by subclasses
@@ -666,7 +669,7 @@ class CommunityAggregatorBase(StatAggregator):
             
             if self.current_chunk_size < self.max_chunk_size:
                 self.current_chunk_size = min(
-                    int(self.current_chunk_size * 1.1), 
+                    int(self.current_chunk_size * self.chunk_size_growth_factor), 
                     self.max_chunk_size
                 )
                 current_app.logger.debug(
