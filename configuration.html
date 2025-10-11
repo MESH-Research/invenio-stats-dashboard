@@ -623,6 +623,57 @@ range for each granularity level.</p>
 </div>
 </section>
 </section>
+<section id="bulk-indexing-and-request-size-limits">
+<h2>Bulk Indexing and Request Size Limits<a class="headerlink" href="#bulk-indexing-and-request-size-limits" title="Link to this heading">¶</a></h2>
+<section id="error-risk-and-adaptive-chunking">
+<h3>413 Error Risk and Adaptive Chunking<a class="headerlink" href="#error-risk-and-adaptive-chunking" title="Link to this heading">¶</a></h3>
+<p>When processing large datasets (such as a full year of catchup data), aggregation documents can become very large due to extensive subcount data. This can cause <strong>TransportError(413)</strong> - “Request size exceeded” errors when bulk indexing to OpenSearch/Elasticsearch.</p>
+<p><strong>Why documents get large:</strong></p>
+<ul class="simple">
+<li><p>Each aggregation document includes 12+ subcount categories (subjects, affiliations, funders, etc.)</p></li>
+<li><p>Each subcount item contains 10+ fields (view/download metrics, unique counts, etc.)</p></li>
+<li><p>With <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span> <span class="pre">=</span> <span class="pre">20</span></code>, documents can contain 1000+ fields</p></li>
+<li><p>Large documents (30-60KB each) × 50 documents per bulk request = 10MB+ requests</p></li>
+</ul>
+<p><strong>Adaptive Chunking Solution:</strong></p>
+<p>The system automatically handles this with adaptive chunk sizing:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Configuration options for adaptive chunking</span>
+<span class="n">COMMUNITY_STATS_INITIAL_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">50</span>      <span class="c1"># Starting chunk size</span>
+<span class="n">COMMUNITY_STATS_MIN_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1</span>           <span class="c1"># Minimum chunk size  </span>
+<span class="n">COMMUNITY_STATS_MAX_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">100</span>         <span class="c1"># Maximum chunk size</span>
+<span class="n">COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR</span> <span class="o">=</span> <span class="mf">0.7</span>  <span class="c1"># Reduce by 30% on 413 error</span>
+</pre></div>
+</div>
+<p><strong>How it works:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Start</strong> with <code class="docutils literal notranslate"><span class="pre">initial_chunk_size</span></code> (50 documents)</p></li>
+<li><p><strong>Success</strong> → increase chunk size by 10% (up to max limit)</p></li>
+<li><p><strong>413 Error</strong> → reduce chunk size by 30% and retry</p></li>
+<li><p><strong>Learning</strong> → adapts to find optimal chunk size for your data</p></li>
+</ol>
+<p><strong>Example flow:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Try chunk_size=50 → Success → Increase to 55
+Try chunk_size=55 → Success → Increase to 60  
+Try chunk_size=60 → 413 Error → Reduce to 42 (60 * 0.7)
+Try chunk_size=42 → Success → Continue with 42
+</pre></div>
+</div>
+<p><strong>Benefits:</strong></p>
+<ul class="simple">
+<li><p><strong>Automatic</strong>: No manual tuning needed</p></li>
+<li><p><strong>Efficient</strong>: Finds optimal chunk size quickly</p></li>
+<li><p><strong>Robust</strong>: Handles any request size limit (AWS OpenSearch, nginx, etc.)</p></li>
+<li><p><strong>Performance</strong>: Uses largest possible chunk size that works</p></li>
+</ul>
+<p><strong>Reducing document size:</strong>
+If you want to reduce document sizes to improve performance:</p>
+<ul class="simple">
+<li><p>Lower <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code> (from 20 to 10)</p></li>
+<li><p>Remove unused subcount categories from <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code></p></li>
+<li><p>Use fewer subcount fields in your configuration</p></li>
+</ul>
+</section>
+</section>
 <section id="test-data-mode">
 <h2>Test Data Mode<a class="headerlink" href="#test-data-mode" title="Link to this heading">¶</a></h2>
 <section id="stats-dashboard-use-test-data">
@@ -947,6 +998,10 @@ range for each granularity level.</p>
 <li><a class="reference internal" href="#community-stats-top-subcount-limit"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code></a></li>
 <li><a class="reference internal" href="#community-stats-subcounts"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code></a></li>
 <li><a class="reference internal" href="#stats-dashboard-ui-subcounts"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bulk-indexing-and-request-size-limits">Bulk Indexing and Request Size Limits</a><ul>
+<li><a class="reference internal" href="#error-risk-and-adaptive-chunking">413 Error Risk and Adaptive Chunking</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#test-data-mode">Test Data Mode</a><ul>
