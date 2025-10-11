@@ -642,20 +642,22 @@ range for each granularity level.</p>
 <span class="n">COMMUNITY_STATS_MIN_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1</span>           <span class="c1"># Minimum chunk size  </span>
 <span class="n">COMMUNITY_STATS_MAX_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">100</span>         <span class="c1"># Maximum chunk size</span>
 <span class="n">COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR</span> <span class="o">=</span> <span class="mf">0.7</span>  <span class="c1"># Reduce by 30% on 413 error</span>
+<span class="n">COMMUNITY_STATS_CHUNK_GROWTH_FACTOR</span> <span class="o">=</span> <span class="mf">1.05</span>   <span class="c1"># Increase by 5% on success</span>
 </pre></div>
 </div>
 <p><strong>How it works:</strong></p>
 <ol class="arabic simple">
 <li><p><strong>Start</strong> with <code class="docutils literal notranslate"><span class="pre">initial_chunk_size</span></code> (50 documents)</p></li>
-<li><p><strong>Success</strong> → increase chunk size by 10% (up to max limit)</p></li>
+<li><p><strong>Success</strong> → increase chunk size by 5% (up to max limit)</p></li>
 <li><p><strong>413 Error</strong> → reduce chunk size by 30% and retry</p></li>
 <li><p><strong>Learning</strong> → adapts to find optimal chunk size for your data</p></li>
 </ol>
 <p><strong>Example flow:</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Try chunk_size=50 → Success → Increase to 55
-Try chunk_size=55 → Success → Increase to 60  
-Try chunk_size=60 → 413 Error → Reduce to 42 (60 * 0.7)
-Try chunk_size=42 → Success → Continue with 42
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Try chunk_size=50 → Success → Increase to 52 (50 * 1.05)
+Try chunk_size=52 → Success → Increase to 54 (52 * 1.05)
+Try chunk_size=54 → Success → Increase to 56 (54 * 1.05)
+Try chunk_size=56 → 413 Error → Reduce to 39 (56 * 0.7)
+Try chunk_size=39 → Success → Continue with 39
 </pre></div>
 </div>
 <p><strong>Benefits:</strong></p>

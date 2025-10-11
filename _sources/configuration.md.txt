@@ -411,20 +411,22 @@ COMMUNITY_STATS_INITIAL_CHUNK_SIZE = 50      # Starting chunk size
 COMMUNITY_STATS_MIN_CHUNK_SIZE = 1           # Minimum chunk size  
 COMMUNITY_STATS_MAX_CHUNK_SIZE = 100         # Maximum chunk size
 COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR = 0.7  # Reduce by 30% on 413 error
+COMMUNITY_STATS_CHUNK_GROWTH_FACTOR = 1.05   # Increase by 5% on success
 ```
 
 **How it works:**
 1. **Start** with `initial_chunk_size` (50 documents)
-2. **Success** → increase chunk size by 10% (up to max limit)
+2. **Success** → increase chunk size by 5% (up to max limit)
 3. **413 Error** → reduce chunk size by 30% and retry
 4. **Learning** → adapts to find optimal chunk size for your data
 
 **Example flow:**
 ```
-Try chunk_size=50 → Success → Increase to 55
-Try chunk_size=55 → Success → Increase to 60  
-Try chunk_size=60 → 413 Error → Reduce to 42 (60 * 0.7)
-Try chunk_size=42 → Success → Continue with 42
+Try chunk_size=50 → Success → Increase to 52 (50 * 1.05)
+Try chunk_size=52 → Success → Increase to 54 (52 * 1.05)
+Try chunk_size=54 → Success → Increase to 56 (54 * 1.05)
+Try chunk_size=56 → 413 Error → Reduce to 39 (56 * 0.7)
+Try chunk_size=39 → Success → Continue with 39
 ```
 
 **Benefits:**
