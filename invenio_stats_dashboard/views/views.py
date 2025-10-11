@@ -9,14 +9,10 @@
 This module contains the views for the Invenio Stats Dashboard.
 """
 
-import json
-from typing import Any
-
 from flask import (
     Blueprint,
     Flask,
     Response,
-    abort,
     current_app,
     render_template,
     request,
@@ -26,8 +22,6 @@ from invenio_communities.views.decorators import pass_community
 from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
-from ..models.cached_response import CachedResponse
-from ..resources.cache_utils import StatsCache
 from ..services.cached_response_service import CachedResponseService
 
 
@@ -47,8 +41,12 @@ def global_stats_dashboard():
             "use_test_data": current_app.config.get(
                 "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
-            "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
-            "compress_json": current_app.config.get("STATS_DASHBOARD_COMPRESS_JSON", True),
+            "ui_subcounts": current_app.config.get(
+                "STATS_DASHBOARD_UI_SUBCOUNTS", {}
+            ),
+            "compress_json": current_app.config.get(
+                "STATS_DASHBOARD_COMPRESS_JSON", True
+            ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -80,8 +78,12 @@ def community_stats_dashboard(pid_value, community, community_ui):
             "use_test_data": current_app.config.get(
                 "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
-            "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
-            "compress_json": current_app.config.get("STATS_DASHBOARD_COMPRESS_JSON", True),
+            "ui_subcounts": current_app.config.get(
+                "STATS_DASHBOARD_UI_SUBCOUNTS", {}
+            ),
+            "compress_json": current_app.config.get(
+                "STATS_DASHBOARD_COMPRESS_JSON", True
+            ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
         },
         community=community_ui,
@@ -99,7 +101,9 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
         serializers = current_app.config.get("COMMUNITY_STATS_SERIALIZERS", {})
 
         super().__init__(
-            serializers=serializers,
+            method_serializers={
+                "POST": serializers,
+            },
             default_method_media_type={
                 "POST": "application/json",  # Default to plain JSON for testing
             },
@@ -123,7 +127,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
         for i, (query_name, raw_json_bytes) in enumerate(results.items()):
             if i > 0:
                 json_parts.append(b",")
-            json_parts.append(f'"{query_name}":'.encode('utf-8'))
+            json_parts.append(f'"{query_name}":'.encode())
             json_parts.append(raw_json_bytes)
 
         return b"{" + b"".join(json_parts) + b"}"
@@ -159,36 +163,31 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                         )
                     }, 400
 
-            # Use parent class content negotiation to determine content type
-            serializers, default_media_type = self.get_method_serializers(
-                request.method
-            )
-            serializer = self.match_serializers(serializers, default_media_type)
-
-            if serializer is None:
-                abort(406)
-
-            content_type = getattr(serializer, 'media_type', default_media_type)
+            # Determine if we're requesting JSON (for special raw byte handling)
+            accept_header = request.headers.get('Accept', 'application/json')
+            is_json_request = 'application/json' in accept_header
 
             cache_service = CachedResponseService()
-
-            as_json_bytes = content_type.startswith('application/json')
 
             results = {}
 
             for query_name, query_data in request_data.items():
                 individual_request = {query_name: query_data}
                 result = cache_service.get_or_create(
-                    individual_request, as_json_bytes=as_json_bytes
+                    individual_request, as_json_bytes=is_json_request
                 )
                 results[query_name] = result
 
-            if as_json_bytes:
+            # For JSON responses, handle raw bytes to avoid double serialization
+            if is_json_request and all(
+                isinstance(v, bytes) for v in results.values()
+            ):
                 final_json = self._build_json_response(results)
-                return Response(final_json, mimetype=content_type)
-            else:
-                # Let content negotiation handle it
-                return results
+                return Response(final_json, mimetype=accept_header)
+            
+            # For all other cases, return the data and let the parent class's
+            # dispatch_request method handle content negotiation and serialization
+            return results
 
         except Exception as e:
             current_app.logger.error(f"Stats API error: {str(e)}")
