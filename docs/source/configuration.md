@@ -389,6 +389,56 @@ STATS_DASHBOARD_UI_SUBCOUNTS = {
 }
 ```
 
+### Bulk Indexing and Request Size Limits
+
+#### 413 Error Risk and Adaptive Chunking
+
+When processing large datasets (such as a full year of catchup data), aggregation documents can become very large due to extensive subcount data. This can cause **TransportError(413)** - "Request size exceeded" errors when bulk indexing to OpenSearch/Elasticsearch.
+
+**Why documents get large:**
+- Each aggregation document includes 12+ subcount categories (subjects, affiliations, funders, etc.)
+- Each subcount item contains 10+ fields (view/download metrics, unique counts, etc.)
+- With `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20`, documents can contain 1000+ fields
+- Large documents (30-60KB each) × 50 documents per bulk request = 10MB+ requests
+
+**Adaptive Chunking Solution:**
+
+The system automatically handles this with adaptive chunk sizing:
+
+```python
+# Configuration options for adaptive chunking
+COMMUNITY_STATS_INITIAL_CHUNK_SIZE = 50      # Starting chunk size
+COMMUNITY_STATS_MIN_CHUNK_SIZE = 1           # Minimum chunk size  
+COMMUNITY_STATS_MAX_CHUNK_SIZE = 100         # Maximum chunk size
+COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR = 0.7  # Reduce by 30% on 413 error
+```
+
+**How it works:**
+1. **Start** with `initial_chunk_size` (50 documents)
+2. **Success** → increase chunk size by 10% (up to max limit)
+3. **413 Error** → reduce chunk size by 30% and retry
+4. **Learning** → adapts to find optimal chunk size for your data
+
+**Example flow:**
+```
+Try chunk_size=50 → Success → Increase to 55
+Try chunk_size=55 → Success → Increase to 60  
+Try chunk_size=60 → 413 Error → Reduce to 42 (60 * 0.7)
+Try chunk_size=42 → Success → Continue with 42
+```
+
+**Benefits:**
+- **Automatic**: No manual tuning needed
+- **Efficient**: Finds optimal chunk size quickly
+- **Robust**: Handles any request size limit (AWS OpenSearch, nginx, etc.)
+- **Performance**: Uses largest possible chunk size that works
+
+**Reducing document size:**
+If you want to reduce document sizes to improve performance:
+- Lower `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` (from 20 to 10)
+- Remove unused subcount categories from `COMMUNITY_STATS_SUBCOUNTS`
+- Use fewer subcount fields in your configuration
+
 ### Test Data Mode
 
 #### `STATS_DASHBOARD_USE_TEST_DATA`

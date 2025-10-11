@@ -11,7 +11,7 @@ import datetime
 import time
 from abc import abstractmethod
 from collections.abc import Generator
-from typing import Any
+from typing import Any, cast
 
 import arrow
 from flask import current_app
@@ -21,7 +21,7 @@ from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from invenio_stats.aggregations import StatAggregator
 from opensearchpy import AttrDict, AttrList
-from opensearchpy.exceptions import NotFoundError
+from opensearchpy.exceptions import NotFoundError, TransportError
 from opensearchpy.helpers.actions import bulk
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
@@ -70,6 +70,21 @@ class CommunityAggregatorBase(StatAggregator):
         self.catchup_interval = current_app.config.get(
             "COMMUNITY_STATS_CATCHUP_INTERVAL", 365
         )
+        # Adaptive chunking configuration
+        self.initial_chunk_size = current_app.config.get(
+            "COMMUNITY_STATS_INITIAL_CHUNK_SIZE", 50
+        )
+        self.min_chunk_size = current_app.config.get(
+            "COMMUNITY_STATS_MIN_CHUNK_SIZE", 1
+        )
+        self.max_chunk_size = current_app.config.get(
+            "COMMUNITY_STATS_MAX_CHUNK_SIZE", 100
+        )
+        self.chunk_size_reduction_factor = current_app.config.get(
+            "COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR", 0.7
+        )
+        # Current working chunk size (starts at initial, adapts during operation)
+        self.current_chunk_size = self.initial_chunk_size
         # Field name for searching community event indices - overridden by subclasses
         self.event_date_field = "created"
         self.first_event_date_field = "created"
@@ -287,7 +302,7 @@ class CommunityAggregatorBase(StatAggregator):
 
         # Check if community events are initialized before proceeding
         self._check_community_events_initialized()
-        
+
         # Check if usage events have been migrated (for usage aggregators)
         self._check_usage_events_migrated()
 
@@ -392,14 +407,15 @@ class CommunityAggregatorBase(StatAggregator):
                     docs_info_list.append(doc_info)
                     yield doc
 
-            bulk_result = bulk(
-                self.client,
+            current_app.logger.debug(
+                f"About to begin adaptive bulk indexing for community {community_id} "
+                f"with initial chunk_size={self.current_chunk_size}"
+            )
+            
+            docs_indexed, errors = self._adaptive_bulk_index(
                 document_generator_with_metadata(community_docs_info),
                 stats_only=False if return_results else True,
-                chunk_size=50,
             )
-
-            docs_indexed, errors = bulk_result
             results.append((docs_indexed, errors, community_docs_info))
 
             if update_bookmark:
@@ -442,11 +458,11 @@ class CommunityAggregatorBase(StatAggregator):
         self, community_id: str, community_docs_info: list[dict]
     ) -> bool:
         """Update the bookmark for a community based on the last processed document.
-        
+
         Args:
             community_id: The community ID
             community_docs_info: List of document info dictionaries from the aggregation
-            
+
         Returns:
             True if bookmark was updated successfully, False if it should be skipped
         """
@@ -456,12 +472,12 @@ class CommunityAggregatorBase(StatAggregator):
                 f"skipping bookmark update"
             )
             return False
-        
+
         last_doc_info = community_docs_info[-1]
         date_info = last_doc_info.get("date_info", {})
         period_start = date_info.get("period_start")
         snapshot_date = date_info.get("snapshot_date")
-        
+
         latest_date = None
         try:
             if period_start:
@@ -474,20 +490,20 @@ class CommunityAggregatorBase(StatAggregator):
                 f"skipping bookmark update"
             )
             return False
-        
+
         if not latest_date:
             current_app.logger.warning(
                 f"No period_start or snapshot_date found in last document for "
                 f"{community_id}, skipping bookmark update"
             )
             return False
-        
+
         next_bookmark = latest_date.format("YYYY-MM-DDTHH:mm:ss.SSS")
         current_app.logger.debug(
             f"Setting bookmark for {community_id} to last "
             f"processed date: {next_bookmark}"
         )
-        
+
         self.bookmark_api.set_bookmark(community_id, next_bookmark)
         return True
 
@@ -622,6 +638,68 @@ class CommunityAggregatorBase(StatAggregator):
         if last_event_date is None:
             return True
         return bool(last_event_date < start_date)
+
+    def _adaptive_bulk_index(
+        self, 
+        documents: Generator[dict, None, None], 
+        stats_only: bool = True
+    ) -> tuple[int, int | list[dict]]:
+        """Perform bulk indexing with adaptive chunk size based on request size limits.
+
+        This method automatically adjusts chunk size when encountering 413 errors
+        (request too large) by gradually reducing the chunk size until it succeeds.
+
+        Args:
+            documents: Generator of documents to index
+            stats_only: Whether to return only stats or detailed error information
+
+        Returns:
+            Tuple of (docs_indexed, errors)
+        """
+        try:
+            result = bulk(
+                self.client,
+                documents,
+                stats_only=stats_only,
+                chunk_size=self.current_chunk_size,
+            )
+            
+            if self.current_chunk_size < self.max_chunk_size:
+                self.current_chunk_size = min(
+                    int(self.current_chunk_size * 1.1), 
+                    self.max_chunk_size
+                )
+                current_app.logger.debug(
+                    f"Bulk indexing successful with "
+                    f"chunk_size={self.current_chunk_size}"
+                )
+            
+            return cast(tuple[int, int | list[dict]], result)
+            
+        except TransportError as e:
+            if e.status_code == 413:  # Request too large
+                if self.current_chunk_size > self.min_chunk_size:
+                    # Reduce chunk size gradually
+                    old_chunk_size = self.current_chunk_size
+                    self.current_chunk_size = max(
+                        int(self.current_chunk_size * self.chunk_size_reduction_factor),
+                        self.min_chunk_size
+                    )
+                    
+                    current_app.logger.warning(
+                        f"Request too large (413) with chunk_size={old_chunk_size}, "
+                        f"reducing to {self.current_chunk_size} and retrying"
+                    )
+                    
+                    return self._adaptive_bulk_index(documents, stats_only)
+                else:
+                    current_app.logger.error(
+                        f"Request too large even with minimum "
+                        f"chunk_size={self.min_chunk_size}"
+                    )
+                    raise
+            else:
+                raise
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
