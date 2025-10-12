@@ -18,71 +18,71 @@ import {
   generateMultiDisplayChartOptions
 } from "../../utils/multiDisplayHelpers";
 
-const ResourceTypesMultiDisplay = ({
-  title = i18next.t("Resource Types"),
-  icon: labelIcon = "file",
-  headers = [i18next.t("Work Type"), i18next.t("Works")],
+const RightsMultiDisplayDelta = ({
+  title = i18next.t("Rights"),
+  icon: labelIcon = "copyright",
+  headers = [i18next.t("Rights"), i18next.t("Works")],
   default_view = "pie",
   pageSize = 10,
   available_views = ["pie", "bar", "list"],
   hideOtherInCharts = false,
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
     }
   }, [dateRange]);
 
-  // Extract and process resource types data
-  const rawResourceTypes = extractData(stats, recordStartBasis, 'resourceTypes', 'records', dateRange, false, false);
+  // Extract and process rights data using DELTA data (period-restricted)
+  const rawRights = extractData(stats, recordStartBasis, 'rights', 'records', dateRange, true, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawResourceTypes,
+    rawRights,
     pageSize,
-    'metadata.resource_type.id',
+    'metadata.rights.id',
     CHART_COLORS.secondary,
     hideOtherInCharts
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const getChartOptions = () => {
-    return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
-  };
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
+
+
+  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
   return (
     <StatsMultiDisplay
       title={title}
       subtitle={subtitle}
       icon={labelIcon}
-      label={"resource-types"}
       headers={headers}
+      default_view={default_view}
+      available_views={available_views}
+      pageSize={pageSize}
+      totalCount={totalCount}
+      chartOptions={chartOptions}
       rows={rowsWithLinks}
-      chartOptions={getChartOptions()}
-      defaultViewMode={default_view}
-      onEvents={{
-        click: (params) => {
-          if (params.data && params.data.id) {
-            window.open(`/search?q=metadata.resource_type.id:${params.data.id}`, '_blank');
-          }
-        }
-      }}
+      label={"rights"}
+      isLoading={isLoading}
+      hasData={hasData}
       {...otherProps}
     />
   );
 };
 
-ResourceTypesMultiDisplay.propTypes = {
+RightsMultiDisplayDelta.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
-  rows: PropTypes.array,
   default_view: PropTypes.string,
-  available_views: PropTypes.arrayOf(PropTypes.string),
+  pageSize: PropTypes.number,
+  available_views: PropTypes.array,
   hideOtherInCharts: PropTypes.bool,
 };
 
-export { ResourceTypesMultiDisplay };
+export { RightsMultiDisplayDelta };

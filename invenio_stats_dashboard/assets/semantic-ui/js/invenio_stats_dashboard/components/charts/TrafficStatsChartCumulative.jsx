@@ -41,6 +41,7 @@ const TrafficStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
       data={yearlyData}
       seriesSelectorOptions={seriesSelectorOptions}
       height={height}
+      isCumulative={true}
       {...otherProps}
     />
   );

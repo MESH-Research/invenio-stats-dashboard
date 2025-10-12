@@ -18,3 +18,17 @@ export * from "./PeriodicalsMultiDisplay";
 export * from "./PublishersMultiDisplay";
 export * from "./LanguagesMultiDisplay";
 export * from "./FileTypesMultiDisplay";
+
+// Delta versions (period-restricted data)
+export * from "./ResourceTypesMultiDisplayDelta";
+export * from "./CountriesMultiDisplayDelta";
+export * from "./ReferrersMultiDisplayDelta";
+export * from "./RightsMultiDisplayDelta";
+export * from "./SubjectsMultiDisplayDelta";
+export * from "./AffiliationsMultiDisplayDelta";
+export * from "./FundersMultiDisplayDelta";
+export * from "./PeriodicalsMultiDisplayDelta";
+export * from "./PublishersMultiDisplayDelta";
+export * from "./LanguagesMultiDisplayDelta";
+export * from "./FileTypesMultiDisplayDelta";
+export * from "./AccessStatusesMultiDisplayDelta";

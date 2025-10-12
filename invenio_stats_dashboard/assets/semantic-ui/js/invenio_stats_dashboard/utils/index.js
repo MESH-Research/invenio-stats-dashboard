@@ -8,6 +8,7 @@
 export * from "./numbers";
 export * from "./dates";
 export * from "./filters";
+export * from "./chartHelpers";
 export * from "./multiDisplayHelpers";
 
 function kebabToCamel(str) {

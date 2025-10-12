@@ -25,6 +25,13 @@ import { CHART_COLORS, getSubcountKeyMapping } from "../../constants";
 import { formatNumber, filterSeriesArrayByDate } from "../../utils";
 import { formatDateRange, readableGranularDate } from "../../utils/dates";
 import { extractLocalizedLabel } from "../../api/dataTransformer";
+import {
+  ChartDataAggregator,
+  ChartDataProcessor,
+  ChartFormatter,
+  calculateYAxisMin,
+  calculateYAxisMax
+} from "../../utils/chartHelpers";
 
 // Define y-axis labels for different series
 const SERIES_Y_AXIS_LABELS = {
@@ -193,6 +200,7 @@ class ChartConfigBuilder {
     minXInterval,
     maxXInterval,
     yAxisMin,
+    yAxisMax,
     selectedMetric,
   ) {
     this.config.xAxis = {
@@ -205,7 +213,7 @@ class ChartConfigBuilder {
       axisLabel: {
         ...CHART_CONFIG.xAxis.axisLabel,
         show: ["quarter", "year"].includes(granularity) ? false : true,
-        formatter: (value) => formatXAxisLabel(value, granularity),
+        formatter: (value) => ChartFormatter.formatXAxisLabel(value, granularity),
       },
       minInterval: minXInterval,
       maxInterval: maxXInterval,
@@ -215,6 +223,7 @@ class ChartConfigBuilder {
       ...CHART_CONFIG.yAxis,
       name: showAxisLabels ? yAxisLabel || seriesYAxisLabel : undefined,
       min: yAxisMin,
+      max: yAxisMax,
       axisLabel: {
         ...CHART_CONFIG.yAxis.axisLabel,
         formatter: (value) =>
@@ -476,340 +485,9 @@ const FilterSelector = ({
   );
 };
 
-const createAggregationKey = (date, granularity) => {
-  const d = new Date(date);
 
-  switch (granularity) {
-    case "week":
-      const diff =
-        d.getUTCDate() - d.getUTCDay() + (d.getUTCDay() === 0 ? -6 : 1);
-      const startOfWeek = new Date(d.setUTCDate(diff));
-      return startOfWeek.toISOString().split("T")[0];
 
-    case "month":
-      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
-    case "quarter":
-      const quarter = Math.floor(d.getUTCMonth() / 3) + 1;
-      return `${d.getUTCFullYear()}-${String(quarter).padStart(2, "0")}`;
-
-    case "year":
-      return `${d.getUTCFullYear()}`;
-
-    default:
-      return date.toISOString().split("T")[0];
-  }
-};
-
-// Detect if data is cumulative (snapshot data) or non-cumulative (delta data)
-const isDataCumulative = (data) => {
-  if (!data) return false;
-
-  // Check if this is snapshot data by looking for snapshot-related properties
-  // Delta data: recordDeltaData*, usageDeltaData
-  // Snapshot data: recordSnapshotData*, usageSnapshotData
-  return Object.keys(data).some((key) => key.includes("Snapshot"));
-};
-
-const aggregateData = (data, granularity, isSubcounts = false) => {
-  if (!data) return [];
-  if (granularity === "day") {
-    return data;
-  }
-
-  // Detect if this is delta data (should be summed) or snapshot data (should take last value)
-  const isDeltaData = !isDataCumulative(data);
-
-  const aggregatedSeries = data.map((series) => {
-    if (!series.data || series.data.length === 0) {
-      return { ...series, data: [] };
-    }
-
-    const aggregatedPoints = new Map();
-
-    series.data.forEach((point) => {
-      const [date, value] = point.value;
-
-      if (!date || value === undefined) {
-        return; // Skip invalid points
-      }
-
-      const key = createAggregationKey(date, granularity);
-
-      if (!aggregatedPoints.has(key)) {
-        // Convert aggregation key to a proper date for readableGranularDate
-        let dateForReadable;
-        if (granularity === "quarter") {
-          const [year, quarter] = key.split("-");
-          const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
-          dateForReadable = new Date(parseInt(year), month, 1);
-        } else if (granularity === "year") {
-          dateForReadable = new Date(parseInt(key), 0, 1);
-        } else if (granularity === "month") {
-          const [year, month] = key.split("-");
-          dateForReadable = new Date(parseInt(year), parseInt(month) - 1, 1);
-        } else {
-          // For day and week, key is already a proper date string
-          dateForReadable = key;
-        }
-
-        const readableDate = readableGranularDate(dateForReadable, granularity);
-        aggregatedPoints.set(key, {
-          value: value,
-          readableDate: readableDate,
-          lastDate: date,
-        });
-      } else {
-        const current = aggregatedPoints.get(key);
-        if (isDeltaData) {
-          // For delta data, sum the values within each aggregation period
-          current.value += value;
-        } else {
-          // For snapshot data, take the last value of each time period
-          // Ensure both dates are Date objects for proper comparison
-          const currentDate =
-            current.lastDate instanceof Date
-              ? current.lastDate
-              : new Date(current.lastDate);
-          const pointDate = date instanceof Date ? date : new Date(date);
-          if (pointDate > currentDate) {
-            current.value = value;
-            current.lastDate = date;
-          }
-        }
-      }
-    });
-
-    return {
-      ...series,
-      data: Array.from(aggregatedPoints.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, { value, readableDate }]) => {
-          // Convert the aggregation key back to a proper date for the chart
-          let chartDate;
-          if (granularity === "quarter") {
-            const [year, quarter] = key.split("-");
-            const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
-            chartDate = new Date(parseInt(year), month, 1);
-          } else if (granularity === "month") {
-            const [year, month] = key.split("-");
-            chartDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-          } else if (granularity === "year") {
-            chartDate = new Date(parseInt(key), 0, 1);
-          } else {
-            // week and day use ISO date strings
-            chartDate = new Date(key);
-          }
-
-          return {
-            value: [chartDate, value],
-            readableDate: readableDate,
-            valueType: series.valueType || "number",
-          };
-        }),
-    };
-  });
-  console.log("AggregatedSeries:", aggregatedSeries);
-
-  // Debug logging for quarter aggregation issues
-  if (granularity === "quarter") {
-    console.log("Quarter aggregation debug:");
-    aggregatedSeries.forEach((series, index) => {
-      console.log(
-        `Series ${index} (${series.name}):`,
-        series.data.map((point) => ({
-          date: point.value[0],
-          value: point.value[1],
-          readableDate: point.readableDate,
-        })),
-      );
-    });
-  }
-
-  return aggregatedSeries;
-};
-
-const calculateYAxisMin = (data) => {
-  if (!data || data.length === 0) return 0;
-
-  const allValues = data.flatMap(
-    (series) => series.data.map((point) => point.value[1]), // numeric value from [date, value]
-  );
-
-  const [min, max] = [Math.min(...allValues), Math.max(...allValues)];
-  const range = max - min;
-
-  if (min < max * 0.01) {
-    return 0;
-  }
-
-  // Calculate a minimum that's 20% below the lowest value
-  const calculatedMin = Math.max(0, min - range * 0.2);
-  return calculatedMin;
-};
-
-const formatXAxisLabel = (value, granularity) => {
-  // value is already a timestamp, use it directly
-  const day = new Date(value).getUTCDate();
-  const month = new Date(value).toLocaleString("default", {
-    month: "short",
-    timeZone: "UTC",
-  });
-  const year = new Date(value).getUTCFullYear();
-
-  switch (granularity) {
-    case "day":
-    case "week":
-      // For day and week granularities, show only month name on first of month
-      if (day === 1) {
-        return "{month|" + month + "}";
-      }
-      return "{day|" + day + "}";
-
-    case "month":
-      return "{month|" + month + "}";
-
-    case "quarter":
-      // We're not actually showing axis labels for quarter
-      if (day === 1 && month === "Jan") {
-        return "{year|" + year + "}";
-      } else if (day === 1) {
-        return "{month|" + month + "}";
-      } else {
-        return "{day|" + day + "}";
-      }
-
-    case "year":
-      // We're not actually showing axis labels for year
-      return "{year|" + year + "}";
-
-    default:
-      return "{day|" + day + "}";
-  }
-};
-
-/**
- * Extracts series data for a specific metric from yearly data.
- *
- * @param {Array} data - Array of yearly data objects, each containing global and breakdown metrics
- * @param {string} selectedMetric - The metric to extract (e.g., 'records', 'views', 'downloads')
- * @param {string|null} displaySeparately - Breakdown category to extract from, or null for global data
- * @returns {Array} Array of series objects for the selected metric across all years
- */
-const extractSeriesForMetric = (data, selectedMetric, displaySeparately) => {
-  if (!data || !Array.isArray(data)) return [];
-
-  const yearlySeries = data
-    .map((yearlyData) => {
-      if (!yearlyData) return [];
-
-      if (displaySeparately && yearlyData[displaySeparately]) {
-        return yearlyData[displaySeparately][selectedMetric] || [];
-      } else {
-        return yearlyData.global?.[selectedMetric] || [];
-      }
-    })
-    .flat(); // Combine all series from all years
-
-  console.log("yearlySeries for metric:", yearlySeries);
-  console.log("displaySeparately:", displaySeparately);
-  console.log("selectedMetric:", selectedMetric);
-  return yearlySeries;
-};
-
-/**
- * Prepares series data for chart display by merging, filtering, and naming.
- *
- * For global view (displaySeparately = null): merges multiple yearly series into a single series
- * For breakdown view (displaySeparately = category): keeps series separate for stacking
- *
- * @param {Array} seriesArray - Array of series objects extracted from yearly data
- * @param {string|null} displaySeparately - Breakdown category name or null for global view
- * @param {string} selectedMetric - The metric being displayed (used for naming)
- * @param {Object} dateRange - Date range object with start/end dates for filtering
- * @returns {Array} Array of processed series ready for aggregation and display
- */
-const prepareDataSeries = (seriesArray, displaySeparately, selectedMetric, dateRange) => {
-  // Lazy merge: only merge the series we're actually going to display
-  let seriesToProcess = seriesArray;
-  if (seriesArray.length > 1 && !displaySeparately) {
-    // For global view, merge multiple yearly series into one
-    const mergedData = seriesArray.reduce((acc, series) => {
-      if (series.data) acc.push(...series.data);
-      return acc;
-    }, []);
-
-    seriesToProcess = [{
-      ...seriesArray[0],
-      data: mergedData
-    }];
-  }
-
-  const filteredData = filterSeriesArrayByDate(seriesToProcess, dateRange);
-  console.log("filteredData", filteredData);
-
-  // Add names to the series based on the breakdown category or metric type
-  const currentLanguage = i18next.language || "en";
-  const namedSeries = filteredData.map((series, index) => {
-    if (displaySeparately) {
-      // For breakdown view, use the breakdown category name
-      const seriesName = series.name || `Series ${index + 1}`;
-      const localizedName = extractLocalizedLabel(
-        seriesName,
-        currentLanguage,
-      );
-      return {
-        ...series,
-        name: localizedName,
-      };
-    } else {
-      // For global view, use the metric name
-      const seriesName = selectedMetric || `Series ${index + 1}`;
-      const localizedName = extractLocalizedLabel(
-        seriesName,
-        currentLanguage,
-      );
-      return {
-        ...series,
-        name: localizedName,
-      };
-    }
-  });
-  console.log("namedSeries", namedSeries);
-
-  return namedSeries;
-};
-
-/** deprecated */
-const getAxisIntervals = (granularity, aggregatedData) => {
-  switch (granularity) {
-    case "year":
-      return [3600 * 1000 * 24 * 365, 3600 * 1000 * 24 * 365];
-    case "quarter":
-      // Calculate based on data range
-      if (aggregatedData.length > 0 && aggregatedData[0].data.length > 0) {
-        const dates = aggregatedData[0].data.map((point) =>
-          new Date(point.value[0]).getTime(),
-        );
-        const minDate = Math.min(...dates);
-        const maxDate = Math.max(...dates);
-        const quarterInMs = 3600 * 1000 * 24 * 90; // 90 days in milliseconds
-        const numQuarters = Math.ceil((maxDate - minDate) / quarterInMs);
-        // If we have more than 12 quarters, show every 2nd quarter
-        const interval = numQuarters > 12 ? quarterInMs * 2 : quarterInMs;
-        return [interval, interval];
-      }
-      return [3600 * 1000 * 24 * 90, 3600 * 1000 * 24 * 90];
-    case "month":
-      return [3600 * 1000 * 24 * 30, undefined];
-    case "week":
-      return [3600 * 1000 * 24 * 7, undefined];
-    case "day":
-      return [3600 * 1000 * 24, undefined];
-    default:
-      return [undefined, undefined];
-  }
-};
 
 /**
  * Main component for rendering the stats chart
@@ -881,6 +559,8 @@ const StatsChart = ({
   tooltipConfig,
   chartType = undefined, // Optional prop to override chart type consistently
   display_subcounts = undefined, // Optional prop to override global subcounts config
+  isCumulative = false, // Explicit prop to signal whether data is cumulative
+  maxSeries = undefined, // Optional prop to limit the number of series displayed
 }) => {
   const { dateRange, granularity, isLoading, ui_subcounts } =
     useStatsDashboard();
@@ -892,8 +572,17 @@ const StatsChart = ({
   const [aggregatedData, setAggregatedData] = useState([]);
 
   const seriesArray = useMemo(() => {
-    return extractSeriesForMetric(data, selectedMetric, displaySeparately);
+    return ChartDataProcessor.extractSeriesForMetric(data, selectedMetric, displaySeparately);
   }, [data, selectedMetric, displaySeparately]);
+
+  // Detect if this is cumulative data by checking the original data structure
+  const isCumulativeData = useMemo(() => {
+    if (!data || !Array.isArray(data)) return false;
+    // Check if any of the yearly data objects has snapshot-related properties
+    return data.some(yearlyData =>
+      yearlyData && Object.keys(yearlyData).some(key => key.includes("Snapshot"))
+    );
+  }, [data]);
 
   // Check if there's any data to display
   const hasData = useMemo(() => {
@@ -905,16 +594,17 @@ const StatsChart = ({
   }, [seriesArray, isLoading]);
 
   useEffect(() => {
-    const preparedSeries = prepareDataSeries(seriesArray, displaySeparately, selectedMetric, dateRange);
+    const preparedSeries = ChartDataProcessor.prepareDataSeries(seriesArray, displaySeparately, selectedMetric, dateRange, maxSeries);
 
-    const aggregatedData = aggregateData(
+    const aggregatedData = ChartDataAggregator.aggregateData(
       preparedSeries,
       granularity,
       displaySeparately,
+      isCumulative,
     );
 
     setAggregatedData(aggregatedData);
-  }, [seriesArray, granularity, dateRange, displaySeparately, selectedMetric]);
+  }, [seriesArray, granularity, dateRange, displaySeparately, selectedMetric, isCumulative, maxSeries]);
 
   const seriesColorIndex = useMemo(
     () =>
@@ -925,13 +615,18 @@ const StatsChart = ({
   );
 
   const [minXInterval, maxXInterval] = useMemo(
-    () => getAxisIntervals(granularity, aggregatedData),
+    () => ChartFormatter.getAxisIntervals(granularity, aggregatedData),
     [granularity, aggregatedData],
   );
 
   const yAxisMin = useMemo(
     () => calculateYAxisMin(aggregatedData),
     [aggregatedData],
+  );
+
+  const yAxisMax = useMemo(
+    () => displaySeparately ? calculateYAxisMax(aggregatedData) : undefined,
+    [aggregatedData, displaySeparately],
   );
 
   const seriesYAxisLabel = useMemo(
@@ -954,6 +649,7 @@ const StatsChart = ({
         minXInterval,
         maxXInterval,
         yAxisMin,
+        yAxisMax,
         selectedMetric,
       )
       .withLegend(showLegend, displaySeparately)

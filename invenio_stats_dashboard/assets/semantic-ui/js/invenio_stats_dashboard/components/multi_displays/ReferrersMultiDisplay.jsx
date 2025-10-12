@@ -13,7 +13,7 @@ import { CHART_COLORS } from "../../constants";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  extractUsageBasedData,
+  extractData,
   generateMultiDisplayChartOptions
 } from "../../utils/multiDisplayHelpers";
 
@@ -28,7 +28,7 @@ const TopReferrersMultiDisplay = ({
 }) => {
   const { stats, dateRange } = useStatsDashboard();
 
-  const rawReferrers = extractUsageBasedData(stats, 'referrersByView', 'views', dateRange);
+  const rawReferrers = extractData(stats, null, 'referrersByView', 'views', dateRange, false, true);
 
   const { transformedData, otherData, totalCount } = transformMultiDisplayData(
     rawReferrers,

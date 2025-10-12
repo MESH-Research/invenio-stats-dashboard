@@ -55,6 +55,19 @@ import {
   PublishersMultiDisplay,
   TopLanguagesMultiDisplay,
   FileTypesMultiDisplay,
+
+  // Multi Displays Delta
+  ResourceTypesMultiDisplayDelta,
+  SubjectsMultiDisplayDelta,
+  AccessStatusesMultiDisplayDelta,
+  RightsMultiDisplayDelta,
+  AffiliationsMultiDisplayDelta,
+  FundersMultiDisplayDelta,
+  CountriesMultiDisplayDelta,
+  PeriodicalsMultiDisplayDelta,
+  PublishersMultiDisplayDelta,
+  LanguagesMultiDisplayDelta,
+  FileTypesMultiDisplayDelta,
 } from './index';
 
 export const componentsMap = {
@@ -108,4 +121,17 @@ export const componentsMap = {
   'PublishersMultiDisplay': PublishersMultiDisplay,
   'TopLanguagesMultiDisplay': TopLanguagesMultiDisplay,
   'FileTypesMultiDisplay': FileTypesMultiDisplay,
+
+  // Multi Displays Delta
+  'ResourceTypesMultiDisplayDelta': ResourceTypesMultiDisplayDelta,
+  'SubjectsMultiDisplayDelta': SubjectsMultiDisplayDelta,
+  'AccessStatusesMultiDisplayDelta': AccessStatusesMultiDisplayDelta,
+  'RightsMultiDisplayDelta': RightsMultiDisplayDelta,
+  'AffiliationsMultiDisplayDelta': AffiliationsMultiDisplayDelta,
+  'FundersMultiDisplayDelta': FundersMultiDisplayDelta,
+  'CountriesMultiDisplayDelta': CountriesMultiDisplayDelta,
+  'PeriodicalsMultiDisplayDelta': PeriodicalsMultiDisplayDelta,
+  'PublishersMultiDisplayDelta': PublishersMultiDisplayDelta,
+  'LanguagesMultiDisplayDelta': LanguagesMultiDisplayDelta,
+  'FileTypesMultiDisplayDelta': FileTypesMultiDisplayDelta,
 };

@@ -51,6 +51,7 @@ const VIEW_MODE_ICON_MAP = {
  * rendered in the corresponding table cell.
  *
  * @param {string} title - The display title for the widget.
+ * @param {string} subtitle - Optional subtitle to display below the title (e.g., time-frame information).
  * @param {string} icon - The icon to display next to the title in the widget
  *      header. (Optional)
  * @param {string} label - The label of the data series.
@@ -67,9 +68,11 @@ const VIEW_MODE_ICON_MAP = {
  * @param {string} defaultViewMode - The default view mode of the data series.
  *      Defaults to "list".
  * @param {object} onEvents - The events to be passed to ReactECharts.
+ * @param {boolean} hideOtherInCharts - If true and "other" is >30% of total, exclude it from charts and show as floating label.
  */
 const StatsMultiDisplay = ({
   title,
+  subtitle,
   icon: labelIcon,
   label,
   headers,
@@ -80,6 +83,7 @@ const StatsMultiDisplay = ({
   isLoading = false,
   hasData = true,
   maxHeight = null,
+  hideOtherInCharts = false,
 }) => {
   const [viewMode, setViewMode] = useState(defaultViewMode);
   const availableViewModes = Object.keys(chartOptions);
@@ -145,6 +149,9 @@ const StatsMultiDisplay = ({
               </Button>
             ))}
           {title}
+          {subtitle && (
+            <Header.Subheader>{subtitle}</Header.Subheader>
+          )}
         </Header>
       )}
       <Segment attached className="stats-multi-display-segment">
@@ -187,6 +194,7 @@ const StatsMultiDisplay = ({
 
 StatsMultiDisplay.propTypes = {
   title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
   icon: PropTypes.string,
   label: PropTypes.string,
   headers: PropTypes.array.isRequired,
@@ -197,6 +205,7 @@ StatsMultiDisplay.propTypes = {
   isLoading: PropTypes.bool,
   hasData: PropTypes.bool,
   maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  hideOtherInCharts: PropTypes.bool,
 };
 
 export { StatsMultiDisplay };

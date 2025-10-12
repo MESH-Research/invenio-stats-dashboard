@@ -9,80 +9,78 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS } from "../../constants";
 import { formatDate } from "../../utils";
 import {
-  transformMultiDisplayData,
+  transformCountryMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
   generateMultiDisplayChartOptions
 } from "../../utils/multiDisplayHelpers";
 
-const ResourceTypesMultiDisplay = ({
-  title = i18next.t("Resource Types"),
-  icon: labelIcon = "file",
-  headers = [i18next.t("Work Type"), i18next.t("Works")],
+const CountriesMultiDisplayDelta = ({
+  title = i18next.t("Countries"),
+  icon: labelIcon = "globe",
+  headers = [i18next.t("Country"), i18next.t("Visits")],
   default_view = "pie",
   pageSize = 10,
   available_views = ["pie", "bar", "list"],
   hideOtherInCharts = false,
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, dateRange } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
     }
   }, [dateRange]);
 
-  // Extract and process resource types data
-  const rawResourceTypes = extractData(stats, recordStartBasis, 'resourceTypes', 'records', dateRange, false, false);
+  // Extract and process countries data using DELTA data (period-restricted)
+  const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, true, true);
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawResourceTypes,
+  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformCountryMultiDisplayData(
+    rawCountries,
     pageSize,
-    'metadata.resource_type.id',
+    "metadata.country.id",
     CHART_COLORS.secondary,
     hideOtherInCharts
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const getChartOptions = () => {
-    return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
-  };
+  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
   return (
     <StatsMultiDisplay
       title={title}
       subtitle={subtitle}
       icon={labelIcon}
-      label={"resource-types"}
+      label={"countries"}
       headers={headers}
       rows={rowsWithLinks}
-      chartOptions={getChartOptions()}
+        chartOptions={chartOptions}
       defaultViewMode={default_view}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
-            window.open(`/search?q=metadata.resource_type.id:${params.data.id}`, '_blank');
+            window.open(params.data.link, "_blank");
           }
-        }
+        },
       }}
       {...otherProps}
     />
   );
 };
 
-ResourceTypesMultiDisplay.propTypes = {
+CountriesMultiDisplayDelta.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
-  rows: PropTypes.array,
   default_view: PropTypes.string,
+  pageSize: PropTypes.number,
   available_views: PropTypes.arrayOf(PropTypes.string),
   hideOtherInCharts: PropTypes.bool,
 };
 
-export { ResourceTypesMultiDisplay };
+export { CountriesMultiDisplayDelta };

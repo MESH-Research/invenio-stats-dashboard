@@ -4,28 +4,27 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
-import { PropTypes } from "prop-types";
-import { useStatsDashboard } from "../../context/StatsDashboardContext";
+import { StatsMultiDisplay } from '../shared_components/StatsMultiDisplay';
+import { useStatsDashboard } from '../../context/StatsDashboardContext';
 import { CHART_COLORS } from '../../constants';
-import { formatDate } from "../../utils";
+import { formatDate } from '../../utils';
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../utils/multiDisplayHelpers";
 
-const RightsMultiDisplay = ({
-  title = i18next.t("Rights"),
-  icon: labelIcon = "copyright",
-  headers = [i18next.t("Rights"), i18next.t("Works")],
-  default_view = "pie",
+const SubjectsMultiDisplayDelta = ({
+  title = i18next.t("Subjects"),
+  icon: labelIcon = "tag",
   pageSize = 10,
+  headers = [i18next.t("Subject"), i18next.t("Works")],
+  default_view = "pie",
   available_views = ["pie", "bar", "list"],
-  hideOtherInCharts = false,
   ...otherProps
 }) => {
   const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
@@ -33,26 +32,26 @@ const RightsMultiDisplay = ({
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
     }
   }, [dateRange]);
 
-  const rawRights = extractData(stats, recordStartBasis, 'rights', 'records', dateRange, false, false);
+  // Extract and process subjects data using DELTA data (period-restricted)
+  const rawSubjects = extractData(stats, recordStartBasis, 'subjects', 'records', dateRange, true, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawRights,
+    rawSubjects,
     pageSize,
-    'metadata.rights.id',
+    'metadata.subjects.subject.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    false // hideOtherInCharts - set to true to enable the new behavior
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   // Check if there's any data to display
   const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
-
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData);
 
   return (
     <StatsMultiDisplay
@@ -66,7 +65,7 @@ const RightsMultiDisplay = ({
       totalCount={totalCount}
       chartOptions={chartOptions}
       rows={rowsWithLinks}
-      label={"rights"}
+      label={"subjects"}
       isLoading={isLoading}
       hasData={hasData}
       {...otherProps}
@@ -74,14 +73,13 @@ const RightsMultiDisplay = ({
   );
 };
 
-RightsMultiDisplay.propTypes = {
+SubjectsMultiDisplayDelta.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
   default_view: PropTypes.string,
   pageSize: PropTypes.number,
-  available_views: PropTypes.array,
-  hideOtherInCharts: PropTypes.bool,
+  available_views: PropTypes.arrayOf(PropTypes.string),
 };
 
-export { RightsMultiDisplay };
+export { SubjectsMultiDisplayDelta };

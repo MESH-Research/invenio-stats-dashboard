@@ -67,6 +67,7 @@ const ContentStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
       seriesSelectorOptions={options}
       height={height}
       chartType={chartType}
+      isCumulative={true}
       {...otherProps}
     />
   );

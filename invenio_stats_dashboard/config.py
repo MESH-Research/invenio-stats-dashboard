@@ -218,6 +218,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "height": 300,
                                     "title": "Cumulative Content Totals",
+                                    "maxSeries": 10,
                                     "display_subcounts": [
                                         "resource_types",
                                         "subjects",
@@ -248,6 +249,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "pie",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -332,6 +334,111 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "height": 300,
                                     "title": "New Contribution Rates",
+                                    "maxSeries": 10,
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        "name": "tables",
+                        "components": [
+                            {
+                                "component": "ResourceTypesMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Work Types Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                },
+                            },
+                            {
+                                "component": "SubjectsMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Subjects Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "pie",
+                                },
+                            },
+                            {
+                                "component": "AccessStatusesMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Access Statuses Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                },
+                            },
+                            {
+                                "component": "RightsMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Rights Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "AffiliationsMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Affiliations Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "FundersMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Funders Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "PeriodicalsMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Periodicals Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "PublishersMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Publishers Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "LanguagesMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Languages Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
+                                },
+                            },
+                            {
+                                "component": "FileTypesMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "File Types Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "list",
                                 },
                             },
                         ],
@@ -379,6 +486,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "height": 300,
                                     "title": "Cumulative Traffic Totals",
+                                    "maxSeries": 10,
                                 },
                             },
                         ],

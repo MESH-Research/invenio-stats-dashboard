@@ -9,7 +9,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
 import { formatDate } from "../../utils";
 import {
   transformMultiDisplayData,
@@ -18,71 +18,70 @@ import {
   generateMultiDisplayChartOptions
 } from "../../utils/multiDisplayHelpers";
 
-const ResourceTypesMultiDisplay = ({
-  title = i18next.t("Resource Types"),
-  icon: labelIcon = "file",
-  headers = [i18next.t("Work Type"), i18next.t("Works")],
-  default_view = "pie",
+const AffiliationsMultiDisplayDelta = ({
+  title = i18next.t("Affiliations"),
+  icon: labelIcon = "university",
+  headers = [i18next.t("Affiliation"), i18next.t("Works")],
+  default_view,
   pageSize = 10,
-  available_views = ["pie", "bar", "list"],
+  available_views = ["list", "pie", "bar"],
   hideOtherInCharts = false,
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
     }
   }, [dateRange]);
 
-  // Extract and process resource types data
-  const rawResourceTypes = extractData(stats, recordStartBasis, 'resourceTypes', 'records', dateRange, false, false);
+  // Extract and process affiliations data using DELTA data (period-restricted)
+  const rawAffiliations = extractData(stats, recordStartBasis, 'affiliations', 'records', dateRange, true, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawResourceTypes,
+    rawAffiliations,
     pageSize,
-    'metadata.resource_type.id',
+    'metadata.creators.affiliations.name',
     CHART_COLORS.secondary,
     hideOtherInCharts
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const getChartOptions = () => {
-    return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
-  };
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
+
+  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
   return (
     <StatsMultiDisplay
       title={title}
       subtitle={subtitle}
       icon={labelIcon}
-      label={"resource-types"}
       headers={headers}
+      default_view={default_view}
+      available_views={available_views}
+      pageSize={pageSize}
+      totalCount={totalCount}
+      chartOptions={chartOptions}
       rows={rowsWithLinks}
-      chartOptions={getChartOptions()}
-      defaultViewMode={default_view}
-      onEvents={{
-        click: (params) => {
-          if (params.data && params.data.id) {
-            window.open(`/search?q=metadata.resource_type.id:${params.data.id}`, '_blank');
-          }
-        }
-      }}
+      label={"affiliations"}
+      isLoading={isLoading}
+      hasData={hasData}
       {...otherProps}
     />
   );
 };
 
-ResourceTypesMultiDisplay.propTypes = {
+AffiliationsMultiDisplayDelta.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
-  rows: PropTypes.array,
   default_view: PropTypes.string,
+  pageSize: PropTypes.number,
   available_views: PropTypes.arrayOf(PropTypes.string),
   hideOtherInCharts: PropTypes.bool,
 };
 
-export { ResourceTypesMultiDisplay };
+export { AffiliationsMultiDisplayDelta };
