@@ -105,11 +105,11 @@ describe('StatsChart FilterSelector', () => {
       fireEvent.click(filterButton);
 
       // Check that only allowed breakdown options are shown
-      expect(screen.getByText('Work Types')).toBeInTheDocument(); // resourceTypes
-      expect(screen.getByText('Subjects')).toBeInTheDocument(); // subjects
+      expect(screen.getByText('Top Work Types')).toBeInTheDocument(); // resourceTypes
+      expect(screen.getByText('Top Subjects')).toBeInTheDocument(); // subjects
 
       // Check that disallowed options are not shown
-      expect(screen.queryByText('Languages')).not.toBeInTheDocument(); // languages
+      expect(screen.queryByText('Top Languages')).not.toBeInTheDocument(); // languages
     });
   });
 

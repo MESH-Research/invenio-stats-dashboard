@@ -47,18 +47,18 @@ const SERIES_Y_AXIS_LABELS = {
 
 // Define breakdown category names for display
 const BREAKDOWN_NAMES = {
-  resourceTypes: "Work Types",
-  subjects: "Subjects",
-  accessStatuses: "Access Statuses",
-  rights: "Rights",
-  affiliations: "Affiliations",
-  funders: "Funders",
-  countries: "Countries",
-  referrers: "Referrer Domains",
-  fileTypes: "File Types",
-  languages: "Languages",
-  periodicals: "Periodicals",
-  publishers: "Publishers",
+  resourceTypes: "Top Work Types",
+  subjects: "Top Subjects",
+  accessStatuses: "Access Status",
+  rights: "Top Rights",
+  affiliations: "Top Affiliations",
+  funders: "Top Funders",
+  countries: "Top Countries",
+  referrers: "Top Referrer Domains",
+  fileTypes: "Top File Types",
+  languages: "Top Languages",
+  periodicals: "Top Periodicals",
+  publishers: "Top Publishers",
   byFilePresence: "With/Without Files",
 };
 
