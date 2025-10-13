@@ -100,7 +100,10 @@ export class ChartDataAggregator {
         const current = aggregatedPoints.get(key);
         if (isCumulative) {
           // For cumulative data, take the last value of each time period
-          const currentDate = current.lastDate instanceof Date ? current.lastDate : new Date(current.lastDate);
+          const currentDate =
+            current.lastDate instanceof Date
+              ? current.lastDate
+              : new Date(current.lastDate);
           const pointDate = date instanceof Date ? date : new Date(date);
           if (pointDate > currentDate) {
             current.value = value;
@@ -129,97 +132,21 @@ export class ChartDataAggregator {
   }
 
   /**
-   * Ensures all series have data points for the same time periods
-   */
-  static alignSeriesTimePeriods(aggregatedSeries, granularity, isCumulative) {
-    if (aggregatedSeries.length <= 1) return aggregatedSeries;
-
-    // Collect all unique time periods across all series
-    const allTimePeriods = new Set();
-    aggregatedSeries.forEach(series => {
-      if (series.data) {
-        series.data.forEach(point => {
-          allTimePeriods.add(point.value[0].getTime());
-        });
-      }
-    });
-
-    // Fill in missing time periods for each series
-    return aggregatedSeries.map(series => {
-      if (!series.data) return series;
-
-      const existingTimePoints = new Set(series.data.map(p => p.value[0].getTime()));
-      const missingTimePoints = Array.from(allTimePeriods).filter(timePoint =>
-        !existingTimePoints.has(timePoint)
-      );
-
-      // Add values for missing time points
-      const filledData = [...series.data];
-      missingTimePoints.forEach(timePoint => {
-        const missingDate = new Date(timePoint);
-        const readableDate = readableGranularDate(missingDate, granularity);
-
-        let fillValue = 0;
-        if (isCumulative) {
-          // For cumulative data, find the last known value before this time point
-          const sortedExistingData = series.data.sort((a, b) => a.value[0].getTime() - b.value[0].getTime());
-          const lastKnownValue = sortedExistingData
-            .filter(p => p.value[0].getTime() < timePoint)
-            .pop();
-          fillValue = lastKnownValue ? lastKnownValue.value[1] : 0;
-        }
-
-        filledData.push({
-          value: [missingDate, fillValue],
-          readableDate: readableDate,
-          valueType: series.valueType || "number",
-        });
-      });
-
-      // Sort by date to maintain chronological order
-      filledData.sort((a, b) => a.value[0].getTime() - b.value[0].getTime());
-
-      return {
-        ...series,
-        data: filledData
-      };
-    });
-  }
-
-  /**
    * Main aggregation function that processes data based on granularity
    */
-  static aggregateData(data, granularity, isSubcounts = false, isCumulative = false) {
+  static aggregateData(data, granularity, isCumulative = false) {
     if (!data) return [];
     if (granularity === "day") {
       return data;
     }
 
-    // First pass: aggregate each series individually
-    const aggregatedSeries = data.map(series => this.aggregateSingleSeries(series, granularity, isCumulative));
+    const aggregatedSeries = data.map((series) =>
+      this.aggregateSingleSeries(series, granularity, isCumulative),
+    );
 
     console.log("AggregatedSeries:", aggregatedSeries);
 
-    // Debug logging for quarter aggregation issues
-    if (granularity === "quarter") {
-      console.log("Quarter aggregation debug:");
-      aggregatedSeries.forEach((series, index) => {
-        console.log(
-          `Series ${index} (${series.name}):`,
-          series.data.map((point) => ({
-            date: point.value[0],
-            value: point.value[1],
-            readableDate: point.readableDate,
-          })),
-        );
-      });
-    }
-
-    // Second pass: align time periods across all series
-    const alignedSeries = this.alignSeriesTimePeriods(aggregatedSeries, granularity, isCumulative);
-
-    console.log("AlignedSeries:", alignedSeries);
-    return alignedSeries;
+    return aggregatedSeries;
   }
 }
 
@@ -251,26 +178,43 @@ export const calculateYAxisMin = (data) => {
 export const calculateYAxisMax = (data) => {
   if (!data || data.length === 0) return undefined;
 
+  // Helper function to safely get timestamp from a value
+  const getTimestamp = (value) => {
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+    if (typeof value === "string" || typeof value === "number") {
+      return new Date(value).getTime();
+    }
+    return null;
+  };
+
   // Collect all unique time points across all series
   const timePoints = new Set();
-  data.forEach(series => {
+  data.forEach((series) => {
     if (series.data) {
-      series.data.forEach(point => {
-        timePoints.add(point.value[0].getTime()); // Use timestamp for comparison
+      series.data.forEach((point) => {
+        const timestamp = getTimestamp(point.value[0]);
+        if (timestamp !== null) {
+          timePoints.add(timestamp);
+        }
       });
     }
   });
 
   // Calculate the maximum cumulative value at any time point
   const maxStackedValue = Math.max(
-    ...Array.from(timePoints).map(timePoint => {
+    ...Array.from(timePoints).map((timePoint) => {
       // Sum all series values at this specific time point
       return data.reduce((sum, series) => {
         if (!series.data) return sum;
-        const point = series.data.find(p => p.value[0].getTime() === timePoint);
+        const point = series.data.find((p) => {
+          const timestamp = getTimestamp(p.value[0]);
+          return timestamp === timePoint;
+        });
         return sum + (point ? point.value[1] : 0);
       }, 0);
-    })
+    }),
   );
 
   // Add 10% padding above the maximum stacked value
@@ -323,22 +267,39 @@ export class ChartDataProcessor {
    * @param {number|undefined} maxSeries - Optional limit on number of series to display
    * @returns {Array} Array of processed series ready for aggregation and display
    */
-  static prepareDataSeries(seriesArray, displaySeparately, selectedMetric, dateRange, maxSeries = undefined) {
-    // Merge series by ID to avoid duplicates
+  static prepareDataSeries(
+    seriesArray,
+    displaySeparately,
+    selectedMetric,
+    dateRange,
+    maxSeries = undefined,
+    isCumulative = false,
+  ) {
+    // Merge series items by ID to avoid duplicates
     const mergedSeries = ChartDataProcessor.mergeSeriesById(seriesArray);
 
     const filteredData = filterSeriesArrayByDate(mergedSeries, dateRange);
     console.log("filteredData", filteredData);
 
-    // Debug: Check data alignment for stacking
-    ChartDataProcessor.logSeriesAlignment(filteredData, displaySeparately);
-
     // Add names to the series based on the breakdown category or metric type
-    const namedSeries = ChartDataProcessor.addSeriesNames(filteredData, displaySeparately, selectedMetric);
+    const namedSeries = ChartDataProcessor.addSeriesNames(
+      filteredData,
+      displaySeparately,
+      selectedMetric,
+    );
     console.log("namedSeries", namedSeries);
 
     // Limit the number of series if maxSeries is specified
-    const finalSeries = ChartDataProcessor.limitSeriesByCount(namedSeries, maxSeries);
+    const limitedSeries = ChartDataProcessor.limitSeriesByCount(
+      namedSeries,
+      maxSeries,
+    );
+
+    const finalSeries = ChartDataProcessor.fillMissingZeroPoints(
+      limitedSeries,
+      dateRange,
+      isCumulative,
+    );
 
     return finalSeries;
   }
@@ -352,7 +313,7 @@ export class ChartDataProcessor {
   static mergeSeriesById(seriesArray) {
     const seriesById = new Map();
 
-    seriesArray.forEach(series => {
+    seriesArray.forEach((series) => {
       if (!series.id) return;
 
       if (seriesById.has(series.id)) {
@@ -365,30 +326,12 @@ export class ChartDataProcessor {
         // First occurrence of this ID
         seriesById.set(series.id, {
           ...series,
-          data: series.data ? [...series.data] : []
+          data: series.data ? [...series.data] : [],
         });
       }
     });
 
     return Array.from(seriesById.values());
-  }
-
-  /**
-   * Logs series alignment information for debugging stacking issues.
-   *
-   * @param {Array} series - Array of series objects to log
-   * @param {string|null} displaySeparately - Whether series are displayed separately
-   */
-  static logSeriesAlignment(series, displaySeparately) {
-    if (displaySeparately && series.length > 1) {
-      console.log("Stacking debug - series data alignment:");
-      series.forEach((seriesItem, index) => {
-        console.log(`Series ${index} (${seriesItem.name}):`, seriesItem.data.map(p => ({
-          date: p.value[0],
-          value: p.value[1]
-        })));
-      });
-    }
   }
 
   /**
@@ -406,7 +349,10 @@ export class ChartDataProcessor {
       if (displaySeparately) {
         // For breakdown view, use the breakdown category name
         const seriesName = seriesItem.name || `Series ${index + 1}`;
-        const localizedName = extractLocalizedLabel(seriesName, currentLanguage);
+        const localizedName = extractLocalizedLabel(
+          seriesName,
+          currentLanguage,
+        );
         return {
           ...seriesItem,
           name: localizedName,
@@ -414,12 +360,83 @@ export class ChartDataProcessor {
       } else {
         // For global view, use the metric name
         const seriesName = selectedMetric || `Series ${index + 1}`;
-        const localizedName = extractLocalizedLabel(seriesName, currentLanguage);
+        const localizedName = extractLocalizedLabel(
+          seriesName,
+          currentLanguage,
+        );
         return {
           ...seriesItem,
           name: localizedName,
         };
       }
+    });
+  }
+
+  /**
+   * Fills missing zero points for delta data series within the date range
+   *
+   * @param {Array} series - Array of series objects to fill
+   * @param {Object} dateRange - Date range object with start/end dates
+   * @param {boolean} isCumulative - Whether the data is cumulative (affects fill strategy)
+   * @returns {Array} Array of series with missing zero points filled
+   */
+  static fillMissingZeroPoints(series, dateRange, isCumulative = false) {
+    if (!dateRange || !dateRange.start || !dateRange.end || isCumulative) {
+      return series; // Only fill zeros for delta data with a valid date range
+    }
+
+    const startDate = new Date(dateRange.start);
+    const endDate = new Date(dateRange.end);
+
+    // Generate all possible days in the date range
+    const allDays = new Set();
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      allDays.add(current.toISOString().split("T")[0]); // YYYY-MM-DD format
+      current.setDate(current.getDate() + 1);
+    }
+
+    return series.map((seriesItem) => {
+      const existingDays = new Set();
+      if (seriesItem.data && seriesItem.data.length > 0) {
+        seriesItem.data.forEach((point) => {
+          const day = new Date(point.value[0]).toISOString().split("T")[0];
+          existingDays.add(day);
+        });
+      }
+
+      const missingDays = Array.from(allDays).filter(
+        (day) => !existingDays.has(day),
+      );
+
+      // Early return if series already has complete date coverage
+      if (missingDays.length === 0) {
+        return seriesItem;
+      }
+
+      const filledData = seriesItem.data ? [...seriesItem.data] : [];
+
+      missingDays.forEach((day) => {
+        const missingDate = new Date(day);
+        const readableDate = readableGranularDate(missingDate, "day");
+
+        filledData.push({
+          value: [missingDate, 0],
+          readableDate: readableDate,
+          valueType: seriesItem.valueType || "number",
+        });
+      });
+
+      filledData.sort((a, b) => {
+        const aTime = a.value[0] instanceof Date ? a.value[0].getTime() : new Date(a.value[0]).getTime();
+        const bTime = b.value[0] instanceof Date ? b.value[0].getTime() : new Date(b.value[0]).getTime();
+        return aTime - bTime;
+      });
+
+      return {
+        ...seriesItem,
+        data: filledData,
+      };
     });
   }
 
@@ -437,16 +454,24 @@ export class ChartDataProcessor {
 
     // Sort series by total value (sum of all data points) in descending order
     const sortedSeries = series
-      .map(seriesItem => {
-        const totalValue = seriesItem.data?.reduce((sum, point) => sum + (point.value[1] || 0), 0) || 0;
+      .map((seriesItem) => {
+        const totalValue =
+          seriesItem.data?.reduce(
+            (sum, point) => sum + (point.value[1] || 0),
+            0,
+          ) || 0;
         return { ...seriesItem, totalValue };
       })
       .sort((a, b) => b.totalValue - a.totalValue);
 
     // Take only the top maxSeries series
-    const limitedSeries = sortedSeries.slice(0, maxSeries).map(({ totalValue, ...seriesItem }) => seriesItem);
+    const limitedSeries = sortedSeries
+      .slice(0, maxSeries)
+      .map(({ totalValue, ...seriesItem }) => seriesItem);
 
-    console.log(`Limited series from ${series.length} to ${limitedSeries.length} (maxSeries: ${maxSeries})`);
+    console.log(
+      `Limited series from ${series.length} to ${limitedSeries.length} (maxSeries: ${maxSeries})`,
+    );
 
     return limitedSeries;
   }
@@ -534,17 +559,27 @@ export class ChartFormatter {
 }
 
 // Convenience exports for commonly used ChartDataAggregator methods
-export const aggregateData = ChartDataAggregator.aggregateData.bind(ChartDataAggregator);
-export const createAggregationKey = ChartDataAggregator.createAggregationKey.bind(ChartDataAggregator);
+export const aggregateData =
+  ChartDataAggregator.aggregateData.bind(ChartDataAggregator);
+export const createAggregationKey =
+  ChartDataAggregator.createAggregationKey.bind(ChartDataAggregator);
 
 // Convenience exports for ChartDataProcessor methods
-export const extractSeriesForMetric = ChartDataProcessor.extractSeriesForMetric.bind(ChartDataProcessor);
-export const prepareDataSeries = ChartDataProcessor.prepareDataSeries.bind(ChartDataProcessor);
-export const mergeSeriesById = ChartDataProcessor.mergeSeriesById.bind(ChartDataProcessor);
-export const logSeriesAlignment = ChartDataProcessor.logSeriesAlignment.bind(ChartDataProcessor);
-export const addSeriesNames = ChartDataProcessor.addSeriesNames.bind(ChartDataProcessor);
-export const limitSeriesByCount = ChartDataProcessor.limitSeriesByCount.bind(ChartDataProcessor);
+export const extractSeriesForMetric =
+  ChartDataProcessor.extractSeriesForMetric.bind(ChartDataProcessor);
+export const prepareDataSeries =
+  ChartDataProcessor.prepareDataSeries.bind(ChartDataProcessor);
+export const mergeSeriesById =
+  ChartDataProcessor.mergeSeriesById.bind(ChartDataProcessor);
+export const addSeriesNames =
+  ChartDataProcessor.addSeriesNames.bind(ChartDataProcessor);
+export const limitSeriesByCount =
+  ChartDataProcessor.limitSeriesByCount.bind(ChartDataProcessor);
+export const fillMissingZeroPoints =
+  ChartDataProcessor.fillMissingZeroPoints.bind(ChartDataProcessor);
 
 // Convenience exports for ChartFormatter methods
-export const formatXAxisLabel = ChartFormatter.formatXAxisLabel.bind(ChartFormatter);
-export const getAxisIntervals = ChartFormatter.getAxisIntervals.bind(ChartFormatter);
+export const formatXAxisLabel =
+  ChartFormatter.formatXAxisLabel.bind(ChartFormatter);
+export const getAxisIntervals =
+  ChartFormatter.getAxisIntervals.bind(ChartFormatter);

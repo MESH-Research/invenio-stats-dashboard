@@ -30,7 +30,7 @@ import {
   ChartDataProcessor,
   ChartFormatter,
   calculateYAxisMin,
-  calculateYAxisMax
+  calculateYAxisMax,
 } from "../../utils/chartHelpers";
 
 // Define y-axis labels for different series
@@ -213,7 +213,8 @@ class ChartConfigBuilder {
       axisLabel: {
         ...CHART_CONFIG.xAxis.axisLabel,
         show: ["quarter", "year"].includes(granularity) ? false : true,
-        formatter: (value) => ChartFormatter.formatXAxisLabel(value, granularity),
+        formatter: (value) =>
+          ChartFormatter.formatXAxisLabel(value, granularity),
       },
       minInterval: minXInterval,
       maxInterval: maxXInterval,
@@ -224,6 +225,13 @@ class ChartConfigBuilder {
       name: showAxisLabels ? yAxisLabel || seriesYAxisLabel : undefined,
       min: yAxisMin,
       max: yAxisMax,
+      splitLine: {
+        show: false, // Disable horizontal grid lines
+      },
+      axisTick: {
+        show: true,
+        data: [yAxisMin, yAxisMax], // Explicitly set tick positions
+      },
       axisLabel: {
         ...CHART_CONFIG.yAxis.axisLabel,
         formatter: (value) =>
@@ -325,7 +333,11 @@ class ChartConfigBuilder {
         name: series.name,
         type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
         // Give single series bars a stack identifier to center them like stacked bars
-        stack: stacked ? "Total" : (isSingleSeries && effectiveChartType === "bar" ? "single" : undefined),
+        stack: stacked
+          ? "Total"
+          : isSingleSeries && effectiveChartType === "bar"
+            ? "single"
+            : undefined,
         data: series.data,
         label: {
           ...this.config.series.label,
@@ -485,10 +497,6 @@ const FilterSelector = ({
   );
 };
 
-
-
-
-
 /**
  * Main component for rendering the stats chart
  *
@@ -572,17 +580,12 @@ const StatsChart = ({
   const [aggregatedData, setAggregatedData] = useState([]);
 
   const seriesArray = useMemo(() => {
-    return ChartDataProcessor.extractSeriesForMetric(data, selectedMetric, displaySeparately);
-  }, [data, selectedMetric, displaySeparately]);
-
-  // Detect if this is cumulative data by checking the original data structure
-  const isCumulativeData = useMemo(() => {
-    if (!data || !Array.isArray(data)) return false;
-    // Check if any of the yearly data objects has snapshot-related properties
-    return data.some(yearlyData =>
-      yearlyData && Object.keys(yearlyData).some(key => key.includes("Snapshot"))
+    return ChartDataProcessor.extractSeriesForMetric(
+      data,
+      selectedMetric,
+      displaySeparately,
     );
-  }, [data]);
+  }, [data, selectedMetric, displaySeparately]);
 
   // Check if there's any data to display
   const hasData = useMemo(() => {
@@ -594,7 +597,14 @@ const StatsChart = ({
   }, [seriesArray, isLoading]);
 
   useEffect(() => {
-    const preparedSeries = ChartDataProcessor.prepareDataSeries(seriesArray, displaySeparately, selectedMetric, dateRange, maxSeries);
+    const preparedSeries = ChartDataProcessor.prepareDataSeries(
+      seriesArray,
+      displaySeparately,
+      selectedMetric,
+      dateRange,
+      maxSeries,
+      isCumulative,
+    );
 
     const aggregatedData = ChartDataAggregator.aggregateData(
       preparedSeries,
@@ -604,7 +614,15 @@ const StatsChart = ({
     );
 
     setAggregatedData(aggregatedData);
-  }, [seriesArray, granularity, dateRange, displaySeparately, selectedMetric, isCumulative, maxSeries]);
+  }, [
+    seriesArray,
+    granularity,
+    dateRange,
+    displaySeparately,
+    selectedMetric,
+    isCumulative,
+    maxSeries,
+  ]);
 
   const seriesColorIndex = useMemo(
     () =>
@@ -625,7 +643,7 @@ const StatsChart = ({
   );
 
   const yAxisMax = useMemo(
-    () => displaySeparately ? calculateYAxisMax(aggregatedData) : undefined,
+    () => (displaySeparately ? calculateYAxisMax(aggregatedData) : undefined),
     [aggregatedData, displaySeparately],
   );
 
