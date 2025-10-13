@@ -30,12 +30,16 @@ const ReferrersMultiDisplayDelta = ({
 
   // Extract and process referrers data using DELTA data (period-restricted)
   const rawReferrers = extractData(stats, null, 'referrersByView', 'views', dateRange, true, true);
+  const globalData = extractData(stats, null, 'global', 'views', dateRange, true, true);
 
   const { transformedData, otherData, totalCount } = transformMultiDisplayData(
     rawReferrers,
     pageSize,
     "metadata.referrer.id",
     CHART_COLORS.secondary,
+    false, // hideOtherInCharts
+    globalData,
+    true // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -50,6 +54,9 @@ const ReferrersMultiDisplayDelta = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={true}
+      dateRangeEnd={dateRange?.end}
+      metricType="views"
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

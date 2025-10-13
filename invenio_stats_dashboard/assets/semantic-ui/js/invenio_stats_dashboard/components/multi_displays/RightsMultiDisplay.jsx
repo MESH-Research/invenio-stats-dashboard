@@ -38,13 +38,16 @@ const RightsMultiDisplay = ({
   }, [dateRange]);
 
   const rawRights = extractData(stats, recordStartBasis, 'rights', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawRights,
     pageSize,
     'metadata.rights.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -69,6 +72,8 @@ const RightsMultiDisplay = ({
       label={"rights"}
       isLoading={isLoading}
       hasData={hasData}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       {...otherProps}
     />
   );

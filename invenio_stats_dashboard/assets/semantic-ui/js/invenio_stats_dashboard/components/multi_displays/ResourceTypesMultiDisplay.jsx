@@ -39,13 +39,16 @@ const ResourceTypesMultiDisplay = ({
 
   // Extract and process resource types data
   const rawResourceTypes = extractData(stats, recordStartBasis, 'resourceTypes', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawResourceTypes,
     pageSize,
     'metadata.resource_type.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -63,6 +66,8 @@ const ResourceTypesMultiDisplay = ({
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

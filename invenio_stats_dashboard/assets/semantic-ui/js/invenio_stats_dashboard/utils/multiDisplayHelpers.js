@@ -21,9 +21,11 @@ import { getCountryNames } from './mapHelpers';
  * @param {string} searchField - Field name for search links (e.g., 'metadata.access_status.id', 'metadata.affiliations.affiliation')
  * @param {Array} colorPalette - Array of color arrays for chart styling
  * @param {boolean} hideOtherInCharts - If true and "other" is >30% of total, exclude it from charts
+ * @param {Array} globalData - Optional global data series for accurate percentage calculations
+ * @param {boolean} isDelta - Whether the data is delta (sum all points) or snapshot (take latest point)
  * @returns {Object} Object containing transformedData, otherData, originalOtherData, totalCount, and otherPercentage
  */
-const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary, hideOtherInCharts = false) => {
+const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary, hideOtherInCharts = false, globalData = null, isDelta = false) => {
   if (!rawData || !Array.isArray(rawData)) {
     return {
       transformedData: [],
@@ -34,20 +36,43 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
     };
   }
 
-  const totalCount = rawData.reduce((sum, item) => sum + item?.data?.[0]?.value?.[1] || 0, 0);
+  // Calculate value for each item based on data type
+  const getItemValue = (item) => {
+    if (!item?.data || !Array.isArray(item.data)) return 0;
+    
+    if (isDelta) {
+      // For delta data, sum all data points
+      return item.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+    } else {
+      // For snapshot data, take the first (and only) data point
+      return item.data[0]?.value?.[1] || 0;
+    }
+  };
 
-  // Sort items by value (descending) before limiting
-  const sortedData = rawData.sort((a, b) => {
-    const valueA = a?.data?.[0]?.value?.[1] || 0;
-    const valueB = b?.data?.[0]?.value?.[1] || 0;
-    return valueB - valueA; // Descending order
-  });
+  // Calculate total count from subcount items (for backward compatibility)
+  const subcountTotalCount = rawData.reduce((sum, item) => sum + getItemValue(item), 0);
+  
+  // Calculate global total count if global data is provided
+  let globalTotalCount = 0;
+  if (globalData && Array.isArray(globalData) && globalData.length > 0) {
+    const globalSeries = globalData[0]; // Global data is typically a single series
+    if (globalSeries && globalSeries.data && globalSeries.data.length > 0) {
+      if (isDelta) {
+        // For delta data, sum all values
+        globalTotalCount = globalSeries.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+      } else {
+        // For snapshot data, use latest value
+        globalTotalCount = globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
+      }
+    }
+  }
+  
+  // Use global total if available, otherwise fall back to subcount total
+  const totalCount = globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
-  const topXItems = sortedData.slice(0, pageSize);
-  const otherItems = sortedData.slice(pageSize);
-
-  const transformedData = topXItems.map((item, index) => {
-    const value = item?.data?.[0]?.value?.[1] || 0;
+  // Transform all items first, then sort and slice
+  const allTransformedData = rawData.map((item, index) => {
+    const value = getItemValue(item);
     const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
     const currentLanguage = i18next.language || 'en';
 
@@ -66,8 +91,13 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
     };
   });
 
+  // Sort by value (descending) and slice
+  const sortedTransformedData = allTransformedData.sort((a, b) => b.value - a.value);
+  const transformedData = sortedTransformedData.slice(0, pageSize);
+  const otherItems = sortedTransformedData.slice(pageSize);
+
   const otherData = otherItems.length > 0 ? otherItems.reduce((acc, item) => {
-    acc.value += item?.data?.[0]?.value?.[1] || 0;
+    acc.value += item.value;
     return acc;
   }, {
     id: "other",
@@ -103,31 +133,58 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
  * @param {string} searchField - Field name for search links (e.g., 'metadata.country.id')
  * @param {Array} colorPalette - Array of color arrays for chart styling
  * @param {boolean} hideOtherInCharts - If true and "other" is >30% of total, exclude it from charts
+ * @param {Array} globalData - Optional global data series for accurate percentage calculations
+ * @param {boolean} isDelta - Whether the data is delta (sum all points) or snapshot (take latest point)
  * @returns {Object} Object containing transformedData, otherData, originalOtherData, totalCount, and otherPercentage
  */
-const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary, hideOtherInCharts = false) => {
+const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary, hideOtherInCharts = false, globalData = null, isDelta = false) => {
   if (!rawData || !Array.isArray(rawData)) {
     return {
       transformedData: [],
       otherData: null,
-      totalCount: 0
+      originalOtherData: null,
+      totalCount: 0,
+      otherPercentage: 0
     };
   }
 
-  const totalCount = rawData.reduce((sum, item) => sum + item?.data?.[0]?.value?.[1] || 0, 0);
+  // Calculate value for each item based on data type
+  const getItemValue = (item) => {
+    if (!item?.data || !Array.isArray(item.data)) return 0;
+    
+    if (isDelta) {
+      // For delta data, sum all data points
+      return item.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+    } else {
+      // For snapshot data, take the first (and only) data point
+      return item.data[0]?.value?.[1] || 0;
+    }
+  };
 
-  // Sort items by value (descending) before limiting
-  const sortedData = rawData.sort((a, b) => {
-    const valueA = a?.data?.[0]?.value?.[1] || 0;
-    const valueB = b?.data?.[0]?.value?.[1] || 0;
-    return valueB - valueA; // Descending order
-  });
+  // Calculate total count from subcount items (for backward compatibility)
+  const subcountTotalCount = rawData.reduce((sum, item) => sum + getItemValue(item), 0);
+  
+  // Calculate global total count if global data is provided
+  let globalTotalCount = 0;
+  if (globalData && Array.isArray(globalData) && globalData.length > 0) {
+    const globalSeries = globalData[0]; // Global data is typically a single series
+    if (globalSeries && globalSeries.data && globalSeries.data.length > 0) {
+      if (isDelta) {
+        // For delta data, sum all values
+        globalTotalCount = globalSeries.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+      } else {
+        // For snapshot data, use latest value
+        globalTotalCount = globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
+      }
+    }
+  }
+  
+  // Use global total if available, otherwise fall back to subcount total
+  const totalCount = globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
-  const topXItems = sortedData.slice(0, pageSize);
-  const otherItems = sortedData.slice(pageSize);
-
-  const transformedData = topXItems.map((item, index) => {
-    const value = item?.data?.[0]?.value?.[1] || 0;
+  // Transform all items first, then sort and slice
+  const allTransformedData = rawData.map((item, index) => {
+    const value = getItemValue(item);
     const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
     const countryCode = item.name || item.id;
     const countryName = getCountryNames(countryCode).displayName;
@@ -143,8 +200,13 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
     };
   });
 
+  // Sort by value (descending) and slice
+  const sortedTransformedData = allTransformedData.sort((a, b) => b.value - a.value);
+  const transformedData = sortedTransformedData.slice(0, pageSize);
+  const otherItems = sortedTransformedData.slice(pageSize);
+
   const otherData = otherItems.length > 0 ? otherItems.reduce((acc, item) => {
-    acc.value += item?.data?.[0]?.value?.[1] || 0;
+    acc.value += item.value;
     return acc;
   }, {
     id: "other",

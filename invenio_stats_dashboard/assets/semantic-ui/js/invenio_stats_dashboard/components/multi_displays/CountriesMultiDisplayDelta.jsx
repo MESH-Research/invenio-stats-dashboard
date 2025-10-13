@@ -39,13 +39,16 @@ const CountriesMultiDisplayDelta = ({
 
   // Extract and process countries data using DELTA data (period-restricted)
   const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, true, true);
+  const globalData = extractData(stats, null, 'global', 'views', dateRange, true, true);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformCountryMultiDisplayData(
     rawCountries,
     pageSize,
     "metadata.country.id",
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    true // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -61,6 +64,9 @@ const CountriesMultiDisplayDelta = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={true}
+      dateRangeEnd={dateRange?.end}
+      metricType="views"
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

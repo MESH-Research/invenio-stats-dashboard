@@ -84,6 +84,9 @@ const StatsMultiDisplay = ({
   hasData = true,
   maxHeight = null,
   hideOtherInCharts = false,
+  isDelta = false,
+  dateRangeEnd = null,
+  metricType = 'records',
 }) => {
   const [viewMode, setViewMode] = useState(defaultViewMode);
   const availableViewModes = Object.keys(chartOptions);
@@ -177,6 +180,9 @@ const StatsMultiDisplay = ({
             rows={rows}
             labelIcon={labelIcon}
             maxHeight={maxHeight}
+            isDelta={isDelta}
+            dateRangeEnd={dateRangeEnd}
+            metricType={metricType}
           />
         ) : (
           <ReactECharts
@@ -206,6 +212,9 @@ StatsMultiDisplay.propTypes = {
   hasData: PropTypes.bool,
   maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   hideOtherInCharts: PropTypes.bool,
+  isDelta: PropTypes.bool,
+  dateRangeEnd: PropTypes.string,
+  metricType: PropTypes.string,
 };
 
 export { StatsMultiDisplay };

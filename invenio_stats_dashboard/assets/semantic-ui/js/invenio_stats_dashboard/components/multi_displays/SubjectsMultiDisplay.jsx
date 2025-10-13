@@ -38,13 +38,16 @@ const SubjectsMultiDisplay = ({
   }, [dateRange]);
 
   const rawSubjects = extractData(stats, 'added', 'subjects', 'records', dateRange, false, false);
+  const globalData = extractData(stats, 'added', 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawSubjects,
     pageSize,
     'metadata.subjects.subject.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -64,6 +67,8 @@ const SubjectsMultiDisplay = ({
       defaultViewMode={default_view}
       isLoading={isLoading}
       hasData={hasData}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

@@ -39,13 +39,16 @@ const AffiliationsMultiDisplay = ({
 
   // Extract and process affiliations data
   const rawAffiliations = extractData(stats, recordStartBasis, 'affiliations', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawAffiliations,
     pageSize,
     'metadata.affiliations.affiliation',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -66,6 +69,8 @@ const AffiliationsMultiDisplay = ({
       defaultViewMode={default_view || available_views[0]}
       isLoading={isLoading}
       hasData={hasData}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

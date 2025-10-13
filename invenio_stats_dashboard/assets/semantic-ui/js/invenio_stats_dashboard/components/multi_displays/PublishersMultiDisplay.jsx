@@ -39,13 +39,16 @@ const PublishersMultiDisplay = ({
 
   // Extract and process publishers data
   const rawPublishers = extractData(stats, recordStartBasis, 'publishers', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawPublishers,
     pageSize,
     'metadata.publisher',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -61,6 +64,8 @@ const PublishersMultiDisplay = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

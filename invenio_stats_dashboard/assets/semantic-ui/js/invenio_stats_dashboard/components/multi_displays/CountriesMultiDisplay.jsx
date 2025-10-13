@@ -39,13 +39,16 @@ const TopCountriesMultiDisplay = ({
 
   // Extract and process countries data
   const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, false, true);
+  const globalData = extractData(stats, null, 'global', 'views', dateRange, false, true);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformCountryMultiDisplayData(
     rawCountries,
     pageSize,
     "metadata.country.id",
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -61,6 +64,9 @@ const TopCountriesMultiDisplay = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
+      metricType="views"
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

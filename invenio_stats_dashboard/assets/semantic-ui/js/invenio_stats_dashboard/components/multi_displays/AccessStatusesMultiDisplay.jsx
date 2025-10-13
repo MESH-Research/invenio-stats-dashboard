@@ -38,13 +38,16 @@ const AccessStatusesMultiDisplay = ({
   }, [dateRange]);
 
   const rawAccessStatuses = extractData(stats, recordStartBasis, 'accessStatuses', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawAccessStatuses,
     pageSize,
     'metadata.access_status.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -64,6 +67,8 @@ const AccessStatusesMultiDisplay = ({
       defaultViewMode={default_view}
       isLoading={isLoading}
       hasData={hasData}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

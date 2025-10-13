@@ -39,13 +39,16 @@ const FundersMultiDisplay = ({
 
   // Extract and process funders data
   const rawFunders = extractData(stats, recordStartBasis, 'funders', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawFunders,
     pageSize,
     'metadata.funding.funder',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -65,6 +68,8 @@ const FundersMultiDisplay = ({
       defaultViewMode={default_view}
       isLoading={isLoading}
       hasData={hasData}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

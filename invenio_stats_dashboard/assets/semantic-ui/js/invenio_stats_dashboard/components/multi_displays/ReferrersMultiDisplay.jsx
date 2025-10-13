@@ -29,12 +29,16 @@ const TopReferrersMultiDisplay = ({
   const { stats, dateRange } = useStatsDashboard();
 
   const rawReferrers = extractData(stats, null, 'referrersByView', 'views', dateRange, false, true);
+  const globalData = extractData(stats, null, 'global', 'views', dateRange, false, true);
 
   const { transformedData, otherData, totalCount } = transformMultiDisplayData(
     rawReferrers,
     pageSize,
     "metadata.referrer.id",
     CHART_COLORS.secondary,
+    false, // hideOtherInCharts
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -49,6 +53,9 @@ const TopReferrersMultiDisplay = ({
       rows={rowsWithLinks}
       chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
+      metricType="views"
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

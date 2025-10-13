@@ -39,13 +39,16 @@ const TopLanguagesMultiDisplay = ({
 
   // Extract and process languages data
   const rawLanguages = extractData(stats, recordStartBasis, 'languages', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawLanguages,
     pageSize,
     'metadata.language.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -59,8 +62,10 @@ const TopLanguagesMultiDisplay = ({
       label={"languages"}
       headers={headers}
       rows={rowsWithLinks}
-        chartOptions={chartOptions}
+      chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

@@ -513,7 +513,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "TopCountriesMultiDisplay",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Countries",
+                                    "title": "Top Countries by Visits",
                                     "pageSize": 6,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -524,7 +524,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "TopReferrersMultiDisplay",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Referrer Domains",
+                                    "title": "Top Referrers by Visits",
                                     "pageSize": 6,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "pie",

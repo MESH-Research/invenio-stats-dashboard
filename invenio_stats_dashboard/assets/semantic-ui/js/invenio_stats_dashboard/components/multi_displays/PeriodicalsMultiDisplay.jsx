@@ -39,13 +39,16 @@ const PeriodicalsMultiDisplay = ({
 
   // Extract and process periodicals data
   const rawPeriodicals = extractData(stats, recordStartBasis, 'periodicals', 'records', dateRange, false, false);
+  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
     rawPeriodicals,
     pageSize,
     'custom_fields.journal\\:journal.title',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    globalData,
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -61,6 +64,8 @@ const PeriodicalsMultiDisplay = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
