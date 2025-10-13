@@ -36,8 +36,15 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
 
   const totalCount = rawData.reduce((sum, item) => sum + item?.data?.[0]?.value?.[1] || 0, 0);
 
-  const topXItems = rawData.slice(0, pageSize);
-  const otherItems = rawData.slice(pageSize);
+  // Sort items by value (descending) before limiting
+  const sortedData = rawData.sort((a, b) => {
+    const valueA = a?.data?.[0]?.value?.[1] || 0;
+    const valueB = b?.data?.[0]?.value?.[1] || 0;
+    return valueB - valueA; // Descending order
+  });
+
+  const topXItems = sortedData.slice(0, pageSize);
+  const otherItems = sortedData.slice(pageSize);
 
   const transformedData = topXItems.map((item, index) => {
     const value = item?.data?.[0]?.value?.[1] || 0;
@@ -109,8 +116,15 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
 
   const totalCount = rawData.reduce((sum, item) => sum + item?.data?.[0]?.value?.[1] || 0, 0);
 
-  const topXItems = rawData.slice(0, pageSize);
-  const otherItems = rawData.slice(pageSize);
+  // Sort items by value (descending) before limiting
+  const sortedData = rawData.sort((a, b) => {
+    const valueA = a?.data?.[0]?.value?.[1] || 0;
+    const valueB = b?.data?.[0]?.value?.[1] || 0;
+    return valueB - valueA; // Descending order
+  });
+
+  const topXItems = sortedData.slice(0, pageSize);
+  const otherItems = sortedData.slice(pageSize);
 
   const transformedData = topXItems.map((item, index) => {
     const value = item?.data?.[0]?.value?.[1] || 0;
