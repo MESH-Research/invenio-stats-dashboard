@@ -25,6 +25,7 @@ const SubjectsMultiDisplayDelta = ({
   headers = [i18next.t("Subject"), i18next.t("Works")],
   default_view = "pie",
   available_views = ["pie", "bar", "list"],
+  hideOtherInCharts = false,
   ...otherProps
 }) => {
   const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
@@ -44,14 +45,14 @@ const SubjectsMultiDisplayDelta = ({
     pageSize,
     'metadata.subjects.subject.id',
     CHART_COLORS.secondary,
-    false // hideOtherInCharts - set to true to enable the new behavior
+    hideOtherInCharts
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   // Check if there's any data to display
   const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData);
+  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
   return (
     <StatsMultiDisplay
@@ -68,6 +69,7 @@ const SubjectsMultiDisplayDelta = ({
       label={"subjects"}
       isLoading={isLoading}
       hasData={hasData}
+      hideOtherInCharts={hideOtherInCharts}
       {...otherProps}
     />
   );
@@ -80,6 +82,7 @@ SubjectsMultiDisplayDelta.propTypes = {
   default_view: PropTypes.string,
   pageSize: PropTypes.number,
   available_views: PropTypes.arrayOf(PropTypes.string),
+  hideOtherInCharts: PropTypes.bool,
 };
 
 export { SubjectsMultiDisplayDelta };

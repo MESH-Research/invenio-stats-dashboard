@@ -45,7 +45,7 @@ const FundersMultiDisplay = ({
     pageSize,
     'metadata.funding.funder',
     CHART_COLORS.secondary,
-    false // hideOtherInCharts - set to true to enable the new behavior
+    hideOtherInCharts
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 

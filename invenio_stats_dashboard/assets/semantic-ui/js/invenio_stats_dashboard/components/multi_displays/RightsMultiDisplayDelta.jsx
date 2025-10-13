@@ -70,6 +70,7 @@ const RightsMultiDisplayDelta = ({
       label={"rights"}
       isLoading={isLoading}
       hasData={hasData}
+      hideOtherInCharts={hideOtherInCharts}
       {...otherProps}
     />
   );

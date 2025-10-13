@@ -239,6 +239,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Work Types",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -260,6 +261,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -270,6 +272,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -280,6 +283,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -290,6 +294,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                         ],
@@ -349,6 +354,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Work Types Added",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -359,6 +365,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "pie",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -369,6 +376,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -379,6 +387,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -389,6 +398,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -399,6 +409,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -409,6 +420,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -419,6 +431,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -429,6 +442,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -439,6 +453,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                         ],
@@ -502,6 +517,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 6,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -512,6 +528,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 6,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "pie",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                         ],
@@ -590,6 +607,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 6,
                                     "available_views": ["list"],
                                     "maxHeight": "300px",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                             {
@@ -600,6 +618,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "pageSize": 6,
                                     "available_views": ["list"],
                                     "maxHeight": "300px",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                         ],

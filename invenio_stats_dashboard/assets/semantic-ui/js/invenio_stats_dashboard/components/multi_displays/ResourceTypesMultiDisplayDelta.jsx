@@ -25,6 +25,7 @@ const ResourceTypesMultiDisplayDelta = ({
   default_view = "pie",
   pageSize = 10,
   available_views = ["pie", "bar", "list"],
+  hideOtherInCharts = false,
   ...otherProps
 }) => {
   const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
@@ -44,12 +45,12 @@ const ResourceTypesMultiDisplayDelta = ({
     pageSize,
     'metadata.resource_type.id',
     CHART_COLORS.secondary,
-    false // hideOtherInCharts - set to true to enable the new behavior
+    hideOtherInCharts
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
   const getChartOptions = () => {
-    return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData);
+    return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
   };
 
   return (
@@ -62,6 +63,7 @@ const ResourceTypesMultiDisplayDelta = ({
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
+      hideOtherInCharts={hideOtherInCharts}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
@@ -81,6 +83,7 @@ ResourceTypesMultiDisplayDelta.propTypes = {
   rows: PropTypes.array,
   default_view: PropTypes.string,
   available_views: PropTypes.arrayOf(PropTypes.string),
+  hideOtherInCharts: PropTypes.bool,
 };
 
 export { ResourceTypesMultiDisplayDelta };
