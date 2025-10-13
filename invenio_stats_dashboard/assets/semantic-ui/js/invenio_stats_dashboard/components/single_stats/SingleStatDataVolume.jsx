@@ -4,21 +4,29 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect, useMemo } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { SingleStatBox } from '../shared_components/SingleStatBox';
-import { formatNumber, formatDate } from '../../utils';
-import { useStatsDashboard } from '../../context/StatsDashboardContext';
-import { extractRecordDeltaValue } from '../../utils/singleStatHelpers';
+import { SingleStatBox } from "../shared_components/SingleStatBox";
+import { formatNumber, formatDate } from "../../utils";
+import { useStatsDashboard } from "../../context/StatsDashboardContext";
+import { extractRecordDeltaValue } from "../../utils/singleStatHelpers";
 
-const SingleStatDataVolume = ({ title = i18next.t("Data Volume"), icon = "database", compactThreshold = 1_000_000 }) => {
+const SingleStatDataVolume = ({
+  title = i18next.t("Data Volume"),
+  icon = "database",
+  compactThreshold = 1_000_000,
+}) => {
   const { stats, dateRange, recordStartBasis, isLoading } = useStatsDashboard();
   const [description, setDescription] = useState(null);
 
   useEffect(() => {
     if (dateRange) {
-      setDescription(i18next.t("from") + " " + formatDate(dateRange.start, 'day', true, dateRange.end) + " " + i18next.t("to") + " " + formatDate(dateRange.end, 'day', true));
+      setDescription(
+        i18next.t("from") +
+          " " +
+          formatDate(dateRange.start, "day", true, dateRange.end),
+      );
     }
   }, [dateRange]);
 
@@ -27,16 +35,16 @@ const SingleStatDataVolume = ({ title = i18next.t("Data Volume"), icon = "databa
     return extractRecordDeltaValue(
       stats,
       recordStartBasis,
-      'dataVolume',
-      'global',
-      dateRange
+      "dataVolume",
+      "global",
+      dateRange,
     );
   }, [stats, recordStartBasis, dateRange]);
 
   return (
     <SingleStatBox
       title={title}
-      value={formatNumber(value, 'filesize', { compactThreshold })}
+      value={formatNumber(value, "filesize", { compactThreshold })}
       icon={icon}
       isLoading={isLoading}
       {...(description && { description })}
