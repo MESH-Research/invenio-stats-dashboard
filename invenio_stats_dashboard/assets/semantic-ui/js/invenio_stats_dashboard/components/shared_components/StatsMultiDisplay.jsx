@@ -83,7 +83,6 @@ const StatsMultiDisplay = ({
   isLoading = false,
   hasData = true,
   maxHeight = null,
-  hideOtherInCharts = false,
   isDelta = false,
   dateRangeEnd = null,
   metricType = "records",
@@ -113,7 +112,7 @@ const StatsMultiDisplay = ({
       },
     ]),
   );
-  console.log("enhancedChartOptions", enhancedChartOptions);
+  console.log("isLoading in StatsMultiDisplay: ", isLoading);
 
   return (
     <div

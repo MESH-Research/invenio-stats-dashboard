@@ -42,10 +42,9 @@ const StatsDashboardPage = ({ dashboardConfig, stats: initialStats, community = 
       return null;
     }
 
-    // Pass loading state to components that support it
+    // Pass props to components
     const componentProps = {
       ...componentConfig.props,
-      isLoading: isLoading && !stats, // Only show loading when no cached data
     };
 
     return (

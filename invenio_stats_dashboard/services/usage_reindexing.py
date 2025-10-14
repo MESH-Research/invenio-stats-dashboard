@@ -1854,6 +1854,7 @@ class EventReindexingService:
             batch_was_full = original_hits_count == self.batch_size
             if batch_was_full:
                 try:
+                    # FIXME: This search is raising an error consistently
                     count_search = Search(using=self.client, index=source_index)
                     count_search = count_search.sort("timestamp", "_id")
                     count_search = count_search.extra(

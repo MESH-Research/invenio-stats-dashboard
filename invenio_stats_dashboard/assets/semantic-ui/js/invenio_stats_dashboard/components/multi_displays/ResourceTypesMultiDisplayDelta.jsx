@@ -49,6 +49,9 @@ const ResourceTypesMultiDisplayDelta = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
+  // Check if there's any data to display
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
+
   const getChartOptions = () => {
     return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
   };
@@ -64,6 +67,8 @@ const ResourceTypesMultiDisplayDelta = ({
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
       hideOtherInCharts={hideOtherInCharts}
+      isLoading={isLoading}
+      hasData={hasData}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

@@ -9,13 +9,13 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS } from "../../constants";
 import { formatDate } from "../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../utils/multiDisplayHelpers";
 
 const ResourceTypesMultiDisplay = ({
@@ -28,32 +28,69 @@ const ResourceTypesMultiDisplay = ({
   hideOtherInCharts = false,
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
+
+  console.log("isLoading is", isLoading);
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(
+        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
+      );
     }
   }, [dateRange]);
 
   // Extract and process resource types data
-  const rawResourceTypes = extractData(stats, recordStartBasis, 'resourceTypes', 'records', dateRange, false, false);
-  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
+  const rawResourceTypes = extractData(
+    stats,
+    recordStartBasis,
+    "resourceTypes",
+    "records",
+    dateRange,
+    false,
+    false,
+  );
+  const globalData = extractData(
+    stats,
+    recordStartBasis,
+    "global",
+    "records",
+    dateRange,
+    false,
+    false,
+  );
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
+  const {
+    transformedData,
+    otherData,
+    originalOtherData,
+    totalCount,
+    otherPercentage,
+  } = transformMultiDisplayData(
     rawResourceTypes,
     pageSize,
-    'metadata.resource_type.id',
+    "metadata.resource_type.id",
     CHART_COLORS.secondary,
     hideOtherInCharts,
     globalData,
-    false // isDelta = false for snapshot data
+    false, // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
+  // Check if there's any data to display
+  const hasData =
+    transformedData.length > 0 || (otherData && otherData.value > 0);
+
   const getChartOptions = () => {
-    return generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+    return generateMultiDisplayChartOptions(
+      transformedData,
+      otherData,
+      available_views,
+      otherPercentage,
+      originalOtherData,
+      hideOtherInCharts,
+    );
   };
 
   return (
@@ -66,15 +103,20 @@ const ResourceTypesMultiDisplay = ({
       rows={rowsWithLinks}
       chartOptions={getChartOptions()}
       defaultViewMode={default_view}
-      isDelta={false}
-      dateRangeEnd={dateRange?.end}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
-            window.open(`/search?q=metadata.resource_type.id:${params.data.id}`, '_blank');
+            window.open(
+              `/search?q=metadata.resource_type.id:${params.data.id}`,
+              "_blank",
+            );
           }
-        }
+        },
       }}
+      isLoading={isLoading}
+      hasData={hasData}
+      isDelta={false}
+      dateRangeEnd={dateRange?.end}
       {...otherProps}
     />
   );
