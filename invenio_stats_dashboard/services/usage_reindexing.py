@@ -239,8 +239,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
         """Get last event_id and timestamp for a reindexing task."""
         try:
             response = self.client.get(
-                index=prefix_index(self.bookmark_index),
-                id=task_id
+                index=prefix_index(self.bookmark_index), id=task_id
             )
             if response.get("found"):
                 source = response["_source"]
@@ -445,8 +444,7 @@ class EventReindexingService:
             current_app.logger.error(error_msg)
             if month_filter:
                 current_app.logger.info(
-                    f"No {event_type} indices match the month filter: "
-                    f"{month_filter}"
+                    f"No {event_type} indices match the month filter: {month_filter}"
                 )
             else:
                 current_app.logger.warning(f"No monthly indices found for {event_type}")
@@ -517,7 +515,7 @@ class EventReindexingService:
                 else:
                     # Not fresh start: just use the existing index
                     current_app.logger.info(
-                        f"Using existing enriched index: " f"{new_index_name}"
+                        f"Using existing enriched index: {new_index_name}"
                     )
                 return new_index_name
             else:
@@ -872,8 +870,7 @@ class EventReindexingService:
 
             if mismatches:
                 current_app.logger.error(
-                    f"Spot-check found {len(mismatches)} mismatches: "
-                    f"{mismatches[:5]}"
+                    f"Spot-check found {len(mismatches)} mismatches: {mismatches[:5]}"
                 )
                 spot_check_results["errors"].extend(mismatches)
                 spot_check_results["details"]["field_mismatches"] = mismatches
@@ -1067,13 +1064,11 @@ class EventReindexingService:
                 # Index these recent events to the backup index
                 actions = []
                 for event in recent_events:
-                    actions.append(
-                        {
-                            "_index": backup_index,
-                            "_id": event["_id"],
-                            "_source": event["_source"],
-                        }
-                    )
+                    actions.append({
+                        "_index": backup_index,
+                        "_id": event["_id"],
+                        "_source": event["_source"],
+                    })
 
                 if actions:
                     from opensearchpy.helpers import bulk
@@ -1310,24 +1305,22 @@ class EventReindexingService:
                 using=self.client, index=prefix_index("rdmrecords-records")
             )
             meta_search = meta_search.filter("terms", id=record_ids)
-            meta_search = meta_search.source(
-                [
-                    "access.status",
-                    "created",
-                    "custom_fields.journal:journal.title.keyword",
-                    "files.types",
-                    "id",
-                    "metadata.resource_type",
-                    "metadata.languages",
-                    "metadata.subjects",
-                    "metadata.publisher",
-                    "metadata.rights",
-                    "metadata.creators.affiliations",
-                    "metadata.contributors.affiliations",
-                    "metadata.funding.funder",
-                    "parent.communities.ids",
-                ]
-            )
+            meta_search = meta_search.source([
+                "access.status",
+                "created",
+                "custom_fields.journal:journal.title.keyword",
+                "files.types",
+                "id",
+                "metadata.resource_type",
+                "metadata.languages",
+                "metadata.subjects",
+                "metadata.publisher",
+                "metadata.rights",
+                "metadata.creators.affiliations",
+                "metadata.contributors.affiliations",
+                "metadata.funding.funder",
+                "parent.communities.ids",
+            ])
             meta_search = meta_search.extra(size=len(record_ids))
 
             meta_hits = meta_search.execute().hits.hits
@@ -1366,9 +1359,9 @@ class EventReindexingService:
                 f"Searching for community events using pattern: {search_pattern}"
             )
             community_search = Search(using=self.client, index=search_pattern)
-            community_search = community_search.query(
-                {"terms": {"record_id": record_ids}}
-            )
+            community_search = community_search.query({
+                "terms": {"record_id": record_ids}
+            })
 
             record_agg = community_search.aggs.bucket(
                 "by_record", "terms", field="record_id", size=1000
@@ -1656,13 +1649,11 @@ class EventReindexingService:
             # Merge event with enrichment data (fast dictionary merge)
             enriched_event = {**event, **enrichment_data}
 
-            enriched_docs.append(
-                {
-                    "_index": target_index,
-                    "_id": hit["_id"],  # Preserve the original document ID
-                    "_source": enriched_event,
-                }
-            )
+            enriched_docs.append({
+                "_index": target_index,
+                "_id": hit["_id"],  # Preserve the original document ID
+                "_source": enriched_event,
+            })
 
         return enriched_docs
 
@@ -1730,6 +1721,12 @@ class EventReindexingService:
             month: The month being migrated (YYYY-MM format)
             last_processed_id: The last processed event ID
             last_processed_timestamp: The timestamp of the last processed event
+            previous_batch_ids: A set of ids at the end of the previous
+                batch if we are continuing--for use in detecting overlaps
+            search_after_point: A list of document ids to use as the
+                search_after marker for the next batch, deliberately set
+                so that we will have an overlap allowing for disambiguation
+                at the overlap boundary.
 
         Returns:
             Tuple of (processed_count, last_event_id, should_continue)
@@ -1990,13 +1987,11 @@ class EventReindexingService:
 
         def add_operational_error(error_type: str, error_message: str):
             """Helper to add operational errors to the results."""
-            results["operational_errors"].append(
-                {
-                    "type": error_type,
-                    "message": error_message,
-                    "timestamp": arrow.utcnow().isoformat(),
-                }
-            )
+            results["operational_errors"].append({
+                "type": error_type,
+                "message": error_message,
+                "timestamp": arrow.utcnow().isoformat(),
+            })
 
         # Store initial bookmark for potential rollback
         initial_bookmark = self.reindexing_bookmark_api.get_bookmark(
@@ -2779,14 +2774,14 @@ class EventReindexingService:
                     )
 
             # Find completed migrations (enriched indices without old indices)
-            new_indices = set(
-                [i for i in all_monthly_indices if i not in old_monthly_indices]
-            )
+            new_indices = set([
+                i for i in all_monthly_indices if i not in old_monthly_indices
+            ])
             matched_indices = set([i["enriched_index"] for i in counts["old_indices"]])
 
             for index in new_indices - matched_indices:
                 completed_idx: MigratedMonthCounts = {
-                    "source_index": f"[{index.replace("-v2.0.0", "")}] (deleted)",
+                    "source_index": f"[{index.replace('-v2.0.0', '')}] (deleted)",
                     "index": index,
                     "old_count": 0,
                     "migrated_count": 0,

@@ -52,7 +52,6 @@ const RightsMultiDisplayDelta = ({
   // Check if there's any data to display
   const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
-
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
   return (
