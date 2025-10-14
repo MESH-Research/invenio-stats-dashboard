@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Segment, Dropdown, Button, Icon } from "semantic-ui-react";
 import PropTypes from "prop-types";
-import { downloadStatsSeriesWithFilename, SERIALIZATION_FORMATS } from "../../api/api";
+import {
+  downloadStatsSeriesWithFilename,
+  SERIALIZATION_FORMATS,
+} from "../../api/api";
 import { DASHBOARD_TYPES } from "../../constants";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
 
@@ -12,7 +15,8 @@ const ReportSelector = ({ defaultFormat }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Get current dashboard context
-  const { communityId, dashboardType, dateRange, dateBasis } = useStatsDashboard();
+  const { communityId, dashboardType, dateRange, dateBasis } =
+    useStatsDashboard();
 
   const handleReportChange = (e, { value }) => {
     setSelectedReport(value);
@@ -27,10 +31,10 @@ const ReportSelector = ({ defaultFormat }) => {
     try {
       // Map UI format names to API format constants
       const formatMapping = {
-        'csv': SERIALIZATION_FORMATS.CSV,
-        'excel': SERIALIZATION_FORMATS.EXCEL,
-        'json': SERIALIZATION_FORMATS.JSON_BROTLI,
-        'xml': SERIALIZATION_FORMATS.XML,
+        csv: SERIALIZATION_FORMATS.CSV,
+        excel: SERIALIZATION_FORMATS.EXCEL,
+        json: SERIALIZATION_FORMATS.JSON_BROTLI,
+        xml: SERIALIZATION_FORMATS.XML,
       };
 
       const format = formatMapping[selectedReport];
@@ -39,21 +43,25 @@ const ReportSelector = ({ defaultFormat }) => {
       }
 
       // Format dates for API
-      const startDate = dateRange?.start ? dateRange.start.toISOString().split('T')[0] : null;
-      const endDate = dateRange?.end ? dateRange.end.toISOString().split('T')[0] : null;
+      const startDate = dateRange?.start
+        ? dateRange.start.toISOString().split("T")[0]
+        : null;
+      const endDate = dateRange?.end
+        ? dateRange.end.toISOString().split("T")[0]
+        : null;
 
       await downloadStatsSeriesWithFilename({
-        communityId: communityId || 'global',
+        communityId: communityId || "global",
         dashboardType: dashboardType || DASHBOARD_TYPES.GLOBAL,
         format,
         startDate,
         endDate,
-        dateBasis: dateBasis || 'added',
+        dateBasis: dateBasis || "added",
       });
 
       console.log(`Successfully downloaded ${selectedReport} report`);
     } catch (error) {
-      console.error('Error downloading report:', error);
+      console.error("Error downloading report:", error);
       // You could add a toast notification here
     } finally {
       setIsDownloading(false);
@@ -62,23 +70,29 @@ const ReportSelector = ({ defaultFormat }) => {
 
   const handleMenuOpen = () => {
     setIsOpen(true);
-    const menuElement = document.querySelector('.stats-dashboard-report-dropdown .menu');
+    const menuElement = document.querySelector(
+      ".stats-dashboard-report-dropdown .menu",
+    );
     if (menuElement) {
-      menuElement.style.position = 'absolute';
-      menuElement.style.zIndex = '1000';
+      menuElement.style.position = "absolute";
+      menuElement.style.zIndex = "1000";
     }
   };
 
   const handleMenuClose = () => {
     setIsOpen(false);
     setTimeout(() => {
-      const menuElement = document.querySelector('.stats-dashboard-report-dropdown .menu');
-      const selectorElement = document.querySelector('.stats-dashboard-report-dropdown');
+      const menuElement = document.querySelector(
+        ".stats-dashboard-report-dropdown .menu",
+      );
+      const selectorElement = document.querySelector(
+        ".stats-dashboard-report-dropdown",
+      );
       if (menuElement) {
-        menuElement.style = '';
+        menuElement.style = "";
       }
       if (selectorElement) {
-        selectorElement.style = '';
+        selectorElement.style = "";
       }
     }, 100);
   };
@@ -106,17 +120,17 @@ const ReportSelector = ({ defaultFormat }) => {
         options={[
           {
             key: "csv",
-            text: "CSV (Compressed)",
+            text: "CSV",
             value: "csv",
           },
           {
             key: "excel",
-            text: "Excel (Compressed)",
+            text: "Excel",
             value: "excel",
           },
           {
             key: "json",
-            text: "JSON (Compressed)",
+            text: "JSON",
             value: "json",
           },
           {
@@ -132,16 +146,15 @@ const ReportSelector = ({ defaultFormat }) => {
       />
       {selectedReport && (
         <Button
-          className="stats-dashboard-report-button"
+          className="stats-dashboard-report-button mt-10"
+          content={i18next.t("Download")}
           onClick={handleReportDownload}
           classNames="mt-10"
-          icon
+          icon="download"
           labelPosition="right"
           loading={isDownloading}
           disabled={isDownloading}
-        >
-          {i18next.t("Download")}
-        </Button>
+        />
       )}
     </Segment>
   );

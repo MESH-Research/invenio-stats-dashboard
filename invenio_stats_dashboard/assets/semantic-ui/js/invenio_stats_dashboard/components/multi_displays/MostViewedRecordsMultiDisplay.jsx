@@ -4,20 +4,20 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { StatsMultiDisplay } from '../shared_components/StatsMultiDisplay';
-import { formatNumber } from '../../utils';
-import { CHART_COLORS } from '../../constants';
-import { fetchRecords } from '../../api/api';
-import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
+import { formatNumber } from "../../utils";
+import { CHART_COLORS } from "../../constants";
+import { fetchRecords } from "../../api/api";
+import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../utils/multiDisplayHelpers";
-import { createTruncatedTitle } from '../../utils/textTruncation';
+import { createTruncatedTitle } from "../../utils/textTruncation";
 
 const MostViewedRecordsMultiDisplay = ({
   title = i18next.t("Most Viewed Works"),
@@ -36,10 +36,15 @@ const MostViewedRecordsMultiDisplay = ({
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchRecords('mostviewed', 1, pageSize, dateRange);
+        const response = await fetchRecords(
+          "mostviewed",
+          1,
+          pageSize,
+          dateRange,
+        );
         setRecords(response.hits?.hits || []);
       } catch (err) {
-        console.error('Error loading most viewed records:', err);
+        console.error("Error loading most viewed records:", err);
         setError(err);
       } finally {
         setIsLoading(false);
@@ -51,30 +56,39 @@ const MostViewedRecordsMultiDisplay = ({
 
   // Transform the API response into the format expected by StatsMultiDisplay
   const transformedData = records.map((record, index) => ({
-    name: record.metadata?.title || 'Untitled',
+    name: record.metadata?.title || "Untitled",
     value: record.stats?.all_versions?.views || 0, // Use stats.all_versions.views
     percentage: 0, // We'll calculate this if needed
     link: record.links?.self_html,
     itemStyle: {
-      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length]
-    }
+      color: CHART_COLORS.secondary[index % CHART_COLORS.secondary.length],
+    },
   }));
 
   const rowsWithLinks = transformedData.map(({ name, value, link }) => [
     null,
     createTruncatedTitle(
       name,
-      link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : null,
-      60
+      link ? (
+        <a href={link} target="_blank" rel="noopener noreferrer">
+          {name}
+        </a>
+      ) : null,
+      60,
     ),
-    `${formatNumber(value, 'compact')}`
+    `${formatNumber(value, "compact")}`,
   ]);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, null, available_views);
+  const chartOptions = generateMultiDisplayChartOptions(
+    transformedData,
+    null,
+    available_views,
+  );
 
   return (
     <StatsMultiDisplay
-      title={title || i18next.t('Most Viewed Records')}
+      title={title || i18next.t("Most Viewed Records")}
+      subtitle={i18next.t("all time")}
       icon="eye"
       label="viewed_records"
       headers={[i18next.t("Record"), i18next.t("Views")]}
@@ -88,9 +102,9 @@ const MostViewedRecordsMultiDisplay = ({
       onEvents={{
         click: (params) => {
           if (params.data && params.data.link) {
-            window.open(params.data.link, '_blank');
+            window.open(params.data.link, "_blank");
           }
-        }
+        },
       }}
     />
   );

@@ -110,14 +110,16 @@
     }
 
     // General link styles for record titles
-    .stats-multi-display-container a {
-      text-decoration: none;
-      border-bottom: 1px dotted @stats-text-accent;
-      color: @stats-text;
+    .stats-multi-display-container {
+      a {
+        text-decoration: none;
+        border-bottom: 1px dotted @stats-text-accent;
+        color: @stats-text-accent !important;
 
-      &:hover {
-        color: @stats-primary;
-        border-bottom-color: @stats-primary;
+        &:hover {
+          color: @stats-primary;
+          border-bottom-color: @stats-primary;
+        }
       }
     }
   }
@@ -312,6 +314,26 @@
   .stats-multi-display-segment {
     position: relative;
     min-height: 300px;
+    max-height: 340px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    table {
+      tr {
+        td:first-child {
+          padding-left: 1rem;
+        }
+        th:last-child {
+          padding-right: 0.5rem;
+        }
+      }
+    }
+
+    .echarts-for-react {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-bottom: 1rem;
+    }
   }
 
   .stats-map {
@@ -375,11 +397,11 @@
           }
           &:first-child {
             .field {
-            display: flex;
-            align-items: center;
-            height: 100%;
-            b {
-              display: block;
+              display: flex;
+              align-items: center;
+              height: 100%;
+              b {
+                display: block;
               }
             }
           }

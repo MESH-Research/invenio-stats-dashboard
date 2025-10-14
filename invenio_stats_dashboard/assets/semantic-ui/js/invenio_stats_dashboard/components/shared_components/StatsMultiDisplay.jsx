@@ -86,7 +86,7 @@ const StatsMultiDisplay = ({
   hideOtherInCharts = false,
   isDelta = false,
   dateRangeEnd = null,
-  metricType = 'records',
+  metricType = "records",
 }) => {
   const [viewMode, setViewMode] = useState(defaultViewMode);
   const availableViewModes = Object.keys(chartOptions);
@@ -152,12 +152,10 @@ const StatsMultiDisplay = ({
               </Button>
             ))}
           {title}
-          {subtitle && (
-            <Header.Subheader>{subtitle}</Header.Subheader>
-          )}
+          {subtitle && <Header.Subheader>{subtitle}</Header.Subheader>}
         </Header>
       )}
-      <Segment attached className="stats-multi-display-segment">
+      <Segment attached className="stats-multi-display-segment pr-0 pl-0 pb-0">
         {isLoading ? (
           <div className="stats-loading-container">
             <Loader active size="large" />
