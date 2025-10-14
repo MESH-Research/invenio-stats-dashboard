@@ -94,7 +94,6 @@ const StatsMultiDisplay = ({
     : title
       ? title.toLowerCase().replace(/\s+/g, "-")
       : "stats";
-  console.log("chartOptions", chartOptions);
 
   const handleViewChange = (mode) => {
     setViewMode(mode);
@@ -112,7 +111,6 @@ const StatsMultiDisplay = ({
       },
     ]),
   );
-  console.log("isLoading in StatsMultiDisplay: ", isLoading);
 
   return (
     <div

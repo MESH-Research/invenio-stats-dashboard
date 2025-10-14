@@ -9,13 +9,13 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS } from '../../constants';
+import { CHART_COLORS } from "../../constants";
 import { formatDate } from "../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../utils/multiDisplayHelpers";
 
 const AccessStatusesMultiDisplay = ({
@@ -33,27 +33,60 @@ const AccessStatusesMultiDisplay = ({
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(
+        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
+      );
     }
   }, [dateRange]);
 
-  const rawAccessStatuses = extractData(stats, recordStartBasis, 'accessStatuses', 'records', dateRange, false, false);
-  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
+  const rawAccessStatuses = extractData(
+    stats,
+    recordStartBasis,
+    "accessStatuses",
+    "records",
+    dateRange,
+    false,
+    false,
+  );
+  const globalData = extractData(
+    stats,
+    recordStartBasis,
+    "global",
+    "records",
+    dateRange,
+    false,
+    false,
+  );
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
+  const {
+    transformedData,
+    otherData,
+    originalOtherData,
+    totalCount,
+    otherPercentage,
+  } = transformMultiDisplayData(
     rawAccessStatuses,
     pageSize,
-    'metadata.access_status.id',
+    "metadata.access_status.id",
     CHART_COLORS.secondary,
     hideOtherInCharts,
     globalData,
-    false // isDelta = false for snapshot data
+    false, // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
+  const hasData =
+    !isLoading &&
+    (transformedData.length > 0 || (otherData && otherData.value > 0));
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+  const chartOptions = generateMultiDisplayChartOptions(
+    transformedData,
+    otherData,
+    available_views,
+    otherPercentage,
+    originalOtherData,
+    hideOtherInCharts,
+  );
 
   return (
     <StatsMultiDisplay
@@ -72,9 +105,9 @@ const AccessStatusesMultiDisplay = ({
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
-            window.open(params.data.link, '_blank');
+            window.open(params.data.link, "_blank");
           }
-        }
+        },
       }}
       {...otherProps}
     />
@@ -92,3 +125,4 @@ AccessStatusesMultiDisplay.propTypes = {
 };
 
 export { AccessStatusesMultiDisplay };
+

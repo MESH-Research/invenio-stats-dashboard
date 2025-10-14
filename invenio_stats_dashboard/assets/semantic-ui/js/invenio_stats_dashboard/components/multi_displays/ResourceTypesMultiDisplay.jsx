@@ -31,8 +31,6 @@ const ResourceTypesMultiDisplay = ({
   const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
 
-  console.log("isLoading is", isLoading);
-
   useEffect(() => {
     if (dateRange) {
       setSubtitle(

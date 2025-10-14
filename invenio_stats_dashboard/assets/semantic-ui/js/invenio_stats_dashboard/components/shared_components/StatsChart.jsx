@@ -609,7 +609,6 @@ const StatsChart = ({
     const aggregatedData = ChartDataAggregator.aggregateData(
       preparedSeries,
       granularity,
-      displaySeparately,
       isCumulative,
     );
 
@@ -623,6 +622,8 @@ const StatsChart = ({
     isCumulative,
     maxSeries,
   ]);
+
+  console.log("aggregatedData", aggregatedData);
 
   const seriesColorIndex = useMemo(
     () =>

@@ -278,7 +278,10 @@ export class ChartDataProcessor {
     // Merge series items by ID to avoid duplicates
     const mergedSeries = ChartDataProcessor.mergeSeriesById(seriesArray);
 
-    const filteredData = filterSeriesArrayByDate(mergedSeries, dateRange);
+    // Don't pass isCumulative to filterSeriesArrayByDate
+    // because we want to present data points for each time period,
+    // not just the latest data point for each series
+    const filteredData = filterSeriesArrayByDate(mergedSeries, dateRange, false);
     console.log("filteredData", filteredData);
 
     // Add names to the series based on the breakdown category or metric type
@@ -295,7 +298,7 @@ export class ChartDataProcessor {
       maxSeries,
     );
 
-    const finalSeries = ChartDataProcessor.fillMissingZeroPoints(
+    const finalSeries = ChartDataProcessor.fillMissingPoints(
       limitedSeries,
       dateRange,
       isCumulative,
@@ -380,7 +383,7 @@ export class ChartDataProcessor {
    * @param {boolean} isCumulative - Whether the data is cumulative (affects fill strategy)
    * @returns {Array} Array of series with missing zero points filled
    */
-  static fillMissingZeroPoints(series, dateRange, isCumulative = false) {
+  static fillMissingPoints(series, dateRange, isCumulative = false) {
     if (!dateRange || !dateRange.start || !dateRange.end || isCumulative) {
       return series; // Only fill zeros for delta data with a valid date range
     }
@@ -575,8 +578,8 @@ export const addSeriesNames =
   ChartDataProcessor.addSeriesNames.bind(ChartDataProcessor);
 export const limitSeriesByCount =
   ChartDataProcessor.limitSeriesByCount.bind(ChartDataProcessor);
-export const fillMissingZeroPoints =
-  ChartDataProcessor.fillMissingZeroPoints.bind(ChartDataProcessor);
+export const fillMissingPoints =
+  ChartDataProcessor.fillMissingPoints.bind(ChartDataProcessor);
 
 // Convenience exports for ChartFormatter methods
 export const formatXAxisLabel =
