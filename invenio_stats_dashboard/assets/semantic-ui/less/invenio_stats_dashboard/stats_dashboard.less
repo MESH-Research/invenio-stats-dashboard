@@ -54,12 +54,12 @@
       font-size: 1rem;
       display: block;
     }
-
-    .stats-chart-filter-selector {
-      color: @stats-text-accent !important;
-      border: 1px solid @stats-border;
-      box-shadow: none;
-    }
+    //
+    // .stats-chart-filter-selector {
+    //   color: @stats-text-accent !important;
+    //   border: 1px solid @stats-border;
+    //   box-shadow: none;
+    // }
 
     .top.attached.header {
       padding-left: 1.65rem;
@@ -79,19 +79,26 @@
         top: 1.65rem;
         left: 0;
       }
-      &.stats-multi-display-header {
-        .button {
-          float: right;
-          position: relative;
-          padding: 0.685rem 0.685rem;
-          top: -0.35rem;
-          color: @stats-text-accent !important;
-          border: 1px solid @stats-border;
-          box-shadow: none;
-          &.active {
-            background-color: @stats-background !important;
-            color: @stats-secondary !important;
-          }
+      .buttons {
+        position: absolute;
+        top: 2.25rem;
+        right: 6rem;
+      }
+      .button {
+        float: right;
+        position: relative;
+        padding: 0.685rem 0.685rem;
+        color: @stats-text-accent !important;
+        border: 1px solid @stats-border;
+        box-shadow: none;
+        &.active {
+          background-color: @stats-background !important;
+          color: @stats-secondary !important;
+        }
+        &.stats-chart-filter-selector {
+          position: absolute;
+          top: 2.25rem;
+          right: 2rem;
         }
       }
     }

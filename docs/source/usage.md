@@ -213,7 +213,8 @@ Each component accepts various properties through the `props` dictionary:
 - `pageSize` - Number of items to display per page (for tables/lists)
 
 **Chart-Specific Properties:**
-- `display_subcounts` - Array of subcount types to display (e.g., `["resource_types", "subjects"]`)
+- `display_subcounts` - Object mapping subcount types to their configuration (e.g., `{"resource_types": {"defaultLineDisplay": "stacked"}, "subjects": {}}`)
+- `defaultLineDisplay` - Default line chart display mode: `"stacked"` or `"overlapping"` (defaults to `"overlapping"`)
 
 **Multi-Display Properties:**
 - `available_views` - Array of available view types: `["pie", "bar", "list"]`
@@ -360,6 +361,41 @@ Components use a 16-column grid system. You can control layout by adjusting widt
     }
 ]
 ```
+
+**Example 4: Configuring Line Chart Display Modes**
+
+You can control the default display mode for line charts with multiple series:
+
+```python
+"components": [
+    {
+        "component": "TrafficStatsChart",
+        "width": 16,
+        "props": {
+            "title": "Daily Usage Statistics",
+            "height": 400,
+            "chartType": "line",
+            "defaultLineDisplay": "overlapping",  # Chart-level default
+            "display_subcounts": {
+                "resource_types": {"defaultLineDisplay": "stacked"},    # Per-subcount override
+                "subjects": {"defaultLineDisplay": "overlapping"},       # Explicit per-subcount setting
+                "funders": {}  # Uses chart-level default
+            }
+        }
+    }
+]
+```
+
+The `defaultLineDisplay` property accepts:
+- `"overlapping"` - Lines are displayed overlapping each other (default)
+- `"stacked"` - Lines are stacked on top of each other
+
+Priority order for determining the display mode:
+1. Per-subcount `defaultLineDisplay` setting (highest priority)
+2. Chart-level `defaultLineDisplay` setting
+3. `"overlapping"` (ultimate fallback)
+
+Users can still manually toggle between stacked and overlapping modes using the toggle buttons that appear next to the filter popup for line charts with multiple series.
 
 ### Adding dashboard views to other pages
 

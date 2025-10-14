@@ -173,9 +173,9 @@ export const calculateYAxisMin = (data) => {
 };
 
 /**
- * Calculates the maximum value for the y-axis based on stacked values
+ * Calculates the maximum value for the y-axis based on stacked values or individual series
  */
-export const calculateYAxisMax = (data) => {
+export const calculateYAxisMax = (data, isStacked = true) => {
   if (!data || data.length === 0) return undefined;
 
   // Helper function to safely get timestamp from a value
@@ -202,23 +202,36 @@ export const calculateYAxisMax = (data) => {
     }
   });
 
-  // Calculate the maximum cumulative value at any time point
-  const maxStackedValue = Math.max(
-    ...Array.from(timePoints).map((timePoint) => {
-      // Sum all series values at this specific time point
-      return data.reduce((sum, series) => {
-        if (!series.data) return sum;
-        const point = series.data.find((p) => {
-          const timestamp = getTimestamp(p.value[0]);
-          return timestamp === timePoint;
-        });
-        return sum + (point ? point.value[1] : 0);
-      }, 0);
-    }),
-  );
+  if (isStacked) {
+    // Calculate the maximum cumulative value at any time point
+    const maxStackedValue = Math.max(
+      ...Array.from(timePoints).map((timePoint) => {
+        // Sum all series values at this specific time point
+        return data.reduce((sum, series) => {
+          if (!series.data) return sum;
+          const point = series.data.find((p) => {
+            const timestamp = getTimestamp(p.value[0]);
+            return timestamp === timePoint;
+          });
+          return sum + (point ? point.value[1] : 0);
+        }, 0);
+      }),
+    );
 
-  // Add 10% padding above the maximum stacked value
-  return Math.ceil(maxStackedValue * 1.1);
+    // Add 10% padding above the maximum stacked value
+    return Math.ceil(maxStackedValue * 1.1);
+  } else {
+    // For overlapping mode, find the maximum individual value across all series
+    const allValues = data.flatMap(
+      (series) => series.data?.map((point) => point.value[1]) || [],
+    );
+
+    if (allValues.length === 0) return undefined;
+
+    const maxValue = Math.max(...allValues);
+    // Add 10% padding above the maximum individual value
+    return Math.ceil(maxValue * 1.1);
+  }
 };
 
 /**
@@ -384,8 +397,8 @@ export class ChartDataProcessor {
    * @returns {Array} Array of series with missing zero points filled
    */
   static fillMissingPoints(series, dateRange, isCumulative = false) {
-    if (!dateRange || !dateRange.start || !dateRange.end || isCumulative) {
-      return series; // Only fill zeros for delta data with a valid date range
+    if (!dateRange || !dateRange.start || !dateRange.end) {
+      return series; // Only fill zeros when we have a valid date range
     }
 
     const startDate = new Date(dateRange.start);
@@ -423,8 +436,14 @@ export class ChartDataProcessor {
         const missingDate = new Date(day);
         const readableDate = readableGranularDate(missingDate, "day");
 
+        // For cumulative data, use the most recent value if available; otherwise use 0
+        // For delta data, always use 0
+        const fillValue = isCumulative && filledData.length > 0
+          ? filledData[filledData.length - 1].value[1]
+          : 0;
+
         filledData.push({
-          value: [missingDate, 0],
+          value: [missingDate, fillValue],
           readableDate: readableDate,
           valueType: seriesItem.valueType || "number",
         });

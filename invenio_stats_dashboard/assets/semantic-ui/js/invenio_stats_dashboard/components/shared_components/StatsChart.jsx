@@ -275,6 +275,7 @@ class ChartConfigBuilder {
     granularity,
     stacked,
     chartType,
+    isStackedLine,
   ) {
     if (displaySeparately) {
       // Helper function to determine which series should show labels
@@ -293,7 +294,7 @@ class ChartConfigBuilder {
         ...this.config.series,
         name: series.name,
         type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
-        stack: displaySeparately, // Use the breakdown type as the stack identifier
+        stack: isStackedLine ? displaySeparately : undefined, // Only stack if isStackedLine is true
         data: series.data,
         label: {
           ...this.config.series.label,
@@ -312,6 +313,7 @@ class ChartConfigBuilder {
                   CHART_COLORS.secondary[
                     index % CHART_COLORS.secondary.length
                   ][1],
+                opacity: isStackedLine ? 0.7 : 0, // Hide fill for overlapping lines, show for stacked
               }
             : undefined,
         itemStyle: {
@@ -322,6 +324,19 @@ class ChartConfigBuilder {
         },
         lineStyle: {
           color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
+        },
+        emphasis: {
+          focus: "series",
+          areaStyle:
+            !isStackedLine && (chartType || series.type || "bar") === "line"
+              ? {
+                  opacity: 0.3, // Show fill on hover for overlapping lines
+                  color:
+                    CHART_COLORS.secondary[
+                      index % CHART_COLORS.secondary.length
+                    ][1],
+                }
+              : undefined,
         },
       }));
     } else {
@@ -405,6 +420,9 @@ const FilterSelector = ({
   setDisplaySeparately,
   display_subcounts,
   global_subcounts,
+  isStackedLine,
+  setIsStackedLine,
+  chartType,
 }) => {
   // Get available breakdown options from data
   console.log("data", data);
@@ -412,18 +430,13 @@ const FilterSelector = ({
     data && data.length > 0
       ? Object.keys(data[0]).filter((k) => k !== "global")
       : [];
-  console.log("availableBreakdowns", availableBreakdowns);
 
   const allowedSubcounts = display_subcounts || global_subcounts || {};
-  console.log("allowedSubcounts", allowedSubcounts);
-  const allowedSubcountsArray = Array.isArray(allowedSubcounts)
-    ? allowedSubcounts
-    : Object.keys(allowedSubcounts);
+  const allowedSubcountsArray = Object.keys(allowedSubcounts);
   const globalSubcountsArray = Object.keys(global_subcounts || {});
   const subcountMapping = availableBreakdowns
     ? getSubcountKeyMapping(availableBreakdowns, globalSubcountsArray)
     : {};
-  console.log("subcountMapping", subcountMapping);
 
   const breakdownOptions = !availableBreakdowns
     ? []
@@ -434,12 +447,9 @@ const FilterSelector = ({
         }
 
         const backendKey = subcountMapping[key];
-        console.log("backendKey", backendKey);
 
         return allowedSubcountsArray.includes(backendKey);
       });
-
-  console.log("breakdownOptions", breakdownOptions);
 
   // Don't render filter if no data available
   if (!data) {
@@ -447,53 +457,88 @@ const FilterSelector = ({
   }
 
   return (
-    <Popup
-      trigger={
-        <Button
-          name="stats-chart-filter"
-          floated="right"
-          size="small"
-          icon={<Icon name="filter" />}
-          aria-label="Stats Chart Filter"
-          className="stats-chart-filter-selector rel-mt-1 rel-mr-1"
-        />
-      }
-      content={
-        <Form>
-          <fieldset>
-            <legend className="rel-mb-1">
-              <label htmlFor="stats-chart-filter">Show separately</label>
-            </legend>
-            {breakdownOptions.map((key) => (
-              <Form.Field key={key} className="rel-mb-0">
-                <Checkbox
-                  radio
-                  label={BREAKDOWN_NAMES[key] || key}
-                  name={`${key}_checkbox`}
-                  checked={displaySeparately === key}
-                  onChange={() => setDisplaySeparately(key)}
-                />
+    <>
+      {/* Filter Popup */}
+      <Popup
+        trigger={
+          <Button
+            name="stats-chart-filter"
+            size="small"
+            aria-label={i18next.t("Stats Chart Filter")}
+            className="stats-chart-filter-selector"
+            toggle
+          >
+            <Icon name="filter fitted" />
+          </Button>
+        }
+        content={
+          <Form>
+            <fieldset>
+              <legend className="rel-mb-1">
+                <label htmlFor="stats-chart-filter">Show separately</label>
+              </legend>
+              {breakdownOptions.map((key) => (
+                <Form.Field key={key} className="rel-mb-0">
+                  <Checkbox
+                    radio
+                    label={BREAKDOWN_NAMES[key] || key}
+                    name={`${key}_checkbox`}
+                    checked={displaySeparately === key}
+                    onChange={() => setDisplaySeparately(key)}
+                  />
+                </Form.Field>
+              ))}
+              <Form.Field className="rel-mt-1">
+                <Button
+                  type="submit"
+                  icon
+                  labelPosition="right"
+                  onClick={() => setDisplaySeparately(null)}
+                >
+                  Clear
+                  <Icon name="close" />
+                </Button>
               </Form.Field>
-            ))}
-            <Form.Field className="rel-mt-1">
+            </fieldset>
+          </Form>
+        }
+        on="click"
+        position="bottom right"
+        style={{ zIndex: 1000 }}
+        className="stats-chart-filter-selector"
+      />
+
+      {/* Stack Toggle Buttons - only show for line charts with multiple series */}
+      {chartType === "line" && displaySeparately && (
+        <Popup
+          trigger={
+            <Button.Group size="small">
               <Button
-                type="submit"
-                icon
-                labelPosition="right"
-                onClick={() => setDisplaySeparately(null)}
+                toggle
+                active={isStackedLine}
+                onClick={() => setIsStackedLine(true)}
+                aria-label="Stacked Line Chart Selector"
+                title="Stacked Line Chart Selector"
               >
-                Clear
-                <Icon name="close" />
+                <Icon name="bars icon fitted" />
               </Button>
-            </Form.Field>
-          </fieldset>
-        </Form>
-      }
-      on="click"
-      position="bottom right"
-      style={{ zIndex: 1000 }}
-      className="stats-chart-filter-selector"
-    />
+              <Button
+                toggle
+                active={!isStackedLine}
+                onClick={() => setIsStackedLine(false)}
+                aria-label="Overlapping Line Chart Selector"
+                title="Overlapping Line Chart Selector"
+              >
+                <Icon name="object ungroup outline icon fitted" />
+              </Button>
+            </Button.Group>
+          }
+          content={i18next.t("Choose stacked or overlapping line chart view")}
+          position="top center"
+          inverted
+        />
+      )}
+    </>
   );
 };
 
@@ -569,6 +614,7 @@ const StatsChart = ({
   display_subcounts = undefined, // Optional prop to override global subcounts config
   isCumulative = false, // Explicit prop to signal whether data is cumulative
   maxSeries = undefined, // Optional prop to limit the number of series displayed
+  defaultLineDisplay = undefined, // Optional prop to set default line display mode ("stacked" or "overlapping")
 }) => {
   const { dateRange, granularity, isLoading, ui_subcounts } =
     useStatsDashboard();
@@ -576,6 +622,32 @@ const StatsChart = ({
     seriesSelectorOptions?.[0]?.value,
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
+
+  // Determine effective default line display mode
+  const getEffectiveDefaultLineDisplay = useMemo(() => {
+    // If displaySeparately is set, check for per-subcount default
+    if (displaySeparately && display_subcounts && display_subcounts[displaySeparately]) {
+      const subcountConfig = display_subcounts[displaySeparately];
+      if (subcountConfig.defaultLineDisplay) {
+        return subcountConfig.defaultLineDisplay === "stacked";
+      }
+    }
+
+    // Fall back to chart-level default
+    if (defaultLineDisplay) {
+      return defaultLineDisplay === "stacked";
+    }
+
+    // Ultimate fallback: overlapping (false)
+    return false;
+  }, [displaySeparately, display_subcounts, defaultLineDisplay]);
+
+  const [isStackedLine, setIsStackedLine] = useState(getEffectiveDefaultLineDisplay);
+
+  // Update isStackedLine when displaySeparately changes to use the new effective default
+  useEffect(() => {
+    setIsStackedLine(getEffectiveDefaultLineDisplay);
+  }, [getEffectiveDefaultLineDisplay]);
 
   const [aggregatedData, setAggregatedData] = useState([]);
 
@@ -644,8 +716,11 @@ const StatsChart = ({
   );
 
   const yAxisMax = useMemo(
-    () => (displaySeparately ? calculateYAxisMax(aggregatedData) : undefined),
-    [aggregatedData, displaySeparately],
+    () =>
+      displaySeparately
+        ? calculateYAxisMax(aggregatedData, isStackedLine)
+        : undefined,
+    [aggregatedData, displaySeparately, isStackedLine],
   );
 
   const seriesYAxisLabel = useMemo(
@@ -680,6 +755,7 @@ const StatsChart = ({
         granularity,
         stacked,
         chartType,
+        isStackedLine,
       )
       .build();
 
@@ -707,6 +783,7 @@ const StatsChart = ({
     granularity,
     displaySeparately,
     chartType,
+    isStackedLine,
   ]);
 
   // ReactECharts handles option updates automatically when props change
@@ -714,14 +791,6 @@ const StatsChart = ({
 
   return (
     <Container fluid>
-      <FilterSelector
-        data={data}
-        aggregatedData={aggregatedData}
-        displaySeparately={displaySeparately}
-        setDisplaySeparately={setDisplaySeparately}
-        display_subcounts={display_subcounts}
-        global_subcounts={ui_subcounts}
-      />
       {title && (
         <Header
           as="h3"
@@ -730,6 +799,17 @@ const StatsChart = ({
           textAlign="center"
           className="rel-mt-1"
         >
+          <FilterSelector
+            data={data}
+            aggregatedData={aggregatedData}
+            displaySeparately={displaySeparately}
+            setDisplaySeparately={setDisplaySeparately}
+            display_subcounts={display_subcounts}
+            global_subcounts={ui_subcounts}
+            isStackedLine={isStackedLine}
+            setIsStackedLine={setIsStackedLine}
+            chartType={chartType}
+          />
           <Header.Content>{title}</Header.Content>
           {dateRange && !isLoading && (
             <Header.Subheader>
@@ -967,7 +1047,8 @@ StatsChart.propTypes = {
     }),
   ),
   chartType: PropTypes.oneOf(["bar", "line"]),
-  display_subcounts: PropTypes.array,
+  display_subcounts: PropTypes.object,
+  defaultLineDisplay: PropTypes.oneOf(["stacked", "overlapping"]),
 };
 
 export { StatsChart };
