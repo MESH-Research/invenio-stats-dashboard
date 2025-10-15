@@ -44,6 +44,8 @@ const TopReferrersMultiDisplay = ({
 
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views);
 
+  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
+
   return (
     <StatsMultiDisplay
       title={title}
@@ -56,6 +58,7 @@ const TopReferrersMultiDisplay = ({
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       metricType="views"
+      hasData={hasData}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

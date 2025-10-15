@@ -39,7 +39,7 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
   // Calculate value for each item based on data type
   const getItemValue = (item) => {
     if (!item?.data || !Array.isArray(item.data)) return 0;
-    
+
     if (isDelta) {
       // For delta data, sum all data points
       return item.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
@@ -51,7 +51,7 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
 
   // Calculate total count from subcount items (for backward compatibility)
   const subcountTotalCount = rawData.reduce((sum, item) => sum + getItemValue(item), 0);
-  
+
   // Calculate global total count if global data is provided
   let globalTotalCount = 0;
   if (globalData && Array.isArray(globalData) && globalData.length > 0) {
@@ -66,7 +66,7 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
       }
     }
   }
-  
+
   // Use global total if available, otherwise fall back to subcount total
   const totalCount = globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
@@ -115,9 +115,13 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
   const otherPercentage = otherData ? otherData.percentage : 0;
   const shouldHideOther = hideOtherInCharts && otherPercentage > 30;
 
+  // Filter out zero values from the final data
+  const filteredTransformedData = transformedData.filter(item => item.value !== 0);
+  const filteredOtherData = otherData && otherData.value !== 0 ? otherData : null;
+
   return {
-    transformedData,
-    otherData: shouldHideOther ? null : otherData,
+    transformedData: filteredTransformedData,
+    otherData: shouldHideOther ? null : filteredOtherData,
     originalOtherData: otherData, // Keep original for floating label count
     totalCount,
     otherPercentage
@@ -151,7 +155,7 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
   // Calculate value for each item based on data type
   const getItemValue = (item) => {
     if (!item?.data || !Array.isArray(item.data)) return 0;
-    
+
     if (isDelta) {
       // For delta data, sum all data points
       return item.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
@@ -163,7 +167,7 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
 
   // Calculate total count from subcount items (for backward compatibility)
   const subcountTotalCount = rawData.reduce((sum, item) => sum + getItemValue(item), 0);
-  
+
   // Calculate global total count if global data is provided
   let globalTotalCount = 0;
   if (globalData && Array.isArray(globalData) && globalData.length > 0) {
@@ -178,11 +182,11 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
       }
     }
   }
-  
+
   // Use global total if available, otherwise fall back to subcount total
   const totalCount = globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
-  // Transform all items first, then sort and slice
+  // Transform all items first, then filter out zero values, sort and slice
   const allTransformedData = rawData.map((item, index) => {
     const value = getItemValue(item);
     const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
@@ -200,8 +204,9 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
     };
   });
 
-  // Sort by value (descending) and slice
-  const sortedTransformedData = allTransformedData.sort((a, b) => b.value - a.value);
+  // Filter out items with zero values, then sort by value (descending) and slice
+  const nonZeroTransformedData = allTransformedData.filter(item => item.value !== 0);
+  const sortedTransformedData = nonZeroTransformedData.sort((a, b) => b.value - a.value);
   const transformedData = sortedTransformedData.slice(0, pageSize);
   const otherItems = sortedTransformedData.slice(pageSize);
 
@@ -224,9 +229,13 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
   const otherPercentage = otherData ? otherData.percentage : 0;
   const shouldHideOther = hideOtherInCharts && otherPercentage > 30;
 
+  // Filter out zero values from the final data
+  const filteredTransformedData = transformedData.filter(item => item.value !== 0);
+  const filteredOtherData = otherData && otherData.value !== 0 ? otherData : null;
+
   return {
-    transformedData,
-    otherData: shouldHideOther ? null : otherData,
+    transformedData: filteredTransformedData,
+    otherData: shouldHideOther ? null : filteredOtherData,
     originalOtherData: otherData, // Keep original for floating label count
     totalCount,
     otherPercentage
