@@ -49,8 +49,6 @@ const FundersMultiDisplayDelta = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  // Check if there's any data to display
-  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
@@ -68,7 +66,6 @@ const FundersMultiDisplayDelta = ({
       rows={rowsWithLinks}
       label={"funders"}
       isLoading={isLoading}
-      hasData={hasData}
       {...otherProps}
     />
   );

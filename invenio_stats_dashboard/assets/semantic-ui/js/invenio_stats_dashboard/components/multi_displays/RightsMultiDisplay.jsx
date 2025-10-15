@@ -51,8 +51,6 @@ const RightsMultiDisplay = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  // Check if there's any data to display
-  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
 
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
@@ -71,7 +69,6 @@ const RightsMultiDisplay = ({
       rows={rowsWithLinks}
       label={"rights"}
       isLoading={isLoading}
-      hasData={hasData}
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       {...otherProps}

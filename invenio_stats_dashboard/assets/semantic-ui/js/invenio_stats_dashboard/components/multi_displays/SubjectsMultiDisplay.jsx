@@ -51,7 +51,6 @@ const SubjectsMultiDisplay = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
@@ -66,7 +65,6 @@ const SubjectsMultiDisplay = ({
       chartOptions={chartOptions}
       defaultViewMode={default_view}
       isLoading={isLoading}
-      hasData={hasData}
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       onEvents={{

@@ -135,11 +135,11 @@ const CHART_CONFIG = {
 
 // Grid configuration constants
 const GRID_CONFIG = {
-  left: "40px",
-  right: "40px",
-  bottom: "10%",
+  left: "80px", // Fixed width - big enough for both tick labels AND title
+  right: "20px",
+  // bottom: not set - let ECharts auto-calculate space for x-axis labels
   top: "10%",
-  containLabel: true,
+  containLabel: false, // Turn off automatic adjustment to prevent y-axis title from moving
   clip: true,
 };
 

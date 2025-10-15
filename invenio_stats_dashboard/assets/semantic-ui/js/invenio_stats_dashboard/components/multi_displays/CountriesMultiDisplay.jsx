@@ -67,7 +67,6 @@ const TopCountriesMultiDisplay = ({
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       metricType="views"
-      hasData={transformedData.length > 0}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

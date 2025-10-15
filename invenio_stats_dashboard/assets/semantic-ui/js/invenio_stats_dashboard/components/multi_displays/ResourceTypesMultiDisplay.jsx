@@ -76,9 +76,6 @@ const ResourceTypesMultiDisplay = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  // Check if there's any data to display
-  const hasData =
-    transformedData.length > 0 || (otherData && otherData.value > 0);
 
   const getChartOptions = () => {
     return generateMultiDisplayChartOptions(
@@ -112,7 +109,6 @@ const ResourceTypesMultiDisplay = ({
         },
       }}
       isLoading={isLoading}
-      hasData={hasData}
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       {...otherProps}

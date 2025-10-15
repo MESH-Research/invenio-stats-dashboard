@@ -97,7 +97,6 @@ const MostViewedRecordsMultiDisplay = ({
       defaultViewMode={default_view || available_views[0]}
       pageSize={pageSize}
       isLoading={isLoading}
-      hasData={!isLoading && transformedData.length > 0}
       maxHeight={maxHeight}
       onEvents={{
         click: (params) => {

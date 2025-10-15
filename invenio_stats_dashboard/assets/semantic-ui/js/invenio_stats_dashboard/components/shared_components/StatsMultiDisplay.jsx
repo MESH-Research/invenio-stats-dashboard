@@ -81,7 +81,6 @@ const StatsMultiDisplay = ({
   defaultViewMode = "list",
   onEvents,
   isLoading = false,
-  hasData = true,
   maxHeight = null,
   isDelta = false,
   dateRangeEnd = null,
@@ -98,6 +97,8 @@ const StatsMultiDisplay = ({
   const handleViewChange = (mode) => {
     setViewMode(mode);
   };
+
+  const effectiveHasData = !isLoading && rows && rows.length > 0;
 
   // Add aria.enabled to all chart options
   const enhancedChartOptions = Object.fromEntries(
@@ -157,7 +158,7 @@ const StatsMultiDisplay = ({
           <div className="stats-loading-container">
             <Loader active size="large" />
           </div>
-        ) : !hasData ? (
+        ) : !effectiveHasData ? (
           <div className="stats-no-data-container">
             <Message info>
               <Message.Header>{i18next.t("No Data Available")}</Message.Header>

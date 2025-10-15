@@ -54,8 +54,6 @@ const CountriesMultiDisplayDelta = ({
 
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
-  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
-
   return (
     <StatsMultiDisplay
       title={title}
@@ -69,7 +67,6 @@ const CountriesMultiDisplayDelta = ({
       isDelta={true}
       dateRangeEnd={dateRange?.end}
       metricType="views"
-      hasData={hasData}
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {

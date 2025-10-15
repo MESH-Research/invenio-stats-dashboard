@@ -75,9 +75,6 @@ const AccessStatusesMultiDisplay = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const hasData =
-    !isLoading &&
-    (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const chartOptions = generateMultiDisplayChartOptions(
     transformedData,
@@ -99,7 +96,6 @@ const AccessStatusesMultiDisplay = ({
       chartOptions={chartOptions}
       defaultViewMode={default_view}
       isLoading={isLoading}
-      hasData={hasData}
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       onEvents={{

@@ -52,8 +52,6 @@ const AffiliationsMultiDisplay = ({
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  // Check if there's any data to display
-  const hasData = !isLoading && (transformedData.length > 0 || (otherData && otherData.value > 0));
 
   const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
 
@@ -68,7 +66,6 @@ const AffiliationsMultiDisplay = ({
       chartOptions={chartOptions}
       defaultViewMode={default_view || available_views[0]}
       isLoading={isLoading}
-      hasData={hasData}
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       onEvents={{
