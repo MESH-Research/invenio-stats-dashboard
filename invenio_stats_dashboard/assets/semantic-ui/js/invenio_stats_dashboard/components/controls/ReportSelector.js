@@ -8,6 +8,7 @@ import {
 } from "../../api/api";
 import { DASHBOARD_TYPES } from "../../constants";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
+import { packageStatsAsCompressedJson } from "../../utils";
 
 const ReportSelector = ({ defaultFormat }) => {
   const [selectedReport, setSelectedReport] = useState(defaultFormat);
@@ -15,7 +16,7 @@ const ReportSelector = ({ defaultFormat }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Get current dashboard context
-  const { communityId, dashboardType, dateRange, dateBasis } =
+  const { communityId, dashboardType, dateRange, dateBasis, stats } =
     useStatsDashboard();
 
   const handleReportChange = (e, { value }) => {
@@ -29,11 +30,38 @@ const ReportSelector = ({ defaultFormat }) => {
     setIsDownloading(true);
 
     try {
-      // Map UI format names to API format constants
+      // Format dates for filename and/or API requests
+      const startDate = dateRange?.start
+        ? dateRange.start.toISOString().split("T")[0]
+        : null;
+      const endDate = dateRange?.end
+        ? dateRange.end.toISOString().split("T")[0]
+        : null;
+
+      // Handle JSON downloads using cached data
+      if (selectedReport === "json") {
+        // Check if we have stats data available
+        if (!stats || stats.length === 0) {
+          throw new Error("No statistics data available for download. Please ensure the dashboard has loaded data.");
+        }
+
+        await packageStatsAsCompressedJson(
+          stats,
+          communityId || "global",
+          dashboardType || DASHBOARD_TYPES.GLOBAL,
+          dateBasis || "added",
+          startDate,
+          endDate
+        );
+
+        console.log("Successfully downloaded JSON report from cached data as tar.gz archive");
+        return;
+      }
+
+      // Handle other formats using API requests
       const formatMapping = {
         csv: SERIALIZATION_FORMATS.CSV,
         excel: SERIALIZATION_FORMATS.EXCEL,
-        json: SERIALIZATION_FORMATS.JSON_BROTLI,
         xml: SERIALIZATION_FORMATS.XML,
       };
 
@@ -41,14 +69,6 @@ const ReportSelector = ({ defaultFormat }) => {
       if (!format) {
         throw new Error(`Unsupported format: ${selectedReport}`);
       }
-
-      // Format dates for API
-      const startDate = dateRange?.start
-        ? dateRange.start.toISOString().split("T")[0]
-        : null;
-      const endDate = dateRange?.end
-        ? dateRange.end.toISOString().split("T")[0]
-        : null;
 
       await downloadStatsSeriesWithFilename({
         communityId: communityId || "global",
