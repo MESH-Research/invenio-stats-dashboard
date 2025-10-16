@@ -235,6 +235,97 @@ export const calculateYAxisMax = (data, isStacked = true) => {
 };
 
 /**
+ * Helper function to calculate "other" series by subtracting subcount totals from global totals
+ *
+ * @param {Array} data - Array of yearly data objects
+ * @param {string} selectedMetric - The metric to calculate "other" for
+ * @param {string} displaySeparately - The breakdown category being displayed
+ * @param {Array} subcountSeries - Array of subcount series data
+ * @param {Object} dateRange - Date range for filtering
+ * @param {boolean} isCumulative - Whether data is cumulative
+ * @returns {Object|null} "Other" series object or null if not needed
+ */
+const calculateOtherSeries = (data, selectedMetric, displaySeparately, subcountSeries, dateRange, isCumulative) => {
+  if (!data || !Array.isArray(data) || !displaySeparately || !subcountSeries || subcountSeries.length === 0) {
+    return null;
+  }
+
+  // Extract global series for the selected metric
+  const globalSeries = data
+    .map((yearlyData) => yearlyData?.global?.[selectedMetric] || [])
+    .flat();
+
+  if (globalSeries.length === 0) {
+    return null;
+  }
+
+  // Merge global series by ID (similar to how subcount series are processed)
+  const mergedGlobalSeries = ChartDataProcessor.mergeSeriesById(globalSeries);
+
+  if (mergedGlobalSeries.length === 0) {
+    return null;
+  }
+
+  // Use the first global series as our reference
+  const globalSeriesData = mergedGlobalSeries[0];
+
+  if (!globalSeriesData || !globalSeriesData.data || globalSeriesData.data.length === 0) {
+    return null;
+  }
+
+  // Filter global series by date range
+  const filteredGlobalSeries = filterSeriesArrayByDate([globalSeriesData], dateRange, !isCumulative);
+
+  if (filteredGlobalSeries.length === 0 || !filteredGlobalSeries[0].data) {
+    return null;
+  }
+
+  const globalDataPoints = filteredGlobalSeries[0].data;
+
+  // Create a map of subcount values by date for efficient lookup
+  const subcountValuesByDate = new Map();
+
+  subcountSeries.forEach(series => {
+    if (series.data && Array.isArray(series.data)) {
+      series.data.forEach(point => {
+        const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+        const currentValue = subcountValuesByDate.get(dateKey) || 0;
+        subcountValuesByDate.set(dateKey, currentValue + (point.value[1] || 0));
+      });
+    }
+  });
+
+  // Calculate "other" values by subtracting subcount totals from global totals
+  const otherDataPoints = globalDataPoints.map(point => {
+    const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+    const globalValue = point.value[1] || 0;
+    const subcountTotal = subcountValuesByDate.get(dateKey) || 0;
+    const otherValue = Math.max(0, globalValue - subcountTotal); // Ensure non-negative
+
+    return {
+      value: [point.value[0], otherValue],
+      readableDate: point.readableDate,
+      valueType: point.valueType || "number",
+    };
+  });
+
+  // Only create "other" series if there are non-zero values anywhere in the date range
+  const hasNonZeroValues = otherDataPoints.some(point => point.value[1] > 0);
+
+  if (!hasNonZeroValues) {
+    return null;
+  }
+
+  return {
+    id: "other",
+    name: i18next.t("Other"),
+    data: otherDataPoints, // Include all data points, even zero values
+    type: "bar", // Default type, will be overridden by chart configuration
+    valueType: globalSeriesData.valueType || "number",
+  };
+};
+
+/**
  * ChartDataProcessor class handles data extraction and preparation for charts
  */
 export class ChartDataProcessor {
@@ -303,6 +394,8 @@ export class ChartDataProcessor {
    * @param {string} selectedMetric - The metric being displayed (used for naming)
    * @param {Object} dateRange - Date range object with start/end dates for filtering
    * @param {number|undefined} maxSeries - Optional limit on number of series to display
+   * @param {boolean} isCumulative - Whether data is cumulative
+   * @param {Array} originalData - Original yearly data array for calculating "other" series
    * @returns {Array} Array of processed series ready for aggregation and display
    */
   static prepareDataSeries(
@@ -312,6 +405,7 @@ export class ChartDataProcessor {
     dateRange,
     maxSeries = undefined,
     isCumulative = false,
+    originalData = null,
   ) {
     // Merge series items by ID to avoid duplicates
     const mergedSeries = ChartDataProcessor.mergeSeriesById(seriesArray);
@@ -332,14 +426,35 @@ export class ChartDataProcessor {
     );
     console.log("namedSeries", namedSeries);
 
-    // Limit the number of series if maxSeries is specified
     const limitedSeries = ChartDataProcessor.limitSeriesByCount(
       namedSeries,
       maxSeries,
     );
 
+    // Add "other" series if displaying breakdown separately (before fillMissingPoints)
+    let seriesWithOther = [...limitedSeries];
+    if (displaySeparately && originalData) {
+      const otherSeries = calculateOtherSeries(
+        originalData,
+        selectedMetric,
+        displaySeparately,
+        limitedSeries,
+        dateRange,
+        isCumulative,
+      );
+
+      if (otherSeries) {
+        const existingOtherSeries = seriesWithOther.find(series => series.id === "other");
+
+        if (!existingOtherSeries) {
+          // Insert "other" series at the beginning so it appears at the bottom of the stack
+          seriesWithOther.unshift(otherSeries);
+        }
+      }
+    }
+
     const finalSeries = ChartDataProcessor.fillMissingPoints(
-      limitedSeries,
+      seriesWithOther,
       dateRange,
       isCumulative,
     );
@@ -390,8 +505,8 @@ export class ChartDataProcessor {
 
     return series.map((seriesItem, index) => {
       if (displaySeparately) {
-        // For breakdown view, use the breakdown category name
-        const seriesName = seriesItem.name || `Series ${index + 1}`;
+        // For breakdown view, use the series name or fall back to the series ID
+        const seriesName = seriesItem.name || seriesItem.id || `Series ${index + 1}`;
         const localizedName = extractLocalizedLabel(
           seriesName,
           currentLanguage,

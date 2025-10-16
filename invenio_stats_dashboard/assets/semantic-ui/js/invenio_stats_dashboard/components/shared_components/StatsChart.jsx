@@ -150,7 +150,18 @@ const TOOLTIP_CONFIG = {
   formatter: function (params) {
     const readableDate = params[0].data.readableDate;
     let result = "<strong>" + readableDate + "</strong><br/>";
-    params.forEach((param) => {
+
+    // Sort params so that "other" series appears last in the tooltip
+    const sortedParams = [...params].sort((a, b) => {
+      const aIsOther = a.seriesName === i18next.t("Other");
+      const bIsOther = b.seriesName === i18next.t("Other");
+
+      if (aIsOther && !bIsOther) return 1;
+      if (!aIsOther && bIsOther) return -1;
+      return 0;
+    });
+
+    sortedParams.forEach((param) => {
       result +=
         param.marker +
         " " +
@@ -296,55 +307,59 @@ class ChartConfigBuilder {
         ? true // For bar charts: always stack by default
         : isStackedLine; // For line charts: use isStackedLine state
 
-      this.config.series = aggregatedData.map((series, index) => ({
-        ...this.config.series,
-        name: series.name,
-        type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
-        stack: shouldStack ? displaySeparately : undefined,
-        data: series.data,
-        label: {
-          ...this.config.series.label,
-          show: shouldShowLabel(index, aggregatedData),
-          position: "top", // Always position labels above the series for stacked subcount
-          color:
-            CHART_COLORS.primary[
-              seriesColorIndex % CHART_COLORS.primary.length
-            ][1], // Use the same color as the metric selector button
-        },
-        areaStyle:
-          (chartType || series.type || "bar") === "line"
-            ? {
-                ...this.config.series.areaStyle,
-                color:
-                  CHART_COLORS.secondary[
-                    index % CHART_COLORS.secondary.length
-                  ][1],
-                opacity: shouldStack ? 0.7 : 0, // Hide fill for overlapping lines, show for stacked
-              }
-            : undefined,
-        itemStyle: {
-          color:
-            (chartType || series.type || "bar") === "bar"
-              ? CHART_COLORS.secondary[index % CHART_COLORS.secondary.length][1]
-              : CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
-        },
-        lineStyle: {
-          color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
-        },
-        emphasis: {
-          focus: "series",
+      this.config.series = aggregatedData.map((series, index) => {
+        // Special handling for "other" series
+        const isOtherSeries = series.id === "other";
+        const colorIndex = isOtherSeries
+          ? CHART_COLORS.secondary.length - 1 // Use last color for "other"
+          : index % CHART_COLORS.secondary.length;
+
+        return {
+          ...this.config.series,
+          name: series.name,
+          type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
+          stack: shouldStack ? displaySeparately : undefined,
+          data: series.data,
+          label: {
+            ...this.config.series.label,
+            show: shouldShowLabel(index, aggregatedData),
+            position: "top", // Always position labels above the series for stacked subcount
+            color:
+              CHART_COLORS.primary[
+                seriesColorIndex % CHART_COLORS.primary.length
+              ][1], // Use the same color as the metric selector button
+          },
           areaStyle:
-            !shouldStack && (chartType || series.type || "bar") === "line"
+            (chartType || series.type || "bar") === "line"
               ? {
-                  opacity: 0.3, // Show fill on hover for overlapping lines
+                  ...this.config.series.areaStyle,
                   color:
-                    CHART_COLORS.secondary[
-                      index % CHART_COLORS.secondary.length
-                    ][1],
+                    CHART_COLORS.secondary[colorIndex][1],
+                  opacity: shouldStack ? 0.7 : 0, // Hide fill for overlapping lines, show for stacked
                 }
               : undefined,
-        },
-      }));
+          itemStyle: {
+            color:
+              (chartType || series.type || "bar") === "bar"
+                ? CHART_COLORS.secondary[colorIndex][1]
+                : CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
+          },
+          lineStyle: {
+            color: CHART_COLORS.primary[index % CHART_COLORS.primary.length][1],
+          },
+          emphasis: {
+            focus: "series",
+            areaStyle:
+              !shouldStack && (chartType || series.type || "bar") === "line"
+                ? {
+                    opacity: 0.3, // Show fill on hover for overlapping lines
+                    color:
+                      CHART_COLORS.secondary[colorIndex][1],
+                  }
+                : undefined,
+          },
+        };
+      });
     } else {
       const isSingleSeries = aggregatedData.length === 1;
       const effectiveChartType = chartType || aggregatedData[0]?.type || "bar";
@@ -687,6 +702,7 @@ const StatsChart = ({
       dateRange,
       maxSeries,
       isCumulative,
+      data, // Pass original data for "other" series calculation
     );
 
     const aggregatedData = ChartDataAggregator.aggregateData(
@@ -704,6 +720,7 @@ const StatsChart = ({
     selectedMetric,
     isCumulative,
     maxSeries,
+    data, // Add data to dependencies
   ]);
 
   console.log("aggregatedData", aggregatedData);
