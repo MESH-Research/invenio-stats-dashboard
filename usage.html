@@ -454,6 +454,7 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">display_subcounts</span></code> - Object mapping subcount types to their configuration (e.g., <code class="docutils literal notranslate"><span class="pre">{&quot;resource_types&quot;:</span> <span class="pre">{&quot;defaultLineDisplay&quot;:</span> <span class="pre">&quot;stacked&quot;},</span> <span class="pre">&quot;subjects&quot;:</span> <span class="pre">{}}</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">defaultLineDisplay</span></code> - Default line chart display mode: <code class="docutils literal notranslate"><span class="pre">&quot;stacked&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;overlapping&quot;</span></code> (defaults to <code class="docutils literal notranslate"><span class="pre">&quot;overlapping&quot;</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxSeries</span></code> - Maximum number of series to display in charts (defaults to 12). When there are more series than this limit, the top N series are shown and the remaining series are consolidated into an “Other” category</p></li>
 </ul>
 <p><strong>Multi-Display Properties:</strong></p>
 <ul class="simple">
