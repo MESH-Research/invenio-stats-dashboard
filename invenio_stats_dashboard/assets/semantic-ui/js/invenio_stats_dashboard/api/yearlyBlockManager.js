@@ -22,14 +22,14 @@
  */
 const findMissingBlocks = (startDate, endDate, currentStats) => {
   const requestedBlocks = [];
-  const startYear = startDate.getFullYear();
-  const endYear = endDate.getFullYear();
+  const startYear = startDate.getUTCFullYear();
+  const endYear = endDate.getUTCFullYear();
 
   for (let year = startYear; year <= endYear; year++) {
     requestedBlocks.push({
       year,
-      startDate: new Date(year, 0, 1),
-      endDate: new Date(year, 11, 31),
+      startDate: new Date(Date.UTC(year, 0, 1)),
+      endDate: new Date(Date.UTC(year, 11, 31)),
     });
   }
   const cachedYears = new Set(currentStats.map((stats) => stats.year));

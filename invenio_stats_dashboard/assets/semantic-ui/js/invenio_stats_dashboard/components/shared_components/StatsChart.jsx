@@ -290,11 +290,17 @@ class ChartConfigBuilder {
         return seriesIndex === allSeries.length - 1;
       };
 
+      // Determine stacking behavior based on chart type
+      const effectiveChartType = chartType || aggregatedData[0]?.type || "bar";
+      const shouldStack = effectiveChartType === "bar"
+        ? true // For bar charts: always stack by default
+        : isStackedLine; // For line charts: use isStackedLine state
+
       this.config.series = aggregatedData.map((series, index) => ({
         ...this.config.series,
         name: series.name,
         type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
-        stack: isStackedLine ? displaySeparately : undefined, // Only stack if isStackedLine is true
+        stack: shouldStack ? displaySeparately : undefined,
         data: series.data,
         label: {
           ...this.config.series.label,
@@ -313,7 +319,7 @@ class ChartConfigBuilder {
                   CHART_COLORS.secondary[
                     index % CHART_COLORS.secondary.length
                   ][1],
-                opacity: isStackedLine ? 0.7 : 0, // Hide fill for overlapping lines, show for stacked
+                opacity: shouldStack ? 0.7 : 0, // Hide fill for overlapping lines, show for stacked
               }
             : undefined,
         itemStyle: {
@@ -328,7 +334,7 @@ class ChartConfigBuilder {
         emphasis: {
           focus: "series",
           areaStyle:
-            !isStackedLine && (chartType || series.type || "bar") === "line"
+            !shouldStack && (chartType || series.type || "bar") === "line"
               ? {
                   opacity: 0.3, // Show fill on hover for overlapping lines
                   color:
@@ -343,12 +349,17 @@ class ChartConfigBuilder {
       const isSingleSeries = aggregatedData.length === 1;
       const effectiveChartType = chartType || aggregatedData[0]?.type || "bar";
 
+      // Determine stacking behavior for non-displaySeparately case
+      const shouldStack = effectiveChartType === "bar"
+        ? true // For bar charts: always stack by default
+        : stacked; // For line charts: use stacked prop
+
       this.config.series = aggregatedData.map((series) => ({
         ...this.config.series,
         name: series.name,
         type: chartType || series.type || "bar", // Use chartType if provided, otherwise fall back to series.type, then "bar"
         // Give single series bars a stack identifier to center them like stacked bars
-        stack: stacked
+        stack: shouldStack
           ? "Total"
           : isSingleSeries && effectiveChartType === "bar"
             ? "single"
@@ -716,11 +727,18 @@ const StatsChart = ({
   );
 
   const yAxisMax = useMemo(
-    () =>
-      displaySeparately
-        ? calculateYAxisMax(aggregatedData, isStackedLine)
-        : undefined,
-    [aggregatedData, displaySeparately, isStackedLine],
+    () => {
+      if (!displaySeparately) return undefined;
+
+      // Determine if we should use stacked calculation
+      const effectiveChartType = chartType || aggregatedData[0]?.type || "bar";
+      const shouldStack = effectiveChartType === "bar"
+        ? true // For bar charts: always stack by default
+        : isStackedLine; // For line charts: use isStackedLine state
+
+      return calculateYAxisMax(aggregatedData, shouldStack);
+    },
+    [aggregatedData, displaySeparately, isStackedLine, chartType, isCumulative, stacked],
   );
 
   const seriesYAxisLabel = useMemo(

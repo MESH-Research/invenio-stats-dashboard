@@ -268,6 +268,31 @@ export class ChartDataProcessor {
   }
 
   /**
+   * Sorts series data points by date within each series.
+   *
+   * @param {Array} seriesArray - Array of series objects to sort
+   * @returns {Array} Array of series with data points sorted by date
+   */
+  static sortSeries(seriesArray) {
+    return seriesArray.map((series) => {
+      if (!series.data || !Array.isArray(series.data)) {
+        return series;
+      }
+
+      const sortedData = [...series.data].sort((a, b) => {
+        const aTime = a.value[0] instanceof Date ? a.value[0].getTime() : new Date(a.value[0]).getTime();
+        const bTime = b.value[0] instanceof Date ? b.value[0].getTime() : new Date(b.value[0]).getTime();
+        return aTime - bTime;
+      });
+
+      return {
+        ...series,
+        data: sortedData,
+      };
+    });
+  }
+
+  /**
    * Prepares series data for chart display by merging, filtering, and naming.
    *
    * For global view (displaySeparately = null): merges multiple yearly series into a single series
@@ -297,9 +322,11 @@ export class ChartDataProcessor {
     const filteredData = filterSeriesArrayByDate(mergedSeries, dateRange, false);
     console.log("filteredData", filteredData);
 
+    const sortedData = ChartDataProcessor.sortSeries(filteredData);
+
     // Add names to the series based on the breakdown category or metric type
     const namedSeries = ChartDataProcessor.addSeriesNames(
-      filteredData,
+      sortedData,
       displaySeparately,
       selectedMetric,
     );
@@ -404,7 +431,6 @@ export class ChartDataProcessor {
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
 
-    // Generate all possible days in the date range
     const allDays = new Set();
     const current = new Date(startDate);
     while (current <= endDate) {
@@ -425,35 +451,47 @@ export class ChartDataProcessor {
         (day) => !existingDays.has(day),
       );
 
-      // Early return if series already has complete date coverage
       if (missingDays.length === 0) {
         return seriesItem;
       }
 
-      const filledData = seriesItem.data ? [...seriesItem.data] : [];
+      const filledData = [];
+      let dataPointer = 0;
+      let lastValue = 0;
 
-      missingDays.forEach((day) => {
-        const missingDate = new Date(day);
-        const readableDate = readableGranularDate(missingDate, "day");
+      for (const currentDay of allDays) {
+        const currentDate = new Date(currentDay + "T00:00:00.000Z");
+        const readableDate = readableGranularDate(currentDate, "day");
 
-        // For cumulative data, use the most recent value if available; otherwise use 0
-        // For delta data, always use 0
-        const fillValue = isCumulative && filledData.length > 0
-          ? filledData[filledData.length - 1].value[1]
-          : 0;
+        let value = 0;
+
+        while (dataPointer < seriesItem.data.length) {
+          const dataPoint = seriesItem.data[dataPointer];
+          const dataDay = new Date(dataPoint.value[0]).toISOString().split("T")[0];
+
+          if (dataDay === currentDay) {
+            value = dataPoint.value[1];
+            lastValue = value;
+            dataPointer++;
+            break;
+          } else if (dataDay < currentDay) {
+            dataPointer++;
+          } else {
+            value = isCumulative ? lastValue : 0;
+            break;
+          }
+        }
+
+        if (dataPointer >= seriesItem.data.length) {
+          value = isCumulative ? lastValue : 0;
+        }
 
         filledData.push({
-          value: [missingDate, fillValue],
+          value: [currentDate, value],
           readableDate: readableDate,
           valueType: seriesItem.valueType || "number",
         });
-      });
-
-      filledData.sort((a, b) => {
-        const aTime = a.value[0] instanceof Date ? a.value[0].getTime() : new Date(a.value[0]).getTime();
-        const bTime = b.value[0] instanceof Date ? b.value[0].getTime() : new Date(b.value[0]).getTime();
-        return aTime - bTime;
-      });
+      }
 
       return {
         ...seriesItem,
@@ -599,6 +637,8 @@ export const limitSeriesByCount =
   ChartDataProcessor.limitSeriesByCount.bind(ChartDataProcessor);
 export const fillMissingPoints =
   ChartDataProcessor.fillMissingPoints.bind(ChartDataProcessor);
+export const sortSeries =
+  ChartDataProcessor.sortSeries.bind(ChartDataProcessor);
 
 // Convenience exports for ChartFormatter methods
 export const formatXAxisLabel =

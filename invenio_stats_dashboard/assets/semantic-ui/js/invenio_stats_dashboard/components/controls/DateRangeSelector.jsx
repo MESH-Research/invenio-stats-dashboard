@@ -759,6 +759,15 @@ const DateRangeSelector = ({
       maxHistoryYears,
     );
     setDateRange(newDateRange);
+
+    // Update dataFetchRange if the new range extends beyond current dataFetchRange
+    if (
+      !dataFetchRange ||
+      newDateRange.start < dataFetchRange.start ||
+      newDateRange.end > dataFetchRange.end
+    ) {
+      setDataFetchRange(newDateRange);
+    }
   }, [granularity]);
 
   const handlePeriodChange = (e, { value }) => {
