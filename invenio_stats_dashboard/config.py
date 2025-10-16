@@ -345,7 +345,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "height": 300,
                                     "title": "New Contribution Rates",
-                                    "maxSeries": 10,
+                                    "maxSeries": 8,
                                     "display_subcounts": {
                                         "file_presence": {},
                                         "resource_types": {},

@@ -215,6 +215,7 @@ Each component accepts various properties through the `props` dictionary:
 **Chart-Specific Properties:**
 - `display_subcounts` - Object mapping subcount types to their configuration (e.g., `{"resource_types": {"defaultLineDisplay": "stacked"}, "subjects": {}}`)
 - `defaultLineDisplay` - Default line chart display mode: `"stacked"` or `"overlapping"` (defaults to `"overlapping"`)
+- `maxSeries` - Maximum number of series to display in charts (defaults to 12). When there are more series than this limit, the top N series are shown and the remaining series are consolidated into an "Other" category
 
 **Multi-Display Properties:**
 - `available_views` - Array of available view types: `["pie", "bar", "list"]`

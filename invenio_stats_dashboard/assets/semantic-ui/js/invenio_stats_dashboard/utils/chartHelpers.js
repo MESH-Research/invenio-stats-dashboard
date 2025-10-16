@@ -235,33 +235,63 @@ export const calculateYAxisMax = (data, isStacked = true) => {
 };
 
 /**
- * Helper function to calculate "other" series by subtracting subcount totals from global totals
+ * Helper function to filter out series with only zero values
+ *
+ * @param {Array} seriesArray - Array of series objects to filter
+ * @returns {Array} Array of series that have at least one non-zero value
+ */
+const filterNonZeroSeries = (seriesArray) => {
+  return seriesArray.filter(series => {
+    if (!series.data || !Array.isArray(series.data)) return false;
+    return series.data.some(point => (point.value[1] || 0) > 0);
+  });
+};
+
+/**
+ * Helper function to select the top N series based on total value
+ *
+ * @param {Array} seriesArray - Array of series objects to filter
+ * @param {number} maxSeries - Maximum number of series to return
+ * @returns {Array} Array of top N series by total value
+ */
+const selectTopSeries = (seriesArray, maxSeries) => {
+  // Calculate total value for each series across all data points for sorting
+  const seriesWithTotals = seriesArray.map(series => {
+    const totalValue = series.data.reduce((sum, point) => sum + (point.value[1] || 0), 0);
+    return { ...series, totalValue };
+  });
+
+  // Sort series by total value (descending)
+  const sortedSeries = seriesWithTotals.sort((a, b) => b.totalValue - a.totalValue);
+
+  // Return only the top N series
+  return sortedSeries.slice(0, maxSeries).map(({ totalValue, ...series }) => series);
+};
+
+/**
+ * Helper function to calculate "other" series by subtracting visible series totals from global totals
  *
  * @param {Array} data - Array of yearly data objects
  * @param {string} selectedMetric - The metric to calculate "other" for
  * @param {string} displaySeparately - The breakdown category being displayed
- * @param {Array} subcountSeries - Array of subcount series data
+ * @param {Array} visibleSeries - Array of series that will be displayed
  * @param {Object} dateRange - Date range for filtering
  * @param {boolean} isCumulative - Whether data is cumulative
  * @returns {Object|null} "Other" series object or null if not needed
  */
-const calculateOtherSeries = (data, selectedMetric, displaySeparately, subcountSeries, dateRange, isCumulative) => {
-  if (!data || !Array.isArray(data) || !displaySeparately || !subcountSeries || subcountSeries.length === 0) {
+const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSeries, dateRange, isCumulative) => {
+  if (!data || !Array.isArray(data) || !displaySeparately || !visibleSeries || visibleSeries.length === 0) {
     return null;
   }
 
-  // Extract global series for the selected metric
   const globalSeries = data
     .map((yearlyData) => yearlyData?.global?.[selectedMetric] || [])
     .flat();
-
   if (globalSeries.length === 0) {
     return null;
   }
 
-  // Merge global series by ID (similar to how subcount series are processed)
   const mergedGlobalSeries = ChartDataProcessor.mergeSeriesById(globalSeries);
-
   if (mergedGlobalSeries.length === 0) {
     return null;
   }
@@ -282,25 +312,26 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, subcountS
 
   const globalDataPoints = filteredGlobalSeries[0].data;
 
-  // Create a map of subcount values by date for efficient lookup
-  const subcountValuesByDate = new Map();
-
-  subcountSeries.forEach(series => {
+  // Create a map of visible series values by date for efficient lookup
+  const visibleSeriesValuesByDate = new Map();
+  visibleSeries.forEach(series => {
     if (series.data && Array.isArray(series.data)) {
       series.data.forEach(point => {
         const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
-        const currentValue = subcountValuesByDate.get(dateKey) || 0;
-        subcountValuesByDate.set(dateKey, currentValue + (point.value[1] || 0));
+        const currentValue = visibleSeriesValuesByDate.get(dateKey) || 0;
+        visibleSeriesValuesByDate.set(dateKey, currentValue + (point.value[1] || 0));
       });
     }
   });
 
-  // Calculate "other" values by subtracting subcount totals from global totals
+  // Calculate "other" values by subtracting visible series totals from global totals
   const otherDataPoints = globalDataPoints.map(point => {
     const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
     const globalValue = point.value[1] || 0;
-    const subcountTotal = subcountValuesByDate.get(dateKey) || 0;
-    const otherValue = Math.max(0, globalValue - subcountTotal); // Ensure non-negative
+    const visibleSeriesTotal = visibleSeriesValuesByDate.get(dateKey) || 0;
+
+    // "Other" = Global - Visible Series
+    const otherValue = Math.max(0, globalValue - visibleSeriesTotal);
 
     return {
       value: [point.value[0], otherValue],
@@ -403,7 +434,7 @@ export class ChartDataProcessor {
     displaySeparately,
     selectedMetric,
     dateRange,
-    maxSeries = undefined,
+    maxSeries = 12,
     isCumulative = false,
     originalData = null,
   ) {
@@ -426,35 +457,40 @@ export class ChartDataProcessor {
     );
     console.log("namedSeries", namedSeries);
 
-    const limitedSeries = ChartDataProcessor.limitSeriesByCount(
-      namedSeries,
-      maxSeries,
-    );
+    // Filter out series with only zero values (applies to all series processing)
+    const nonZeroSeries = filterNonZeroSeries(namedSeries);
 
-    // Add "other" series if displaying breakdown separately (before fillMissingPoints)
-    let seriesWithOther = [...limitedSeries];
+    // Prepare series for display (with "other" series if needed)
+    let displaySeries = [...nonZeroSeries];
     if (displaySeparately && originalData) {
+      // Select top N series for display
+      const visibleSeries = selectTopSeries(nonZeroSeries, maxSeries);
+
+      // Use only the visible series for display
+      displaySeries = visibleSeries;
+
+      // Calculate "other" series using visible series
       const otherSeries = calculateOtherSeries(
         originalData,
         selectedMetric,
         displaySeparately,
-        limitedSeries,
+        visibleSeries,
         dateRange,
         isCumulative,
       );
 
       if (otherSeries) {
-        const existingOtherSeries = seriesWithOther.find(series => series.id === "other");
+        const existingOtherSeries = displaySeries.find(series => series.id === "other");
 
         if (!existingOtherSeries) {
           // Insert "other" series at the beginning so it appears at the bottom of the stack
-          seriesWithOther.unshift(otherSeries);
+          displaySeries.unshift(otherSeries);
         }
       }
     }
 
     const finalSeries = ChartDataProcessor.fillMissingPoints(
-      seriesWithOther,
+      displaySeries,
       dateRange,
       isCumulative,
     );
