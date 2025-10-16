@@ -1,1 +1,0 @@
-"""Sample responses for testing."""

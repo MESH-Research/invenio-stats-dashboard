@@ -150,7 +150,7 @@ ignore_missing_imports = true
 follow_imports = "skip"
 allow_untyped_globals = true
 exclude = [
-    '^tests/',
+    '^tests_stats_dashboard/',
     '^invenio_stats_dashboard/search_indices/search_templates/.*/os-v2/',
     '^invenio_stats_dashboard/patches/',
 ]
@@ -211,5 +211,5 @@ plugins = [
 
 [tool.coverage.run]
 omit = [
-    "tests/*",
+    "tests_stats_dashboard/*",
 ]
