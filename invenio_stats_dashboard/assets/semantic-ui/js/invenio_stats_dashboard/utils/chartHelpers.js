@@ -273,8 +273,8 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, subcountS
     return null;
   }
 
-  // Filter global series by date range
-  const filteredGlobalSeries = filterSeriesArrayByDate([globalSeriesData], dateRange, !isCumulative);
+  // Filter global series by date range (always get all data points, not just latest)
+  const filteredGlobalSeries = filterSeriesArrayByDate([globalSeriesData], dateRange, false);
 
   if (filteredGlobalSeries.length === 0 || !filteredGlobalSeries[0].data) {
     return null;
