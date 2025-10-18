@@ -13,7 +13,6 @@ from invenio_stats_dashboard.resources.serializers.basic_serializers import (
     StatsJSONSerializer,
     StatsCSVSerializer,
     StatsXMLSerializer,
-    StatsHTMLSerializer,
     StatsExcelSerializer,
 )
 
@@ -159,35 +158,6 @@ class TestStatsXMLSerializer:
 
         xml_data = response.data.decode("utf-8")
         assert "<stats>" in xml_data
-
-
-class TestStatsHTMLSerializer:
-    """Test HTML serializer."""
-
-    def test_serialize_list(self, sample_list_data):
-        """Test serializing list data to HTML."""
-        serializer = StatsHTMLSerializer()
-        response = serializer.serialize(sample_list_data)
-
-        assert response.mimetype == "text/html"
-        assert response.headers["Content-Type"] == "text/html; charset=utf-8"
-
-        html_data = response.data.decode("utf-8")
-        assert "<html>" in html_data
-        assert "<table>" in html_data
-        assert "Statistics Dashboard" in html_data
-        assert "knowledge-commons" in html_data
-
-    def test_serialize_dict(self, sample_dict_data):
-        """Test serializing dict data to HTML."""
-        serializer = StatsHTMLSerializer()
-        response = serializer.serialize(sample_dict_data)
-
-        assert response.mimetype == "text/html"
-
-        html_data = response.data.decode("utf-8")
-        assert "<html>" in html_data
-        assert "Statistics Dashboard" in html_data
 
 
 class TestStatsExcelSerializer:
