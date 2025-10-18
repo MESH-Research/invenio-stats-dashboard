@@ -39,40 +39,40 @@ def file_download_event_builder(event, sender_app, **kwargs):
     file_type = (
         obj.file.ext
         if hasattr(obj.file, "ext")
-        else obj.key.split(".")[-1].lower() if "." in obj.key else None
+        else obj.key.split(".")[-1].lower()
+        if "." in obj.key
+        else None
     )
-    event.update(
-        {
-            # When:
-            "timestamp": datetime.utcnow().isoformat(),
-            # What:
-            "bucket_id": str(obj.bucket_id),
-            "file_id": str(obj.file_id),
-            "file_key": obj.key,
-            "size": obj.file.size,
-            "recid": record["id"],
-            "parent_recid": record.parent["id"],
-            # Who:
-            "referrer": request.referrer,
-            **get_user(),
-            "resource_type": record.metadata["resource_type"],
-            "access_status": record.access.get("status", None),
-            "publisher": record.metadata.get("publisher", None),
-            "languages": record.metadata.get("languages", None),
-            "subjects": record.metadata.get("subjects", None),
-            "journal_title": (
-                record.custom_fields.get("journal:journal", {}).get("title", None)
-            ),
-            "rights": record.metadata.get("rights", None),
-            "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
-            "affiliations": [
-                c.get("affiliations")
-                for c in record.metadata.get("contributors", [])
-                + record.metadata.get("creators", [])
-            ],
-            "file_type": file_type,
-        }
-    )
+    event.update({
+        # When:
+        "timestamp": datetime.utcnow().isoformat(),
+        # What:
+        "bucket_id": str(obj.bucket_id),
+        "file_id": str(obj.file_id),
+        "file_key": obj.key,
+        "size": obj.file.size,
+        "recid": record["id"],
+        "parent_recid": record.parent["id"],
+        # Who:
+        "referrer": request.referrer,
+        **get_user(),
+        "resource_type": record.metadata["resource_type"],
+        "access_status": record.access.status.value,
+        "publisher": record.metadata.get("publisher", None),
+        "languages": record.metadata.get("languages", None),
+        "subjects": record.metadata.get("subjects", None),
+        "journal_title": (
+            record.custom_fields.get("journal:journal", {}).get("title", None)
+        ),
+        "rights": record.metadata.get("rights", None),
+        "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
+        "affiliations": [
+            c.get("affiliations")
+            for c in record.metadata.get("contributors", [])
+            + record.metadata.get("creators", [])
+        ],
+        "file_type": file_type,
+    })
     return event
 
 
@@ -95,41 +95,37 @@ def record_view_event_builder(event, sender_app, **kwargs):
             if record.files.enabled
             else None
         )
-        event.update(
-            {
-                # When:
-                "timestamp": datetime.utcnow().isoformat(),
-                # What:
-                "recid": record["id"],
-                "parent_recid": record.parent["id"],
-                # Who:
-                "referrer": request.referrer,
-                **get_user(),
-                # TODO probably we can add more request context information here for
-                #      extra filtering (e.g. URL or query params for discarding the
-                #      event when it's a citation text export)
-                "community_ids": (
-                    record.parent.communities.ids if record.parent.communities else []
-                ),
-                "resource_type": record.metadata["resource_type"],
-                "access_status": record.access.get("status", None),
-                "languages": record.metadata.get("languages", None),
-                "subjects": record.metadata.get("subjects", None),
-                "publisher": record.metadata.get("publisher", None),
-                "journal_title": (
-                    record.custom_fields.get("journal:journal", {}).get("title", None)
-                ),
-                "rights": record.metadata.get("rights", None),
-                "funders": [
-                    f.get("funder") for f in record.metadata.get("funding", [])
-                ],
-                "affiliations": [
-                    c.get("affiliations")
-                    for c in record.metadata.get("contributors", [])
-                    + record.metadata.get("creators", [])
-                ],
-                "file_types": file_types,
-            }
-        )
+        event.update({
+            # When:
+            "timestamp": datetime.utcnow().isoformat(),
+            # What:
+            "recid": record["id"],
+            "parent_recid": record.parent["id"],
+            # Who:
+            "referrer": request.referrer,
+            **get_user(),
+            # TODO probably we can add more request context information here for
+            #      extra filtering (e.g. URL or query params for discarding the
+            #      event when it's a citation text export)
+            "community_ids": (
+                record.parent.communities.ids if record.parent.communities else []
+            ),
+            "resource_type": record.metadata["resource_type"],
+            "access_status": record.access.status.value,
+            "languages": record.metadata.get("languages", None),
+            "subjects": record.metadata.get("subjects", None),
+            "publisher": record.metadata.get("publisher", None),
+            "journal_title": (
+                record.custom_fields.get("journal:journal", {}).get("title", None)
+            ),
+            "rights": record.metadata.get("rights", None),
+            "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
+            "affiliations": [
+                c.get("affiliations")
+                for c in record.metadata.get("contributors", [])
+                + record.metadata.get("creators", [])
+            ],
+            "file_types": file_types,
+        })
         return event
     return None
