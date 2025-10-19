@@ -107,8 +107,8 @@ invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
 
 [project.entry-points."invenio_celery.tasks"]
 invenio_stats_dashboard = "invenio_stats_dashboard.tasks.aggregation_tasks:aggregate_community_record_stats"
-invenio_stats_dashboard_reindexing = "invenio_stats_dashboard.tasks.aggregation_tasks:reindex_events_with_metadata"
-invenio_stats_dashboard_progress = "invenio_stats_dashboard.tasks:get_reindexing_progress"
+invenio_stats_dashboard_reindexing = "invenio_stats_dashboard.tasks.usage_reindexing_tasks:reindex_usage_events_with_metadata"
+invenio_stats_dashboard_progress = "invenio_stats_dashboard.tasks.usage_reindexing_tasks:get_reindexing_progress"
 
 [project.entry-points."invenio_base.finalize_app"]
 invenio_stats_dashboard = "invenio_stats_dashboard.ext:finalize_app"
@@ -117,12 +117,17 @@ invenio_stats_dashboard = "invenio_stats_dashboard.ext:finalize_app"
 line-length = 88
 target-version = "py312"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.isort]
+# Ensure consistent import sorting - explicitly declare tests as first-party
+known-first-party = ["invenio_stats_dashboard", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "D104", "E402"]
 
 [tool.ruff.lint]
 # temporarily removed C for complexity checks
 select = ["E", "F", "I", "B", "UP", "D", "DOC"]
+preview = true
 # Now Ruff handles formatting, so enable formatting rules
 ignore = [
     # Keep some warnings disabled

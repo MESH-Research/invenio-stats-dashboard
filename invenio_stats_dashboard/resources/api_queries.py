@@ -230,52 +230,20 @@ class CommunityStatsResultsQuery(Query):
             Dictionary containing results from all query types.
         """
         results = {}
-        record_deltas_created = CommunityRecordDeltaResultsQuery(
-            name="community-record-delta-created",
-            index="stats-community-records-delta-created",
+        record_deltas = CommunityRecordDeltaResultsQuery(
+            name=f"community-record-delta-{date_basis}",
+            index="stats-community-records-delta",
             client=self.client,
         )
-        results["record_deltas_created"] = record_deltas_created.run(
+        results[f"record_deltas_{date_basis}"] = record_deltas.run(
             community_id, start_date, end_date, date_basis
         )
-        record_deltas_published = CommunityRecordDeltaResultsQuery(
-            name="community-record-delta-published",
-            index="stats-community-records-delta-published",
+        record_snapshots = CommunityRecordSnapshotResultsQuery(
+            name=f"community-record-snapshot-{date_basis}",
+            index="stats-community-records-snapshot",
             client=self.client,
         )
-        results["record_deltas_published"] = record_deltas_published.run(
-            community_id, start_date, end_date, date_basis
-        )
-        record_deltas_added = CommunityRecordDeltaResultsQuery(
-            name="community-record-delta-added",
-            index="stats-community-records-delta-added",
-            client=self.client,
-        )
-        results["record_deltas_added"] = record_deltas_added.run(
-            community_id, start_date, end_date, date_basis
-        )
-        record_snapshots_created = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot-created",
-            index="stats-community-records-snapshot-created",
-            client=self.client,
-        )
-        results["record_snapshots_created"] = record_snapshots_created.run(
-            community_id, start_date, end_date, date_basis
-        )
-        record_snapshots_published = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot-published",
-            index="stats-community-records-snapshot-published",
-            client=self.client,
-        )
-        results["record_snapshots_published"] = record_snapshots_published.run(
-            community_id, start_date, end_date, date_basis
-        )
-        record_snapshots_added = CommunityRecordSnapshotResultsQuery(
-            name="community-record-snapshot-added",
-            index="stats-community-records-snapshot-added",
-            client=self.client,
-        )
-        results["record_snapshots_added"] = record_snapshots_added.run(
+        results[f"record_snapshots_{date_basis}"] = record_snapshots.run(
             community_id, start_date, end_date, date_basis
         )
         usage_deltas = CommunityUsageDeltaResultsQuery(

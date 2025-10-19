@@ -717,8 +717,9 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityRecordDeltaResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
-            "index": "stats-community-records-delta-added",
+            "index": "stats-community-records-delta",
             "doc_type": "community-record-delta-added-agg",
+            "date_basis": "added",
         },
     },
     # "community-record-snapshot-created": {
@@ -733,8 +734,9 @@ COMMUNITY_STATS_QUERIES = {
         "cls": CommunityRecordSnapshotResultsQuery,
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {
-            "index": "stats-community-records-snapshot-added",
+            "index": "stats-community-records-snapshot",
             "doc_type": "community-record-snapshot-added-agg",
+            "date_basis": "added",
         },
     },
     # "community-record-snapshot-published": {
@@ -766,7 +768,8 @@ COMMUNITY_STATS_QUERIES = {
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {  # These are actually not used
             "index": "stats-community-records-delta",
-            "doc_type": "community-record-delta-agg",
+            "doc_type": "community-record-delta-added-agg",
+            "date_basis": "added",
         },
     },
     "global-stats": {
@@ -774,7 +777,8 @@ COMMUNITY_STATS_QUERIES = {
         "permission_factory": CommunityStatsPermissionFactory,
         "params": {  # These are actually not used
             "index": "stats-community-records-delta",
-            "doc_type": "community-record-delta-agg",
+            "doc_type": "community-record-delta-added-agg",
+            "date_basis": "added",
         },
     },
     # Single data series queries

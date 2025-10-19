@@ -500,7 +500,7 @@ def _handle_usage_events_error(
     
     try:
         # Run usage events migration
-        current_event_reindexing_service.reindex_events_with_metadata()
+        current_event_reindexing_service.reindex_events()
         current_app.logger.info(
             "Usage events migration completed successfully"
         )

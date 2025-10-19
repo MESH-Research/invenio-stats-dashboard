@@ -86,7 +86,7 @@ The usage aggregator classes (delta and snapshot) depend on the existence of mig
 
 2. **Error Detection**: If the indices don't exist or events lack the `community_ids` field, the aggregator raises a `UsageEventsNotMigratedError` exception instead of proceeding with expensive per-event checks.
 
-3. **Automatic Migration**: The Celery aggregation task (`aggregate_community_record_stats`) catches this exception and automatically runs the usage events migration process using the existing `EventReindexingService.reindex_events_with_metadata()` method.
+3. **Automatic Migration**: The Celery aggregation task (`aggregate_community_record_stats`) catches this exception and automatically runs the usage events migration process using the existing `EventReindexingService.reindex_events()` method.
 
 4. **Graceful Displacement**: Rather than retrying the aggregation after migration (which could take hours for large repositories), the current aggregation run is gracefully displaced. The task logs that migration was completed and that the next scheduled run will proceed normally.
 
