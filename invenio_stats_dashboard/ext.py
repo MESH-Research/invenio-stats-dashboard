@@ -143,7 +143,7 @@ class InvenioStatsDashboard:
             }
         else:
             app.logger.info(
-                "Community stats scheduled aggregation tasks are disabled. "
+                "Community stats scheduled cache tasks are disabled. "
                 "Manual CLI operations are still possible."
             )
 

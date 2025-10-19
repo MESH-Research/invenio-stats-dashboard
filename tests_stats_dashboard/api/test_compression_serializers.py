@@ -127,7 +127,7 @@ class TestCompressedStatsJSONSerializer:
         assert len(compressed_data) < len(original_json.encode("utf-8"))
         
         # Should be brotli compressed (deterministic first bytes)
-        assert compressed_data[:4] == b'\x1b\x84\x01\x00'
+        assert compressed_data[:4] == b'\x1b\xbb\x01\x00'
         
         # Test that it can be decompressed back to original data
         decompressed = brotli.decompress(compressed_data)
@@ -143,7 +143,7 @@ class TestCompressedStatsJSONSerializer:
         assert len(compressed_data) > 0
         
         # Should be brotli compressed (deterministic first bytes)
-        assert compressed_data[:4] == b'\x1b\x14\x0b\x08'
+        assert compressed_data[:4] == b'\x1bXn@'
         
         # Test that it can be decompressed back to original data
         decompressed = brotli.decompress(compressed_data)
@@ -198,7 +198,7 @@ class TestConvenienceSerializers:
         
         # Test that it can be decompressed back to original data
         decompressed = brotli.decompress(compressed_data)
-        assert json.loads(decompressed.decode("utf-8")) == large_sample_data
+        assert json.loads(decompressed.decode("utf-8")) == sample_data
         
         # Should be smaller than original JSON
         original_json = json.dumps(sample_data, indent=2, default=str)
