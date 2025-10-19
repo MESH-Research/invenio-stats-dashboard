@@ -20,16 +20,20 @@ As such, it is assumed that a request context is available (and thus, Flask's gl
 """
 
 from datetime import datetime
+from typing import Any
 
 from flask import request
 from invenio_stats.utils import get_user
 
 
-def file_download_event_builder(event, sender_app, **kwargs):
+def file_download_event_builder(event: dict[str, Any], sender_app: str, **kwargs: Any) -> dict[str, Any] | None:
     """Build a file-download event.
 
     *Note* that this function assumes a request context by accessing properties of
     Flask's global ``request`` object.
+
+    Returns:
+        dict: A dictionary ready to be indexed as a file download event.
     """
     assert "record" in kwargs
     assert "obj" in kwargs
@@ -76,11 +80,14 @@ def file_download_event_builder(event, sender_app, **kwargs):
     return event
 
 
-def record_view_event_builder(event, sender_app, **kwargs):
+def record_view_event_builder(event: dict[str, Any], sender_app: str, **kwargs: Any) -> dict[str, Any] | None:
     """Build a record-view event.
 
     *Note* that this function assumes a request context by accessing properties of
     Flask's global ``request`` object.
+
+    Returns:
+        dict: A dictionary ready to be indexed as a record view event.
     """
     assert "record" in kwargs
     record = kwargs["record"]

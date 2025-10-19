@@ -177,7 +177,7 @@ class InvenioStatsDashboard:
         ]
 
         existing_rdm_record_components = app.config.get(
-            "RDM_RECORDS_SERVICE_COMPONENTS", []
+            "RDM_RECORDS_SERVICE_COMPONENTS", [*DefaultRecordsComponents]
         )
 
         # Ensure the existing components list includes all defaults
