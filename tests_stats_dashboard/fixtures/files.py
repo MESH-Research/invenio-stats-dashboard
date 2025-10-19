@@ -8,6 +8,18 @@
 
 import hashlib
 import os
+from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture(scope="module")
+def test_sample_files_folder():
+    """Fixture allowing for flexible sample files location."""
+    folderpath = Path(__file__).parent.parent / "helpers" / "sample_files"
+    if not folderpath.exists():
+        folderpath = Path(__file__).parent.parent.parent / "helpers" / "sample_files"
+    return folderpath
 
 
 def file_md5(bytes_object):

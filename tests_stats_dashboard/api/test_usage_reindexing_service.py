@@ -7,6 +7,7 @@
 
 """Tests for the EventReindexingService functionality."""
 
+import copy
 from copy import deepcopy
 from pathlib import Path
 
@@ -452,6 +453,7 @@ class TestEventReindexingService:
         requests_mock,
         search_clear,
         usage_event_factory,
+        test_sample_files_folder,
     ):
         """Comprehensive test for EventReindexingService with monthly indices.
 
@@ -473,7 +475,7 @@ class TestEventReindexingService:
                 service.max_memory_percent = self.memory_limit_percent
 
         self._verify_original_templates_lack_enriched_fields()
-        self._setup_test_data()
+        self._setup_test_data(test_sample_files_folder)
         self._pre_migration_setup()
         self._create_usage_events()
         self._capture_original_event_data()
@@ -490,7 +492,7 @@ class TestEventReindexingService:
         self._verify_new_fields_in_v2_indices()
         self._verify_event_content_preserved()
 
-    def _setup_test_data(self):
+    def _setup_test_data(self, test_sample_files_folder):
         """Setup test data including users, communities, records, and usage events."""
         # Clear any existing records to ensure clean test state
         # FIXME: Why is the search index not being cleared by search_clear?
@@ -524,7 +526,7 @@ class TestEventReindexingService:
             if metadata.get("files", {}).get("enabled", False):
                 filename = list(metadata["files"]["entries"].keys())[0]
                 file_paths = [
-                    Path(__file__).parent.parent / "helpers" / "sample_files" / filename
+                    test_sample_files_folder / filename
                 ]
             else:
                 # Fallback to sample.pdf if no files in metadata
@@ -533,10 +535,7 @@ class TestEventReindexingService:
                     "entries": {"sample.pdf": {"key": "sample.pdf", "ext": "pdf"}},
                 }
                 file_paths = [
-                    Path(__file__).parent.parent
-                    / "helpers"
-                    / "sample_files"
-                    / "sample.pdf"
+                    test_sample_files_folder / "sample.pdf"
                 ]
 
             record = self.minimal_published_record_factory(
@@ -1102,9 +1101,9 @@ class TestEventReindexingServiceMixedCommunityMembership(TestEventReindexingServ
             return [self.community_id]
         return []
 
-    def _setup_test_data(self):
+    def _setup_test_data(self, test_sample_files_folder):
         """Override to call parent setup and store record IDs for verification."""
-        super()._setup_test_data()
+        super()._setup_test_data(test_sample_files_folder)
         # Store which record has community membership for verification
         self.record_with_community = self.records[0]["id"]
         self.record_without_community = self.records[1]["id"]
@@ -1185,6 +1184,7 @@ def test_usage_event_community_ids_with_same_day_community_added(
     record_metadata,
     create_stats_indices,
     search_clear,
+    test_sample_files_folder,
 ):
     """Test usage events include community IDs when community added on same day."""
     client = current_search_client
@@ -1205,7 +1205,7 @@ def test_usage_event_community_ids_with_same_day_community_added(
         "entries": {"sample.pdf": {"key": "sample.pdf", "ext": "pdf"}},
     }
 
-    file_path = Path(__file__).parent.parent / "helpers" / "sample_files" / "sample.pdf"
+    file_path = test_sample_files_folder / "sample.pdf"
 
     # Create record with community and update community event dates
     # This will create the community "added" event with the correct date

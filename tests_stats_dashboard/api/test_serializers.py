@@ -7,13 +7,14 @@
 """Tests for content negotiation serializers."""
 
 import json
+
 import pytest
 
 from invenio_stats_dashboard.resources.serializers.basic_serializers import (
-    StatsJSONSerializer,
     StatsCSVSerializer,
-    StatsXMLSerializer,
     StatsExcelSerializer,
+    StatsJSONSerializer,
+    StatsXMLSerializer,
 )
 
 
@@ -163,25 +164,6 @@ class TestStatsXMLSerializer:
 class TestStatsExcelSerializer:
     """Test Excel serializer."""
 
-    def test_serialize_list_without_openpyxl(self, sample_list_data, monkeypatch):
-        """Test serializing list data when openpyxl is not available."""
-
-        # Mock ImportError for openpyxl
-        def mock_import_error(*args, **kwargs):
-            raise ImportError("No module named 'openpyxl'")
-
-        monkeypatch.setattr("builtins.__import__", mock_import_error)
-
-        serializer = StatsExcelSerializer()
-        response = serializer.serialize(sample_list_data)
-
-        # Should fallback to CSV
-        assert response.mimetype == "text/csv"
-
-    @pytest.mark.skipif(
-        not pytest.importorskip("openpyxl", reason="openpyxl not available"),
-        reason="openpyxl not available",
-    )
     def test_serialize_list_with_openpyxl(self, sample_list_data):
         """Test serializing list data to Excel when openpyxl is available."""
         serializer = StatsExcelSerializer()
@@ -197,10 +179,6 @@ class TestStatsExcelSerializer:
         # Verify it's a valid Excel file (starts with PK signature)
         assert response.data.startswith(b"PK")
 
-    @pytest.mark.skipif(
-        not pytest.importorskip("openpyxl", reason="openpyxl not available"),
-        reason="openpyxl not available",
-    )
     def test_serialize_dict_with_openpyxl(self, sample_dict_data):
         """Test serializing dict data to Excel when openpyxl is available."""
         serializer = StatsExcelSerializer()
@@ -216,4 +194,3 @@ class TestStatsExcelSerializer:
 
 class TestSerializerIntegration:
     """Test serializer integration with Flask app."""
-

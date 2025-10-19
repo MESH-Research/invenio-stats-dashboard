@@ -27,6 +27,7 @@ def test_synthetic_usage_event_creation(
     record_metadata,
     create_stats_indices,
     search_clear,
+    test_sample_files_folder,
 ):
     """Test synthetic usage event creation and indexing."""
     client = current_search_client
@@ -55,9 +56,7 @@ def test_synthetic_usage_event_creation(
             "entries": {"sample.pdf": {"key": "sample.pdf", "ext": "pdf"}},
         }
 
-        file_path = (
-            Path(__file__).parent.parent / "helpers" / "sample_files" / "sample.pdf"
-        )
+        file_path = test_sample_files_folder / "sample.pdf"
 
         record = minimal_published_record_factory(
             identity=user_identity,

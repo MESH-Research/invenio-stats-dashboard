@@ -199,7 +199,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         return community_id
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory
+        self, user_email, community_id, minimal_published_record_factory, test_sample_files_folder
     ):
         """Setup the records."""
         # Log when this method is called
@@ -222,12 +222,7 @@ class TestCommunityRecordCreatedDeltaQuery:
                 "set_default": True,
             }
             if idx != 1:
-                file_path = (
-                    Path(__file__).parent.parent
-                    / "helpers"
-                    / "sample_files"
-                    / list(rec["files"]["entries"].keys())[0]
-                )
+                file_path = test_sample_files_folder / list(rec["files"]["entries"].keys())[0]
                 rec_args["file_paths"] = [file_path]
             rec = minimal_published_record_factory(**rec_args)
 
@@ -751,6 +746,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         celery_worker,
         requests_mock,
         search_clear,
+        test_sample_files_folder,
     ):
         """Test the daily_record_cumulative_counts_query function."""
         self.app = running_app.app
@@ -779,7 +775,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         community_id = self._setup_community(minimal_community_factory, user_id)
         self.client.indices.refresh(index="*")
 
-        self._setup_records(user_email, community_id, minimal_published_record_factory)
+        self._setup_records(user_email, community_id, minimal_published_record_factory, test_sample_files_folder)
 
         results = []
         test_dates = self.test_date_range
@@ -923,7 +919,7 @@ class TestCommunityRecordDeltaQueryDeleted(TestCommunityRecordCreatedDeltaQuery)
         return True
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory
+        self, user_email, community_id, minimal_published_record_factory, test_sample_files_folder
     ):
         """Setup the records."""
         # Log when this method is called
@@ -933,7 +929,7 @@ class TestCommunityRecordDeltaQueryDeleted(TestCommunityRecordCreatedDeltaQuery)
             self.app.logger.error("Method: _setup_records")
 
         super()._setup_records(
-            user_email, community_id, minimal_published_record_factory
+            user_email, community_id, minimal_published_record_factory, test_sample_files_folder
         )
 
         current_records = records_service.search(
@@ -1255,6 +1251,7 @@ class TestCommunityUsageDeltaQuery:
         user_email,
         community_id,
         requests_mock,
+        test_sample_files_folder,
     ):
         """Setup the records for the test."""
         requests_mock.real_http = True
@@ -1281,10 +1278,7 @@ class TestCommunityUsageDeltaQuery:
             }
             if idx != 1:
                 args["file_paths"] = [
-                    Path(__file__).parent.parent
-                    / "helpers"
-                    / "sample_files"
-                    / list(rec["files"]["entries"].keys())[0]
+                    test_sample_files_folder / list(rec["files"]["entries"].keys())[0]
                 ]
             minimal_published_record_factory(**args)
         current_search_client.indices.refresh(index="*rdmrecords-records*")
@@ -1557,6 +1551,7 @@ class TestCommunityUsageDeltaQuery:
         celery_worker,
         requests_mock,
         search_clear,
+        test_sample_files_folder,
     ):
         """Test the community usage snapshot query."""
         self.app = running_app.app
@@ -1570,6 +1565,7 @@ class TestCommunityUsageDeltaQuery:
             user_email,
             community_id,
             requests_mock,
+            test_sample_files_folder,
         )
 
         self._create_usage_events(usage_event_factory)
