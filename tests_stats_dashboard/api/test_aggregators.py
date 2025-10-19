@@ -7,9 +7,8 @@
 """Test the aggregators for community stats."""
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from copy import deepcopy
-from pathlib import Path
 from pprint import pformat
 
 import arrow
@@ -18,12 +17,28 @@ from flask_sqlalchemy import SQLAlchemy
 from invenio_access.permissions import system_identity
 from invenio_access.utils import get_identity
 from invenio_accounts.proxies import current_datastore
+from invenio_communities.communities.services.results import CommunityItem
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search import current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy.helpers.search import Search
 from opensearchpy.helpers.utils import AttrDict
 from pytest import MonkeyPatch
+from tests.conftest import RunningApp
+from tests.fixtures.records import enhance_metadata_with_funding_and_affiliations
+from tests.helpers.sample_records import (
+    sample_metadata_journal_article3_pdf,
+    sample_metadata_journal_article4_pdf,
+    sample_metadata_journal_article5_pdf,
+    sample_metadata_journal_article6_pdf,
+    sample_metadata_journal_article7_pdf,
+)
+from tests.helpers.sample_stats_data.sample_record_delta_docs import (
+    MOCK_RECORD_DELTA_DOCS,
+)
+from tests.helpers.sample_stats_data.sample_record_snapshot_docs import (
+    MOCK_RECORD_SNAPSHOT_DOCS,
+)
 
 from invenio_stats_dashboard.aggregations.base import (
     CommunityAggregatorBase,
@@ -49,29 +64,19 @@ from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from invenio_stats_dashboard.services.components import (
     update_community_events_created_date,
 )
-from tests.conftest import RunningApp
-from tests.fixtures.records import enhance_metadata_with_funding_and_affiliations
-from tests.helpers.sample_records import (
-    sample_metadata_journal_article3_pdf,
-    sample_metadata_journal_article4_pdf,
-    sample_metadata_journal_article5_pdf,
-    sample_metadata_journal_article6_pdf,
-    sample_metadata_journal_article7_pdf,
-)
-from tests.helpers.sample_stats_data.sample_record_delta_docs import (
-    MOCK_RECORD_DELTA_DOCS,
-)
-from tests.helpers.sample_stats_data.sample_record_snapshot_docs import (
-    MOCK_RECORD_SNAPSHOT_DOCS,
-)
 
 
+@pytest.mark.skip(reason="Created aggregators deactivated.")
 class TestCommunityRecordDeltaCreatedAggregator:
     """Test the CommunityRecordsDeltaCreatedAggregator."""
 
     @property
-    def creation_dates(self):
-        """Get the creation dates for the records."""
+    def creation_dates(self) -> list[arrow.Arrow]:
+        """Get the creation dates for the records.
+
+        Returns:
+            list[arrow.Arrow]: List of creation dates for the records.
+        """
         date1 = arrow.utcnow().shift(days=-10)
         date2 = arrow.utcnow().shift(days=-6)
         dates = [date2, date2, date1, date1]
@@ -79,8 +84,12 @@ class TestCommunityRecordDeltaCreatedAggregator:
         return dates
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory
-    ):
+        self,
+        user_email,
+        community_id,
+        minimal_published_record_factory,
+        test_sample_files_folder,
+    ) -> None:
         """Setup the records.
 
         We want to ensure that the three different ways of counting record "starts"
@@ -114,10 +123,7 @@ class TestCommunityRecordDeltaCreatedAggregator:
             }
             if idx != 1:
                 file_path = (
-                    Path(__file__).parent.parent
-                    / "helpers"
-                    / "sample_files"
-                    / list(rec["files"]["entries"].keys())[0]
+                    test_sample_files_folder / list(rec["files"]["entries"].keys())[0]
                 )
                 rec_args["file_paths"] = [file_path]
             rec = minimal_published_record_factory(**rec_args)
@@ -141,18 +147,26 @@ class TestCommunityRecordDeltaCreatedAggregator:
         self.client.indices.refresh(index="*stats-community-events*")
 
     @property
-    def aggregator_instance(self):
-        """Get the aggregator class."""
+    def aggregator_instance(self) -> CommunityRecordsDeltaCreatedAggregator:
+        """Get the aggregator class.
+
+        Returns:
+            CommunityRecordsDeltaCreatedAggregator: The aggregator instance.
+        """
         return CommunityRecordsDeltaCreatedAggregator(
             name="community-records-delta-created-agg",
         )
 
     @property
-    def index_name(self):
-        """Get the index name."""
+    def index_name(self) -> str:
+        """Get the index name.
+
+        Returns:
+            str: The index name.
+        """
         return "stats-community-records-delta-created"
 
-    def _check_empty_day(self, day, day_idx, set_idx, community_id):
+    def _check_empty_day(self, day, day_idx, set_idx, community_id) -> None:
         """Check that the day is empty but has the correct structure."""
         assert day["_source"]["records"]["added"]["metadata_only"] == 0
         assert day["_source"]["records"]["added"]["with_files"] == 0
@@ -206,7 +220,9 @@ class TestCommunityRecordDeltaCreatedAggregator:
                 assert matching_doc is not None
                 assert subcount_item == matching_doc
 
-    def _check_agg_documents(self, global_agg_docs, community_agg_docs, community_id):
+    def _check_agg_documents(
+        self, global_agg_docs, community_agg_docs, community_id
+    ) -> None:
         """Check the aggregation documents."""
         assert len(global_agg_docs) == len(community_agg_docs)
         for set_idx, set in enumerate([global_agg_docs, community_agg_docs]):
@@ -326,7 +342,8 @@ class TestCommunityRecordDeltaCreatedAggregator:
         celery_worker,
         requests_mock,
         search_clear,
-    ):
+        test_sample_files_folder,
+    ) -> None:
         """Test CommunityRecordsDeltaCreatedAggregator's run method.
 
         This should produce daily deltas for the records created and removed/
@@ -343,7 +360,12 @@ class TestCommunityRecordDeltaCreatedAggregator:
         u = user_factory(email="test@example.com")
         user_email = u.user.email
 
-        self._setup_records(user_email, community_id, minimal_published_record_factory)
+        self._setup_records(
+            user_email,
+            community_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
+        )
 
         aggregator = self.aggregator_instance
         aggregator.run(
@@ -418,8 +440,12 @@ class TestCommunityRecordDeltaAddedAggregator(
     """
 
     @property
-    def aggregator_instance(self):
-        """Get the aggregator class."""
+    def aggregator_instance(self) -> CommunityRecordsDeltaAddedAggregator:
+        """Get the aggregator class.
+
+        Returns:
+            CommunityRecordsDeltaAddedAggregator: The aggregator instance.
+        """
         return CommunityRecordsDeltaAddedAggregator(
             name="community-records-delta-added-agg",
         )
@@ -541,8 +567,12 @@ class TestCommunityRecordDeltaPublishedAggregator(
     """
 
     @property
-    def event_date_range(self):
-        """Return the date range for test events."""
+    def event_date_range(self) -> list[arrow.Arrow]:
+        """Return the date range for test events.
+
+        Returns:
+            list[arrow.Arrow]: List of dates for test events.
+        """
         start_date = arrow.get(self.creation_dates[0]).floor("day")
         end_date = arrow.get("2025-06-03").ceil("day")
         range_dates = [a for a in arrow.Arrow.range("day", start_date, end_date)]
@@ -558,18 +588,28 @@ class TestCommunityRecordDeltaPublishedAggregator(
         return sorted(list(set(range_dates)))
 
     @property
-    def aggregator_instance(self):
-        """Get the aggregator class."""
+    def aggregator_instance(self) -> CommunityRecordsDeltaPublishedAggregator:
+        """Get the aggregator class.
+
+        Returns:
+            CommunityRecordsDeltaPublishedAggregator: The aggregator instance.
+        """
         return CommunityRecordsDeltaPublishedAggregator(
             name="community-records-delta-published-agg",
         )
 
     @property
-    def index_name(self):
-        """Get the index name."""
+    def index_name(self) -> str:
+        """Get the index name.
+
+        Returns:
+            str: The index name.
+        """
         return "stats-community-records-delta-published"
 
-    def _check_agg_documents(self, global_agg_docs, community_agg_docs, community_id):
+    def _check_agg_documents(
+        self, global_agg_docs, community_agg_docs, community_id
+    ) -> None:
         """Check the aggregation documents.
 
         This time deltas for both global and community aggregations should show
@@ -620,6 +660,7 @@ class TestCommunityRecordDeltaPublishedAggregator(
                 assert doc["files"]["removed"]["data_volume"] == 1984949.0
 
 
+@pytest.mark.skip(reason="Created snapshot aggregations deactivated.")
 @pytest.mark.usefixtures("reindex_resource_types")
 class TestCommunityRecordSnapshotCreatedAggregator:
     """Test the CommunityRecordsSnapshotCreatedAggregator.
@@ -629,38 +670,69 @@ class TestCommunityRecordSnapshotCreatedAggregator:
     """
 
     @property
-    def record_start_basis(self):
-        """Get the record start basis (created, added, or published)."""
+    def record_start_basis(self) -> str:
+        """Get the record start basis (created, added, or published).
+
+        Returns:
+            str: The record start basis.
+        """
         return "created"
 
     @property
-    def delta_aggregator_class(self):
-        """Get the delta aggregator class."""
+    def delta_aggregator_class(self) -> type[CommunityRecordsDeltaCreatedAggregator]:
+        """Get the delta aggregator class.
+
+        Returns:
+            type[CommunityRecordsDeltaCreatedAggregator]: The delta aggregator class.
+        """
         return CommunityRecordsDeltaCreatedAggregator
 
     @property
-    def snapshot_aggregator_class(self):
-        """Get the snapshot aggregator class."""
+    def snapshot_aggregator_class(
+        self,
+    ) -> type[CommunityRecordsSnapshotCreatedAggregator]:
+        """Get the snapshot aggregator class.
+
+        Returns:
+            type[CommunityRecordsSnapshotCreatedAggregator]: The snapshot aggregator
+            class.
+        """
         return CommunityRecordsSnapshotCreatedAggregator
 
     @property
-    def delta_index_pattern(self):
-        """Get the delta index pattern."""
+    def delta_index_pattern(self) -> str:
+        """Get the delta index pattern.
+
+        Returns:
+            str: The delta index pattern.
+        """
         return f"*stats-community-records-delta-{self.record_start_basis}*"
 
     @property
-    def delta_index_name(self):
-        """Get the delta index name."""
+    def delta_index_name(self) -> str:
+        """Get the delta index name.
+
+        Returns:
+            str: The delta index name.
+        """
         return f"stats-community-records-delta-{self.record_start_basis}"
 
     @property
-    def snapshot_index_name(self):
-        """Get the snapshot index name."""
+    def snapshot_index_name(self) -> str:
+        """Get the snapshot index name.
+
+        Returns:
+            str: The snapshot index name.
+        """
         return f"stats-community-records-snapshot-{self.record_start_basis}"
 
     @property
-    def creation_dates(self):
-        """Get the creation dates."""
+    def creation_dates(self) -> list[str]:
+        """Get the creation dates.
+
+        Returns:
+            list[str]: List of creation dates as formatted strings.
+        """
         return [
             arrow.utcnow().shift(days=-5).format("YYYY-MM-DDTHH:mm:ss"),
             arrow.utcnow().shift(days=-5).format("YYYY-MM-DDTHH:mm:ss"),
@@ -669,8 +741,12 @@ class TestCommunityRecordSnapshotCreatedAggregator:
         ]
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory
-    ):
+        self,
+        user_email,
+        community_id,
+        minimal_published_record_factory,
+        test_sample_files_folder,
+    ) -> None:
         """Create sample records for testing."""
         created_records = []
         for idx, rec in enumerate([
@@ -696,10 +772,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             }
             if idx != 1:
                 args["file_paths"] = [
-                    Path(__file__).parent.parent
-                    / "helpers"
-                    / "sample_files"
-                    / list(rec["files"]["entries"].keys())[0]
+                    test_sample_files_folder / list(rec["files"]["entries"].keys())[0]
                 ]
             record = minimal_published_record_factory(**args)
             created_records.append(record)
@@ -729,6 +802,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
         create_stats_indices,
         celery_worker,
         requests_mock,
+        test_sample_files_folder,
     ):
         """Test community_record_snapshot_agg."""
         self.app = running_app.app
@@ -738,7 +812,12 @@ class TestCommunityRecordSnapshotCreatedAggregator:
         community = minimal_community_factory(slug="knowledge-commons")
         community_id = community.id
 
-        self._setup_records(user_email, community_id, minimal_published_record_factory)
+        self._setup_records(
+            user_email,
+            community_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
+        )
 
         # First, run the delta aggregator to create the required index and data
         delta_aggregator = self.delta_aggregator_class(
@@ -894,13 +973,23 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             self._check_agg_documents(filtered_docs, community)
 
     @property
-    def expected_documents(self):
-        """Get the expected documents for this aggregator type."""
+    def expected_documents(self) -> list[dict]:
+        """Get the expected documents for this aggregator type.
+
+        Returns:
+            list[dict]: List of expected documents.
+        """
         # Default to created aggregator expectations
         return MOCK_RECORD_SNAPSHOT_DOCS
 
-    def _align_expected_documents(self, agg_documents, community_id):
-        """Align expected documents with actual based on aggregator behavior."""
+    def _align_expected_documents(
+        self, agg_documents, community_id
+    ) -> Iterator[tuple[dict, dict]]:
+        """Align expected documents with actual based on aggregator behavior.
+
+        Returns:
+            An iterator of tuples aligning actual with expected documents.
+        """
         expected_docs = self.expected_documents
         return zip(
             [agg_documents[0]] + agg_documents[-2:],
@@ -908,7 +997,7 @@ class TestCommunityRecordSnapshotCreatedAggregator:
             strict=True,
         )
 
-    def _check_agg_documents(self, agg_documents, community_id):
+    def _check_agg_documents(self, agg_documents, community_id) -> None:
         """Check the aggregation documents."""
         for actual_doc in agg_documents:
             # Check timestamp is recent (within 5 minutes)
@@ -1037,27 +1126,48 @@ class TestCommunityRecordSnapshotAddedAggregator(
     """Test the CommunityRecordsSnapshotAddedAggregator."""
 
     @property
-    def record_start_basis(self):
-        """Get the record start basis (created, added, or published)."""
+    def record_start_basis(self) -> str:
+        """Get the record start basis (created, added, or published).
+
+        Returns:
+            str: The record start basis.
+        """
         return "added"
 
     @property
-    def delta_aggregator_class(self):
-        """Get the delta aggregator class."""
+    def delta_aggregator_class(self) -> type[CommunityRecordsDeltaAddedAggregator]:
+        """Get the delta aggregator class.
+
+        Returns:
+            type[CommunityRecordsDeltaAddedAggregator]: The delta aggregator class.
+        """
         return CommunityRecordsDeltaAddedAggregator
 
     @property
-    def snapshot_aggregator_class(self):
-        """Get the snapshot aggregator class."""
+    def snapshot_aggregator_class(
+        self,
+    ) -> type[CommunityRecordsSnapshotAddedAggregator]:
+        """Get the snapshot aggregator class.
+
+        Returns:
+            type[CommunityRecordsSnapshotAddedAggregator]: The snapshot aggregator
+            class.
+        """
         return CommunityRecordsSnapshotAddedAggregator
 
-    def _align_expected_documents(self, agg_documents, community_id):
+    def _align_expected_documents(
+        self, agg_documents, community_id
+    ) -> Iterator[tuple[dict, dict]]:
         """Align expected documents for added aggregator behavior.
 
         For added aggregators:
         - Community-specific: All days have 0 counts until final day
             (matches final created snapshot)
         - Global: Identical to created aggregator (uses created dates)
+
+        Returns:
+            Iterator of tuples each of which includes an actual [0] and
+            expected [1] document.
         """
         expected_docs = self.expected_documents
 
@@ -1102,27 +1212,48 @@ class TestCommunityRecordSnapshotPublishedAggregator(
     """Test the CommunityRecordsSnapshotPublishedAggregator."""
 
     @property
-    def record_start_basis(self):
-        """Get the record start basis (created, added, or published)."""
+    def record_start_basis(self) -> str:
+        """Get the record start basis (created, added, or published).
+
+        Returns:
+            str: The record start basis.
+        """
         return "published"
 
     @property
-    def delta_aggregator_class(self):
-        """Get the delta aggregator class."""
+    def delta_aggregator_class(self) -> type[CommunityRecordsDeltaPublishedAggregator]:
+        """Get the delta aggregator class.
+
+        Returns:
+            type[CommunityRecordsDeltaPublishedAggregator]: The delta aggregator class.
+        """
         return CommunityRecordsDeltaPublishedAggregator
 
     @property
-    def snapshot_aggregator_class(self):
-        """Get the snapshot aggregator class."""
+    def snapshot_aggregator_class(
+        self,
+    ) -> type[CommunityRecordsSnapshotPublishedAggregator]:
+        """Get the snapshot aggregator class.
+
+        Returns:
+            type[CommunityRecordsSnapshotPublishedAggregator]: The snapshot
+                aggregator class.
+        """
         return CommunityRecordsSnapshotPublishedAggregator
 
-    def _align_expected_documents(self, agg_documents, community_id):
+    def _align_expected_documents(
+        self, agg_documents, community_id
+    ) -> Iterator[tuple[dict, dict]]:
         """Align expected documents for published aggregator behavior.
 
         For published aggregators:
         - First snapshot: Should look like the last created snapshot
             (all records published before period)
         - All other days: Should be identical to the first snapshot
+
+        Returns:
+            Iterator of tuples each of which includes an actual [0] and
+            expected [1] document.
         """
         expected_docs = self.expected_documents
 
@@ -1211,28 +1342,38 @@ class TestCommunityUsageAggregators:
     """
 
     @property
-    def catchup_interval(self):
-        """Return the catchup interval."""
+    def catchup_interval(self) -> int:
+        """Return the catchup interval.
+
+        Returns:
+            int: The catchup interval in days.
+        """
         return 365
 
     @property
-    def event_date_range(self):
+    def event_date_range(self) -> tuple[arrow.Arrow, arrow.Arrow]:
         """Return the date range for test events.
 
         Note that the events must be created after 2025-06-03 because
         the record creation dates are between 2025-05-30 and 2025-06-03.
         Events logged before the record's addition to the community or
         repository will not be included in the aggregations.
+
+        Returns:
+            tuple[arrow.Arrow, arrow.Arrow]: Start and end dates for test events.
         """
         start_date = arrow.get("2025-06-04").floor("day")
         end_date = arrow.get("2025-06-16").ceil("day")
         return start_date, end_date
 
     @property
-    def run_args(self):
+    def run_args(self) -> dict[str, arrow.Arrow]:
         """Return the arguments for the aggregator run method.
 
         Allows child classes to check bookmark and date range handling.
+
+        Returns:
+            Dictionary of arguments
         """
         start_date, end_date = self.event_date_range
         return {
@@ -1243,15 +1384,23 @@ class TestCommunityUsageAggregators:
             "return_results": True,
         }
 
-    def _setup_users(self, user_factory):
-        """Setup test users."""
+    def _setup_users(self, user_factory) -> tuple[str, str]:
+        """Setup test users.
+
+        Returns:
+            Tuple of the user's id and email address
+        """
         u = user_factory(email="test@example.com")
         user_id = u.user.id
         user_email = u.user.email
         return user_id, user_email
 
-    def _setup_community(self, minimal_community_factory, user_id):
-        """Setup test community."""
+    def _setup_community(self, minimal_community_factory, user_id) -> CommunityItem:
+        """Setup test community.
+
+        Returns:
+            The CommunityItem for the newly created community.
+        """
         community = minimal_community_factory(
             slug="knowledge-commons",
             owner=user_id,
@@ -1260,9 +1409,17 @@ class TestCommunityUsageAggregators:
         return community_id
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory
-    ):
-        """Setup test records."""
+        self,
+        user_email,
+        community_id,
+        minimal_published_record_factory,
+        test_sample_files_folder,
+    ) -> list[dict]:
+        """Setup test records.
+
+        Returns:
+            A list of dictionary representations of the created records
+        """
         created_records = []
         for idx, rec in enumerate([
             sample_metadata_journal_article4_pdf,
@@ -1285,16 +1442,14 @@ class TestCommunityUsageAggregators:
             }
             if idx != 1:
                 filename = list(rec["files"]["entries"].keys())[0]
-                args["file_paths"] = [
-                    Path(__file__).parent.parent / "helpers" / "sample_files" / filename
-                ]
+                args["file_paths"] = [test_sample_files_folder / filename]
             record = minimal_published_record_factory(**args)
             created_records.append(record.to_dict())
 
         current_search_client.indices.refresh(index="*rdmrecords-records*")
         return created_records
 
-    def _create_usage_events(self, usage_event_factory):
+    def _create_usage_events(self, usage_event_factory) -> None:
         """Setup test usage events."""
         # ensure the enriched event templates are registered
         if current_event_reindexing_service:
@@ -1334,7 +1489,7 @@ class TestCommunityUsageAggregators:
             f"{download_count['count']}"
         )
 
-    def _set_bookmarks(self, aggregator, community_id):
+    def _set_bookmarks(self, aggregator, community_id) -> None:
         """Set the initial bookmarks for the delta and snapshot aggregators."""
         start_date, _ = self.event_date_range
         for cid in [community_id, "global"]:
@@ -1346,7 +1501,7 @@ class TestCommunityUsageAggregators:
         for cid in [community_id, "global"]:
             assert aggregator.bookmark_api.get_bookmark(cid) == arrow.get(start_date)
 
-    def _check_bookmarks(self, aggregator, community_id):
+    def _check_bookmarks(self, aggregator, community_id) -> None:
         """Check that a bookmark was set to mark most recent aggregations."""
         _, end_date = self.event_date_range
         self.client.indices.refresh(index=prefix_index("stats-bookmarks*"))
@@ -1355,10 +1510,14 @@ class TestCommunityUsageAggregators:
             assert bookmark is not None
             assert arrow.get(bookmark).format("YYYY-MM-DDTHH:mm:ss") == arrow.get(
                 end_date
-            ).ceil("day").format("YYYY-MM-DDTHH:mm:ss")
+            ).floor("day").format("YYYY-MM-DDTHH:mm:ss")
 
-    def _validate_agg_results(self, community_id, start_date, end_date):
-        """Validate the results of the delta aggregator."""
+    def _validate_agg_results(self, community_id, start_date, end_date) -> list[dict]:
+        """Validate the results of the delta aggregator.
+
+        Returns:
+            A list of dictionaries representing the usage delta records.
+        """
         # 21 views for the extra record that isn't part of the community
         extra_views = 21 if community_id == "global" else 0
         # 20 downloads for the extra record that isn't part of the community
@@ -1535,8 +1694,14 @@ class TestCommunityUsageAggregators:
 
         return result_records
 
-    def _check_delta_agg_results(self, results, community_id):
-        """Check that the delta aggregator results are correct."""
+    def _check_delta_agg_results(self, results, community_id) -> tuple[list[dict]]:
+        """Check that the delta aggregator results are correct.
+
+        Returns:
+            A tuple of 0) A list of aggregation result dictionaries for the
+            specific community, and 1) A list of aggregation result dictionaries
+            for the global repository.
+        """
         self.app.logger.error(f"Results 0: {pformat(results)}")
         start_date, end_date = self.event_date_range
         total_days = (end_date - start_date).days + 1
@@ -1572,8 +1737,14 @@ class TestCommunityUsageAggregators:
         global_results = self._validate_agg_results("global", start_date, end_date)
         return community_results, global_results
 
-    def _check_snapshot_agg_results(self, snap_response, delta_results, community_id):
-        """Check that the snapshot aggregator results are correct."""
+    def _check_snapshot_agg_results(
+        self, snap_response, delta_results, community_id
+    ) -> bool:
+        """Check that the snapshot aggregator results are correct.
+
+        Returns:
+            True if the snapshot agg results are as expected, False otherwise
+        """
         start_date, end_date = self.event_date_range
         total_days = (end_date - start_date).days + 1
         extra_global_events = 1
@@ -1623,7 +1794,7 @@ class TestCommunityUsageAggregators:
 
     def _check_first_day_snapshot(
         self, first_day_snap, first_day_delta, extra_early_events
-    ):
+    ) -> None:
         """Check that first day's snapshot matches the first delta record."""
         first_day = first_day_delta["_source"]
         self.app.logger.error(f"First day snapshot: {pformat(first_day_snap)}")
@@ -1647,7 +1818,7 @@ class TestCommunityUsageAggregators:
 
     def _check_last_day_snapshot(
         self, last_day_snap, delta_results, extra_early_events
-    ):
+    ) -> None:
         """Check that last day's snapshot matches the sum of all delta records."""
         last_day = delta_results[-1]["_source"]
         self.app.logger.error(f"Last day snapshot: {pformat(last_day_snap)}")
@@ -1671,7 +1842,7 @@ class TestCommunityUsageAggregators:
             last_day_snap["_source"]["totals"]["download"], summed_download_totals, 0
         )
 
-    def _check_all_snap_subcounts(self, last_day_snap, delta_results):
+    def _check_all_snap_subcounts(self, last_day_snap, delta_results) -> None:
         """Check subcounts for all_subcount_type categories."""
         for all_subcount_type in [
             "file_types",
@@ -1701,7 +1872,7 @@ class TestCommunityUsageAggregators:
                     },
                 )
 
-    def _check_top_subcounts(self, last_day_snap, delta_results):
+    def _check_top_subcounts(self, last_day_snap, delta_results) -> None:
         """Check subcounts for top_subcount_type categories."""
         for top_subcount_type in [
             "subjects",
@@ -1824,7 +1995,9 @@ class TestCommunityUsageAggregators:
             + extra_early_events
         )
 
-    def _check_snap_totals_equal(self, actual_totals, expected_totals, extra_events):
+    def _check_snap_totals_equal(
+        self, actual_totals, expected_totals, extra_events
+    ) -> None:
         """Assert that totals are equal with optional extra events."""
         assert (
             actual_totals["total_events"]
@@ -1845,8 +2018,12 @@ class TestCommunityUsageAggregators:
         if "total_volume" in actual_totals:
             assert actual_totals["total_volume"] == expected_totals["total_volume"]
 
-    def _sum_delta_totals(self, delta_results, scope):
-        """Sum up totals from delta results for a given scope."""
+    def _sum_delta_totals(self, delta_results, scope) -> dict[str, int]:
+        """Sum up totals from delta results for a given scope.
+
+        Returns:
+            dict[str, int]: Dictionary containing summed totals.
+        """
         return {
             "total_events": sum(
                 day["_source"]["totals"][scope]["total_events"] for day in delta_results
@@ -1928,13 +2105,18 @@ class TestCommunityUsageAggregators:
         user_email,
         minimal_community_factory,
         minimal_published_record_factory,
-    ):
+        test_sample_files_folder,
+    ) -> list[dict]:
         """Setup extra records to test filtering.
 
         These records are not in the primary community that is being tested,
         so a separate community is created for them. This facilitates testing
         that the community-specific aggregators are not affected by events
         for records not in the community.
+
+        Returns:
+            list[dict]: A list of dictionaries representing the extra
+            newly created records.
         """
         extra_community = minimal_community_factory(
             metadata={"title": "Extra Community"},
@@ -1945,7 +2127,7 @@ class TestCommunityUsageAggregators:
         # ensure created date is before we need events
         metadata["created"] = "2025-06-01T18:43:57.051364+00:00"
         file_paths = [
-            Path(__file__).parent.parent / "helpers" / "sample_files" / "1305.pdf",
+            test_sample_files_folder / "1305.pdf",
         ]
         newrec = minimal_published_record_factory(
             metadata=metadata,
@@ -1972,7 +2154,9 @@ class TestCommunityUsageAggregators:
 
         return records.to_dict()["hits"]["hits"]
 
-    def _setup_extra_events(self, test_records, extra_records, usage_event_factory):
+    def _setup_extra_events(
+        self, test_records, extra_records, usage_event_factory
+    ) -> None:
         """Setup extra events to test date filtering and bookmarking.
 
         One extra view and download event is created for each record in the
@@ -2015,7 +2199,7 @@ class TestCommunityUsageAggregators:
 
         return prior_community_events, extra_global_events
 
-    def _prepare_earlier_results(self):
+    def _prepare_earlier_results(self) -> None:
         """Prepare the delta results for earlier results.
 
         The delta results are prepared for earlier extra events
@@ -2056,6 +2240,7 @@ class TestCommunityUsageAggregators:
         search_clear: Callable,
         usage_event_factory,
         monkeypatch: MonkeyPatch,
+        test_sample_files_folder,
     ):
         """Test the CommunityUsageDeltaAggregator class.
 
@@ -2100,7 +2285,10 @@ class TestCommunityUsageAggregators:
 
         requests_mock.real_http = True
         test_records = self._setup_records(
-            user_email, community_id, minimal_published_record_factory
+            user_email,
+            community_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
         )
         # extra records to test filtering
         extra_records = self._setup_extra_records(
@@ -2108,6 +2296,7 @@ class TestCommunityUsageAggregators:
             user_email,
             minimal_community_factory,
             minimal_published_record_factory,
+            test_sample_files_folder,
         )
 
         # Debug: Log the community events after record creation
@@ -2191,15 +2380,23 @@ class TestCommunityUsageAggregatorsBookmarked(TestCommunityUsageAggregators):
     """
 
     @property
-    def catchup_interval(self):
-        """Return the catchup interval."""
+    def catchup_interval(self) -> int:
+        """Return the catchup interval.
+
+        Returns:
+            int: The catchup interval in days.
+        """
         return 5
 
     @property
-    def run_args(self):
+    def run_args(self) -> dict[str, arrow.Arrow]:
         """Return the arguments for the aggregator run method.
 
         Allows child classes to check bookmark and date range handling.
+
+        Returns:
+            dict[str, arrow.Arrow]: Dictionary of arguments for the aggregator run
+            method.
         """
         return {
             "start_date": None,  # Use bookmark
@@ -2261,7 +2458,9 @@ class TestCommunityUsageAggregatorsBookmarked(TestCommunityUsageAggregators):
         # global_results = self._validate_agg_results("global", start_date, end_date)
         # return community_results, global_results
 
-    def _check_snapshot_agg_results(self, snap_response, delta_results, community_id):
+    def _check_snapshot_agg_results(
+        self, snap_response, delta_results, community_id
+    ) -> None:
         """Check that the snapshot aggregator results are correct."""
         start_date, end_date = self.event_date_range  # start date is 2025-06-04
         # but we're ignoring it and using the bookmark, set for 2025-06-15.
@@ -2587,7 +2786,7 @@ class TestGetNestedValue:
             ),
         ],
     )
-    def test_get_nested_value(self, data, path, key, match_field, expected):
+    def test_get_nested_value(self, data, path, key, match_field, expected) -> None:
         """Test _get_nested_value with various data structures."""
         result = CommunityAggregatorBase._get_nested_value(data, path, key, match_field)
         assert result == expected
@@ -2976,7 +3175,7 @@ class TestFindItemLabel:
             ),
         ],
     )
-    def test_find_item_label(self, added, removed, subcount_def, key, expected):
+    def test_find_item_label(self, added, removed, subcount_def, key, expected) -> None:
         """Test _find_item_label with various data structures."""
         result = CommunityRecordsDeltaAggregatorBase._find_item_label(
             added, removed, subcount_def, key
@@ -2987,7 +3186,7 @@ class TestFindItemLabel:
 class TestExtractIdNameFromBucket:
     """Test the _extract_id_name_from_bucket method."""
 
-    def test_id_bucket_extraction(self):
+    def test_id_bucket_extraction(self) -> None:
         """Test extraction from ID bucket."""
         # Mock bucket for ID aggregation (using event document structure)
         mock_bucket = AttrDict({
@@ -3023,7 +3222,7 @@ class TestExtractIdNameFromBucket:
         assert id_and_label["id"] == "00k4n6c31"
         assert id_and_label["label"] == "Funder 00k4n6c31"
 
-    def test_name_bucket_extraction(self):
+    def test_name_bucket_extraction(self) -> None:
         """Test extraction from name bucket."""
         # Mock bucket for name aggregation (using event document structure)
         mock_bucket = AttrDict({
@@ -3059,7 +3258,7 @@ class TestExtractIdNameFromBucket:
         assert id_and_label["id"] == "00k4n6c31"
         assert id_and_label["label"] == "Funder 00k4n6c31"
 
-    def test_id_bucket_with_multiple_matching_items(self):
+    def test_id_bucket_with_multiple_matching_items(self) -> None:
         """Test ID bucket extraction when multiple items match the same ID."""
         # Mock bucket for ID aggregation with multiple matching items
         mock_bucket = AttrDict({
@@ -3100,7 +3299,7 @@ class TestExtractIdNameFromBucket:
         assert id_and_label["id"] == "00k4n6c31"
         assert id_and_label["label"] == "Funder 00k4n6c31"
 
-    def test_name_bucket_with_multiple_matching_items(self):
+    def test_name_bucket_with_multiple_matching_items(self) -> None:
         """Test name bucket extraction when multiple items match the same name."""
         # Mock bucket for name aggregation with multiple matching items
         mock_bucket = AttrDict({
@@ -3141,7 +3340,7 @@ class TestExtractIdNameFromBucket:
         assert id_and_label["id"] == "00k4n6c31"
         assert id_and_label["label"] == "Funder 00k4n6c31"
 
-    def test_fallback_behavior(self):
+    def test_fallback_behavior(self) -> None:
         """Test fallback behavior when label extraction fails."""
         # Mock bucket without proper label structure
         mock_bucket = AttrDict({"key": "some_key"})
@@ -3171,16 +3370,24 @@ class TestAggregatorIgnoreBookmark:
     """Test ignore_bookmark functionality of the base aggregator class."""
 
     @property
-    def aggregator_instance(self):
-        """Get the aggregator class."""
-        return CommunityRecordsDeltaCreatedAggregator(
-            name="community-records-delta-created-agg",
+    def aggregator_instance(self) -> CommunityRecordsDeltaAddedAggregator:
+        """Get the aggregator class.
+
+        Returns:
+            CommunityRecordsDeltaAddedAggregator: The aggregator instance.
+        """
+        return CommunityRecordsDeltaAddedAggregator(
+            name="community-records-delta-added-agg",
         )
 
     @property
-    def index_name(self):
-        """Get the index name."""
-        return "stats-community-records-delta-created"
+    def index_name(self) -> str:
+        """Get the index name.
+
+        Returns:
+            str: The index name.
+        """
+        return "stats-community-records-delta-added"
 
     def test_ignore_bookmark_without_start_date(
         self,

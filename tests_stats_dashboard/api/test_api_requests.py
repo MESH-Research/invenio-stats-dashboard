@@ -9,7 +9,6 @@
 import copy
 import json
 import time
-from pathlib import Path
 from pprint import pformat
 
 import arrow
@@ -49,8 +48,8 @@ from tests.helpers.sample_records import (
 )
 
 
-class TestAPIRequestRecordDeltaCreated:
-    """Test class for community stats API requests.
+class APIRequestRecordDeltaBase:
+    """Base test class for community stats API requests.
 
     This class provides reusable logic for testing various community stats
     API endpoints.
@@ -59,24 +58,22 @@ class TestAPIRequestRecordDeltaCreated:
     @property
     def stat_name(self) -> str:
         """The stat name to use in the API request."""
-        return "community-record-delta-created"
+        raise NotImplementedError("Subclasses must implement stat_name")
+
+    @property
+    def aggregator_index(self) -> str:
+        """The index to use in the API request."""
+        raise NotImplementedError("Subclasses must implement aggregator_index")
+
+    @property
+    def aggregator(self):
+        """The aggregator to use in the API request."""
+        raise NotImplementedError("Subclasses must implement aggregator")
 
     @property
     def should_update_event_date(self) -> bool:
         """Whether to update the community event dates."""
         return True
-
-    @property
-    def aggregator_index(self) -> str:
-        """The index to use in the API request."""
-        return "stats-community-records-delta-created"
-
-    @property
-    def aggregator(self) -> CommunityRecordsDeltaCreatedAggregator:
-        """The aggregator to use in the API request."""
-        return CommunityRecordsDeltaCreatedAggregator(
-            name="community-records-delta-created-agg",
-        )
 
     @property
     def date_range(self) -> list[arrow.Arrow]:
@@ -116,8 +113,13 @@ class TestAPIRequestRecordDeltaCreated:
         minimal_published_record_factory,
         user_factory,
         search_clear,
-    ):
-        """Set up a test community and records."""
+        test_sample_files_folder,
+    ) -> tuple:
+        """Set up a test community and records.
+
+        Returns:
+            tuple: A tuple containing (app, client, community_id, synthetic_records).
+        """
         app = running_app.app
         client = current_search_client
 
@@ -164,7 +166,7 @@ class TestAPIRequestRecordDeltaCreated:
 
         return app, client, community_id, synthetic_records
 
-    def run_aggregator(self, client):
+    def run_aggregator(self, client) -> None:
         """Run the aggregator to generate stats."""
         start_date, end_date = self.date_range[0], self.date_range[-1]
 
@@ -178,7 +180,11 @@ class TestAPIRequestRecordDeltaCreated:
         client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
     def make_api_request(self, app, community_id, start_date, end_date):
-        """Make the API request to /api/stats."""
+        """Make the API request to /api/stats.
+
+        Returns:
+            Response: The API response object.
+        """
         with app.test_client() as test_client:
             request_body = {
                 "community-stats": {
@@ -200,7 +206,11 @@ class TestAPIRequestRecordDeltaCreated:
             return response
 
     def validate_response_structure(self, response_data, app):
-        """Validate the basic response structure."""
+        """Validate the basic response structure.
+
+        Returns:
+            list: The stats data from the response.
+        """
         assert response_data.status_code == 200
 
         response_json = response_data.get_json()
@@ -210,17 +220,17 @@ class TestAPIRequestRecordDeltaCreated:
 
         stats_data = response_json["community-stats"]
 
-        assert len(stats_data) == len(
-            self.date_range
-        ), f"Expected {len(self.date_range)} stats data, got {len(stats_data)}"
+        assert len(stats_data) == len(self.date_range), (
+            f"Expected {len(self.date_range)} stats data, got {len(stats_data)}"
+        )
         assert isinstance(stats_data, list), f"Expected list, got {type(stats_data)}"
-        assert isinstance(
-            stats_data[0], dict
-        ), f"Expected dict, got {type(stats_data[0])}"
+        assert isinstance(stats_data[0], dict), (
+            f"Expected dict, got {type(stats_data[0])}"
+        )
 
         return stats_data
 
-    def _validate_day_structure(self, day_data, count, app):
+    def _validate_day_structure(self, day_data, count, app) -> None:
         """Validate the basic structure of a day data."""
         assert "period_start" in day_data
         assert "period_end" in day_data
@@ -241,7 +251,7 @@ class TestAPIRequestRecordDeltaCreated:
 
         assert total_added == count
 
-    def validate_record_deltas(self, record_deltas, community_id, app):
+    def validate_record_deltas(self, record_deltas, community_id, app) -> None:
         """Validate the record deltas data structure."""
         # Should have data for our test period
         assert len(record_deltas) == len(self.date_range)
@@ -285,7 +295,7 @@ class TestAPIRequestRecordDeltaCreated:
 
         assert community_found, f"Expected to find data for community {community_id}"
 
-    def test_community_stats_api_request(
+    def _test_community_stats_api_request(
         self,
         running_app,
         db,
@@ -296,6 +306,7 @@ class TestAPIRequestRecordDeltaCreated:
         celery_worker,
         requests_mock,
         search_clear,
+        test_sample_files_folder,
     ):
         """Test the community-record-delta-created API request.
 
@@ -313,6 +324,7 @@ class TestAPIRequestRecordDeltaCreated:
             minimal_published_record_factory,
             user_factory,
             search_clear,
+            test_sample_files_folder,
         )
 
         # Run the aggregator
@@ -361,6 +373,29 @@ class TestAPIRequestRecordDeltaCreated:
         }
 
 
+@pytest.mark.skip(reason="Created aggregators deactivated.")
+class TestAPIRequestRecordDeltaCreated(APIRequestRecordDeltaBase):
+    """Test the community-record-delta-created API request."""
+
+    @property
+    def stat_name(self) -> str:
+        """The stat name to use in the API request."""
+        return "community-record-delta-created"
+
+    @property
+    def aggregator_index(self) -> str:
+        """The index to use in the API request."""
+        return "stats-community-records-delta-created"
+
+    @property
+    def aggregator(self) -> CommunityRecordsDeltaCreatedAggregator:
+        """The aggregator to use in the API request."""
+        return CommunityRecordsDeltaCreatedAggregator(
+            name="community-records-delta-created-agg",
+        )
+
+
+@pytest.mark.skip(reason="Published aggregators deactivated.")
 class TestAPIRequestRecordDeltaPublished(TestAPIRequestRecordDeltaCreated):
     """Test the community-record-delta-published API request."""
 
@@ -398,7 +433,7 @@ class TestAPIRequestRecordDeltaPublished(TestAPIRequestRecordDeltaCreated):
         ]
 
 
-class TestAPIRequestRecordDeltaAdded(TestAPIRequestRecordDeltaCreated):
+class TestAPIRequestRecordDeltaAdded(APIRequestRecordDeltaBase):
     """Test the community-record-delta-added API request."""
 
     @property
@@ -491,12 +526,218 @@ class TestAPIRequestRecordDeltaAdded(TestAPIRequestRecordDeltaCreated):
                     community_found = True
                     break
 
-            assert (
-                community_found
-            ), f"Expected to find data for community {community_id}"
+            assert community_found, (
+                f"Expected to find data for community {community_id}"
+            )
+
+    def test_community_stats_api_request(
+        self,
+        running_app,
+        db,
+        minimal_community_factory,
+        minimal_published_record_factory,
+        user_factory,
+        create_stats_indices,
+        celery_worker,
+        requests_mock,
+        search_clear,
+        test_sample_files_folder,
+    ) -> None:
+        """Test the community-record-delta-added API request."""
+        self._test_community_stats_api_request(
+            running_app,
+            db,
+            minimal_community_factory,
+            minimal_published_record_factory,
+            user_factory,
+            create_stats_indices,
+            celery_worker,
+            requests_mock,
+            search_clear,
+            test_sample_files_folder,
+        )
 
 
-class TestAPIRequestRecordSnapshotCreated(TestAPIRequestRecordDeltaCreated):
+class APIRequestRecordSnapshotBase(APIRequestRecordDeltaBase):
+    """Base test class for community stats snapshot API requests.
+
+    This class provides reusable logic for testing snapshot community stats
+    API endpoints.
+    """
+
+    def _validate_snapshot_structure(self, snapshot_data, count, app):
+        """Validate the basic structure of a snapshot data."""
+        assert "snapshot_date" in snapshot_data
+        assert "total_records" in snapshot_data
+        assert "metadata_only" in snapshot_data["total_records"]
+        assert "with_files" in snapshot_data["total_records"]
+        assert "total_parents" in snapshot_data
+        assert "metadata_only" in snapshot_data["total_parents"]
+        assert "with_files" in snapshot_data["total_parents"]
+        assert "total_files" in snapshot_data
+        assert "file_count" in snapshot_data["total_files"]
+        assert "data_volume" in snapshot_data["total_files"]
+        assert "total_uploaders" in snapshot_data
+
+        # Check that we have some records (our synthetic records)
+        total_records = (
+            snapshot_data["total_records"]["with_files"]
+            + snapshot_data["total_records"]["metadata_only"]
+        )
+        app.logger.error(
+            f"Snapshot {snapshot_data['snapshot_date']}: {total_records} total records"
+        )
+
+        assert total_records == count
+
+    def run_aggregator(self, client):
+        """Run the delta aggregator first, then the snapshot aggregator."""
+        start_date, end_date = self.date_range[0], self.date_range[-1]
+
+        delta_aggregator = CommunityRecordsDeltaCreatedAggregator(
+            name="community-records-delta-created-agg",
+        )
+        delta_aggregator.run(
+            start_date=start_date,
+            end_date=end_date,
+            update_bookmark=True,
+            ignore_bookmark=False,
+        )
+        client.indices.refresh(index="*stats-community-records-delta-created*")
+
+        # Then run the snapshot aggregator
+        self.aggregator.run(
+            start_date=start_date,
+            end_date=end_date,
+            update_bookmark=True,
+            ignore_bookmark=False,
+        )
+
+        client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
+
+    def validate_record_snapshots(self, record_snapshots, community_id, app):
+        """Validate the record snapshots data structure."""
+        # Should have data for our test period
+        assert len(record_snapshots) == len(self.date_range)
+        positive_snapshots = [
+            d
+            for d in record_snapshots
+            if arrow.get(d["snapshot_date"]) in self.expected_positive_dates
+        ]
+        assert len(positive_snapshots) == len(self.expected_positive_dates)
+
+        empty_snapshots = [
+            d
+            for d in record_snapshots
+            if arrow.get(d["snapshot_date"]) not in self.expected_positive_dates
+        ]
+        assert len(empty_snapshots) == len(self.date_range) - len(
+            self.expected_positive_dates
+        )
+
+        # Check that we have the expected structure for each day
+        running_total = 0
+        for snapshot_data in record_snapshots:
+            if snapshot_data in positive_snapshots:
+                running_total += self.per_day_records_added
+
+            self._validate_snapshot_structure(snapshot_data, running_total, app)
+
+        assert [d["snapshot_date"] for d in record_snapshots] == [
+            d.format("YYYY-MM-DDTHH:mm:ss") for d in self.date_range
+        ]
+
+        # Verify that we have data for the specific community
+        community_found = False
+        for snapshot_data in record_snapshots:
+            if snapshot_data.get("community_id") == community_id:
+                community_found = True
+                break
+
+        assert community_found, f"Expected to find data for community {community_id}"
+
+    def _test_community_stats_api_request(
+        self,
+        running_app,
+        db,
+        minimal_community_factory,
+        minimal_published_record_factory,
+        user_factory,
+        create_stats_indices,
+        celery_worker,
+        requests_mock,
+        search_clear,
+        test_sample_files_folder,
+    ):
+        """Test the community-record-snapshot-created API request.
+
+        This test creates a community, creates some records using sample data,
+        runs the aggregator to generate stats, and then tests the API request to
+        /api/stats with the community-record-snapshot-created configuration.
+        """
+        requests_mock.real_http = True
+        start_date, end_date = self.date_range[0], self.date_range[-1]
+
+        # Set up community and records
+        app, client, community_id, synthetic_records = self.setup_community_and_records(
+            running_app,
+            minimal_community_factory,
+            minimal_published_record_factory,
+            user_factory,
+            search_clear,
+            test_sample_files_folder,
+        )
+
+        # Run the aggregator
+        self.run_aggregator(client)
+
+        # Test the API request with data
+        response = self.make_api_request(
+            app,
+            community_id,
+            start_date.format("YYYY-MM-DD"),
+            end_date.format("YYYY-MM-DD"),
+        )
+
+        # Validate the response
+        record_snapshots = self.validate_response_structure(response, app)
+        app.logger.error(f"Record snapshots: {pformat(record_snapshots)}")
+        self.validate_record_snapshots(record_snapshots, community_id, app)
+
+        # Test the global API request
+        response_global = self.make_api_request(
+            app,
+            "global",
+            start_date.format("YYYY-MM-DD"),
+            end_date.format("YYYY-MM-DD"),
+        )
+
+        # Validate the global response
+        record_snapshots_global = self.validate_response_structure(response_global, app)
+        app.logger.error(f"Record snapshots global: {pformat(record_snapshots_global)}")
+        self.validate_record_snapshots(record_snapshots_global, "global", app)
+
+        # Test with a different date range that should have no data
+        response_no_data = self.make_api_request(
+            app,
+            community_id,
+            start_date="2024-01-01",
+            end_date="2024-01-02",
+        )
+
+        assert response_no_data.status_code == 400  # because no matching data
+        no_data_response = response_no_data.get_json()
+        assert no_data_response == {
+            "message": (
+                f"No results found for community {community_id} for "
+                "the period 2024-01-01 to 2024-01-02"
+            ),
+            "status": 400,
+        }
+
+
+@pytest.mark.skip(reason="Created aggregations deactivated.")
+class TestAPIRequestRecordSnapshotCreated(APIRequestRecordSnapshotBase):
     """Test the community-record-snapshot-created API request."""
 
     @property
@@ -628,6 +869,7 @@ class TestAPIRequestRecordSnapshotCreated(TestAPIRequestRecordDeltaCreated):
         celery_worker,
         requests_mock,
         search_clear,
+        test_sample_files_folder,
     ):
         """Test the community-record-snapshot-created API request.
 
@@ -645,6 +887,7 @@ class TestAPIRequestRecordSnapshotCreated(TestAPIRequestRecordDeltaCreated):
             minimal_published_record_factory,
             user_factory,
             search_clear,
+            test_sample_files_folder,
         )
 
         # Run the aggregator
@@ -767,7 +1010,7 @@ class TestAPIRequestRecordSnapshotPublished(TestAPIRequestRecordSnapshotCreated)
         client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
 
-class TestAPIRequestRecordSnapshotAdded(TestAPIRequestRecordSnapshotCreated):
+class TestAPIRequestRecordSnapshotAdded(APIRequestRecordSnapshotBase):
     """Test the community-record-snapshot-added API request."""
 
     @property
@@ -888,9 +1131,36 @@ class TestAPIRequestRecordSnapshotAdded(TestAPIRequestRecordSnapshotCreated):
                     community_found = True
                     break
 
-            assert (
-                community_found
-            ), f"Expected to find data for community {community_id}"
+            assert community_found, (
+                f"Expected to find data for community {community_id}"
+            )
+
+    def test_community_stats_api_request(
+        self,
+        running_app,
+        db,
+        minimal_community_factory,
+        minimal_published_record_factory,
+        user_factory,
+        create_stats_indices,
+        celery_worker,
+        requests_mock,
+        search_clear,
+        test_sample_files_folder,
+    ) -> None:
+        """Test the community-record-snapshot-added API request."""
+        self._test_community_stats_api_request(
+            running_app,
+            db,
+            minimal_community_factory,
+            minimal_published_record_factory,
+            user_factory,
+            create_stats_indices,
+            celery_worker,
+            requests_mock,
+            search_clear,
+            test_sample_files_folder,
+        )
 
 
 class TestAPIRequestUsageDelta:
@@ -949,8 +1219,13 @@ class TestAPIRequestUsageDelta:
         minimal_published_record_factory,
         user_factory,
         search_clear,
-    ):
-        """Set up a test community and records."""
+        test_sample_files_folder,
+    ) -> tuple:
+        """Set up a test community and records.
+
+        Returns:
+            tuple: A tuple containing (app, client, community_id, synthetic_records).
+        """
         app = running_app.app
         client = current_search_client
 
@@ -986,9 +1261,7 @@ class TestAPIRequestUsageDelta:
             }
 
             # Use the generic sample.pdf file for all records
-            file_path = (
-                Path(__file__).parent.parent / "helpers" / "sample_files" / "sample.pdf"
-            )
+            file_path = test_sample_files_folder / "sample.pdf"
             record_args["file_paths"] = [file_path]
 
             record = minimal_published_record_factory(**record_args)
@@ -1045,7 +1318,11 @@ class TestAPIRequestUsageDelta:
         client.indices.refresh(index=f"*{prefix_index(self.aggregator_index)}*")
 
     def make_api_request(self, app, community_id, start_date, end_date):
-        """Make the API request to /api/stats."""
+        """Make the API request to /api/stats.
+
+        Returns:
+            Response: The API response object.
+        """
         with app.test_client() as test_client:
             # Prepare the API request body
             request_body = {
@@ -1069,7 +1346,11 @@ class TestAPIRequestUsageDelta:
             return response
 
     def validate_response_structure(self, response_data, app):
-        """Validate the basic response structure."""
+        """Validate the basic response structure.
+
+        Returns:
+            list: The stats data from the response.
+        """
         # Check that the request was successful
         assert response_data.status_code == 200
 
@@ -1081,13 +1362,13 @@ class TestAPIRequestUsageDelta:
 
         stats_data = response_json["community-stats"]
 
-        assert len(stats_data) == len(
-            self.date_range
-        ), f"Expected {len(self.date_range)} stats data, got {len(stats_data)}"
+        assert len(stats_data) == len(self.date_range), (
+            f"Expected {len(self.date_range)} stats data, got {len(stats_data)}"
+        )
         assert isinstance(stats_data, list), f"Expected list, got {type(stats_data)}"
-        assert isinstance(
-            stats_data[0], dict
-        ), f"Expected dict, got {type(stats_data[0])}"
+        assert isinstance(stats_data[0], dict), (
+            f"Expected dict, got {type(stats_data[0])}"
+        )
 
         return stats_data
 
@@ -1182,6 +1463,7 @@ class TestAPIRequestUsageDelta:
         requests_mock,
         search_clear,
         usage_event_factory,
+        test_sample_files_folder,
     ):
         """Test the community-usage-delta API request."""
         app, client, community_id, synthetic_records = self.setup_community_and_records(
@@ -1190,6 +1472,7 @@ class TestAPIRequestUsageDelta:
             minimal_published_record_factory,
             user_factory,
             search_clear,
+            test_sample_files_folder,
         )
         self.app = app
 
@@ -1291,7 +1574,8 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
         for date in self.date_range:
             date_str = date.format("YYYY-MM-DD")
             if date in self.expected_positive_dates:
-                # per_day_usage_events is per event type per record, so multiply by number of records and event types (2)
+                # per_day_usage_events is per event type per record, so multiply by
+                # number of records and event types (2)
                 # The test adds view + download together, so we need both event types
                 cumulative_count += (
                     self.per_day_usage_events * len(self.sample_records) * 2
@@ -1314,7 +1598,8 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
 
             app.logger.error(
                 f"Snapshot {snapshot_date}: expected {expected_total}, "
-                f"got {actual_total} (view: {snapshot_data['totals']['view']['total_events']}, "
+                f"got {actual_total} (view: "
+                f"{snapshot_data['totals']['view']['total_events']}, "
                 f"download: {snapshot_data['totals']['download']['total_events']})"
             )
 
@@ -1347,6 +1632,7 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
         requests_mock,
         search_clear,
         usage_event_factory,
+        test_sample_files_folder,
     ):
         """Test the community-usage-snapshot API request."""
         app, client, community_id, synthetic_records = self.setup_community_and_records(
@@ -1355,6 +1641,7 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
             minimal_published_record_factory,
             user_factory,
             search_clear,
+            test_sample_files_folder,
         )
         self.app = app
 
@@ -1386,6 +1673,7 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
         self.validate_usage_snapshots(usage_snapshots, community_id, app)
 
 
+@pytest.mark.usefixtures("reindex_title_types")
 class TestAPIRequestCommunityStats:
     """Test the community-stats and global-stats API requests."""
 
@@ -1429,8 +1717,13 @@ class TestAPIRequestCommunityStats:
         minimal_community_factory,
         minimal_published_record_factory,
         user_factory,
-    ):
-        """Set up community and synthetic records."""
+        test_sample_files_folder,
+    ) -> tuple:
+        """Set up community and synthetic records.
+
+        Returns:
+            tuple: A tuple containing (client, community_id, synthetic_records).
+        """
         client = current_search_client
 
         u = user_factory(email="test@example.com")
@@ -1453,12 +1746,7 @@ class TestAPIRequestCommunityStats:
                 # Enable files for some records to ensure download events are created
                 if i != 1:
                     filename = list(metadata["files"]["entries"].keys())[0]
-                    file_paths = [
-                        Path(__file__).parent.parent
-                        / "helpers"
-                        / "sample_files"
-                        / filename
-                    ]
+                    file_paths = [test_sample_files_folder / filename]
                 else:
                     metadata["files"] = {"enabled": False}
                     file_paths = []
@@ -1485,12 +1773,20 @@ class TestAPIRequestCommunityStats:
         """Set up usage events for the synthetic records."""
         client = current_search_client
 
-        usage_event_factory.generate_and_index_repository_events(
-            self.per_day_usage_events
-        )
+        # Update and verify enriched event templates (required for migration)
+        current_event_reindexing_service.update_and_verify_templates()
 
-        client.indices.refresh(index="*stats-record-view*")
-        client.indices.refresh(index="*stats-file-download*")
+        # Generate events for each specific day to ensure predictable results
+        for date in self.expected_positive_dates:
+            usage_event_factory.generate_and_index_repository_events(
+                events_per_record=self.per_day_usage_events,
+                enrich_events=True,
+                event_start_date=date.format("YYYY-MM-DD"),
+                event_end_date=date.format("YYYY-MM-DD"),
+            )
+
+        client.indices.refresh(index="*events-stats-record-view*")
+        client.indices.refresh(index="*events-stats-file-download*")
         client.indices.refresh(index="*stats-community-events*")
 
         community_events = client.search(
@@ -1504,6 +1800,9 @@ class TestAPIRequestCommunityStats:
         """Run all the aggregators needed for comprehensive stats.
 
         Use the celery task to test its execution of the aggregators.
+
+        Returns:
+            dict: The aggregation results.
         """
         task_config = CommunityStatsAggregationTask
         task_aggs = task_config["args"]
@@ -1548,7 +1847,11 @@ class TestAPIRequestCommunityStats:
     def make_api_request(
         self, app, community_id, start_date, end_date, stat_type="community-stats"
     ):
-        """Make the API request to /api/stats."""
+        """Make the API request to /api/stats.
+
+        Returns:
+            Response: The API response object.
+        """
         with app.test_client() as client:
             # Prepare the API request body
             request_body = {
@@ -1571,7 +1874,11 @@ class TestAPIRequestCommunityStats:
             return response
 
     def validate_response_structure(self, response_data):
-        """Validate the response structure."""
+        """Validate the response structure.
+
+        Returns:
+            dict: The response JSON data.
+        """
         # Check that the request was successful
         assert response_data.status_code == 200
 
@@ -1586,11 +1893,11 @@ class TestAPIRequestCommunityStats:
 
         # Check that all expected stat types are present
         expected_stat_types = [
-            "record_deltas_created",
-            "record_deltas_published",
+            # "record_deltas_created",
+            # "record_deltas_published",
             "record_deltas_added",
-            "record_snapshots_created",
-            "record_snapshots_published",
+            # "record_snapshots_created",
+            # "record_snapshots_published",
             "record_snapshots_added",
             "usage_deltas",
             "usage_snapshots",
@@ -1598,9 +1905,9 @@ class TestAPIRequestCommunityStats:
 
         for stat_type in expected_stat_types:
             assert stat_type in response_json, f"Missing {stat_type} in response"
-            assert isinstance(
-                response_json[stat_type], list
-            ), f"{stat_type} should be a list"
+            assert isinstance(response_json[stat_type], list), (
+                f"{stat_type} should be a list"
+            )
 
         return response_json
 
@@ -1608,8 +1915,8 @@ class TestAPIRequestCommunityStats:
         """Validate the comprehensive stats data structure."""
         # Validate record deltas
         for delta_type in [
-            "record_deltas_created",
-            "record_deltas_published",
+            # "record_deltas_created",
+            # "record_deltas_published",
             "record_deltas_added",
         ]:
             deltas = stats_data[delta_type]
@@ -1632,8 +1939,8 @@ class TestAPIRequestCommunityStats:
 
         # Validate record snapshots
         for snapshot_type in [
-            "record_snapshots_created",
-            "record_snapshots_published",
+            # "record_snapshots_created",
+            # "record_snapshots_published",
             "record_snapshots_added",
         ]:
             snapshots = stats_data[snapshot_type]
@@ -1705,6 +2012,7 @@ class TestAPIRequestCommunityStats:
         requests_mock,
         search_clear,
         usage_event_factory,
+        test_sample_files_folder,
     ):
         """Test the community-stats API request."""
         self.app = running_app.app
@@ -1712,6 +2020,7 @@ class TestAPIRequestCommunityStats:
             minimal_community_factory,
             minimal_published_record_factory,
             user_factory,
+            test_sample_files_folder,
         )
 
         # Set up usage events
@@ -1732,6 +2041,7 @@ class TestAPIRequestCommunityStats:
         self.validate_comprehensive_stats(stats_data, community_id)
 
 
+@pytest.mark.usefixtures("reindex_title_types")
 class TestAPIRequestGlobalStats(TestAPIRequestCommunityStats):
     """Test the global-stats API request."""
 
@@ -1747,6 +2057,7 @@ class TestAPIRequestGlobalStats(TestAPIRequestCommunityStats):
         requests_mock,
         search_clear,
         usage_event_factory,
+        test_sample_files_folder,
     ):
         """Test the global-stats API request."""
         self.app = running_app.app
@@ -1754,6 +2065,7 @@ class TestAPIRequestGlobalStats(TestAPIRequestCommunityStats):
             minimal_community_factory,
             minimal_published_record_factory,
             user_factory,
+            test_sample_files_folder,
         )
 
         # Set up usage events
