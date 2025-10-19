@@ -8,18 +8,23 @@
 
 import json
 
+import brotli
 import pytest
 
 from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
+    BrotliStatsJSONSerializer,
     CompressedStatsJSONSerializer,
     GzipStatsJSONSerializer,
-    BrotliStatsJSONSerializer,
 )
 
 
 @pytest.fixture
 def sample_data():
-    """Sample data for testing compression."""
+    """Sample data for testing compression.
+    
+    Returns:
+        dict: Sample data dictionary.
+    """
     return {
         "series_id": "test-series",
         "series_name": "Test Data Series",
@@ -37,7 +42,11 @@ def sample_data():
 
 @pytest.fixture
 def large_sample_data():
-    """Large sample data for better compression testing."""
+    """Large sample data for better compression testing.
+    
+    Returns:
+        dict: Large sample data dictionary.
+    """
     return {
         "global": {
             "views": [
@@ -66,85 +75,96 @@ class TestCompressedStatsJSONSerializer:
     def test_gzip_serialization(self, sample_data):
         """Test gzip compression serialization."""
         serializer = CompressedStatsJSONSerializer(compression_method="gzip")
-        response = serializer.serialize(sample_data)
+        compressed_data = serializer.serialize(sample_data)
 
-        # Check response properties
-        assert response.mimetype == "application/json"
-        assert response.headers["Content-Type"] == "application/json; charset=utf-8"
-        assert response.headers["Content-Encoding"] == "gzip"
-        assert "stats.json.gz" in response.headers["Content-Disposition"]
-
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Should be gzip compressed (starts with gzip magic bytes)
+        assert compressed_data[:2] == b'\x1f\x8b'
+        
         # Check that data is compressed (should be smaller than original JSON)
         original_json = json.dumps(sample_data, indent=2, default=str)
-        assert len(response.data) < len(original_json.encode("utf-8"))
+        assert len(compressed_data) < len(original_json.encode("utf-8"))
 
     def test_gzip_serialization_with_dict(self, large_sample_data):
         """Test gzip compression with dictionary data."""
         serializer = CompressedStatsJSONSerializer(compression_method="gzip")
-        response = serializer.serialize(large_sample_data)
+        compressed_data = serializer.serialize(large_sample_data)
 
-        assert response.mimetype == "application/json"
-        assert response.headers["Content-Encoding"] == "gzip"
-        assert len(response.data) > 0
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Should be gzip compressed (starts with gzip magic bytes)
+        assert compressed_data[:2] == b'\x1f\x8b'
 
     def test_gzip_serialization_with_list(self):
         """Test gzip compression with list data."""
         list_data = [{"key": f"value_{i}"} for i in range(100)]
         serializer = CompressedStatsJSONSerializer(compression_method="gzip")
-        response = serializer.serialize(list_data)
+        compressed_data = serializer.serialize(list_data)
 
-        assert response.mimetype == "application/json"
-        assert response.headers["Content-Encoding"] == "gzip"
-        assert len(response.data) > 0
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Should be gzip compressed (starts with gzip magic bytes)
+        assert compressed_data[:2] == b'\x1f\x8b'
 
     def test_brotli_serialization(self, sample_data):
         """Test brotli compression serialization."""
         serializer = CompressedStatsJSONSerializer(compression_method="brotli")
-        response = serializer.serialize(sample_data)
+        compressed_data = serializer.serialize(sample_data)
 
-        # Check response properties
-        assert response.mimetype == "application/json"
-        assert response.headers["Content-Type"] == "application/json; charset=utf-8"
-        assert response.headers["Content-Encoding"] == "br"
-        assert "stats.json.br" in response.headers["Content-Disposition"]
-
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
         # Check that data is compressed (should be smaller than original JSON)
         original_json = json.dumps(sample_data, indent=2, default=str)
-        assert len(response.data) < len(original_json.encode("utf-8"))
+        assert len(compressed_data) < len(original_json.encode("utf-8"))
+        
+        # Should be brotli compressed (deterministic first bytes)
+        assert compressed_data[:4] == b'\x1b\x84\x01\x00'
+        
+        # Test that it can be decompressed back to original data
+        decompressed = brotli.decompress(compressed_data)
+        assert json.loads(decompressed.decode("utf-8")) == sample_data
 
     def test_brotli_serialization_with_dict(self, large_sample_data):
         """Test brotli compression with dictionary data."""
         serializer = CompressedStatsJSONSerializer(compression_method="brotli")
-        response = serializer.serialize(large_sample_data)
+        compressed_data = serializer.serialize(large_sample_data)
 
-        assert response.mimetype == "application/json"
-        assert response.headers["Content-Encoding"] == "br"
-        assert len(response.data) > 0
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Should be brotli compressed (deterministic first bytes)
+        assert compressed_data[:4] == b'\x1b\x14\x0b\x08'
+        
+        # Test that it can be decompressed back to original data
+        decompressed = brotli.decompress(compressed_data)
+        assert json.loads(decompressed.decode("utf-8")) == large_sample_data
 
     def test_brotli_serialization_with_list(self):
         """Test brotli compression with list data."""
         list_data = [{"key": f"value_{i}"} for i in range(100)]
         serializer = CompressedStatsJSONSerializer(compression_method="brotli")
-        response = serializer.serialize(list_data)
+        compressed_data = serializer.serialize(list_data)
 
-        assert response.mimetype == "application/json"
-        assert response.headers["Content-Encoding"] == "br"
-        assert len(response.data) > 0
-
-    def test_brotli_fallback_to_gzip(self, sample_data, monkeypatch):
-        """Test that brotli falls back to gzip when brotli is not available."""
-        # Mock brotli as unavailable
-        monkeypatch.setattr(
-            "invenio_stats_dashboard.resources.data_series_serializers.BROTLI_AVAILABLE",
-            False
-        )
-
-        serializer = CompressedStatsJSONSerializer(compression_method="brotli")
-        response = serializer.serialize(sample_data)
-
-        # Should fall back to gzip
-        assert response.headers["Content-Encoding"] == "gzip"
-        assert "stats.json.gz" in response.headers["Content-Disposition"]
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Should be brotli compressed (deterministic first bytes)
+        assert compressed_data[:4] == b'\x1b\x13\x0c '
+        
+        # Test that it can be decompressed back to original data
+        decompressed = brotli.decompress(compressed_data)
+        assert json.loads(decompressed.decode("utf-8")) == list_data
 
 
 class TestConvenienceSerializers:
@@ -153,18 +173,37 @@ class TestConvenienceSerializers:
     def test_gzip_convenience_serializer(self, sample_data):
         """Test GzipStatsJSONSerializer convenience class."""
         serializer = GzipStatsJSONSerializer()
-        response = serializer.serialize(sample_data)
+        compressed_data = serializer.serialize(sample_data)
 
-        assert response.headers["Content-Encoding"] == "gzip"
-        assert "stats.json.gz" in response.headers["Content-Disposition"]
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Should be gzip compressed (starts with gzip magic bytes)
+        assert compressed_data[:2] == b'\x1f\x8b'
+        
+        # Should be smaller than original JSON
+        original_json = json.dumps(sample_data, indent=2, default=str)
+        original_size = len(original_json.encode("utf-8"))
+        assert len(compressed_data) < original_size
 
     def test_brotli_convenience_serializer(self, sample_data):
         """Test BrotliStatsJSONSerializer convenience class."""
         serializer = BrotliStatsJSONSerializer()
-        response = serializer.serialize(sample_data)
+        compressed_data = serializer.serialize(sample_data)
 
-        assert response.headers["Content-Encoding"] == "br"
-        assert "stats.json.br" in response.headers["Content-Disposition"]
+        # Should return compressed bytes
+        assert isinstance(compressed_data, bytes)
+        assert len(compressed_data) > 0
+        
+        # Test that it can be decompressed back to original data
+        decompressed = brotli.decompress(compressed_data)
+        assert json.loads(decompressed.decode("utf-8")) == large_sample_data
+        
+        # Should be smaller than original JSON
+        original_json = json.dumps(sample_data, indent=2, default=str)
+        original_size = len(original_json.encode("utf-8"))
+        assert len(compressed_data) < original_size
 
 
 class TestCompressionComparison:
@@ -175,11 +214,11 @@ class TestCompressionComparison:
         gzip_serializer = CompressedStatsJSONSerializer(compression_method="gzip")
         brotli_serializer = CompressedStatsJSONSerializer(compression_method="brotli")
 
-        gzip_response = gzip_serializer.serialize(large_sample_data)
-        brotli_response = brotli_serializer.serialize(large_sample_data)
+        gzip_data = gzip_serializer.serialize(large_sample_data)
+        brotli_data = brotli_serializer.serialize(large_sample_data)
 
-        gzip_size = len(gzip_response.data)
-        brotli_size = len(brotli_response.data)
+        gzip_size = len(gzip_data)
+        brotli_size = len(brotli_data)
 
         # Both should compress the data
         original_json = json.dumps(large_sample_data, indent=2, default=str)
@@ -192,7 +231,7 @@ class TestCompressionComparison:
         gzip_ratio = (gzip_size / original_size) * 100
         brotli_ratio = (brotli_size / original_size) * 100
 
-        print(f"\nCompression Analysis:")
+        print("\nCompression Analysis:")
         print(f"Original size: {original_size} bytes")
         print(f"Gzip size: {gzip_size} bytes ({gzip_ratio:.1f}%)")
         print(f"Brotli size: {brotli_size} bytes ({brotli_ratio:.1f}%)")

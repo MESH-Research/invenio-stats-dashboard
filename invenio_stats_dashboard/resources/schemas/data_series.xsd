@@ -55,13 +55,23 @@
   <!-- Category type -->
   <xs:complexType name="CategoryType">
     <xs:sequence>
-      <xs:element name="metric" type="ds:MetricType" maxOccurs="unbounded"/>
+      <xs:element name="seriesSet" type="ds:SeriesSetType" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="name" type="xs:string" use="required"/>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="metricsCount" type="xs:nonNegativeInteger" use="required"/>
     <xs:attribute name="description" type="xs:string"/>
     <xs:attribute name="categoryType" type="ds:CategoryTypeEnum"/>
+  </xs:complexType>
+
+  <!-- Series set type -->
+  <xs:complexType name="SeriesSetType">
+    <xs:sequence>
+      <xs:element name="metric" type="ds:MetricType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="metricsCount" type="xs:nonNegativeInteger" use="required"/>
   </xs:complexType>
 
   <!-- Category type enumeration -->

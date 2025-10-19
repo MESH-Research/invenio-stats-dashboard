@@ -7,14 +7,14 @@ import tempfile
 from openpyxl import load_workbook
 
 from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
-    DataSeriesExcelSerializer
+    DataSeriesExcelSerializer,
 )
 
 
 class TestDataSeriesExcelSerializer:
     """Test the DataSeriesExcelSerializer functionality."""
 
-    def test_excel_workbook_creation(self):
+    def test_excel_workbook_creation(self, running_app):
         """Test consolidated Excel workbook creation."""
         # Sample data with query->category->metric structure
         test_data = {
@@ -32,7 +32,7 @@ class TestDataSeriesExcelSerializer:
                                     "readableDate": "Jun 2, 2025",
                                     "value": ["2025-06-02", 4096.0],
                                     "valueType": "filesize",
-                                }
+                                },
                             ],
                             "id": "metadata-only",
                             "label": "Metadata Only",
@@ -69,8 +69,8 @@ class TestDataSeriesExcelSerializer:
                             "name": "",
                             "type": "line",
                             "valueType": "number",
-                        }
-                    ]
+                        },
+                    ],
                 },
                 "countries": {
                     "views": [
@@ -89,7 +89,7 @@ class TestDataSeriesExcelSerializer:
                             "valueType": "number",
                         }
                     ]
-                }
+                },
             }
         }
 
@@ -99,15 +99,24 @@ class TestDataSeriesExcelSerializer:
         with tempfile.TemporaryDirectory() as temp_dir:
             serializer._create_excel_workbooks(test_data, temp_dir)
 
-            # Check workbooks created (one per category)
+            # Check query folder created
+            assert os.path.exists(os.path.join(temp_dir, "usage-snapshot-category"))
+
+            # Check workbooks created (one per category within query folder)
             assert os.path.exists(
-                os.path.join(temp_dir, "access_statuses.xlsx")
+                os.path.join(
+                    temp_dir, "usage-snapshot-category", "access_statuses.xlsx"
+                )
             )
-            assert os.path.exists(os.path.join(temp_dir, "countries.xlsx"))
+            assert os.path.exists(
+                os.path.join(temp_dir, "usage-snapshot-category", "countries.xlsx")
+            )
 
             # Load and verify access_statuses workbook
             wb = load_workbook(
-                os.path.join(temp_dir, "access_statuses.xlsx")
+                os.path.join(
+                    temp_dir, "usage-snapshot-category", "access_statuses.xlsx"
+                )
             )
             sheet_names = wb.sheetnames
             assert "data_volume" in sheet_names
@@ -135,7 +144,7 @@ class TestDataSeriesExcelSerializer:
             assert ws.cell(row=3, column=1).value == "open"
             assert ws.cell(row=3, column=2).value == "Open Access"
 
-    def test_sheet_name_sanitization(self):
+    def test_sheet_name_sanitization(self, running_app):
         """Test sheet name sanitization for Excel compatibility."""
         serializer = DataSeriesExcelSerializer()
 
@@ -144,11 +153,11 @@ class TestDataSeriesExcelSerializer:
             ("normal_name", "normal_name"),
             (
                 "name/with\\invalid?chars*[brackets]",
-                "name_with_invalid_chars__brackets_"
+                "name_with_invalid_chars__bracke",
             ),
             (
                 "very_long_sheet_name_that_exceeds_excel_limit_of_31_chars",
-                "very_long_sheet_name_that_exce"
+                "very_long_sheet_name_that_excee",
             ),
             ("", "Sheet"),
             ("name with spaces", "name with spaces"),
@@ -158,7 +167,7 @@ class TestDataSeriesExcelSerializer:
             result = serializer._sanitize_sheet_name(input_name)
             assert result == expected
             assert len(result) <= 31
-            invalid_chars = ['\\', '/', '?', '*', '[', ']']
+            invalid_chars = ["\\", "/", "?", "*", "[", "]"]
             assert not any(char in result for char in invalid_chars)
 
     def test_consolidated_data_addition(self):
@@ -179,8 +188,8 @@ class TestDataSeriesExcelSerializer:
                         "readableDate": "Jun 2, 2025",
                         "value": ["2025-06-02", 200],
                         "valueType": "number",
-                    }
-                ]
+                    },
+                ],
             },
             {
                 "id": "fr",
@@ -191,17 +200,16 @@ class TestDataSeriesExcelSerializer:
                         "value": ["2025-06-01", 50],
                         "valueType": "number",
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         from openpyxl import Workbook
+
         wb = Workbook()
         ws = wb.active
         assert ws is not None  # Type guard for linter
-        serializer._add_consolidated_data_to_sheet(
-            ws, "views", test_data_series
-        )
+        serializer._add_consolidated_data_to_sheet(ws, "views", test_data_series)
 
         # Verify header
         assert ws.cell(row=1, column=1).value == "id"
@@ -228,7 +236,7 @@ class TestDataSeriesExcelSerializer:
         assert ws.cell(row=4, column=3).value == "2025-06-01"
         assert ws.cell(row=4, column=4).value == 50
 
-    def test_empty_data_handling(self):
+    def test_empty_data_handling(self, running_app):
         """Test handling of empty or completely missing data."""
         serializer = DataSeriesExcelSerializer()
 
@@ -240,31 +248,26 @@ class TestDataSeriesExcelSerializer:
 
         # Test with data that has no actual data series
         # but valid structure
-        empty_category_data = {
-            "usage-snapshot": {
-                "languages": {
-                    "views": [],
-                    "downloads": []
-                }
-            }
+        empty_category_data: dict = {
+            "usage-snapshot": {"languages": {"views": [], "downloads": []}}
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            serializer._create_excel_workbooks(
-                empty_category_data, temp_dir
-            )
+            serializer._create_excel_workbooks(empty_category_data, temp_dir)
             # Should create a workbook with "No Data" sheet
-            assert os.path.exists(os.path.join(temp_dir, "languages.xlsx"))
+            assert os.path.exists(
+                os.path.join(temp_dir, "usage-snapshot", "languages.xlsx")
+            )
 
             wb = load_workbook(
-                os.path.join(temp_dir, "languages.xlsx")
+                os.path.join(temp_dir, "usage-snapshot", "languages.xlsx")
             )
             assert "No Data" in wb.sheetnames
             ws = wb["No Data"]
             assert "No Data Available" in str(ws.cell(row=1, column=1).value)
             assert "languages" in str(ws.cell(row=2, column=1).value).lower()
 
-    def test_partial_empty_data(self):
+    def test_partial_empty_data(self, running_app):
         """Test handling categories with both empty and populated metrics."""
         serializer = DataSeriesExcelSerializer()
 
@@ -281,10 +284,10 @@ class TestDataSeriesExcelSerializer:
                                     "value": ["2025-06-01", 10],
                                     "valueType": "number",
                                 }
-                            ]
+                            ],
                         }
                     ],
-                    "downloads": []  # Empty metric
+                    "downloads": [],  # Empty metric
                 }
             }
         }
@@ -294,7 +297,7 @@ class TestDataSeriesExcelSerializer:
 
             # Should create workbook with only the views sheet
             wb = load_workbook(
-                os.path.join(temp_dir, "languages.xlsx")
+                os.path.join(temp_dir, "usage-snapshot", "languages.xlsx")
             )
             assert "views" in wb.sheetnames
             assert "downloads" not in wb.sheetnames

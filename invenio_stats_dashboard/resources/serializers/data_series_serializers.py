@@ -24,11 +24,6 @@ from openpyxl.styles import Font, PatternFill
 from werkzeug.utils import secure_filename
 
 from ...transformers.base import DataSeries
-from .basic_serializers import (
-    StatsCSVSerializer,
-    StatsExcelSerializer,
-    StatsXMLSerializer,
-)
 
 
 class CompressedStatsJSONSerializer:
@@ -122,7 +117,7 @@ class BrotliStatsJSONSerializer(CompressedStatsJSONSerializer):
         super().__init__(compression_method="brotli")
 
 
-class DataSeriesCSVSerializer(StatsCSVSerializer):
+class DataSeriesCSVSerializer:
     """CSV serializer for data series responses with nested folder structure."""
 
     def serialize(
@@ -366,7 +361,7 @@ class DataSeriesCSVSerializer(StatsCSVSerializer):
         return unit_mapping.get(metric_name.lower())
 
 
-class DataSeriesExcelSerializer(StatsExcelSerializer):
+class DataSeriesExcelSerializer:
     """Enhanced Excel serializer for data series responses with multiple workbooks."""
 
     def serialize(
@@ -406,102 +401,95 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
             return compressed_data
 
     def _create_excel_workbooks(self, data: dict, base_path: str) -> None:
-        """Create Excel workbooks for each category with sheets per metric.
+        """Create Excel workbooks for each series set with sheets per metric.
 
         Args:
             data: Nested dictionary with structure:
-                  {query: {category: {metric: [data_series_objects]}}}
+                  {query_type: {series_set: {metric: [data_series_objects]}}}
             base_path: Base path for the temporary directory
         """
-        # Reorganize data by category across all queries
-        # {category: {metric: [data_series_objects]}}
-        categories_data = {}
-
-        for _query_name, query_data in data.items():
+        # Create folder structure preserving query type information
+        for query_name, query_data in data.items():
             if not isinstance(query_data, dict):
                 continue
 
-            for category_name, category_data in query_data.items():
-                if not isinstance(category_data, dict):
+            # Sanitize query name and create directory
+            safe_query_name = secure_filename(str(query_name))
+            query_path = os.path.join(base_path, safe_query_name)
+            os.makedirs(query_path, exist_ok=True)
+
+            # Create one workbook per series set within the query folder
+            for series_set_name, series_set_data in query_data.items():
+                if not isinstance(series_set_data, dict):
                     continue
 
-                # Initialize category if not exists
-                if category_name not in categories_data:
-                    categories_data[category_name] = {}
+                # Create workbook for this series set
+                self._create_series_set_workbook(series_set_name, series_set_data, query_path)
 
-                # Add metrics from this query to the category
-                for metric_name, metric_data in category_data.items():
-                    if not isinstance(metric_data, list):
-                        continue
+    def _create_series_set_workbook(self, series_set_name: str, series_set_data: dict, query_path: str) -> None:
+        """Create a single Excel workbook for a series set with sheets per metric.
 
-                    # Initialize metric list if not exists
-                    if metric_name not in categories_data[category_name]:
-                        categories_data[category_name][metric_name] = []
+        Args:
+            series_set_name: Name of the series set
+            series_set_data: Dictionary containing metrics data
+            query_path: Path to the query folder
+        """
+        wb = Workbook()
+        # Keep track of whether we created any sheets
+        sheets_created = 0
 
-                    # Add data series to metric
-                    categories_data[category_name][metric_name].extend(
-                        metric_data
-                    )
+        # Create one sheet per metric
+        for metric_name, data_series_list in series_set_data.items():
+            if not isinstance(data_series_list, list) or not data_series_list:
+                continue
 
-        # Create one workbook per category
-        for category_name, metrics_data in categories_data.items():
-            wb = Workbook()
-            # Keep track of whether we created any sheets
-            sheets_created = 0
+            # Remove default sheet only before creating first sheet
+            if sheets_created == 0 and wb.active:
+                wb.remove(wb.active)
 
-            # Create one sheet per metric
-            for metric_name, data_series_list in metrics_data.items():
-                # Skip empty metrics
-                if not data_series_list:
-                    continue
+            sheet_name = self._sanitize_sheet_name(str(metric_name))
+            ws = wb.create_sheet(title=sheet_name)
 
-                # Remove default sheet only before creating first sheet
-                if sheets_created == 0 and wb.active:
-                    wb.remove(wb.active)
+            # Add consolidated data to sheet
+            self._add_consolidated_data_to_sheet(
+                ws, metric_name, data_series_list
+            )
+            sheets_created += 1
 
-                sheet_name = self._sanitize_sheet_name(str(metric_name))
-                ws = wb.create_sheet(title=sheet_name)
-
-                # Add consolidated data to sheet
-                self._add_consolidated_data_to_sheet(
-                    ws, metric_name, data_series_list
-                )
-                sheets_created += 1
-
-            # If no sheets were created, add a "No Data" sheet
-            if sheets_created == 0:
-                if wb.active:
-                    ws = wb.active
-                    ws.title = "No Data"
-                else:
-                    ws = wb.create_sheet(title="No Data")
-
-                # Add message
-                ws.cell(row=1, column=1, value="No Data Available")
-                ws.cell(
-                    row=2,
-                    column=1,
-                    value=f"No data available for category: {category_name}",
-                )
-                ws.cell(
-                    row=3,
-                    column=1,
-                    value="This may indicate no activity during the "
-                    "requested period.",
-                )
-
-                # Style the message
-                header_font = Font(bold=True, size=14)
-                ws.cell(row=1, column=1).font = header_font
+        # If no sheets were created, add a "No Data" sheet
+        if sheets_created == 0:
+            if wb.active:
+                ws = wb.active
+                ws.title = "No Data"
             else:
-                # Style the workbook with data
-                self._style_workbook(wb)
+                ws = wb.create_sheet(title="No Data")
 
-            # Save workbook to file
-            safe_category_name = secure_filename(str(category_name))
-            excel_filename = f"{safe_category_name}.xlsx"
-            excel_path = os.path.join(base_path, excel_filename)
-            wb.save(excel_path)
+            # Add message
+            ws.cell(row=1, column=1, value="No Data Available")
+            ws.cell(
+                row=2,
+                column=1,
+                value=f"No data available for series set: {series_set_name}",
+            )
+            ws.cell(
+                row=3,
+                column=1,
+                value="This may indicate no activity during the "
+                "requested period.",
+            )
+
+            # Style the message
+            header_font = Font(bold=True, size=14)
+            ws.cell(row=1, column=1).font = header_font
+        else:
+            # Style the workbook with data
+            self._style_workbook(wb)
+
+        # Save workbook to file
+        safe_series_set_name = secure_filename(str(series_set_name))
+        excel_filename = f"{safe_series_set_name}.xlsx"
+        excel_path = os.path.join(query_path, excel_filename)
+        wb.save(excel_path)
 
     def _add_consolidated_data_to_sheet(
         self, ws, metric_name: str, data_series_list: list
@@ -714,7 +702,7 @@ class DataSeriesExcelSerializer(StatsExcelSerializer):
         return unit_mapping.get(metric_name.lower())
 
 
-class DataSeriesXMLSerializer(StatsXMLSerializer):
+class DataSeriesXMLSerializer:
     """XML serializer for data series responses."""
 
     def serialize(
@@ -807,121 +795,146 @@ class DataSeriesXMLSerializer(StatsXMLSerializer):
                     "slug", ""
                 )
 
-        # Process each top-level category
-        for category_name, category_data in data.items():
-            if not isinstance(category_data, dict):
-                continue
-
+        # Process each top-level query type (category)
+        for query_name, query_data in data.items():
             category_elem = ET.SubElement(root, "category")
-            category_elem.set("name", str(category_name))
-            category_elem.set("id", self._sanitize_xml_id(str(category_name)))
+            category_elem.set("name", str(query_name))
+            category_elem.set("id", self._sanitize_xml_id(str(query_name)))
 
             # Add semantic attributes for category
-            category_type = self._get_category_type(str(category_name))
+            category_type = self._get_category_type(str(query_name))
             if category_type:
                 category_elem.set("categoryType", category_type)
 
-            description = self._get_category_description(str(category_name))
+            description = self._get_category_description(str(query_name))
             if description:
                 category_elem.set("description", description)
 
-            # Count metrics in this category
-            metrics_count = sum(
-                1 for v in category_data.values() if isinstance(v, list) and v
-            )
-            category_elem.set("metricsCount", str(metrics_count))
+            # Count total metrics across all series sets
+            total_metrics_count = 0
+            if isinstance(query_data, dict):
+                for series_set_data in query_data.values():
+                    if isinstance(series_set_data, dict):
+                        total_metrics_count += sum(
+                            1 for v in series_set_data.values() if isinstance(v, list) and v
+                        )
+            category_elem.set("metricsCount", str(total_metrics_count))
 
-            # Process each metric in the category
-            for metric_name, metric_data in category_data.items():
-                if not isinstance(metric_data, list):
-                    continue
-
-                metric_elem = ET.SubElement(category_elem, "metric")
-                metric_elem.set("name", str(metric_name))
-                metric_elem.set("id", self._sanitize_xml_id(str(metric_name)))
-                metric_elem.set("dataPointsCount", str(len(metric_data)))
-
-                # Add semantic attributes for metric
-                unit = self._get_metric_unit(str(metric_name))
-                if unit:
-                    metric_elem.set("unit", unit)
-
-                measurement_type = self._get_measurement_type(str(metric_name))
-                if measurement_type:
-                    metric_elem.set("measurementType", measurement_type)
-
-                aggregation_method = self._get_aggregation_method(str(metric_name))
-                if aggregation_method:
-                    metric_elem.set("aggregationMethod", aggregation_method)
-
-                description = self._get_metric_description(str(metric_name))
-                if description:
-                    metric_elem.set("description", description)
-
-                # Process each data series in the metric
-                for series_obj in metric_data:
-                    if not isinstance(series_obj, dict) or "id" not in series_obj:
+            # Process each series set within the category (only if data is valid)
+            if isinstance(query_data, dict):
+                for series_set_name, series_set_data in query_data.items():
+                    if not isinstance(series_set_data, dict):
                         continue
 
-                    series_elem = ET.SubElement(metric_elem, "series")
-                    series_elem.set("id", str(series_obj.get("id", "unknown")))
+                    series_set_elem = ET.SubElement(category_elem, "seriesSet")
+                    series_set_elem.set("name", str(series_set_name))
+                    series_set_elem.set("id", self._sanitize_xml_id(str(series_set_name)))
 
-                    # Add series metadata
-                    if "name" in series_obj:
-                        series_elem.set("name", str(series_obj["name"]))
-                    if "type" in series_obj:
-                        series_elem.set("type", str(series_obj["type"]))
-                    if "valueType" in series_obj:
-                        series_elem.set("valueType", str(series_obj["valueType"]))
+                    # Count metrics in this series set
+                    series_set_metrics_count = sum(
+                        1 for v in series_set_data.values() if isinstance(v, list) and v
+                    )
+                    series_set_elem.set("metricsCount", str(series_set_metrics_count))
 
-                    # Add semantic attributes
-                    if "label" in series_obj:
-                        series_elem.set("label", str(series_obj["label"]))
+                    # Process each metric in the series set
+                    for metric_name, metric_data in series_set_data.items():
+                        if not isinstance(metric_data, list):
+                            continue
 
-                    description = self._get_series_description(series_obj)
-                    if description:
-                        series_elem.set("description", description)
+                        # Count total data points across all series in this metric
+                        total_data_points = 0
+                        for series_obj in metric_data:
+                            if isinstance(series_obj, dict) and "data" in series_obj:
+                                series_data = series_obj["data"]
+                                if isinstance(series_data, list):
+                                    total_data_points += len(series_data)
 
-                    # Add data points
-                    data_points = series_obj.get("data", [])
-                    if isinstance(data_points, list):
-                        points_elem = ET.SubElement(series_elem, "dataPoints")
-                        points_elem.set("count", str(len(data_points)))
+                        metric_elem = ET.SubElement(series_set_elem, "metric")
+                        metric_elem.set("name", str(metric_name))
+                        metric_elem.set("id", self._sanitize_xml_id(str(metric_name)))
+                        metric_elem.set("dataPointsCount", str(total_data_points))
 
-                        for point in data_points:
-                            if isinstance(point, dict):
-                                point_elem = ET.SubElement(points_elem, "point")
+                        # Add semantic attributes for metric
+                        unit = self._get_metric_unit(str(metric_name))
+                        if unit:
+                            metric_elem.set("unit", unit)
 
-                                # Add readable date if available
-                                if "readableDate" in point:
-                                    point_elem.set(
-                                        "readableDate", str(point["readableDate"])
-                                    )
+                        measurement_type = self._get_measurement_type(str(metric_name))
+                        if measurement_type:
+                            metric_elem.set("measurementType", measurement_type)
 
-                                # Add value array
-                                value_array = point.get("value", [])
-                                if (
-                                    isinstance(value_array, list)
-                                    and len(value_array) >= 2
-                                ):
-                                    point_elem.set("date", str(value_array[0]))
-                                    point_elem.set("value", str(value_array[1]))
+                        aggregation_method = self._get_aggregation_method(str(metric_name))
+                        if aggregation_method:
+                            metric_elem.set("aggregationMethod", aggregation_method)
 
-                                    # Add value type if available
-                                    if "valueType" in point:
-                                        point_elem.set(
-                                            "valueType", str(point["valueType"])
-                                        )
+                        description = self._get_metric_description(str(metric_name))
+                        if description:
+                            metric_elem.set("description", description)
 
-                                    # Add semantic attributes
-                                    unit = self._get_metric_unit(str(metric_name))
-                                    if unit:
-                                        point_elem.set("unit", unit)
+                        # Process each data series in the metric
+                        for series_obj in metric_data:
+                            if not isinstance(series_obj, dict) or "id" not in series_obj:
+                                continue
 
-                                    # Add quality indicator
-                                    quality = self._assess_data_quality(point)
-                                    if quality:
-                                        point_elem.set("quality", quality)
+                            series_elem = ET.SubElement(metric_elem, "series")
+                            series_elem.set("id", str(series_obj.get("id", "unknown")))
+
+                            # Add series metadata
+                            if "name" in series_obj:
+                                series_elem.set("name", str(series_obj["name"]))
+                            if "type" in series_obj:
+                                series_elem.set("type", str(series_obj["type"]))
+                            if "valueType" in series_obj:
+                                series_elem.set("valueType", str(series_obj["valueType"]))
+
+                            # Add semantic attributes
+                            if "label" in series_obj:
+                                series_elem.set("label", str(series_obj["label"]))
+
+                            description = self._get_series_description(series_obj)
+                            if description:
+                                series_elem.set("description", description)
+
+                            # Add data points
+                            data_points = series_obj.get("data", [])
+                            if isinstance(data_points, list):
+                                points_elem = ET.SubElement(series_elem, "dataPoints")
+                                points_elem.set("count", str(len(data_points)))
+
+                                for point in data_points:
+                                    if isinstance(point, dict):
+                                        point_elem = ET.SubElement(points_elem, "point")
+
+                                        # Add readable date if available
+                                        if "readableDate" in point:
+                                            point_elem.set(
+                                                "readableDate", str(point["readableDate"])
+                                            )
+
+                                        # Add value array
+                                        value_array = point.get("value", [])
+                                        if (
+                                            isinstance(value_array, list)
+                                            and len(value_array) >= 2
+                                        ):
+                                            point_elem.set("date", str(value_array[0]))
+                                            point_elem.set("value", str(value_array[1]))
+
+                                            # Add value type if available
+                                            if "valueType" in point:
+                                                point_elem.set(
+                                                    "valueType", str(point["valueType"])
+                                                )
+
+                                            # Add semantic attributes
+                                            unit = self._get_metric_unit(str(metric_name))
+                                            if unit:
+                                                point_elem.set("unit", unit)
+
+                                            # Add quality indicator
+                                            quality = self._assess_data_quality(point)
+                                            if quality:
+                                                point_elem.set("quality", quality)
 
         # Format XML with proper indentation
         self._indent_xml(root)

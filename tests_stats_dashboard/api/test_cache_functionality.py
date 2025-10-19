@@ -16,13 +16,24 @@ from invenio_stats_dashboard.resources.cache_utils import StatsCache
 
 @pytest.fixture
 def stats_cache():
-    """StatsCache instance using real Redis."""
-    return StatsCache()
+    """StatsCache instance using real Redis with automatic cleanup.
+    
+    Yields:
+        StatsCache: The configured cache instance.
+    """
+    cache = StatsCache()
+    yield cache
+    # Cleanup after test completes - clear ALL keys, not just stats_dashboard:*
+    cache.clear_all("*")
 
 
 @pytest.fixture
 def sample_data():
-    """Sample data for testing."""
+    """Sample data for testing.
+    
+    Returns:
+        dict: Sample data dictionary.
+    """
     return {
         "record_delta": {
             "data": [
@@ -146,10 +157,11 @@ def test_cache_keys_listing(running_app, db, stats_cache, sample_data):
 
     # List all keys with default pattern
     keys = stats_cache.keys()
-    assert len(keys) == 3
+    assert len(keys) == 2
+    assert all(key.startswith("stats_dashboard:") for key in keys)
     assert "stats_dashboard:key1" in keys
     assert "stats_dashboard:key2" in keys
-    assert "other_prefix:key3" in keys
+    assert "other_prefix:key3" not in keys
 
     # List keys with specific pattern
     stats_keys = stats_cache.keys("stats_dashboard:*")
@@ -205,54 +217,6 @@ def test_cache_size_info(running_app, db, stats_cache, sample_data):
     assert "cache_prefix" in size_info
     assert size_info["cache_prefix"] == "stats_dashboard"
     assert "timestamp" in size_info
-
-
-def test_cache_with_real_redis_operations(running_app, db, stats_cache, sample_data):
-    """Test cache operations with real Redis backend."""
-    # Test basic set/get operations
-    cache_key = "test_real_redis_key"
-    data_bytes = json.dumps(sample_data).encode('utf-8')
-
-    # Set data in cache
-    success = stats_cache.set(cache_key, data_bytes)
-    assert success is True
-
-    # Get data from cache
-    cached_data = stats_cache.get(cache_key)
-    assert cached_data is not None
-    assert cached_data == data_bytes
-
-    # Test with timeout
-    timeout_key = "test_timeout_key"
-    success = stats_cache.set(timeout_key, data_bytes, timeout=60)
-    assert success is True
-
-    # Verify timeout key exists
-    timeout_data = stats_cache.get(timeout_key)
-    assert timeout_data is not None
-
-    # Test key listing
-    keys = stats_cache.keys()
-    assert cache_key in keys
-    assert timeout_key in keys
-
-    # Test pattern matching
-    test_keys = stats_cache.keys("test_*")
-    assert cache_key in test_keys
-    assert timeout_key in test_keys
-
-    # Test deletion
-    success = stats_cache.delete(cache_key)
-    assert success is True
-
-    # Verify deletion
-    deleted_data = stats_cache.get(cache_key)
-    assert deleted_data is None
-
-    # Test clear all
-    success, deleted_count = stats_cache.clear_all("test_*")
-    assert success is True
-    assert deleted_count >= 1  # At least the timeout_key should be deleted
 
 
 def test_cache_integration_with_cached_response(

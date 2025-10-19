@@ -5,87 +5,88 @@ import os
 import tempfile
 
 from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
-    DataSeriesCSVSerializer
+    DataSeriesCSVSerializer,
 )
 
 
 class TestDataSeriesCSVSerializer:
     """Test the DataSeriesCSVSerializer functionality."""
 
-    def test_nested_csv_structure_creation(self):
+    def test_nested_csv_structure_creation(self, running_app):
         """Test nested structure with consolidated CSV files."""
-        # Sample data structure similar to sample_usage_delta_data_series
         test_data = {
-            "access_statuses": {
-                "data_volume": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 3072.0],
-                                "valueType": "filesize",
-                            },
-                            {
-                                "readableDate": "Jun 2, 2025",
-                                "value": ["2025-06-02", 4096.0],
-                                "valueType": "filesize",
-                            }
-                        ],
-                        "id": "metadata-only",
-                        "label": "Metadata Only",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ],
-                "downloads": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 3],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "metadata-only",
-                        "label": "Metadata Only",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    },
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 5],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "open",
-                        "label": "Open Access",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ]
-            },
-            "countries": {
-                "views": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 1],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "US",
-                        "label": "United States",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ]
+            "usage-delta-category": {
+                "access_statuses": {
+                    "data_volume": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3072.0],
+                                    "valueType": "filesize",
+                                },
+                                {
+                                    "readableDate": "Jun 2, 2025",
+                                    "value": ["2025-06-02", 4096.0],
+                                    "valueType": "filesize",
+                                },
+                            ],
+                            "id": "metadata-only",
+                            "label": "Metadata Only",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ],
+                    "downloads": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "metadata-only",
+                            "label": "Metadata Only",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        },
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 5],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "open",
+                            "label": "Open Access",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        },
+                    ],
+                },
+                "countries": {
+                    "views": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 1],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "US",
+                            "label": "United States",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ]
+                },
             }
         }
 
@@ -96,17 +97,23 @@ class TestDataSeriesCSVSerializer:
             serializer._create_nested_csv_structure(test_data, temp_dir)
 
             # Check if category directories were created
-            assert os.path.exists(os.path.join(temp_dir, "access_statuses"))
-            assert os.path.exists(os.path.join(temp_dir, "countries"))
+            assert os.path.exists(
+                os.path.join(temp_dir, "usage-delta-category", "access_statuses")
+            )
+            assert os.path.exists(
+                os.path.join(temp_dir, "usage-delta-category", "countries")
+            )
 
             # Check if consolidated CSV files were created (NOT subdirectories)
             data_volume_csv = os.path.join(
-                temp_dir, "access_statuses", "data_volume.csv"
+                temp_dir, "usage-delta-category", "access_statuses", "data_volume.csv"
             )
             downloads_csv = os.path.join(
-                temp_dir, "access_statuses", "downloads.csv"
+                temp_dir, "usage-delta-category", "access_statuses", "downloads.csv"
             )
-            views_csv = os.path.join(temp_dir, "countries", "views.csv")
+            views_csv = os.path.join(
+                temp_dir, "usage-delta-category", "countries", "views.csv"
+            )
 
             assert os.path.exists(data_volume_csv)
             assert os.path.exists(downloads_csv)
@@ -124,7 +131,7 @@ class TestDataSeriesCSVSerializer:
                 lines = f.readlines()
                 assert len(lines) == 3  # Header + 2 data rows
                 assert "id,label,date,value,units" in lines[0]
-                content = ''.join(lines)
+                content = "".join(lines)
                 expected = "metadata-only,Metadata Only,2025-06-01,3,unique downloads"
                 assert expected in content
                 assert "open,Open Access,2025-06-01,5,unique downloads" in content
@@ -146,8 +153,8 @@ class TestDataSeriesCSVSerializer:
                         "readableDate": "Jun 2, 2025",
                         "value": ["2025-06-02", 200],
                         "valueType": "number",
-                    }
-                ]
+                    },
+                ],
             },
             {
                 "id": "spa",
@@ -158,8 +165,8 @@ class TestDataSeriesCSVSerializer:
                         "value": ["2025-06-01", 50],
                         "valueType": "number",
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         serializer = DataSeriesCSVSerializer()
@@ -177,7 +184,7 @@ class TestDataSeriesCSVSerializer:
                 assert len(lines) == 4  # Header + 3 data rows
                 assert lines[0].strip() == "id,label,date,value,units"
 
-                content = ''.join(lines)
+                content = "".join(lines)
                 assert "eng,English,2025-06-01,100,unique views" in content
                 assert "eng,English,2025-06-02,200,unique views" in content
                 assert "spa,Spanish,2025-06-01,50,unique views" in content
@@ -196,7 +203,7 @@ class TestDataSeriesCSVSerializer:
                         "value": ["2025-06-01", 100],
                         "valueType": "number",
                     }
-                ]
+                ],
             }
         ]
 
@@ -211,9 +218,9 @@ class TestDataSeriesCSVSerializer:
             files = os.listdir(temp_dir)
             assert len(files) == 1
             # Filename should be sanitized (no invalid chars)
-            invalid_chars = ['/', '\\', ':', '*', '?']
+            invalid_chars = ["/", "\\", ":", "*", "?"]
             assert not any(char in files[0] for char in invalid_chars)
-            assert files[0].endswith('.csv')
+            assert files[0].endswith(".csv")
 
     def test_empty_data_handling(self):
         """Test handling of empty or invalid data."""
@@ -226,9 +233,7 @@ class TestDataSeriesCSVSerializer:
             assert len(os.listdir(temp_dir)) == 0
 
         # Test with invalid data structure
-        invalid_data = {
-            "level1": "not_a_dict"
-        }
+        invalid_data = {"level1": "not_a_dict"}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             serializer._create_nested_csv_structure(invalid_data, temp_dir)

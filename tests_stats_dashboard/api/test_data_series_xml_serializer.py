@@ -2,145 +2,178 @@
 """Test script for the enhanced DataSeriesXMLSerializer."""
 
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 from invenio_stats_dashboard.resources.serializers.data_series_serializers import (
-    DataSeriesXMLSerializer
+    DataSeriesXMLSerializer,
 )
 
 
 class TestDataSeriesXMLSerializer:
     """Test the DataSeriesXMLSerializer functionality."""
 
-    def test_xml_structure_creation(self):
+    def test_xml_structure_creation(self, running_app):
         """Test the XML structure creation functionality."""
-        # Sample data structure similar to sample_usage_delta_data_series
         test_data = {
-            "access_statuses": {
-                "data_volume": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 3072.0],
-                                "valueType": "filesize",
-                            },
-                            {
-                                "readableDate": "Jun 2, 2025",
-                                "value": ["2025-06-02", 4096.0],
-                                "valueType": "filesize",
-                            }
-                        ],
-                        "id": "metadata-only",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ],
-                "downloads": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 3],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "metadata-only",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ]
-            },
-            "countries": {
-                "views": [
-                    {
-                        "data": [
-                            {
-                                "readableDate": "Jun 1, 2025",
-                                "value": ["2025-06-01", 1],
-                                "valueType": "number",
-                            }
-                        ],
-                        "id": "US",
-                        "name": "",
-                        "type": "line",
-                        "valueType": "number",
-                    }
-                ]
+            "usage-delta-category": {
+                "access_statuses": {
+                    "data_volume": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3072.0],
+                                    "valueType": "filesize",
+                                },
+                                {
+                                    "readableDate": "Jun 2, 2025",
+                                   "value": ["2025-06-02", 4096.0],
+                                    "valueType": "filesize",
+                                }
+                            ],
+                            "id": "metadata-only",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ],
+                    "downloads": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "metadata-only",
+                            "name": "",
+                            "type": "line",
+                           "valueType": "number",
+                        }
+                    ]
+                },
+                "countries": {
+                    "views": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 1],
+                                    "valueType": "number",
+                                }
+                            ],
+                            "id": "US",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                       }
+                    ]
+                }
             }
         }
 
         serializer = DataSeriesXMLSerializer()
-        response = serializer.serialize(test_data)
+        xml_data = serializer.serialize(test_data)
 
-        # Check response properties
-        assert response.mimetype == "application/xml"
-        assert "application/xml; charset=utf-8" in response.headers["Content-Type"]
-        content_disposition = response.headers["Content-Disposition"]
-        assert "attachment; filename=data_series.xml" in content_disposition
-
+        # Check that we get XML string data
+        assert isinstance(xml_data, str)
+        assert xml_data.startswith('<?xml version=\'1.0\' encoding=\'utf-8\'?>')
         # Parse XML and verify structure
-        xml_data = response.data.decode("utf-8")
         root = ET.fromstring(xml_data)
 
-        # Check root element
-        assert root.tag == "dataSeries"
-        expected_ns = "http://invenio-stats-dashboard.org/schema/data-series"
-        assert root.get("xmlns") == expected_ns
+        # Check root element (with namespace)
+        assert root.tag == (
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataSeriesCollection"
+        )
         assert root.get("version") == "1.0"
 
         # Check metadata
-        metadata = root.find("metadata")
+        metadata = root.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
+        )
         assert metadata is not None
-        assert metadata.find("generatedAt") is not None
-        total_categories_elem = metadata.find("totalCategories")
+        assert metadata.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}generatedAt"
+        ) is not None
+        total_categories_elem = metadata.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
+        )
         assert total_categories_elem is not None
-        assert total_categories_elem.text == "2"
+        assert total_categories_elem.text == "1"
 
         # Check categories
-        categories = root.findall("category")
-        assert len(categories) == 2
+        categories = root.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}category"
+        )
+        assert len(categories) == 1
 
-        # Check first category
+        # Check the single category
+        category = categories[0]
+        assert category.get("name") == "usage-delta-category"
+        assert category.get("id") == "usage-delta-category"
+        assert category.get("metricsCount") == "3"  # data_volume, downloads, views
+
+        # Check series sets in the category
+        series_sets = category.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}seriesSet"
+        )
+        assert len(series_sets) == 2
+
+        # Find specific series sets
         access_statuses = None
         countries = None
-        for category in categories:
-            if category.get("name") == "access_statuses":
-                access_statuses = category
-            elif category.get("name") == "countries":
-                countries = category
+        for series_set in series_sets:
+            if series_set.get("name") == "access_statuses":
+                access_statuses = series_set
+            elif series_set.get("name") == "countries":
+                countries = series_set
 
         assert access_statuses is not None
         assert access_statuses.get("id") == "access_statuses"
-        assert access_statuses.get("metricsCount") == "2"
+        assert access_statuses.get("metricsCount") == "2"  # data_volume, downloads
 
         assert countries is not None
         assert countries.get("id") == "countries"
-        assert countries.get("metricsCount") == "1"
+        assert countries.get("metricsCount") == "1"  # views
 
-        # Check metrics in access_statuses
-        metrics = access_statuses.findall("metric")
+        # Check metrics in access_statuses series set
+        metrics = access_statuses.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metric"
+        )
         assert len(metrics) == 2
 
+        # Find specific metrics
         data_volume_metric = None
         downloads_metric = None
         for metric in metrics:
-            if metric.get("name") == "data_volume":
+            if metric.get("id") == "data_volume":
                 data_volume_metric = metric
-            elif metric.get("name") == "downloads":
+            elif metric.get("id") == "downloads":
                 downloads_metric = metric
 
         assert data_volume_metric is not None
         assert data_volume_metric.get("id") == "data_volume"
-        assert data_volume_metric.get("dataPointsCount") == "1"
+        assert data_volume_metric.get("dataPointsCount") == "2"
 
         assert downloads_metric is not None
         assert downloads_metric.get("id") == "downloads"
         assert downloads_metric.get("dataPointsCount") == "1"
 
+        # Check metrics in countries series set
+        countries_metrics = countries.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metric"
+        )
+        assert len(countries_metrics) == 1
+
+        views_metric = countries_metrics[0]
+        assert views_metric.get("id") == "views"
+        assert views_metric.get("dataPointsCount") == "1"
+
         # Check series in data_volume metric
-        series_list = data_volume_metric.findall("series")
+        series_list = data_volume_metric.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}series"
+        )
         assert len(series_list) == 1
 
         series = series_list[0]
@@ -149,11 +182,15 @@ class TestDataSeriesXMLSerializer:
         assert series.get("valueType") == "number"
 
         # Check data points
-        data_points = series.find("dataPoints")
+        data_points = series.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataPoints"
+        )
         assert data_points is not None
         assert data_points.get("count") == "2"
 
-        points = data_points.findall("point")
+        points = data_points.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}point"
+        )
         assert len(points) == 2
 
         # Check first point
@@ -170,7 +207,7 @@ class TestDataSeriesXMLSerializer:
         assert second_point.get("value") == "4096.0"
         assert second_point.get("valueType") == "filesize"
 
-    def test_xml_id_sanitization(self):
+    def test_xml_id_sanitization(self, running_app):
         """Test XML ID sanitization for XML compatibility."""
         serializer = DataSeriesXMLSerializer()
 
@@ -180,7 +217,7 @@ class TestDataSeriesXMLSerializer:
             ("name with spaces", "name_with_spaces"),
             (
                 "name/with\\invalid?chars*[brackets]",
-                "name_with_invalid_chars__brackets_"
+                "name_with_invalid_chars__brackets_",
             ),
             ("123starts_with_number", "id_123starts_with_number"),
             ("", "unknown"),
@@ -192,55 +229,102 @@ class TestDataSeriesXMLSerializer:
             result = serializer._sanitize_xml_id(input_name)
             assert result == expected
             # Ensure it's a valid XML ID
-            assert result[0].isalpha() or result[0] == '_'
-            assert all(c.isalnum() or c in '_-.' for c in result)
+            assert result[0].isalpha() or result[0] == "_"
+            assert all(c.isalnum() or c in "_-." for c in result)
 
-    def test_empty_data_handling(self):
+    def test_empty_data_handling(self, running_app):
         """Test handling of empty or invalid data."""
         serializer = DataSeriesXMLSerializer()
 
         # Test with empty data
-        response = serializer.serialize({})
-        xml_data = response.data.decode("utf-8")
+        xml_data = serializer.serialize({})
         root = ET.fromstring(xml_data)
 
         # Should have root element and metadata
-        assert root.tag == "dataSeries"
-        assert root.find("metadata") is not None
-        total_categories_elem = root.find("metadata/totalCategories")
+        assert root.tag == (
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataSeriesCollection"
+        )
+        assert root.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
+        ) is not None
+        total_categories_elem = root.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata/"
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
+        )
         assert total_categories_elem is not None
         assert total_categories_elem.text == "0"
         # Should have no categories
-        assert len(root.findall("category")) == 0
+        assert len(
+            root.findall("{https://github.com/MESH-Research/invenio-stats-dashboard}category")
+        ) == 0
 
         # Test with invalid data structure
-        invalid_data = {
-            "level1": "not_a_dict"
-        }
+        invalid_data = {"level1": "not_a_dict"}
 
         response = serializer.serialize(invalid_data)
-        xml_data = response.data.decode("utf-8")
+        xml_data = response
         root = ET.fromstring(xml_data)
 
         # Should have root element and metadata
-        assert root.tag == "dataSeries"
-        assert root.find("metadata") is not None
-        total_categories_elem = root.find("metadata/totalCategories")
+        assert root.tag == (
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataSeriesCollection"
+        )
+        assert root.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
+        ) is not None
+        total_categories_elem = root.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata/"
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
+        )
         assert total_categories_elem is not None
         assert total_categories_elem.text == "1"
         # Should have one category but no metrics
-        categories = root.findall("category")
+        categories = root.findall(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}category"
+        )
         assert len(categories) == 1
         assert categories[0].get("metricsCount") == "0"
 
-    def test_timestamp_generation(self):
-        """Test timestamp generation."""
+    def test_timestamp_in_xml_output(self, running_app):
+        """Test that timestamps appear correctly in XML output."""
         serializer = DataSeriesXMLSerializer()
-        timestamp = serializer._get_current_timestamp()
-
-        # Should be in ISO format and end with Z
-        assert timestamp.endswith("Z")
+        test_data = {
+            "usage-delta-category": {
+                "access_statuses": {
+                    "data_volume": [
+                        {
+                            "data": [
+                                {
+                                    "readableDate": "Jun 1, 2025",
+                                    "value": ["2025-06-01", 3072.0],
+                                    "valueType": "filesize",
+                                }
+                            ],
+                            "id": "metadata-only",
+                            "name": "",
+                            "type": "line",
+                            "valueType": "number",
+                        }
+                    ]
+                }
+            }
+        }
+        
+        xml_data = serializer.serialize(test_data)
+        root = ET.fromstring(xml_data)
+        
+        # Check that generatedAt timestamp exists and is valid
+        generated_at = root.find(
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata/"
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}generatedAt"
+        )
+        assert generated_at is not None
+        assert generated_at.text is not None
+        
+        # Should be in ISO format with timezone
+        timestamp = generated_at.text
+        assert timestamp.endswith("+00:00")  # UTC timezone offset format
         assert "T" in timestamp
+        
         # Should be parseable as ISO format
-        from datetime import datetime
-        datetime.fromisoformat(timestamp[:-1])  # Remove Z for parsing
+        datetime.fromisoformat(timestamp)  # No need to remove anything

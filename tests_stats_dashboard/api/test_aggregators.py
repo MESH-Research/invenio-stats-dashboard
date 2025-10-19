@@ -24,21 +24,6 @@ from invenio_search.utils import prefix_index
 from opensearchpy.helpers.search import Search
 from opensearchpy.helpers.utils import AttrDict
 from pytest import MonkeyPatch
-from tests.conftest import RunningApp
-from tests.fixtures.records import enhance_metadata_with_funding_and_affiliations
-from tests.helpers.sample_records import (
-    sample_metadata_journal_article3_pdf,
-    sample_metadata_journal_article4_pdf,
-    sample_metadata_journal_article5_pdf,
-    sample_metadata_journal_article6_pdf,
-    sample_metadata_journal_article7_pdf,
-)
-from tests.helpers.sample_stats_data.sample_record_delta_docs import (
-    MOCK_RECORD_DELTA_DOCS,
-)
-from tests.helpers.sample_stats_data.sample_record_snapshot_docs import (
-    MOCK_RECORD_SNAPSHOT_DOCS,
-)
 
 from invenio_stats_dashboard.aggregations.base import (
     CommunityAggregatorBase,
@@ -63,6 +48,21 @@ from invenio_stats_dashboard.aggregations.usage_snapshot_aggs import (
 from invenio_stats_dashboard.proxies import current_event_reindexing_service
 from invenio_stats_dashboard.services.components import (
     update_community_events_created_date,
+)
+from tests.conftest import RunningApp
+from tests.fixtures.records import enhance_metadata_with_funding_and_affiliations
+from tests.helpers.sample_records import (
+    sample_metadata_journal_article3_pdf,
+    sample_metadata_journal_article4_pdf,
+    sample_metadata_journal_article5_pdf,
+    sample_metadata_journal_article6_pdf,
+    sample_metadata_journal_article7_pdf,
+)
+from tests.helpers.sample_stats_data.sample_record_delta_docs import (
+    MOCK_RECORD_DELTA_DOCS,
+)
+from tests.helpers.sample_stats_data.sample_record_snapshot_docs import (
+    MOCK_RECORD_SNAPSHOT_DOCS,
 )
 
 

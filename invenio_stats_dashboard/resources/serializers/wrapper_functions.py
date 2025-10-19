@@ -9,10 +9,7 @@
 from flask import Response, jsonify
 
 from .basic_serializers import (
-    StatsCSVSerializer,
-    StatsExcelSerializer,
     StatsJSONSerializer,
-    StatsXMLSerializer,
 )
 from .data_series_serializers import (  # type: ignore
     BrotliStatsJSONSerializer,  # type: ignore
@@ -29,33 +26,6 @@ def json_serializer_func(data, code=200, headers=None, **kwargs):
     serializer = StatsJSONSerializer()
     json_data = serializer.serialize(data, **kwargs)
     response = jsonify(json_data)
-    if headers:
-        response.headers.update(headers)
-    return response
-
-
-def csv_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for CSV serialization."""
-    serializer = StatsCSVSerializer()
-    response = serializer.serialize(data, **kwargs)
-    if headers:
-        response.headers.update(headers)
-    return response
-
-
-def xml_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for XML serialization."""
-    serializer = StatsXMLSerializer()
-    response = serializer.serialize(data, **kwargs)
-    if headers:
-        response.headers.update(headers)
-    return response
-
-
-def excel_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for Excel serialization."""
-    serializer = StatsExcelSerializer()
-    response = serializer.serialize(data, **kwargs)
     if headers:
         response.headers.update(headers)
     return response
@@ -102,12 +72,21 @@ def data_series_csv_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Data Series CSV serialization."""
     serializer = DataSeriesCSVSerializer()
     compressed_data = serializer.serialize(data, **kwargs)
+    
+    # Generate proper filename with community ID if provided
+    community_id = kwargs.get("community_id")
+    if community_id:
+        filename = f"data_series_csv_{community_id}.tar.gz"
+    else:
+        filename = "data_series_csv.tar.gz"
+    
     response = Response(
         compressed_data,
         mimetype="application/gzip",
         headers={
             "Content-Type": "application/gzip",
-            "Content-Disposition": "attachment; filename=stats.csv.tar.gz",
+            "Content-Encoding": "gzip",
+            "Content-Disposition": f"attachment; filename={filename}",
         },
     )
     if headers:
@@ -119,14 +98,20 @@ def data_series_xml_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Data Series XML serialization."""
     serializer = DataSeriesXMLSerializer()
     xml_string = serializer.serialize(data, **kwargs)
+    
+    # Generate proper filename with community ID if provided
+    community_id = kwargs.get("community_id")
+    if community_id:
+        filename = f"data_series_xml_{community_id}.xml"
+    else:
+        filename = "data_series_xml.xml"
+    
     response = Response(
         xml_string,
         mimetype="application/xml",
-        headers={
-            "Content-Type": "application/xml; charset=utf-8",
-            "Content-Disposition": "attachment; filename=stats.xml",
-        },
     )
+    response.headers["Content-Type"] = "application/xml; charset=utf-8"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     if headers:
         response.headers.update(headers)
     return response
@@ -136,12 +121,21 @@ def data_series_excel_serializer_func(data, code=200, headers=None, **kwargs):
     """Wrapper function for Data Series Excel serialization."""
     serializer = DataSeriesExcelSerializer()
     compressed_data = serializer.serialize(data, **kwargs)
+    
+    # Generate proper filename with community ID if provided
+    community_id = kwargs.get("community_id")
+    if community_id:
+        filename = f"data_series_excel_{community_id}.tar.gz"
+    else:
+        filename = "data_series_excel.tar.gz"
+    
     response = Response(
         compressed_data,
         mimetype="application/gzip",
         headers={
             "Content-Type": "application/gzip",
-            "Content-Disposition": "attachment; filename=stats.xlsx.tar.gz",
+            "Content-Encoding": "gzip",
+            "Content-Disposition": f"attachment; filename={filename}",
         },
     )
     if headers:

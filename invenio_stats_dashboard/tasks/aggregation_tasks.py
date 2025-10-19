@@ -347,7 +347,11 @@ def aggregate_community_record_stats(
     verbose: bool = False,
     eager: bool = False,
 ) -> AggregationResponse:
-    """Aggregate community record stats from created records."""
+    """Aggregate community record stats from created records.
+
+    Returns:
+        AggregationResponse
+    """
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
     global_enabled = lock_config.get("enabled", True)
     aggregation_config = lock_config.get("aggregation", {})
@@ -401,19 +405,16 @@ def aggregate_community_record_stats(
 
 
 def _handle_community_events_error(
-    aggr_name: str, 
-    aggr_duration: str, 
-    parsed_start_date, 
-    parsed_end_date
+    aggr_name: str, aggr_duration: str, parsed_start_date, parsed_end_date
 ) -> AggregatorResult:
     """Handle CommunityEventsNotInitializedError by running initialization.
-    
+
     Args:
         aggr_name: Name of the aggregator that failed
         aggr_duration: Duration string for the aggregator
         parsed_start_date: Parsed start date
         parsed_end_date: Parsed end date
-        
+
     Returns:
         Assembled AggregatorResult for the displaced aggregator
     """
@@ -423,23 +424,23 @@ def _handle_community_events_error(
     current_app.logger.info(
         "Running community events initialization. This may take a while..."
     )
-    
+
     # Import here to avoid circular imports
     from ..proxies import current_community_stats_service
-    
+
     try:
         # Run bulk community events creation
         current_community_stats_service.generate_record_community_events()
         current_app.logger.info(
             "Community events initialization completed successfully"
         )
-        
+
         # Don't retry aggregation - just log that this run was displaced
         current_app.logger.info(
             "Aggregation run displaced by community events initialization. "
             "Next scheduled run will proceed normally."
         )
-        
+
         # Return assembled result for the displaced aggregator
         return _assemble_aggregation_results(
             raw_result=[],
@@ -450,15 +451,13 @@ def _handle_community_events_error(
             parsed_end_date=parsed_end_date,
             status="displaced by community events initialization",
         )
-        
+
     except Exception as init_error:
-        current_app.logger.error(
-            f"Failed to initialize community events: {init_error}"
-        )
+        current_app.logger.error(f"Failed to initialize community events: {init_error}")
         current_app.logger.error(
             f"Skipping aggregator {aggr_name} due to initialization failure"
         )
-        
+
         # Return assembled result for the failed aggregator
         return _assemble_aggregation_results(
             raw_result=[],
@@ -472,45 +471,36 @@ def _handle_community_events_error(
 
 
 def _handle_usage_events_error(
-    aggr_name: str, 
-    aggr_duration: str, 
-    parsed_start_date, 
-    parsed_end_date
+    aggr_name: str, aggr_duration: str, parsed_start_date, parsed_end_date
 ) -> AggregatorResult:
     """Handle UsageEventsNotMigratedError by running migration.
-    
+
     Args:
         aggr_name: Name of the aggregator that failed
         aggr_duration: Duration string for the aggregator
         parsed_start_date: Parsed start date
         parsed_end_date: Parsed end date
-        
+
     Returns:
         Assembled AggregatorResult for the displaced aggregator
     """
-    current_app.logger.error(
-        f"Usage events not migrated for aggregator {aggr_name}"
-    )
-    current_app.logger.info(
-        "Running usage events migration. This may take a while..."
-    )
-    
+    current_app.logger.error(f"Usage events not migrated for aggregator {aggr_name}")
+    current_app.logger.info("Running usage events migration. This may take a while...")
+
     # Import here to avoid circular imports
     from ..proxies import current_event_reindexing_service
-    
+
     try:
         # Run usage events migration
         current_event_reindexing_service.reindex_events()
-        current_app.logger.info(
-            "Usage events migration completed successfully"
-        )
-        
+        current_app.logger.info("Usage events migration completed successfully")
+
         # Don't retry aggregation - just log that this run was displaced
         current_app.logger.info(
             "Aggregation run displaced by usage events migration. "
             "Next scheduled run will proceed normally."
         )
-        
+
         # Return assembled result for the displaced aggregator
         return _assemble_aggregation_results(
             raw_result=[],
@@ -521,15 +511,13 @@ def _handle_usage_events_error(
             parsed_end_date=parsed_end_date,
             status="displaced by usage events migration",
         )
-        
+
     except Exception as migration_error:
-        current_app.logger.error(
-            f"Failed to migrate usage events: {migration_error}"
-        )
+        current_app.logger.error(f"Failed to migrate usage events: {migration_error}")
         current_app.logger.error(
             f"Skipping aggregator {aggr_name} due to migration failure"
         )
-        
+
         # Return assembled result for the failed aggregator
         return _assemble_aggregation_results(
             raw_result=[],
@@ -552,7 +540,7 @@ def _assemble_aggregation_results(
     status: str = "completed",
 ) -> AggregatorResult:
     """Assemble aggregation results from raw aggregator output.
-    
+
     Args:
         raw_result: Raw result from aggregator.run()
         aggr_name: Name of the aggregator
@@ -561,7 +549,7 @@ def _assemble_aggregation_results(
         parsed_start_date: Parsed start date
         parsed_end_date: Parsed end date
         status: Status message (e.g., "completed", "displaced by initialization")
-        
+
     Returns:
         Assembled AggregatorResult dictionary
     """
@@ -594,9 +582,7 @@ def _assemble_aggregation_results(
                 aggr_docs_indexed += community_result[0]
 
                 # Get detailed document information if available
-                docs_info = (
-                    community_result[2] if len(community_result) >= 3 else []
-                )
+                docs_info = community_result[2] if len(community_result) >= 3 else []
                 doc_infos: list[DocumentInfo] = [
                     {
                         "document_id": d["document_id"],
@@ -611,9 +597,7 @@ def _assemble_aggregation_results(
                     response_object["community_id"] = docs_info[0].get(
                         "community_id", ""
                     )
-                    response_object["index_name"] = docs_info[0].get(
-                        "index_name", ""
-                    )
+                    response_object["index_name"] = docs_info[0].get("index_name", "")
                 else:
                     if i < len(processed_communities):
                         response_object["community_id"] = processed_communities[i]
@@ -662,7 +646,11 @@ def _run_aggregation(
     verbose: bool = False,
     eager: bool = False,
 ) -> AggregationResponse:
-    """Run the actual aggregation logic."""
+    """Run the actual aggregation logic.
+
+    Returns:
+        AggregationResponse
+    """
     parsed_start_date = dateutil_parse(start_date) if start_date else None
     parsed_end_date = dateutil_parse(end_date) if end_date else None
     results: list[AggregatorResult] = []
@@ -692,27 +680,27 @@ def _run_aggregation(
         if community_ids:
             params["community_ids"] = community_ids
         aggregator = aggr_cfg.cls(name=aggr_cfg.name, **params)
-        
+
         try:
             raw_result = aggregator.run(
                 parsed_start_date, parsed_end_date, update_bookmark, ignore_bookmark
             )
-            
+
             # Get the actual communities that were processed by the aggregator
             processed_communities = getattr(aggregator, "communities_to_aggregate", [])
 
             if (
-                hasattr(aggregator, "aggregation_index") 
+                hasattr(aggregator, "aggregation_index")
                 and aggregator.aggregation_index
             ):
                 current_search_client.indices.refresh(
                     index=f"*{aggregator.aggregation_index}*"
                 )
-            
+
             # Calculate duration after successful run
             aggr_end_time = time.time()
             aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
-            
+
             # Assemble successful result
             result = _assemble_aggregation_results(
                 raw_result,
@@ -729,7 +717,7 @@ def _run_aggregation(
             # Calculate duration after error occurs
             aggr_end_time = time.time()
             aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
-            
+
             # Handle community events error and break out of loop
             result = _handle_community_events_error(
                 aggr_name, aggr_duration, parsed_start_date, parsed_end_date
@@ -739,12 +727,12 @@ def _run_aggregation(
                 "Stopping aggregation run due to community events initialization"
             )
             break
-            
+
         except UsageEventsNotMigratedError:
             # Calculate duration after error occurs
             aggr_end_time = time.time()
             aggr_duration = str(timedelta(seconds=aggr_end_time - aggr_start_time))
-            
+
             # Handle usage events error and break out of loop
             result = _handle_usage_events_error(
                 aggr_name, aggr_duration, parsed_start_date, parsed_end_date
@@ -755,9 +743,7 @@ def _run_aggregation(
             )
             break
 
-        current_app.logger.info(
-            f"Completed aggregator: {aggr_name} in {aggr_duration}"
-        )
+        current_app.logger.info(f"Completed aggregator: {aggr_name} in {aggr_duration}")
 
     total_end_time = time.time()
     total_duration = str(timedelta(seconds=total_end_time - total_start_time))
