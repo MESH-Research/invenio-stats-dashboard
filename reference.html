@@ -485,7 +485,7 @@
 <section id="aggregate-community-record-stats">
 <h3>aggregate_community_record_stats<a class="headerlink" href="#aggregate-community-record-stats" title="Link to this heading">¶</a></h3>
 <p>Main aggregation task for community statistics.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">aggregate_community_record_stats</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks.aggregation_tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">aggregate_community_record_stats</span>
 
 <span class="c1"># Run asynchronously</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">aggregate_community_record_stats</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">community_id</span><span class="o">=</span><span class="s2">&quot;my-community&quot;</span><span class="p">)</span>
@@ -495,23 +495,23 @@
 </pre></div>
 </div>
 </section>
-<section id="reindex-events-with-metadata">
-<h3>reindex_events_with_metadata<a class="headerlink" href="#reindex-events-with-metadata" title="Link to this heading">¶</a></h3>
+<section id="reindex-usage-events-with-metadata">
+<h3>reindex_usage_events_with_metadata<a class="headerlink" href="#reindex-usage-events-with-metadata" title="Link to this heading">¶</a></h3>
 <p>Task for migrating usage events to enriched format.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">reindex_events_with_metadata</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks.usage_reindexing_tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">reindex_usage_events_with_metadata</span>
 
 <span class="c1"># Run asynchronously</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">reindex_events_with_metadata</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">reindex_usage_events_with_metadata</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
 
 <span class="c1"># Run synchronously</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">reindex_events_with_metadata</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">reindex_usage_events_with_metadata</span><span class="p">()</span>
 </pre></div>
 </div>
 </section>
 <section id="get-reindexing-progress">
 <h3>get_reindexing_progress<a class="headerlink" href="#get-reindexing-progress" title="Link to this heading">¶</a></h3>
 <p>Task for checking migration progress.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_reindexing_progress</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks.usage_reindexing_tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_reindexing_progress</span>
 
 <span class="c1"># Run asynchronously</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">get_reindexing_progress</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
@@ -858,7 +858,7 @@
 </li>
 <li><a class="reference internal" href="#celery-tasks">Celery Tasks</a><ul>
 <li><a class="reference internal" href="#aggregate-community-record-stats">aggregate_community_record_stats</a></li>
-<li><a class="reference internal" href="#reindex-events-with-metadata">reindex_events_with_metadata</a></li>
+<li><a class="reference internal" href="#reindex-usage-events-with-metadata">reindex_usage_events_with_metadata</a></li>
 <li><a class="reference internal" href="#get-reindexing-progress">get_reindexing_progress</a></li>
 </ul>
 </li>

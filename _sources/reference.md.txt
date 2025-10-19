@@ -152,7 +152,7 @@ query = GlobalStatsQuery()
 Main aggregation task for community statistics.
 
 ```python
-from invenio_stats_dashboard.tasks import aggregate_community_record_stats
+from invenio_stats_dashboard.tasks.aggregation_tasks import aggregate_community_record_stats
 
 # Run asynchronously
 result = aggregate_community_record_stats.delay(community_id="my-community")
@@ -161,18 +161,18 @@ result = aggregate_community_record_stats.delay(community_id="my-community")
 result = aggregate_community_record_stats(community_id="my-community")
 ```
 
-### reindex_events_with_metadata
+### reindex_usage_events_with_metadata
 
 Task for migrating usage events to enriched format.
 
 ```python
-from invenio_stats_dashboard.tasks import reindex_events_with_metadata
+from invenio_stats_dashboard.tasks.usage_reindexing_tasks import reindex_usage_events_with_metadata
 
 # Run asynchronously
-result = reindex_events_with_metadata.delay()
+result = reindex_usage_events_with_metadata.delay()
 
 # Run synchronously
-result = reindex_events_with_metadata()
+result = reindex_usage_events_with_metadata()
 ```
 
 ### get_reindexing_progress
@@ -180,7 +180,7 @@ result = reindex_events_with_metadata()
 Task for checking migration progress.
 
 ```python
-from invenio_stats_dashboard.tasks import get_reindexing_progress
+from invenio_stats_dashboard.tasks.usage_reindexing_tasks import get_reindexing_progress
 
 # Run asynchronously
 result = get_reindexing_progress.delay()
