@@ -21,7 +21,7 @@ invenio community-stats aggregate [OPTIONS]
 - `--update-bookmark`: Update the progress bookmark after aggregation (default: True).
 - `--ignore-bookmark`: Ignore the progress bookmark and force a full re-aggregation.
 - `--verbose`: Show detailed timing information for each aggregator.
-- `--force`: Force aggregation even if scheduled tasks are disabled. Bypasses the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration check.
+- `--force`: Force aggregation even if scheduled aggregation tasks are disabled. Bypasses the `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` configuration check.
 
 **Examples:**
 
@@ -50,12 +50,12 @@ invenio community-stats aggregate --no-eager --verbose
 The `aggregate` command requires specific configuration settings to function properly:
 
 - `COMMUNITY_STATS_ENABLED` (default: `True`): Must be set to `True` to enable community stats functionality. When disabled, the command will raise an error.
-- `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` (default: `True`): Controls whether scheduled aggregation tasks are enabled. When disabled, the command will require the `--force` flag to run.
+- `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` (default: `True`): Controls whether scheduled aggregation tasks are enabled. When disabled, the command will require the `--force` flag to run.
 
 **Error Handling:**
 
 - If `COMMUNITY_STATS_ENABLED` is `False`, the command will exit with an error message.
-- If `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` is `False` and `--force` is not provided, the command will exit with an error message suggesting to use `--force`.
+- If `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` is `False` and `--force` is not provided, the command will exit with an error message suggesting to use `--force`.
 - When `--force` is used, the command will log that it's bypassing the scheduled tasks check.
 
 #### `aggregate-background`

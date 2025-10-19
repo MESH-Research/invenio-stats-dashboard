@@ -51,17 +51,20 @@ from .tasks.aggregation_tasks import CommunityStatsAggregationTask
 from .tasks.cache_tasks import CachedResponsesGenerationTask
 
 COMMUNITY_STATS_ENABLED = True
-COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
+COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
+COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
 
-COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE = {
     "stats-aggregate-community-record-stats": {
         **CommunityStatsAggregationTask,
     },
+}
+COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE = {
     "stats-cache-hourly-generation": {
         **CachedResponsesGenerationTask,
     },
 }
-"""Celery beat schedule for stats tasks.
+"""Celery beat schedule for stats aggregation and caching tasks.
 
 Includes both aggregation and cache generation tasks:
 - stats-aggregate-community-record-stats: Runs at minute 40 every hour

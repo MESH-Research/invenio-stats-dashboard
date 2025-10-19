@@ -4,33 +4,35 @@
 
 The following table provides a complete reference of all available configuration variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `COMMUNITY_STATS_ENABLED` | `True` | Enable/disable the entire module |
-| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `False` | Enable/disable scheduled aggregation tasks |
-| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for aggregation tasks |
-| `COMMUNITY_STATS_CATCHUP_INTERVAL` | `365` | Maximum days to catch up when aggregating historical data |
-| `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
-| `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
-| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
-| `COMMUNITY_STATS_SUBCOUNTS` | `{...}` | Configuration for subcount breakdowns and field mappings |
-| `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
-| `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
-| `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |
-| `STATS_DASHBOARD_ROUTES` | `{...}` | URL routes for dashboard pages |
-| `STATS_DASHBOARD_UI_CONFIG` | `{...}` | UI configuration for dashboard appearance and behavior |
-| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS` | `{...}` | Default date range options for different granularities |
-| `STATS_DASHBOARD_LAYOUT` | `{...}` | Dashboard layout and component configuration |
-| `STATS_DASHBOARD_MENU_ENABLED` | `True` | Enable/disable menu integration |
-| `STATS_DASHBOARD_MENU_TEXT` | `_("Statistics")` | Menu item text |
-| `STATS_DASHBOARD_MENU_ORDER` | `1` | Menu item order |
-| `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
-| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
-| `STATS_DASHBOARD_USE_TEST_DATA` | `True` | Enable/disable test data mode for development |
-| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
-| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `5000` | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
-| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85` | Maximum memory usage percentage before stopping migration |
-| `STATS_EVENTS` | `{...}` | Event type configurations for statistics processing |
+| Variable                                        | Default                                            | Description                                                                                                                                       |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMMUNITY_STATS_ENABLED`                       | `True`                                             | Enable/disable the entire module                                                                                                                  |
+| `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED`   | `False`                                            | Enable/disable scheduled aggregation tasks                                                                                                        |
+| `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` | `False`                                            | Enable/disable scheduled cache generation tasks                                                                                                   |
+| `COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE`       | `{...}`                                            | Celery beat schedule for aggregation tasks                                                                                                        |
+| `COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE`     | `{...}`                                            | Celery beat schedule for cache generation tasks                                                                                                   |
+| `COMMUNITY_STATS_CATCHUP_INTERVAL`              | `365`                                              | Maximum days to catch up when aggregating historical data                                                                                         |
+| `COMMUNITY_STATS_AGGREGATIONS`                  | `{...}`                                            | Aggregation configurations (auto-generated)                                                                                                       |
+| `COMMUNITY_STATS_QUERIES`                       | `{...}`                                            | Query configurations (auto-generated)                                                                                                             |
+| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT`            | `20`                                               | Maximum number of items to return in subcount breakdowns                                                                                          |
+| `COMMUNITY_STATS_SUBCOUNTS`                     | `{...}`                                            | Configuration for subcount breakdowns and field mappings                                                                                          |
+| `STATS_DASHBOARD_UI_SUBCOUNTS`                  | `{...}`                                            | UI subcount configuration for different breakdown types                                                                                           |
+| `STATS_DASHBOARD_LOCK_CONFIG`                   | `{...}`                                            | Distributed locking configuration for aggregation tasks                                                                                           |
+| `STATS_DASHBOARD_TEMPLATES`                     | `{...}`                                            | Template paths for dashboard views                                                                                                                |
+| `STATS_DASHBOARD_ROUTES`                        | `{...}`                                            | URL routes for dashboard pages                                                                                                                    |
+| `STATS_DASHBOARD_UI_CONFIG`                     | `{...}`                                            | UI configuration for dashboard appearance and behavior                                                                                            |
+| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS`         | `{...}`                                            | Default date range options for different granularities                                                                                            |
+| `STATS_DASHBOARD_LAYOUT`                        | `{...}`                                            | Dashboard layout and component configuration                                                                                                      |
+| `STATS_DASHBOARD_MENU_ENABLED`                  | `True`                                             | Enable/disable menu integration                                                                                                                   |
+| `STATS_DASHBOARD_MENU_TEXT`                     | `_("Statistics")`                                  | Menu item text                                                                                                                                    |
+| `STATS_DASHBOARD_MENU_ORDER`                    | `1`                                                | Menu item order                                                                                                                                   |
+| `STATS_DASHBOARD_MENU_ENDPOINT`                 | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint                                                                                                                                |
+| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION`    | `None`                                             | Custom menu registration function                                                                                                                 |
+| `STATS_DASHBOARD_USE_TEST_DATA`                 | `True`                                             | Enable/disable test data mode for development                                                                                                     |
+| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`        | `1000`                                             | Maximum batches per month for migration                                                                                                           |
+| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`         | `5000`                                             | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
+| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85`                                               | Maximum memory usage percentage before stopping migration                                                                                         |
+| `STATS_EVENTS`                                  | `{...}`                                            | Event type configurations for statistics processing                                                                                               |
 
 > **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the :doc:`configuration` section.
 
@@ -47,6 +49,7 @@ service = CommunityStatsService()
 ```
 
 **Methods:**
+
 - `generate_record_community_events()`: Generate community add/remove events
 - `get_community_stats()`: Retrieve statistics for a community
 - `aggregate_community_stats()`: Aggregate statistics for a community
@@ -62,6 +65,7 @@ service = EventReindexingService()
 ```
 
 **Methods:**
+
 - `reindex_events()`: Migrate events to new format
 - `get_migration_status()`: Check migration progress
 - `clear_bookmarks()`: Clear migration bookmarks
@@ -77,6 +81,7 @@ service = CommunityEventService()
 ```
 
 **Methods:**
+
 - `create_event()`: Create a community membership event
 - `get_events()`: Retrieve community events
 - `delete_events()`: Delete community events
@@ -238,16 +243,16 @@ Community membership events are stored in the `stats-community-events` index:
 
 ```json
 {
-    "timestamp": "2021-01-01T00:00:00Z",
-    "community_id": "global",
-    "record_id": "1234567890",
-    "event_type": "add",
-    "event_date": "2021-01-01",
-    "record_created_date": "2020-01-01",
-    "record_published_date": "2020-01-01",
-    "is_deleted": true,
-    "deleted_date": "2021-01-04",
-    "updated_timestamp": "2021-01-01T00:00:00Z"
+  "timestamp": "2021-01-01T00:00:00Z",
+  "community_id": "global",
+  "record_id": "1234567890",
+  "event_type": "add",
+  "event_date": "2021-01-01",
+  "record_created_date": "2020-01-01",
+  "record_published_date": "2020-01-01",
+  "is_deleted": true,
+  "deleted_date": "2021-01-04",
+  "updated_timestamp": "2021-01-01T00:00:00Z"
 }
 ```
 
@@ -257,16 +262,16 @@ Enriched usage events include community and metadata information:
 
 ```json
 {
-    "timestamp": "2021-01-01T00:00:00Z",
-    "record_id": "1234567890",
-    "community_ids": ["community-1", "community-2"],
-    "resource_type": "publication-article",
-    "access_status": "open",
-    "languages": ["en"],
-    "subjects": ["Computer Science"],
-    "publisher": "Example Publisher",
-    "funders": ["National Science Foundation"],
-    "affiliations": ["University of Example"]
+  "timestamp": "2021-01-01T00:00:00Z",
+  "record_id": "1234567890",
+  "community_ids": ["community-1", "community-2"],
+  "resource_type": "publication-article",
+  "access_status": "open",
+  "languages": ["en"],
+  "subjects": ["Computer Science"],
+  "publisher": "Example Publisher",
+  "funders": ["National Science Foundation"],
+  "affiliations": ["University of Example"]
 }
 ```
 
@@ -306,38 +311,39 @@ The module uses Python's standard logging framework with the following loggers:
 - `invenio_stats_dashboard.aggregators`: Aggregator-specific logging
 - `invenio_stats_dashboard.services`: Service-specific logging
 - `invenio_stats_dashboard.tasks`: Task-specific logging
+
 ### Configuration Reference
 
 The following table provides a complete reference of all available configuration variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `COMMUNITY_STATS_ENABLED` | `True` | Enable/disable the entire module |
-| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `False` | Enable/disable scheduled aggregation tasks |
-| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for aggregation tasks |
-| `COMMUNITY_STATS_CATCHUP_INTERVAL` | `365` | Maximum days to catch up when aggregating historical data |
-| `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
-| `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
-| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
-| `COMMUNITY_STATS_SUBCOUNTS` | `{...}` | Configuration for subcount breakdowns and field mappings |
-| `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
-| `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
-| `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |
-| `STATS_DASHBOARD_ROUTES` | `{...}` | URL routes for dashboard pages |
-| `STATS_DASHBOARD_UI_CONFIG` | `{...}` | UI configuration for dashboard appearance and behavior |
-| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS` | `{...}` | Default date range options for different granularities |
-| `STATS_DASHBOARD_LAYOUT` | `{...}` | Dashboard layout and component configuration |
-| `STATS_DASHBOARD_MENU_ENABLED` | `True` | Enable/disable menu integration |
-| `STATS_DASHBOARD_MENU_TEXT` | `_("Statistics")` | Menu item text |
-| `STATS_DASHBOARD_MENU_ORDER` | `1` | Menu item order |
-| `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
-| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
-| `STATS_DASHBOARD_USE_TEST_DATA` | `True` | Enable/disable test data mode for development |
-| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
-| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `5000` | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
-| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85` | Maximum memory usage percentage before stopping migration |
-| `STATS_EVENTS` | `{...}` | Event type configurations for statistics processing |
+| Variable                                        | Default                                            | Description                                                                                                                                       |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMMUNITY_STATS_ENABLED`                       | `True`                                             | Enable/disable the entire module                                                                                                                  |
+| `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED`   | `False`                                            | Enable/disable scheduled aggregation tasks                                                                                                        |
+| `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` | `False`                                            | Enable/disable scheduled cache generation tasks                                                                                                   |
+| `COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE`       | `{...}`                                            | Celery beat schedule for aggregation tasks                                                                                                        |
+| `COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE`     | `{...}`                                            | Celery beat schedule for cache generation tasks                                                                                                   |
+| `COMMUNITY_STATS_CATCHUP_INTERVAL`              | `365`                                              | Maximum days to catch up when aggregating historical data                                                                                         |
+| `COMMUNITY_STATS_AGGREGATIONS`                  | `{...}`                                            | Aggregation configurations (auto-generated)                                                                                                       |
+| `COMMUNITY_STATS_QUERIES`                       | `{...}`                                            | Query configurations (auto-generated)                                                                                                             |
+| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT`            | `20`                                               | Maximum number of items to return in subcount breakdowns                                                                                          |
+| `COMMUNITY_STATS_SUBCOUNTS`                     | `{...}`                                            | Configuration for subcount breakdowns and field mappings                                                                                          |
+| `STATS_DASHBOARD_UI_SUBCOUNTS`                  | `{...}`                                            | UI subcount configuration for different breakdown types                                                                                           |
+| `STATS_DASHBOARD_LOCK_CONFIG`                   | `{...}`                                            | Distributed locking configuration for aggregation tasks                                                                                           |
+| `STATS_DASHBOARD_TEMPLATES`                     | `{...}`                                            | Template paths for dashboard views                                                                                                                |
+| `STATS_DASHBOARD_ROUTES`                        | `{...}`                                            | URL routes for dashboard pages                                                                                                                    |
+| `STATS_DASHBOARD_UI_CONFIG`                     | `{...}`                                            | UI configuration for dashboard appearance and behavior                                                                                            |
+| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS`         | `{...}`                                            | Default date range options for different granularities                                                                                            |
+| `STATS_DASHBOARD_LAYOUT`                        | `{...}`                                            | Dashboard layout and component configuration                                                                                                      |
+| `STATS_DASHBOARD_MENU_ENABLED`                  | `True`                                             | Enable/disable menu integration                                                                                                                   |
+| `STATS_DASHBOARD_MENU_TEXT`                     | `_("Statistics")`                                  | Menu item text                                                                                                                                    |
+| `STATS_DASHBOARD_MENU_ORDER`                    | `1`                                                | Menu item order                                                                                                                                   |
+| `STATS_DASHBOARD_MENU_ENDPOINT`                 | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint                                                                                                                                |
+| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION`    | `None`                                             | Custom menu registration function                                                                                                                 |
+| `STATS_DASHBOARD_USE_TEST_DATA`                 | `True`                                             | Enable/disable test data mode for development                                                                                                     |
+| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`        | `1000`                                             | Maximum batches per month for migration                                                                                                           |
+| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`         | `5000`                                             | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
+| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85`                                               | Maximum memory usage percentage before stopping migration                                                                                         |
+| `STATS_EVENTS`                                  | `{...}`                                            | Event type configurations for statistics processing                                                                                               |
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
-
-

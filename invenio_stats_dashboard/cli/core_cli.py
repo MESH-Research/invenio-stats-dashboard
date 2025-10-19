@@ -32,10 +32,10 @@ def check_stats_enabled():
 
 def check_scheduled_tasks_enabled(command="aggregate"):
     """Check if scheduled tasks are enabled."""
-    if not current_app.config.get("COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED", True):
+    if not current_app.config.get("COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED", True):
         message = (
             "Community stats scheduled tasks are disabled. "
-            "Set COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED=True to enable "
+            "Set COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED=True to enable "
             "aggregation tasks."
         )
         if command == "aggregate":

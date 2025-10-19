@@ -118,8 +118,7 @@ class InvenioStatsDashboard:
     def init_config(self, app):
         """Initialize configuration."""
         for k in dir(config):
-            if (k.startswith("STATS_DASHBOARD_")
-                    or k.startswith("COMMUNITY_STATS_")):
+            if k.startswith("STATS_DASHBOARD_") or k.startswith("COMMUNITY_STATS_"):
                 app.config.setdefault(k, getattr(config, k))
 
         if not app.config.get("COMMUNITY_STATS_ENABLED", True):
@@ -128,18 +127,31 @@ class InvenioStatsDashboard:
             )
             return
 
-        if app.config.get("COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED", True):
-            existing_schedule = app.config.get("CELERY_BEAT_SCHEDULE", {})
-            app.config["CELERY_BEAT_SCHEDULE"] = {
-                **existing_schedule,
-                **config.COMMUNITY_STATS_CELERYBEAT_SCHEDULE,
+        enabled_tasks = {}
+        if app.config.get("COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED", True):
+            enabled_tasks = {**config.COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE}
+        else:
+            app.logger.info(
+                "Community stats scheduled aggregation tasks are disabled. "
+                "Manual CLI operations are still possible."
+            )
+
+        if app.config.get("COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED", True):
+            enabled_tasks = {
+                **enabled_tasks,
+                **config.COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE,
             }
         else:
             app.logger.info(
-                "Community stats scheduled tasks are disabled. "
-                "Scheduled aggregation and cache generation tasks will not "
-                "run, but manual operations are still possible."
+                "Community stats scheduled aggregation tasks are disabled. "
+                "Manual CLI operations are still possible."
             )
+
+        existing_schedule = app.config["CELERY_BEAT_SCHEDULE"]
+        app.config["CELERY_BEAT_SCHEDULE"] = {
+            **existing_schedule,
+            **enabled_tasks,
+        }
 
         existing_events = app.config.get("STATS_EVENTS", {})
         app.config["STATS_EVENTS"] = {

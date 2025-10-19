@@ -91,7 +91,8 @@ test_config = {
     "TESTING": True,
     "DEBUG": True,
     "COMMUNITY_STATS_ENABLED": True,
-    "COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED": True,
+    "COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED": True,
+    "COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED": True,
 }
 
 parent_path = Path(__file__).parent
@@ -289,14 +290,10 @@ def template_loader():
             test_path,
         ):
             assert path.exists()
-        custom_loader = jinja2.ChoiceLoader(
-            [
-                app.jinja_loader,
-                jinja2.FileSystemLoader(
-                    [str(theme_path), str(root_path), str(test_path)]
-                ),
-            ]
-        )
+        custom_loader = jinja2.ChoiceLoader([
+            app.jinja_loader,
+            jinja2.FileSystemLoader([str(theme_path), str(root_path), str(test_path)]),
+        ])
         app.jinja_loader = custom_loader
         app.jinja_env.loader = custom_loader
 

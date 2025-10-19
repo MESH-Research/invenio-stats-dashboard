@@ -13,6 +13,7 @@ from pprint import pformat
 from typing import Any
 
 import click
+from flask import current_app
 from flask.cli import with_appcontext
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
@@ -21,6 +22,23 @@ from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
 from ..services.cached_response_service import CachedResponseService
 from ..tasks.cache_tasks import generate_cached_responses_task
+
+
+def check_scheduled_tasks_enabled(command="cache"):
+    """Check if scheduled tasks are enabled."""
+    if not current_app.config.get(
+        "COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED", True
+    ):
+        message = (
+            "Community stats scheduled caching tasks are disabled. "
+            "Set COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED=True to enable "
+            "response cache preparation tasks."
+        )
+        if command == "cache":
+            message += (
+                " Use --force to bypass this check and run cache preparation directly."
+            )
+        raise click.ClickException(message)
 
 
 @click.group(name="cache")
@@ -196,8 +214,7 @@ def clear_item_cache_command(
 
     # Generate the cache key to show what will be cleared
     cache_key = CachedResponse.generate_cache_key(
-        content_type or "application/json",
-        request_data
+        content_type or "application/json", request_data
     )
 
     click.echo(f"Clearing cache entry: {cache_key}")
@@ -343,12 +360,7 @@ def test_cache_command(community_id, stat_name):
     cache = StatsCache(cache_prefix="stats_test")
 
     test_request_data = {
-        "test_stat": {
-            "params": {
-                "community_id": "global",
-                "stat_name": "test"
-            }
-        }
+        "test_stat": {"params": {"community_id": "global", "stat_name": "test"}}
     }
 
     # Test data
@@ -363,13 +375,11 @@ def test_cache_command(community_id, stat_name):
     # Test setting cache
     click.echo("Setting test cache entry...")
     cache_key = CachedResponse.generate_cache_key(
-        "application/json",
-        test_request_data,
-        cache_prefix="stats_test"
+        "application/json", test_request_data, cache_prefix="stats_test"
     )
     success = cache.set(
         cache_key,
-        json.dumps(test_data).encode('utf-8'),
+        json.dumps(test_data).encode("utf-8"),
         timeout=60,  # 1 minute timeout for test
     )
 
@@ -415,7 +425,8 @@ def test_cache_command(community_id, stat_name):
     "--community-slug", multiple=True, help="Community slug(s) to generate cache for"
 )
 @click.option(
-    "--year", type=str,
+    "--year",
+    type=str,
     multiple=True,
     help=(
         "Single year or year range to generate cache for (can be specified "
@@ -428,7 +439,10 @@ def test_cache_command(community_id, stat_name):
     is_flag=True,
     help="Run cache generation asynchronously using Celery",
 )
-@click.option("--force", is_flag=True, help="Overwrite existing cache entries")
+@click.option(
+    "--force", is_flag=True, help="Override config setting for enabling tasks."
+)
+@click.option("--overwrite", is_flag=True, help="Overwrite existing cache entries")
 @click.option(
     "--dry-run",
     is_flag=True,
@@ -436,7 +450,7 @@ def test_cache_command(community_id, stat_name):
 )
 @with_appcontext
 def generate_cache_command(
-    community_id, community_slug, year, async_mode, force, dry_run
+    community_id, community_slug, year, async_mode, force, overwrite, dry_run
 ):
     r"""Generate cached stats responses for all data series categories.
 
@@ -461,7 +475,8 @@ def generate_cache_command(
     - year: Single year or year range to generate cache for
       (can be specified multiple times)
     - async_mode: Run cache generation asynchronously using Celery
-    - force: Overwrite existing cache entries
+    - force: Override config setting for enabling cache settings.
+    - overwrite: Overwrite existing cache entries
     - dry_run: Show what would be done without actually generating cache
 
     Examples:  # noqa:D412
@@ -476,6 +491,14 @@ def generate_cache_command(
     - invenio community-stats cache generate --all-years --async
     - invenio community-stats cache generate --community-id global --year 2023 --dry-run
     """
+    if not force:
+        check_scheduled_tasks_enabled(command="cache")
+    else:
+        current_app.logger.info(
+            "Bypassing scheduled caching tasks check due to --force flag. "
+            "Running cache generation directly."
+        )
+
     try:
         service = CachedResponseService()
     except Exception as e:
@@ -521,7 +544,7 @@ def generate_cache_command(
                     years=years_param,
                     force=force,
                     async_mode=True,
-                    current_year_only=False
+                    current_year_only=False,
                 )
 
                 click.echo(f"Task started with ID: {task.id}")
@@ -534,7 +557,8 @@ def generate_cache_command(
                 )
                 if not force:
                     responses_to_process = [
-                        r for r in all_responses
+                        r
+                        for r in all_responses
                         if not service.exists(r.community_id, r.year, r.category)
                     ]
                 else:
@@ -572,9 +596,7 @@ def resolve_slug_to_id(slug: str) -> str:
     """Resolve community slug to ID using communities service."""
     try:
         communities_result = current_communities.service.search(
-            system_identity,
-            params={"q": f"slug:{slug}"},
-            size=1
+            system_identity, params={"q": f"slug:{slug}"}, size=1
         )
         if communities_result.hits:
             return str(communities_result.hits[0]["id"])
@@ -610,8 +632,7 @@ def show_dry_run_results(
     if len(all_years) > 0:
         years_display = f"years {min(all_years)}-{max(all_years)}"
         total_combinations = sum(
-            len(years) * len(categories)
-            for years in years_per_community.values()
+            len(years) * len(categories) for years in years_per_community.values()
         )
     else:
         years_display = "no valid years"
@@ -699,8 +720,8 @@ def report_results(results: dict[str, Any]) -> None:
         click.echo("Cache generation completed")
 
         # Calculate skipped entries if we have the data
-        skipped = results.get('skipped', 0)
-        total_found = results['success'] + results['failed'] + skipped
+        skipped = results.get("skipped", 0)
+        total_found = results["success"] + results["failed"] + skipped
         if skipped > 0:
             click.echo("Results:")
             click.echo(f"  Success: {results['success']}")
@@ -709,8 +730,7 @@ def report_results(results: dict[str, Any]) -> None:
             click.echo(f"  Total found: {total_found}")
             click.echo("")
             click.echo(
-                f"{skipped} entries were skipped because they already "
-                "exist in cache."
+                f"{skipped} entries were skipped because they already exist in cache."
             )
             click.echo("   Use --force to overwrite existing entries.")
         else:

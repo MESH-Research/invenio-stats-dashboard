@@ -15,6 +15,7 @@ COMMUNITY_STATS_ENABLED = False
 ```
 
 When disabled:
+
 - **Scheduled tasks will not run**: No automatic aggregation or migration tasks
 - **CLI commands will fail**: All commands will show an error message
 - **Services will not be initialized**: No event tracking or statistics services
@@ -25,15 +26,17 @@ When disabled:
 
 ### Scheduled Tasks Enable/Disable
 
-Scheduled aggregation tasks can be controlled separately using the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration variable:
+Scheduled aggregation tasks can be controlled separately using the `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` configuration variable:
 
 ```python
 # Enable the module but disable scheduled tasks
 COMMUNITY_STATS_ENABLED = True
-COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED = False
+COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
+COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
 ```
 
 When scheduled tasks are disabled:
+
 - **Scheduled aggregation tasks will not run**: No automatic daily/weekly aggregation
 - **CLI aggregation commands will fail**: `aggregate` command will show an error unless `--force` is used
 - **Manual aggregation with --force**: You can still run aggregation manually using `invenio community-stats aggregate --force`
@@ -92,6 +95,7 @@ STATS_DASHBOARD_LOCK_CONFIG = {
 ```
 
 This configuration allows you to:
+
 - **Enable/disable locking globally** with the top-level `enabled` flag
 - **Configure each task type independently** with separate timeouts and lock names
 - **Allow concurrent execution** of different task types (aggregation and cache generation can run simultaneously)
@@ -99,7 +103,7 @@ This configuration allows you to:
 
 ### Cache generation scheduled tasks
 
-When `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` is set to `True`, both aggregation and cache generation tasks will run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.
+When `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` is set to `True`, all aggregation tasks will run hourly. When `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` is set to `True`, the cache generations tasks will likewise run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.
 
 The schedule includes both tasks:
 
@@ -107,10 +111,13 @@ The schedule includes both tasks:
 from celery.schedules import crontab
 from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
 
-COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
+COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE = {
     "stats-aggregate-community-record-stats": {
         **CommunityStatsAggregationTask,  # Runs at minute 40
     },
+}
+
+COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE = {
     "stats-cache-hourly-generation": {
         "task": "invenio_stats_dashboard.tasks.generate_hourly_cache_task",
         "schedule": crontab(minute="50", hour="*"),  # Runs at minute 50
@@ -121,6 +128,7 @@ COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
 #### Task timing
 
 By default, the cache generation task runs at minute 50 every hour, which is carefully timed to:
+
 - Run **10 minutes after** the stats aggregation task (minute 40) to ensure fresh data is available
 - Be **well-spaced** from other InvenioRDM scheduled tasks to avoid resource contention:
   - minute 0: stats-aggregate-events
@@ -129,26 +137,12 @@ By default, the cache generation task runs at minute 50 every hour, which is car
   - minute 40: stats-aggregate-community-record-stats
   - minute 50: stats-cache-hourly-generation
 
-You can customize the schedule by overriding `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` in your `invenio.cfg` file:
-
-```python
-from celery.schedules import crontab
-from invenio_stats_dashboard.tasks import CommunityStatsAggregationTask
-
-COMMUNITY_STATS_CELERYBEAT_SCHEDULE = {
-    "stats-aggregate-community-record-stats": {
-        **CommunityStatsAggregationTask,
-    },
-    "stats-cache-hourly-generation": {
-        "task": "invenio_stats_dashboard.tasks.generate_hourly_cache_task",
-        "schedule": crontab(minute="45", hour="*/2"),  # Run every 2 hours at minute 45
-    },
-}
-```
+You can customize the schedule by overriding `COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE` and/or `COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE` in your `invenio.cfg` file
 
 #### What gets cached
 
 The hourly cache task generates cached responses for:
+
 - **All communities** in your instance
 - **The global stats** (instance-wide statistics)
 - **The current year** only
@@ -241,6 +235,7 @@ STATS_DASHBOARD_LAYOUT = {
     },
 }
 ```
+
 If no layout configuration is provided for a dashboard type, the default "global" layout configuration will be used.
 
 Any additional key/value pairs in the dictionary for a component will be passed to the component class as additional props. This allows for some customization of the component without having to subclass and override the component class.
@@ -396,6 +391,7 @@ STATS_DASHBOARD_UI_SUBCOUNTS = {
 When processing large datasets (such as a full year of catchup data), aggregation documents can become very large due to extensive subcount data. This can cause **TransportError(413)** - "Request size exceeded" errors when bulk indexing to OpenSearch/Elasticsearch.
 
 **Why documents get large:**
+
 - Each aggregation document includes 12+ subcount categories (subjects, affiliations, funders, etc.)
 - Each subcount item contains 10+ fields (view/download metrics, unique counts, etc.)
 - With `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20`, documents can contain 1000+ fields
@@ -408,19 +404,21 @@ The system automatically handles this with adaptive chunk sizing:
 ```python
 # Configuration options for adaptive chunking
 COMMUNITY_STATS_INITIAL_CHUNK_SIZE = 50      # Starting chunk size
-COMMUNITY_STATS_MIN_CHUNK_SIZE = 1           # Minimum chunk size  
+COMMUNITY_STATS_MIN_CHUNK_SIZE = 1           # Minimum chunk size
 COMMUNITY_STATS_MAX_CHUNK_SIZE = 100         # Maximum chunk size
 COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR = 0.7  # Reduce by 30% on 413 error
 COMMUNITY_STATS_CHUNK_GROWTH_FACTOR = 1.05   # Increase by 5% on success
 ```
 
 **How it works:**
+
 1. **Start** with `initial_chunk_size` (50 documents)
 2. **Success** → increase chunk size by 5% (up to max limit)
 3. **413 Error** → reduce chunk size by 30% and retry
 4. **Learning** → adapts to find optimal chunk size for your data
 
 **Example flow:**
+
 ```
 Try chunk_size=50 → Success → Increase to 52 (50 * 1.05)
 Try chunk_size=52 → Success → Increase to 54 (52 * 1.05)
@@ -430,6 +428,7 @@ Try chunk_size=39 → Success → Continue with 39
 ```
 
 **Benefits:**
+
 - **Automatic**: No manual tuning needed
 - **Efficient**: Finds optimal chunk size quickly
 - **Robust**: Handles any request size limit (AWS OpenSearch, nginx, etc.)
@@ -437,6 +436,7 @@ Try chunk_size=39 → Success → Continue with 39
 
 **Reducing document size:**
 If you want to reduce document sizes to improve performance:
+
 - Lower `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` (from 20 to 10)
 - Remove unused subcount categories from `COMMUNITY_STATS_SUBCOUNTS`
 - Use fewer subcount fields in your configuration
@@ -514,34 +514,36 @@ This variable contains the query configurations for accessing statistics data. I
 
 The following table provides a complete reference of all available configuration variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `COMMUNITY_STATS_ENABLED` | `True` | Enable/disable the entire module |
-| `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` | `False` | Enable/disable scheduled tasks (aggregation and cache generation) |
-| `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` | `{...}` | Celery beat schedule for stats tasks (aggregation and cache generation) |
-| `COMMUNITY_STATS_CATCHUP_INTERVAL` | `365` | Maximum days to catch up when aggregating historical data |
-| `COMMUNITY_STATS_AGGREGATIONS` | `{...}` | Aggregation configurations (auto-generated) |
-| `COMMUNITY_STATS_QUERIES` | `{...}` | Query configurations (auto-generated) |
-| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT` | `20` | Maximum number of items to return in subcount breakdowns |
-| `COMMUNITY_STATS_SUBCOUNTS` | `{...}` | Configuration for subcount breakdowns and field mappings |
-| `STATS_DASHBOARD_UI_SUBCOUNTS` | `{...}` | UI subcount configuration for different breakdown types |
-| `STATS_DASHBOARD_LOCK_CONFIG` | `{...}` | Distributed locking configuration for aggregation tasks |
-| `STATS_DASHBOARD_TEMPLATES` | `{...}` | Template paths for dashboard views |
-| `STATS_DASHBOARD_ROUTES` | `{...}` | URL routes for dashboard pages |
-| `STATS_DASHBOARD_UI_CONFIG` | `{...}` | UI configuration for dashboard appearance and behavior |
-| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS` | `{...}` | Default date range options for different granularities |
-| `STATS_DASHBOARD_LAYOUT` | `{...}` | Dashboard layout and component configuration |
-| `STATS_DASHBOARD_MENU_ENABLED` | `True` | Enable/disable menu integration |
-| `STATS_DASHBOARD_MENU_TEXT` | `_("Statistics")` | Menu item text |
-| `STATS_DASHBOARD_MENU_ORDER` | `1` | Menu item order |
-| `STATS_DASHBOARD_MENU_ENDPOINT` | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint |
-| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION` | `None` | Custom menu registration function |
-| `STATS_DASHBOARD_USE_TEST_DATA` | `True` | Enable/disable test data mode for development |
-| `STATS_DASHBOARD_COMPRESS_JSON` | `False` | Control whether frontend requests compressed JSON from API |
-| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES` | `1000` | Maximum batches per month for migration |
-| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE` | `5000` | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
-| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85` | Maximum memory usage percentage before stopping migration |
-| `STATS_EVENTS` | `{...}` | Event type configurations for statistics processing |
+| Variable                                        | Default                                            | Description                                                                                                                                       |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMMUNITY_STATS_ENABLED`                       | `True`                                             | Enable/disable the entire module                                                                                                                  |
+| `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED`   | `False`                                            | Enable/disable scheduled aggregation tasks                                                                                                        |
+| `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` | `False`                                            | Enable/disable scheduled response cache generation tasks                                                                                          |
+| `COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE`       | `{...}`                                            | Celery beat schedule for stats aggregation tasks                                                                                                  |
+| `COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE`     | `{...}`                                            | Celery beat schedule for stats response caching tasks                                                                                             |
+| `COMMUNITY_STATS_CATCHUP_INTERVAL`              | `365`                                              | Maximum days to catch up when aggregating historical data                                                                                         |
+| `COMMUNITY_STATS_AGGREGATIONS`                  | `{...}`                                            | Aggregation configurations (auto-generated)                                                                                                       |
+| `COMMUNITY_STATS_QUERIES`                       | `{...}`                                            | Query configurations (auto-generated)                                                                                                             |
+| `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT`            | `20`                                               | Maximum number of items to return in subcount breakdowns                                                                                          |
+| `COMMUNITY_STATS_SUBCOUNTS`                     | `{...}`                                            | Configuration for subcount breakdowns and field mappings                                                                                          |
+| `STATS_DASHBOARD_UI_SUBCOUNTS`                  | `{...}`                                            | UI subcount configuration for different breakdown types                                                                                           |
+| `STATS_DASHBOARD_LOCK_CONFIG`                   | `{...}`                                            | Distributed locking configuration for aggregation tasks                                                                                           |
+| `STATS_DASHBOARD_TEMPLATES`                     | `{...}`                                            | Template paths for dashboard views                                                                                                                |
+| `STATS_DASHBOARD_ROUTES`                        | `{...}`                                            | URL routes for dashboard pages                                                                                                                    |
+| `STATS_DASHBOARD_UI_CONFIG`                     | `{...}`                                            | UI configuration for dashboard appearance and behavior                                                                                            |
+| `STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS`         | `{...}`                                            | Default date range options for different granularities                                                                                            |
+| `STATS_DASHBOARD_LAYOUT`                        | `{...}`                                            | Dashboard layout and component configuration                                                                                                      |
+| `STATS_DASHBOARD_MENU_ENABLED`                  | `True`                                             | Enable/disable menu integration                                                                                                                   |
+| `STATS_DASHBOARD_MENU_TEXT`                     | `_("Statistics")`                                  | Menu item text                                                                                                                                    |
+| `STATS_DASHBOARD_MENU_ORDER`                    | `1`                                                | Menu item order                                                                                                                                   |
+| `STATS_DASHBOARD_MENU_ENDPOINT`                 | `"invenio_stats_dashboard.global_stats_dashboard"` | Menu item endpoint                                                                                                                                |
+| `STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION`    | `None`                                             | Custom menu registration function                                                                                                                 |
+| `STATS_DASHBOARD_USE_TEST_DATA`                 | `True`                                             | Enable/disable test data mode for development                                                                                                     |
+| `STATS_DASHBOARD_COMPRESS_JSON`                 | `False`                                            | Control whether frontend requests compressed JSON from API                                                                                        |
+| `STATS_DASHBOARD_REINDEXING_MAX_BATCHES`        | `1000`                                             | Maximum batches per month for migration                                                                                                           |
+| `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`         | `5000`                                             | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
+| `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85`                                               | Maximum memory usage percentage before stopping migration                                                                                         |
+| `STATS_EVENTS`                                  | `{...}`                                            | Event type configurations for statistics processing                                                                                               |
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
 
@@ -586,5 +588,3 @@ COMMUNITY_STATS_SERIALIZERS["application/custom"] = {
     "enabled_for": ["usage-snapshot-series"]
 }
 ```
-
-
