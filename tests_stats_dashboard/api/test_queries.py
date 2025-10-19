@@ -8,7 +8,6 @@
 
 import re
 from copy import deepcopy
-from pathlib import Path
 from pprint import pformat
 
 import arrow
@@ -190,7 +189,11 @@ class TestCommunityRecordCreatedDeltaQuery:
         }
 
     def _setup_community(self, minimal_community_factory, user_id):
-        """Setup test community."""
+        """Setup test community.
+        
+        Returns:
+            str: The community ID.
+        """
         community = minimal_community_factory(
             slug="knowledge-commons",
             owner=user_id,
@@ -199,7 +202,11 @@ class TestCommunityRecordCreatedDeltaQuery:
         return community_id
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory, test_sample_files_folder
+        self,
+        user_email,
+        community_id,
+        minimal_published_record_factory,
+        test_sample_files_folder,
     ):
         """Setup the records."""
         # Log when this method is called
@@ -222,7 +229,10 @@ class TestCommunityRecordCreatedDeltaQuery:
                 "set_default": True,
             }
             if idx != 1:
-                file_path = test_sample_files_folder / list(rec["files"]["entries"].keys())[0]
+                file_path = (
+                    test_sample_files_folder
+                    / list(rec["files"]["entries"].keys())[0]
+                )
                 rec_args["file_paths"] = [file_path]
             rec = minimal_published_record_factory(**rec_args)
 
@@ -775,7 +785,12 @@ class TestCommunityRecordCreatedDeltaQuery:
         community_id = self._setup_community(minimal_community_factory, user_id)
         self.client.indices.refresh(index="*")
 
-        self._setup_records(user_email, community_id, minimal_published_record_factory, test_sample_files_folder)
+        self._setup_records(
+            user_email,
+            community_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
+        )
 
         results = []
         test_dates = self.test_date_range
@@ -919,7 +934,11 @@ class TestCommunityRecordDeltaQueryDeleted(TestCommunityRecordCreatedDeltaQuery)
         return True
 
     def _setup_records(
-        self, user_email, community_id, minimal_published_record_factory, test_sample_files_folder
+        self,
+        user_email,
+        community_id,
+        minimal_published_record_factory,
+        test_sample_files_folder,
     ):
         """Setup the records."""
         # Log when this method is called
@@ -929,7 +948,10 @@ class TestCommunityRecordDeltaQueryDeleted(TestCommunityRecordCreatedDeltaQuery)
             self.app.logger.error("Method: _setup_records")
 
         super()._setup_records(
-            user_email, community_id, minimal_published_record_factory, test_sample_files_folder
+            user_email,
+            community_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
         )
 
         current_records = records_service.search(
@@ -1350,7 +1372,16 @@ class TestCommunityUsageDeltaQuery:
         assert actual_copy == expected_copy
 
     def _compare_aggregation_ignoring_ids(self, actual_agg, expected_agg, event_type):
-        """Compare aggregations while ignoring dynamic _id fields in label.hits.hits."""
+        """Compare aggregations while ignoring dynamic _id fields in label.hits.hits.
+        
+        Args:
+            actual_agg: The actual aggregation result.
+            expected_agg: The expected aggregation result.
+            event_type: The type of event being compared.
+            
+        Raises:
+            AssertionError: If the aggregations do not match.
+        """
         # Deep copy to avoid modifying the original
         actual_copy = deepcopy(actual_agg)
         expected_copy = deepcopy(expected_agg)

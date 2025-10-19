@@ -7,7 +7,6 @@
 """Test synthetic usage event creation and indexing."""
 
 import copy
-from pathlib import Path
 
 import arrow
 from invenio_access.utils import get_identity

@@ -9,7 +9,6 @@
 
 import copy
 from copy import deepcopy
-from pathlib import Path
 
 import arrow
 import pytest
@@ -347,7 +346,11 @@ class TestEventReindexingService:
         return "test@example.com"
 
     def get_event_date_range(self):
-        """Get the date range for creating usage events."""
+        """Get the date range for creating usage events.
+        
+        Returns:
+            dict: Dictionary containing start_date and end_date for events.
+        """
         months = self.test_months
         return {
             "start_date": f"{months[0]}-01",
@@ -355,7 +358,11 @@ class TestEventReindexingService:
         }
 
     def get_reindexing_parameters(self):
-        """Parameters for the reindexing service call."""
+        """Parameters for the reindexing service call.
+        
+        Returns:
+            dict: Dictionary containing event_types and other parameters.
+        """
         return {
             "event_types": self.event_types,
             "max_batches": self.max_batches,
@@ -363,7 +370,11 @@ class TestEventReindexingService:
         }
 
     def get_expected_month_counts(self, month):
-        """Expected event counts for a specific month."""
+        """Expected event counts for a specific month.
+        
+        Returns:
+            dict: Dictionary containing expected counts for view and download events.
+        """
         return {"view": 100, "download": 100}  # 1 record * 100 events
 
     @property
@@ -507,7 +518,8 @@ class TestEventReindexingService:
         self.user_id = u.user.id
 
         self.community = self.minimal_community_factory(
-            self.user_id,
+            owner=self.user_id,
+            slug="test-community",
             created="2023-12-01T10:00:00.000000+00:00",  # Before record creation
         )
         self.community_id = self.community["id"]
@@ -562,10 +574,13 @@ class TestEventReindexingService:
 
         Subclasses can override this method to customize community assignment
         per record. Default implementation assigns all records to the community.
+        
+        Returns:
+            list: List of community IDs for the record.
         """
         return [self.community_id]
 
-    def _pre_migration_setup(self):
+    def _pre_migration_setup(self) -> None:
         """Placeholder method for custom setup logic before migration.
 
         This method is called after records have been created but before
@@ -977,23 +992,23 @@ class TestEventReindexingServiceNoCommunityEventsIndex(TestEventReindexingServic
             f"found: {list(enriched_download_indices.keys())}"
         )
 
-    def _verify_old_indices_deleted(self):
+    def _verify_old_indices_deleted(self) -> None:
         """Verify that old indices are deleted."""
         pass
 
-    def _verify_aliases_updated(self):
+    def _verify_aliases_updated(self) -> None:
         """Verify that aliases are updated."""
         pass
 
-    def _verify_current_month_write_alias(self):
+    def _verify_current_month_write_alias(self) -> None:
         """Verify that the current month has proper write alias setup."""
         pass
 
-    def _verify_new_fields_in_v2_indices(self):
+    def _verify_new_fields_in_v2_indices(self) -> None:
         """Verify that new fields are in v2 indices."""
         pass
 
-    def _verify_event_content_preserved(self):
+    def _verify_event_content_preserved(self) -> None:
         """Verify that event content remains identical in new indices."""
         pass
 
@@ -1030,7 +1045,11 @@ class TestEventReindexingServiceCustomDateRange(TestEventReindexingService):
         return 600  # 3 records * 200 events per record
 
     def get_event_date_range(self):
-        """Override to span all 6 months for event generation."""
+        """Override to span all 6 months for event generation.
+        
+        Returns:
+            dict: Dictionary with start_date and end_date for all test months.
+        """
         months = self.test_months
         last_month_arrow = arrow.get(months[-1])
         last_day = min(
@@ -1042,7 +1061,11 @@ class TestEventReindexingServiceCustomDateRange(TestEventReindexingService):
         }
 
     def get_expected_month_counts(self, month):
-        """Override expected counts per month."""
+        """Override expected counts per month.
+        
+        Returns:
+            dict: Dictionary containing expected counts for view and download events.
+        """
         return {"view": 100, "download": 100}
 
 
@@ -1096,7 +1119,11 @@ class TestEventReindexingServiceMixedCommunityMembership(TestEventReindexingServ
         return 20  # 2 records * 10 events
 
     def _get_community_list_for_record(self, record_index):
-        """Override to assign only the first record to a community."""
+        """Override to assign only the first record to a community.
+        
+        Returns:
+            list: List of community IDs for the record.
+        """
         if record_index == 0:
             return [self.community_id]
         return []

@@ -21,36 +21,23 @@ def test_aggregations_registered(running_app):
     app = running_app.app
     # check that the community stats aggregations are in the config
     assert (
-        "community-records-delta-created-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    )
-    assert (
         "community-records-delta-added-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    )
-    assert (
-        "community-records-delta-published-agg"
-        in app.config["STATS_AGGREGATIONS"].keys()
-    )
-    assert (
-        "community-records-snapshot-created-agg"
-        in app.config["STATS_AGGREGATIONS"].keys()
     )
     assert (
         "community-records-snapshot-added-agg"
         in app.config["STATS_AGGREGATIONS"].keys()
     )
     assert (
-        "community-records-snapshot-published-agg"
-        in app.config["STATS_AGGREGATIONS"].keys()
+        "community-usage-snapshot-agg" in app.config["STATS_AGGREGATIONS"].keys()
     )
-    assert "community-usage-snapshot-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    assert "community-usage-delta-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    assert "community-events-agg" in app.config["STATS_AGGREGATIONS"].keys()
+    assert (
+        "community-usage-delta-agg" in app.config["STATS_AGGREGATIONS"].keys()
+    )
+    assert (
+        "community-events-agg" in app.config["STATS_AGGREGATIONS"].keys()
+    )
     # check that the aggregations are registered by invenio-stats
-    assert current_stats.aggregations["community-records-snapshot-created-agg"]
     assert current_stats.aggregations["community-records-snapshot-added-agg"]
-    assert current_stats.aggregations["community-records-snapshot-published-agg"]
-    assert current_stats.aggregations["community-records-delta-created-agg"]
-    assert current_stats.aggregations["community-records-delta-published-agg"]
     assert current_stats.aggregations["community-records-delta-added-agg"]
     assert current_stats.aggregations["community-usage-snapshot-agg"]
     assert current_stats.aggregations["community-usage-delta-agg"]
@@ -68,7 +55,7 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
     assert app.config["STATS_REGISTER_INDEX_TEMPLATES"]
 
     index_name = prefix_index(
-        "stats-community-records-snapshot-created-{year}".format(year="2024")
+        "stats-community-records-snapshot-added-{year}".format(year="2024")
     )
     doc_iterator = iter(
         [
@@ -107,13 +94,13 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
     print(f"\nSearch results: {result_record}")
 
     # Check that the index exists
-    indices = client.indices.get("*stats-community-records-snapshot-created*")
-    assert list(indices.keys()) == ["stats-community-records-snapshot-created-2024"]
+    indices = client.indices.get("*stats-community-records-snapshot-added*")
+    assert list(indices.keys()) == ["stats-community-records-snapshot-added-2024"]
     assert len(indices) == 1
 
     # Check that the index template exists
     templates = client.indices.get_index_template("*stats-community-records*")
-    assert len(templates["index_templates"]) == 6
+    assert len(templates["index_templates"]) == 2
     usage_templates = client.indices.get_index_template("*stats-community-usage*")
     assert len(usage_templates["index_templates"]) == 2
 
@@ -124,10 +111,10 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
     assert len(community_events_templates["index_templates"]) == 1
 
     # Check that the alias exists and points to the index
-    aliases = client.indices.get_alias("*stats-community-records-snapshot-created*")
+    aliases = client.indices.get_alias("*stats-community-records-snapshot-added*")
     assert len(aliases) == 1
-    assert aliases["stats-community-records-snapshot-created-2024"] == {
-        "aliases": {"stats-community-records-snapshot-created": {}}
+    assert aliases["stats-community-records-snapshot-added-2024"] == {
+        "aliases": {"stats-community-records-snapshot-added": {}}
     }
 
     # Check the search results

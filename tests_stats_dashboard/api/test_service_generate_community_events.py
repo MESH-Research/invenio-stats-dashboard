@@ -4,7 +4,7 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-"""Tests for the CommunityStatsService methods for generating record community events."""
+"""Tests for CommunityStatsService methods for generating record community events."""
 
 from copy import deepcopy
 from pprint import pformat
@@ -230,7 +230,8 @@ def test_generate_record_community_events_all_records(
     print(f"Service config: {service.config}")
     print(f"Permission policy class: {service.config.permission_policy_cls}")
     print(
-        f"Service components: {[comp.__class__.__name__ for comp in service.components]}"
+        f"Service components: "
+        f"{[comp.__class__.__name__ for comp in service.components]}"
     )
 
     # Check if OwnershipComponent is present and its configuration
@@ -255,7 +256,8 @@ def test_generate_record_community_events_all_records(
 
     print(f"system_identity provides: {list(system_identity.provides)}")
     print(
-        f"system_process in system_identity.provides: {system_process in system_identity.provides}"
+        f"system_process in system_identity.provides: "
+        f"{system_process in system_identity.provides}"
     )
     print("=" * 50 + "\n")
 
@@ -264,16 +266,19 @@ def test_generate_record_community_events_all_records(
     user_id = u.user.id
     # DEBUG: Check system_identity and communities service before the failing call
     print(
-        f"DEBUG: system_identity before community creation: {list(system_identity.provides)}"
+        f"DEBUG: system_identity before community creation: "
+        f"{list(system_identity.provides)}"
     )
     print(
-        f"DEBUG: system_process in system_identity.provides: {system_process in system_identity.provides}"
+        f"DEBUG: system_process in system_identity.provides: "
+        f"{system_process in system_identity.provides}"
     )
     print(
         f"DEBUG: current_communities.service object: {id(current_communities.service)}"
     )
     print(
-        f"DEBUG: current_communities.service.config: {id(current_communities.service.config)}"
+        f"DEBUG: current_communities.service.config: "
+        f"{id(current_communities.service.config)}"
     )
 
     community = minimal_community_factory(slug="test-community2", owner=user_id)

@@ -58,19 +58,27 @@ class TestCommunitiesEventsComponentsIncluded:
     """
 
     def setup_users(self, user_factory):
-        """Setup test users."""
-        u = user_factory(email="test@example.com")
+        """Setup test users.
+        
+        Returns:
+            tuple: A tuple containing (user_id, user_email, user_id2, user_email2).
+        """
+        u = user_factory(email="test@example.com", saml_id=None)
         user_id = u.user.id
         user_email = u.user.email
 
-        u2 = user_factory(email="test2@example.com")
+        u2 = user_factory(email="test2@example.com", saml_id=None)
         user_id2 = u2.user.id
         user_email2 = u2.user.email
 
         return user_id, user_email, user_id2, user_email2
 
     def setup_community(self, minimal_community_factory, user_id):
-        """Setup test community."""
+        """Setup test community.
+        
+        Returns:
+            str: The community ID.
+        """
         community = minimal_community_factory(
             slug="knowledge-commons",
             owner=user_id,
@@ -86,7 +94,11 @@ class TestCommunitiesEventsComponentsIncluded:
         user_id,
         community_id,
     ):
-        """Setup test record."""
+        """Setup test record.
+        
+        Returns:
+            Record: The created record.
+        """
         identity = get_identity(current_datastore.get_user(user_id))
         identity.provides.add(authenticated_user)
         load_community_needs(identity)
@@ -216,11 +228,18 @@ class TestCommunitiesEventsComponentsIncluded:
         # Should have no removal events
         assert result["hits"]["total"]["value"] == 0
 
-    def setup_record_deletion(self, db, record, community_id, owner_id, user_id):
+    def setup_record_deletion(
+        self,
+        db,
+        record,
+        community_id,
+        owner_id,
+        user_id,
+    ) -> None:
         """Setup a record deletion."""
         pass
 
-    def check_after_record_modification(self, record, community_id):
+    def check_after_record_modification(self, record, community_id) -> None:
         """Check that the community events are in the record after modification."""
         pass
 
@@ -302,7 +321,11 @@ class TestCommunitiesEventsComponentsDeleted(TestCommunitiesEventsComponentsIncl
         user_id,
         community_id,
     ):
-        """Setup test record."""
+        """Setup test record.
+        
+        Returns:
+            Record: The created record.
+        """
         identity = get_identity(current_datastore.get_user(community_owner_id))
         identity.provides.add(authenticated_user)
         load_community_needs(identity)
@@ -317,7 +340,7 @@ class TestCommunitiesEventsComponentsDeleted(TestCommunitiesEventsComponentsIncl
         """Setup a record deletion."""
         records_service.delete_record(system_identity, record.id, data={})
 
-    def setup_requests(self, db, record, community_id, owner_id, user_id):
+    def setup_requests(self, db, record, community_id, owner_id, user_id) -> None:
         """Setup test requests - not needed for this test."""
         pass
 
@@ -446,7 +469,11 @@ class TestCommunitiesEventsComponentsRemoved(TestCommunitiesEventsComponentsIncl
         user_id,
         community_id,
     ):
-        """Setup test record."""
+        """Setup test record.
+        
+        Returns:
+            Record: The created record.
+        """
         identity = get_identity(current_datastore.get_user(user_id))
         identity.provides.add(authenticated_user)
         load_community_needs(identity)
@@ -659,7 +686,11 @@ class TestCommunitiesEventsComponentsNewVersion(
         user_id,
         community_id,
     ):
-        """Setup test record with community already included."""
+        """Setup test record with community already included.
+        
+        Returns:
+            Record: The created record.
+        """
         identity = get_identity(current_datastore.get_user(user_id))
         identity.provides.add(authenticated_user)
         load_community_needs(identity)
@@ -670,7 +701,7 @@ class TestCommunitiesEventsComponentsNewVersion(
         )
         return record
 
-    def setup_requests(self, db, record, community_id, owner_id, user_id):
+    def setup_requests(self, db, record, community_id, owner_id, user_id) -> None:
         """Setup test requests - not needed for this test."""
         pass
 
@@ -800,7 +831,11 @@ class TestCommunitiesEventsComponentsRestored(TestCommunitiesEventsComponentsInc
         user_id,
         community_id,
     ):
-        """Setup test record."""
+        """Setup test record.
+        
+        Returns:
+            Record: The created record.
+        """
         identity = get_identity(current_datastore.get_user(community_owner_id))
         identity.provides.add(authenticated_user)
         load_community_needs(identity)
@@ -812,7 +847,7 @@ class TestCommunitiesEventsComponentsRestored(TestCommunitiesEventsComponentsInc
         )
         return record
 
-    def setup_requests(self, db, record, community_id, owner_id, user_id):
+    def setup_requests(self, db, record, community_id, owner_id, user_id) -> None:
         """Setup test requests - not needed for this test."""
         pass
 
