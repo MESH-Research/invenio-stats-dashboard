@@ -17,17 +17,23 @@ So the full setup process is currently:
 
 1. Install the python package
 2. Set config variables for the setup period:
+
 - `COMMUNITY_STATS_ENABLED` = `True`
-- `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` = `False`
+- `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` = `False`
+- `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` = `False`
 - `STATS_DASHBOARD_MENU_ENABLED` = `False`
+
 3. Restart the InvenioRDM instance
 4. Index community addition events for all existing records (via CLI command)
 5. Migrate and enrich the existing view and download events (via CLI command)
 6. OPTIONAL: Manually run the catch-up aggregation (via CLI command)
 7. Set config variables for normal operation:
+
 - `COMMUNITY_STATS_ENABLED` = `True`
-- `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` = `True`
+- `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` = `True`
+- `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` = `True`
 - `STATS_DASHBOARD_MENU_ENABLED` = `True` (if desired)
+
 8. Set up other configuration and community page templates as desired
 9. Restart the InvenioRDM instance
 
@@ -60,10 +66,10 @@ The migration and enrichment process are handled by the `EventReindexingService`
 5. Update the read aliases (`events-stats-record-view` and `events-stats-file-download`) to point to the new monthly indices.
 6. Delete the legacy monthly indices for months prior to the current month (if desired).
 7. Switch new event writes from the old current-month index to the new current-month index by:
-    - creating a temporary backup copy of the old current-month index
-    - quickly deleting the old current-month index and creating a write alias to the new current-month index
-    - recovering any events that arrived since the original enriched index creation from the backup index to the new enriched index
-    - validating the enriched index integrity before (optionally) deleting the temporary backup index
+   - creating a temporary backup copy of the old current-month index
+   - quickly deleting the old current-month index and creating a write alias to the new current-month index
+   - recovering any events that arrived since the original enriched index creation from the backup index to the new enriched index
+   - validating the enriched index integrity before (optionally) deleting the temporary backup index
 
 ```{warning}
 Currently, the `EventReindexingService.reindex_events` method must be run manually to perform the migration. It can be run via the `invenio community-stats migrate-events` CLI command and its associated helper commands. In future, the migration will be integrated automatically as part of the scheduled aggregation tasks, to be completed in the background over a series of scheduled runs before the first aggregations are actually performed.
@@ -102,4 +108,3 @@ The extension will perform the initial aggregation of historical statistics auto
 ```{note}
 **Monitoring Progress**: You can monitor the progress of the catch-up aggregation using the `invenio community-stats status` command. This command shows the current state of all aggregation indices, including bookmark dates, document counts, and visual completeness bars. For more details, see the [CLI commands](#cli-commands) section below.
 ```
-

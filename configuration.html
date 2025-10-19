@@ -277,10 +277,11 @@ an InvenioRDM instance or as environment variables.</p>
 </section>
 <section id="scheduled-tasks-enable-disable">
 <h2>Scheduled Tasks Enable/Disable<a class="headerlink" href="#scheduled-tasks-enable-disable" title="Link to this heading">¶</a></h2>
-<p>Scheduled aggregation tasks can be controlled separately using the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> configuration variable:</p>
+<p>Scheduled aggregation tasks can be controlled separately using the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> configuration variable:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable the module but disable scheduled tasks</span>
 <span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
 </pre></div>
 </div>
 <p>When scheduled tasks are disabled:</p>
@@ -347,15 +348,18 @@ an InvenioRDM instance or as environment variables.</p>
 </section>
 <section id="cache-generation-scheduled-tasks">
 <h2>Cache generation scheduled tasks<a class="headerlink" href="#cache-generation-scheduled-tasks" title="Link to this heading">¶</a></h2>
-<p>When <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, both aggregation and cache generation tasks will run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, all aggregation tasks will run hourly. When <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the cache generations tasks will likewise run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.</p>
 <p>The schedule includes both tasks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">celery.schedules</span><span class="w"> </span><span class="kn">import</span> <span class="n">crontab</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
 
-<span class="n">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>  <span class="c1"># Runs at minute 40</span>
     <span class="p">},</span>
+<span class="p">}</span>
+
+<span class="n">COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;stats-cache-hourly-generation&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.tasks.generate_hourly_cache_task&quot;</span><span class="p">,</span>
         <span class="s2">&quot;schedule&quot;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s2">&quot;50&quot;</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">),</span>  <span class="c1"># Runs at minute 50</span>
@@ -378,21 +382,7 @@ an InvenioRDM instance or as environment variables.</p>
 </ul>
 </li>
 </ul>
-<p>You can customize the schedule by overriding <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span></code> in your <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">celery.schedules</span><span class="w"> </span><span class="kn">import</span> <span class="n">crontab</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
-
-<span class="n">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>
-    <span class="p">},</span>
-    <span class="s2">&quot;stats-cache-hourly-generation&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.tasks.generate_hourly_cache_task&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;schedule&quot;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s2">&quot;45&quot;</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="s2">&quot;*/2&quot;</span><span class="p">),</span>  <span class="c1"># Run every 2 hours at minute 45</span>
-    <span class="p">},</span>
-<span class="p">}</span>
-</pre></div>
-</div>
+<p>You can customize the schedule by overriding <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE</span></code> and/or <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE</span></code> in your <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file</p>
 </section>
 <section id="what-gets-cached">
 <h3>What gets cached<a class="headerlink" href="#what-gets-cached" title="Link to this heading">¶</a></h3>
@@ -639,7 +629,7 @@ range for each granularity level.</p>
 <p>The system automatically handles this with adaptive chunk sizing:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Configuration options for adaptive chunking</span>
 <span class="n">COMMUNITY_STATS_INITIAL_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">50</span>      <span class="c1"># Starting chunk size</span>
-<span class="n">COMMUNITY_STATS_MIN_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1</span>           <span class="c1"># Minimum chunk size  </span>
+<span class="n">COMMUNITY_STATS_MIN_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1</span>           <span class="c1"># Minimum chunk size</span>
 <span class="n">COMMUNITY_STATS_MAX_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">100</span>         <span class="c1"># Maximum chunk size</span>
 <span class="n">COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR</span> <span class="o">=</span> <span class="mf">0.7</span>  <span class="c1"># Reduce by 30% on 413 error</span>
 <span class="n">COMMUNITY_STATS_CHUNK_GROWTH_FACTOR</span> <span class="o">=</span> <span class="mf">1.05</span>   <span class="c1"># Increase by 5% on success</span>
@@ -764,13 +754,21 @@ If you want to reduce document sizes to improve performance:</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
 <td><p>Enable/disable the entire module</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
-<td><p>Enable/disable scheduled tasks (aggregation and cache generation)</p></td>
+<td><p>Enable/disable scheduled aggregation tasks</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Enable/disable scheduled response cache generation tasks</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
-<td><p>Celery beat schedule for stats tasks (aggregation and cache generation)</p></td>
+<td><p>Celery beat schedule for stats aggregation tasks</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Celery beat schedule for stats response caching tasks</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CATCHUP_INTERVAL</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">365</span></code></p></td>

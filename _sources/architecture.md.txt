@@ -3,6 +3,7 @@
 ### Building on the `invenio-stats` module
 
 Wherever possible, this module uses the infrastructure provided by the `invenio-stats` module to store and aggregate the statistics data. The `invenio-stats` module handles:
+
 - registration of new and expanded search index templates (for a new instance only)
 - registration of statistics aggregators via the `STATS_AGGREGATIONS` configuration variable
   - with completely new aggregator classes that work independently of any event type
@@ -35,16 +36,16 @@ The `stats-community-events` index is configured by the index template at `searc
 
 ```json
 {
-    "timestamp": "2021-01-01T00:00:00Z",
-    "community_id": "global",
-    "record_id": "1234567890",
-    "event_type": "add",
-    "event_date": "2021-01-01",
-    "record_created_date": "2020-01-01",
-    "record_published_date": "2020-01-01",
-    "is_deleted": true,
-    "deleted_date": "2021-01-04",
-    "updated_timestamp": "2021-01-01T00:00:00Z"
+  "timestamp": "2021-01-01T00:00:00Z",
+  "community_id": "global",
+  "record_id": "1234567890",
+  "event_type": "add",
+  "event_date": "2021-01-01",
+  "record_created_date": "2020-01-01",
+  "record_published_date": "2020-01-01",
+  "is_deleted": true,
+  "deleted_date": "2021-01-04",
+  "updated_timestamp": "2021-01-01T00:00:00Z"
 }
 ```
 
@@ -116,6 +117,7 @@ The new index templates are identical to the default templates, but add:
 - a set of additional configurable fields containing record metadata to be used for subcount aggregations
 
 By default, the following metadata fields are added to the enriched events:
+
 - "resource_type"
 - "access_status"
 - "languages"
@@ -172,6 +174,7 @@ lifetime for the sake of the aggregation. In some cases it may be most useful to
 may also want to display a time series of a community's contents based on when its records were published (the record's `metadata.publication_date`) or when they were created in the InvenioRDM instance (the record's `created` date).
 
 So we aggregate and store three different versions of the record deltas and record snapshots aggregations for each day, based these three different "start" dates. Together with the usage delta and snapshot aggregations, this gives us a total of 8 different stored aggregation documents for each day for each community. These are stored in 8 different sets of search indices, with one index of each type per year. The indices are named like this:
+
 - `stats-community-records-delta-created-YYYY`
 - `stats-community-records-delta-published-YYYY`
 - `stats-community-records-delta-added-YYYY`
@@ -234,81 +237,82 @@ These aggregation documents are stored in a set of annual indices:
   - index template: `search_indices/stats_community_records_delta_added/os-v2/stats-community-records-delta-added-v1.0.0.json`
 
 Each document is shaped like this (the documents for the three different record delta indices have an identical shape, but the counts will differ):
+
 ```json
 {
-    "timestamp": "2021-01-01T00:00:00Z",
-    "community_id": "global",
-    "files": {
-        "added": {
+  "timestamp": "2021-01-01T00:00:00Z",
+  "community_id": "global",
+  "files": {
+    "added": {
+      "data_volume": 1000000,
+      "file_count": 100
+    }
+  },
+  "parents": {
+    "added": {
+      "metadata_only": 100,
+      "with_files": 100
+    }
+  },
+  "records": {
+    "added": {
+      "metadata_only": 100,
+      "with_files": 100
+    }
+  },
+  "period_start": "2021-01-01",
+  "period_end": "2021-01-01",
+  "uploaders": 100,
+  "subcounts": {
+    "resource_types": [
+      {
+        "id": "dataset",
+        "label": "Dataset",
+        "files": {
+          "added": {
             "data_volume": 1000000,
             "file_count": 100
+          }
         }
-    },
-    "parents": {
+      },
+      {
+        "id": "research_paper",
+        "label": "Research Paper",
+        "files": {
+          "added": {
+            "data_volume": 1000000,
+            "file_count": 100
+          }
+        }
+      }
+    ],
+    "access_statuses": [],
+    "languages": [],
+    "affiliations": [],
+    "funders": [],
+    "subjects": [],
+    "publishers": [],
+    "periodicals": [],
+    "file_types": [
+      {
+        "id": "pdf",
+        "label": "",
         "added": {
-            "metadata_only": 100,
-            "with_files": 100
+          "data_volume": 1000000,
+          "file_count": 100,
+          "parents": 100,
+          "records": 100
+        },
+        "removed": {
+          "data_volume": 0,
+          "file_count": 0,
+          "parents": 0,
+          "records": 0
         }
-    },
-    "records": {
-        "added": {
-            "metadata_only": 100,
-            "with_files": 100
-        }
-    },
-    "period_start": "2021-01-01",
-    "period_end": "2021-01-01",
-    "uploaders": 100,
-    "subcounts": {
-        "resource_types": [
-            {
-                "id": "dataset",
-                "label": "Dataset",
-                "files": {
-                    "added": {
-                        "data_volume": 1000000,
-                        "file_count": 100
-                    }
-                }
-            },
-            {
-                "id": "research_paper",
-                "label": "Research Paper",
-                "files": {
-                    "added": {
-                        "data_volume": 1000000,
-                        "file_count": 100
-                    }
-                }
-            }
-        ],
-        "access_statuses": [],
-        "languages": [],
-        "affiliations": [],
-        "funders": [],
-        "subjects": [],
-        "publishers": [],
-        "periodicals": [],
-        "file_types": [
-          {
-            "id": "pdf",
-            "label": "",
-              "added": {
-                  "data_volume": 1000000,
-                  "file_count": 100,
-                  "parents": 100,
-                  "records": 100
-              },
-              "removed": {
-                  "data_volume": 0,
-                  "file_count": 0,
-                  "parents": 0,
-                  "records": 0
-              }
-            }
-          ]
-    },
-    "updated_timestamp": "2021-01-01T00:00:00Z"
+      }
+    ]
+  },
+  "updated_timestamp": "2021-01-01T00:00:00Z"
 }
 ```
 
@@ -324,16 +328,16 @@ The snapshot aggregations provide cumulative totals at specific points in time, 
 - `total_files` (object): Total file counts and data volume
 - `total_uploaders` (integer): Total number of unique uploaders
 - `subcounts` (object): Cumulative breakdowns by metadata fields, similar to deltas but showing totals rather than daily changes. By default these include:
-    - `access_statuses` (array[object]): Total number of records by access status
-    - `file_types` (array[object]): Total number of records by file type
-    - `rights` (array[object]): Total number of records by rights
-    - `resource_types` (array[object]): Total number of records by resource type
-    - `languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `affiliations` (array[object]): Top N creator and contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
-    - `subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `access_statuses` (array[object]): Total number of records by access status
+  - `file_types` (array[object]): Total number of records by file type
+  - `rights` (array[object]): Total number of records by rights
+  - `resource_types` (array[object]): Total number of records by resource type
+  - `languages` (array[object]): Top N languages by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `affiliations` (array[object]): Top N creator and contributor affiliations by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `funders` (array[object]): Top N funders by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `periodicals` (array[object]): Top N journals/periodicals by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `publishers` (array[object]): Top N publishers by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
+  - `subjects` (array[object]): Top N subjects by number of records (configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT)
 
 The subcount properties use the same names across delta and snapshot documents. The subcount for each day includes all values for the metadata field that have been used in the community/instance to-date. For example, the `access_statuses` subcount will provide a number for all access status values that appear in any record. The `affiliations` subcount will provide a number for the top N creator and contributor affiliations that have been used in the community/instance to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT).
 
@@ -344,6 +348,7 @@ The subcounts provide the top values over the whole history of the community/ins
 ```
 
 These aggregation documents are stored in the indices:
+
 - `stats-community-records-snapshot-created-YYYY`
   - alias: `stats-community-records-snapshot-created`
   - index template: `search_indices/stats_community_records_snapshot_created/os-v2/stats-community-records-snapshot-created-v1.0.0.json`
@@ -355,68 +360,69 @@ These aggregation documents are stored in the indices:
   - index template: `search_indices/stats_community_records_snapshot_added/os-v2/stats-community-records-snapshot-added-v1.0.0.json`
 
 Each document is shaped like this (the documents for the three different record snapshot indices have an identical shape, but the counts will differ):
+
 ```json
 {
-    "community_id": "global",
-    "snapshot_date": "2021-01-01",
-    "timestamp": "2021-01-01T00:00:00Z",
-    "total_records": {
-        "metadata_only": 100,
-        "with_files": 100
-    },
-    "total_parents": {
-        "metadata_only": 100,
-        "with_files": 100
-    },
-    "total_files": {
-        "data_volume": 1000000,
-        "file_count": 100
-    },
-    "total_uploaders": 100,
-    "subcounts": {
-        "access_statuses": [
-          {
-            "id": "open",
-            "label": "Open",
-            "records": {
-              "metadata_only": 100,
-              "with_files": 100
-            },
-            "parents": {
-              "metadata_only": 100,
-              "with_files": 100
-            },
-            "files": {
-              "added": {
-                "data_volume": 1000000,
-                "file_count": 100
-              }
-            }
+  "community_id": "global",
+  "snapshot_date": "2021-01-01",
+  "timestamp": "2021-01-01T00:00:00Z",
+  "total_records": {
+    "metadata_only": 100,
+    "with_files": 100
+  },
+  "total_parents": {
+    "metadata_only": 100,
+    "with_files": 100
+  },
+  "total_files": {
+    "data_volume": 1000000,
+    "file_count": 100
+  },
+  "total_uploaders": 100,
+  "subcounts": {
+    "access_statuses": [
+      {
+        "id": "open",
+        "label": "Open",
+        "records": {
+          "metadata_only": 100,
+          "with_files": 100
+        },
+        "parents": {
+          "metadata_only": 100,
+          "with_files": 100
+        },
+        "files": {
+          "added": {
+            "data_volume": 1000000,
+            "file_count": 100
           }
-        ],
-        "file_types": [
-          {
-            "id": "pdf",
-            "label": "PDF",
-            "added": {
-              "data_volume": 1000000,
-              "file_count": 100
-            },
-            "removed": {
-              "data_volume": 0,
-              "file_count": 0
-            }
-          }
-        ],
-        "languages": [],
-        "resource_types": [],
-        "affiliations": [],
-        "funders": [],
-        "periodicals": [],
-        "publishers": [],
-        "subjects": []
-    },
-    "updated_timestamp": "2021-01-01T00:00:00Z"
+        }
+      }
+    ],
+    "file_types": [
+      {
+        "id": "pdf",
+        "label": "PDF",
+        "added": {
+          "data_volume": 1000000,
+          "file_count": 100
+        },
+        "removed": {
+          "data_volume": 0,
+          "file_count": 0
+        }
+      }
+    ],
+    "languages": [],
+    "resource_types": [],
+    "affiliations": [],
+    "funders": [],
+    "periodicals": [],
+    "publishers": [],
+    "subjects": []
+  },
+  "updated_timestamp": "2021-01-01T00:00:00Z"
 }
 ```
 
@@ -432,31 +438,31 @@ The usage delta aggregations track daily view and download counts for the commun
 - `period_start` and `period_end` (date): The date range for this delta
 - `timestamp` (date): When the aggregation was created
 - `totals` (object): Overall usage metrics for the day:
-    - `view` (object): View event statistics
-        - `total_events` (integer): Total number of views
-        - `unique_parents` (integer): Total number of unique parent records viewed
-        - `unique_records` (integer): Total number of unique records viewed
-        - `unique_visitors` (integer): Total number of unique visitors who viewed the records
-    - `download` (object): Download event statistics with data volume
-        - `total_events` (integer): Total number of downloads
-        - `total_volume` (float): Total data volume of downloads
-        - `unique_files` (integer): Total number of unique files downloaded
-        - `unique_parents` (integer): Total number of unique parent records downloaded
-        - `unique_records` (integer): Total number of unique records downloaded
-        - `unique_visitors` (integer): Total number of unique visitors
+  - `view` (object): View event statistics
+    - `total_events` (integer): Total number of views
+    - `unique_parents` (integer): Total number of unique parent records viewed
+    - `unique_records` (integer): Total number of unique records viewed
+    - `unique_visitors` (integer): Total number of unique visitors who viewed the records
+  - `download` (object): Download event statistics with data volume
+    - `total_events` (integer): Total number of downloads
+    - `total_volume` (float): Total data volume of downloads
+    - `unique_files` (integer): Total number of unique files downloaded
+    - `unique_parents` (integer): Total number of unique parent records downloaded
+    - `unique_records` (integer): Total number of unique records downloaded
+    - `unique_visitors` (integer): Total number of unique visitors
   - `subcounts` (object): Detailed breakdowns by configurable metadata fields, by default including:
-      - `access_statuses` (array[object]): Usage by access status
-      - `resource_types` (array[object]): Usage by resource type
-      - `rights` (array[object]): Usage by rights type
-      - `funders` (array[object]): Usage by funding organization
-      - `periodicals` (array[object]): Usage by journal/periodical
-      - `languages` (array[object]): Usage by language
-      - `subjects` (array[object]): Usage by subject classification
-      - `publishers` (array[object]): Usage by publisher
-      - `affiliations` (array[object]): Usage by creator/contributor affiliations
-      - `file_types` (array[object]): Usage by file type
-      - `countries` (array[object]): Usage by visitor country
-      - `referrers` (array[object]): Usage by referrer
+    - `access_statuses` (array[object]): Usage by access status
+    - `resource_types` (array[object]): Usage by resource type
+    - `rights` (array[object]): Usage by rights type
+    - `funders` (array[object]): Usage by funding organization
+    - `periodicals` (array[object]): Usage by journal/periodical
+    - `languages` (array[object]): Usage by language
+    - `subjects` (array[object]): Usage by subject classification
+    - `publishers` (array[object]): Usage by publisher
+    - `affiliations` (array[object]): Usage by creator/contributor affiliations
+    - `file_types` (array[object]): Usage by file type
+    - `countries` (array[object]): Usage by visitor country
+    - `referrers` (array[object]): Usage by referrer
 
 Each of the subcount arrays will include objects for only those subcount values that appear in that day's view or download events. For example, if no records with the "open" access status are viewed or downloaded on a given day, the `access_statuses` subcount array will not include an object for "open".
 
@@ -482,61 +488,62 @@ These aggregation documents are stored in the indices:
   - index template: `search_indices/stats_community_usage_delta/os-v2/stats-community-usage-delta-v1.0.0.json`
 
 Each document is shaped like this:
+
 ```json
 {
-    "community_id": "global",
-    "period_start": "2021-01-01",
-    "period_end": "2021-01-01",
-    "timestamp": "2021-01-01T00:00:00Z",
-    "totals": {
+  "community_id": "global",
+  "period_start": "2021-01-01",
+  "period_end": "2021-01-01",
+  "timestamp": "2021-01-01T00:00:00Z",
+  "totals": {
+    "view": {
+      "total_events": 100,
+      "unique_parents": 100,
+      "unique_records": 100,
+      "unique_visitors": 100
+    },
+    "download": {
+      "total_events": 100,
+      "total_volume": 1000000,
+      "unique_files": 100,
+      "unique_parents": 100,
+      "unique_records": 100,
+      "unique_visitors": 100
+    }
+  },
+  "subcounts": {
+    "access_statuses": [
+      {
+        "id": "open",
+        "label": "Open",
         "view": {
-            "total_events": 100,
-            "unique_parents": 100,
-            "unique_records": 100,
-            "unique_visitors": 100
+          "total_events": 100,
+          "unique_parents": 100,
+          "unique_records": 100,
+          "unique_visitors": 100
         },
         "download": {
-            "total_events": 100,
-            "total_volume": 1000000,
-            "unique_files": 100,
-            "unique_parents": 100,
-            "unique_records": 100,
-            "unique_visitors": 100
+          "total_events": 100,
+          "total_volume": 1000000,
+          "unique_files": 100,
+          "unique_parents": 100,
+          "unique_records": 100,
+          "unique_visitors": 100
         }
-    },
-    "subcounts": {
-      "access_statuses": [
-        {
-          "id": "open",
-          "label": "Open",
-          "view": {
-            "total_events": 100,
-            "unique_parents": 100,
-            "unique_records": 100,
-            "unique_visitors": 100
-          },
-          "download": {
-            "total_events": 100,
-            "total_volume": 1000000,
-            "unique_files": 100,
-            "unique_parents": 100,
-            "unique_records": 100,
-            "unique_visitors": 100
-          }
-        }
-      ],
-      "resource_types": [],
-      "rights": [],
-      "funders": [],
-      "periodicals": [],
-      "languages": [],
-      "subjects": [],
-      "publishers": [],
-      "file_types": [],
-      "affiliations": [],
-      "countries": [],
-      "referrers": []
-    }
+      }
+    ],
+    "resource_types": [],
+    "rights": [],
+    "funders": [],
+    "periodicals": [],
+    "languages": [],
+    "subjects": [],
+    "publishers": [],
+    "file_types": [],
+    "affiliations": [],
+    "countries": [],
+    "referrers": []
+  }
 }
 ```
 
@@ -550,31 +557,31 @@ document includes:
 - `snapshot_date` (date): The date of this snapshot
 - `timestamp` (date): When the aggregation was created
 - `totals` (object): Cumulative usage metrics (similar structure to deltas but cumulative)
-    - `view` (object): View event statistics
-        - `total_events` (integer): Total number of views
-        - `unique_parents` (integer): Total number of unique parent records viewed
-        - `unique_records` (integer): Total number of unique records viewed
-        - `unique_visitors` (integer): Total number of unique visitors who viewed the records
-    - `download` (object): Download event statistics with data volume
-        - `total_events` (integer): Total number of downloads
-        - `total_volume` (float): Total data volume of downloads
-        - `unique_files` (integer): Total number of unique files downloaded
-        - `unique_parents` (integer): Total number of unique parent records downloaded
-        - `unique_records` (integer): Total number of unique records downloaded
-        - `unique_visitors` (integer): Total number of unique visitors
+  - `view` (object): View event statistics
+    - `total_events` (integer): Total number of views
+    - `unique_parents` (integer): Total number of unique parent records viewed
+    - `unique_records` (integer): Total number of unique records viewed
+    - `unique_visitors` (integer): Total number of unique visitors who viewed the records
+  - `download` (object): Download event statistics with data volume
+    - `total_events` (integer): Total number of downloads
+    - `total_volume` (float): Total data volume of downloads
+    - `unique_files` (integer): Total number of unique files downloaded
+    - `unique_parents` (integer): Total number of unique parent records downloaded
+    - `unique_records` (integer): Total number of unique records downloaded
+    - `unique_visitors` (integer): Total number of unique visitors
   - `subcounts` (object): Cumulative breakdowns by metadata fields, showing total usage across all time rather than daily changes, by default including:
-      - `access_statuses` (array[object]): Total number of records by access status
-      - `file_types` (array[object]): Total number of records by file type
-      - `rights` (array[object]): Total number of records by rights type
-      - `resource_types` (array[object]): Total number of records by resource type
-      - `languages` (array[object]): Top N languages, calculated both by number of views and number of downloads
-      - `affiliations` (array[object]): Top N contributor affiliations, calculated both by number of views and number of downloads
-      - `funders` (array[object]): Top N funders, calculated both by number of views and number of downloads
-      - `periodicals` (array[object]): Top N journals/periodicals, calculated both by number of views and number of downloads
-      - `publishers` (array[object]): Top N publishers, calculated both by number of views and number of downloads
-      - `subjects` (array[object]): Top N subjects, calculated both by number of views and number of downloads
-      - `countries` (array[object]): Top N countries, calculated both by number of views and number of downloads
-      - `referrers` (array[object]): Top N referrers, calculated both by number of views and number of downloads
+    - `access_statuses` (array[object]): Total number of records by access status
+    - `file_types` (array[object]): Total number of records by file type
+    - `rights` (array[object]): Total number of records by rights type
+    - `resource_types` (array[object]): Total number of records by resource type
+    - `languages` (array[object]): Top N languages, calculated both by number of views and number of downloads
+    - `affiliations` (array[object]): Top N contributor affiliations, calculated both by number of views and number of downloads
+    - `funders` (array[object]): Top N funders, calculated both by number of views and number of downloads
+    - `periodicals` (array[object]): Top N journals/periodicals, calculated both by number of views and number of downloads
+    - `publishers` (array[object]): Top N publishers, calculated both by number of views and number of downloads
+    - `subjects` (array[object]): Top N subjects, calculated both by number of views and number of downloads
+    - `countries` (array[object]): Top N countries, calculated both by number of views and number of downloads
+    - `referrers` (array[object]): Top N referrers, calculated both by number of views and number of downloads
 
 ```{note}
 Each of the subcount arrays will include objects for the top N values to-date (where N is configurable via COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT), even if they do not appear in the records added on the snapshot date.
@@ -588,6 +595,7 @@ Each object in the subcount arrays will have the following fields:
 - `download` (object): The number of downloads for records with the subcount item, structured as in the top-level `download` object
 
 Each object in the subcount arrays will have the following fields:
+
 - `by_view` (array[object]): The top N views for the subcount item, each with the fields:
   - `id` (string): The identifier for the subcount (e.g., "open", "eng", etc.)
   - `label` (string): The label for the subcount (e.g., "Open", "English", etc.)
@@ -610,100 +618,101 @@ These aggregation documents are stored in the indices:
   - index template: `search_indices/stats_community_usage_snapshot/os-v2/stats-community-usage-snapshot-v1.0.0.json`
 
 Each document is shaped like this:
+
 ```json
 {
-    "community_id": "global",
-    "snapshot_date": "2021-01-01",
-    "timestamp": "2021-01-01T00:00:00Z",
-    "totals": {
+  "community_id": "global",
+  "snapshot_date": "2021-01-01",
+  "timestamp": "2021-01-01T00:00:00Z",
+  "totals": {
+    "view": {
+      "total_events": 100,
+      "unique_parents": 100,
+      "unique_records": 100,
+      "unique_visitors": 100
+    },
+    "download": {
+      "total_events": 100,
+      "total_volume": 1000000,
+      "unique_files": 100,
+      "unique_parents": 100,
+      "unique_records": 100,
+      "unique_visitors": 100
+    }
+  },
+  "subcounts": {
+    "access_statuses": [
+      {
+        "id": "open",
+        "label": "Open",
         "view": {
+          "total_events": 100,
+          "unique_parents": 100,
+          "unique_records": 100,
+          "unique_visitors": 100
+        },
+        "download": {
+          "total_events": 100,
+          "total_volume": 1000000,
+          "unique_files": 100,
+          "unique_parents": 100,
+          "unique_records": 100,
+          "unique_visitors": 100
+        }
+      }
+    ],
+    "languages": [],
+    "rights": [],
+    "resource_types": [],
+    "affiliations": {
+      "by_view": [
+        {
+          "id": "013v4ng57",
+          "label": "University of California, Berkeley",
+          "view": {
             "total_events": 100,
             "unique_parents": 100,
             "unique_records": 100,
             "unique_visitors": 100
-        },
-        "download": {
+          },
+          "download": {
             "total_events": 100,
             "total_volume": 1000000,
             "unique_files": 100,
             "unique_parents": 100,
             "unique_records": 100,
             "unique_visitors": 100
-        }
-    },
-    "subcounts": {
-        "access_statuses": [
-          {
-            "id": "open",
-            "label": "Open",
-            "view": {
-              "total_events": 100,
-              "unique_parents": 100,
-              "unique_records": 100,
-              "unique_visitors": 100
-            },
-            "download": {
-              "total_events": 100,
-              "total_volume": 1000000,
-              "unique_files": 100,
-              "unique_parents": 100,
-              "unique_records": 100,
-              "unique_visitors": 100
-            }
           }
-        ],
-        "languages": [],
-        "rights": [],
-        "resource_types": [],
-        "affiliations": {
-          "by_view": [
-            {
-              "id": "013v4ng57",
-              "label": "University of California, Berkeley",
-              "view": {
-                "total_events": 100,
-                "unique_parents": 100,
-                "unique_records": 100,
-                "unique_visitors": 100
-              },
-              "download": {
-                "total_events": 100,
-                "total_volume": 1000000,
-                "unique_files": 100,
-                "unique_parents": 100,
-                "unique_records": 100,
-                "unique_visitors": 100
-              }
-            }
-          ],
-          "by_download": [
-            {
-              "id": "013v4ng58",
-              "label": "National Science Foundation",
-              "view": {
-                "total_events": 100,
-                "unique_parents": 100,
-                "unique_records": 100,
-                "unique_visitors": 100
-              },
-              "download": {
-                "total_events": 100,
-                "total_volume": 1000000,
-                "unique_files": 100,
-                "unique_parents": 100,
-                "unique_records": 100,
-                "unique_visitors": 100
-              }
-            }
-          ]
-        },
-        "funders": [],
-        "periodicals": [],
-        "publishers": [],
-        "subjects": [],
-        "countries": [],
-        "referrers": []
-    }
+        }
+      ],
+      "by_download": [
+        {
+          "id": "013v4ng58",
+          "label": "National Science Foundation",
+          "view": {
+            "total_events": 100,
+            "unique_parents": 100,
+            "unique_records": 100,
+            "unique_visitors": 100
+          },
+          "download": {
+            "total_events": 100,
+            "total_volume": 1000000,
+            "unique_files": 100,
+            "unique_parents": 100,
+            "unique_records": 100,
+            "unique_visitors": 100
+          }
+        }
+      ]
+    },
+    "funders": [],
+    "periodicals": [],
+    "publishers": [],
+    "subjects": [],
+    "countries": [],
+    "referrers": []
+  }
 }
 ```
 
@@ -754,7 +763,7 @@ The `invenio-stats` module expects each configured aggregation to correspond to 
 
 #### Scheduled aggregation of statistics
 
-The aggregator classes are run via a celery task, tasks.aggregate_community_record_stats. This task calls the `run` method of the eight aggregator classes in turn. These methods are run sequentially by design, to avoid race conditions, and to avoid overloading the OpenSearch domain with too many concurrent requests. The task is scheduled to run hourly by default, but can be configured via the `COMMUNITY_STATS_CELERYBEAT_SCHEDULE` configuration variable. The scheduled tasks can be disabled by setting the `COMMUNITY_STATS_SCHEDULED_TASKS_ENABLED` configuration variable to `False`. (See [Configuration](#configuration) below for more information.)
+The aggregator classes are run via a celery task, tasks.aggregate_community_record_stats. This task calls the `run` method of the eight aggregator classes in turn. These methods are run sequentially by design, to avoid race conditions, and to avoid overloading the OpenSearch domain with too many concurrent requests. The task is scheduled to run hourly by default, but can be configured via the `COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE` configuration variable. The scheduled tasks can be disabled by setting the `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` configuration variable to `False`. (See [Configuration](#configuration) below for more information.)
 
 #### Aggregation task locking and catch-up limits
 
@@ -810,6 +819,7 @@ Generated usage events cannot easily be removed without deleting the indices and
 ### Presentation layer
 
 At the presentation layer, this module provides:
+
 - Jinja2 templates and macros to display dynamic and configurable React-based statistics dashboards
 - a Flask blueprint `invenio_stats_dashboard.blueprint` that registers view functions and routes for the global and community dashboards
 - API queries to retrieve the aggregated statistics data at the `/api/stats` endpoint managed by the `invenio-stats` module
@@ -828,6 +838,7 @@ The templates themselves may be overridden by providing a custom template in the
 #### Views and routes
 
 The `invenio_stats_dashboard` (in `views/views.py`) registers two view functions for the global and community dashboards:
+
 - the global dashboard view, using the `invenio_stats_dashboard/stats_dashboard.html` template
 - the community dashboard view, using the `invenio_stats_dashboard/community_stats_dashboard.html` template
 
