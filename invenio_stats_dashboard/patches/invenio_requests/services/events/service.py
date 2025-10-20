@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2021-2024 CERN.
 # Copyright (C) 2021-2022 Northwestern University.
@@ -28,7 +27,11 @@ class RequestEventsService(RecordService):
     """Request Events service."""
 
     def _wrap_schema(self, schema):
-        """Wrap schema."""
+        """Wrap schema.
+        
+        Returns:
+            ServiceSchemaWrapper: Wrapped schema object.
+        """
         return ServiceSchemaWrapper(self, schema)
 
     @property
@@ -52,6 +55,9 @@ class RequestEventsService(RecordService):
         :param request_id: Identifier of the request (data-layer id).
         :param identity: Identity of user creating the event.
         :param dict data: Input data according to the data schema.
+        
+        Returns:
+            RequestEvent: The created request event.
         """
         request = self._get_request(request_id)
         self.require_permission(identity, "create_comment", request=request)
@@ -104,7 +110,11 @@ class RequestEventsService(RecordService):
         )
 
     def read(self, identity, id_, expand=False):
-        """Retrieve a record."""
+        """Retrieve a record.
+        
+        Returns:
+            RequestEvent: The retrieved request event.
+        """
         event = self._get_event(id_)
         request = self._get_request(event.request_id)
 
@@ -122,7 +132,14 @@ class RequestEventsService(RecordService):
 
     @unit_of_work()
     def update(self, identity, id_, data, revision_id=None, uow=None, expand=False):
-        """Update a comment (only comments can be updated)."""
+        """Update a comment (only comments can be updated).
+        
+        Returns:
+            RequestEvent: The updated request event.
+            
+        Raises:
+            PermissionError: If user lacks permission to update.
+        """
         event = self._get_event(id_)
         request = self._get_request(event.request.id)
         self.require_permission(
@@ -166,7 +183,14 @@ class RequestEventsService(RecordService):
 
     @unit_of_work()
     def delete(self, identity, id_, revision_id=None, uow=None):
-        """Delete a comment (only comments can be deleted)."""
+        """Delete a comment (only comments can be deleted).
+        
+        Returns:
+            bool: True if deletion was successful.
+            
+        Raises:
+            PermissionError: If user lacks permission to delete.
+        """
         event = self._get_event(id_)
         request_id = event.request_id
         request = self._get_request(request_id)
@@ -213,7 +237,11 @@ class RequestEventsService(RecordService):
     def search(
         self, identity, request_id, params=None, search_preference=None, **kwargs
     ):
-        """Search for events for a given request matching the querystring."""
+        """Search for events for a given request matching the querystring.
+        
+        Returns:
+            RequestEventList: List of matching request events.
+        """
         params = params or {}
         params.setdefault("sort", "oldest")
 
@@ -256,18 +284,30 @@ class RequestEventsService(RecordService):
         return self.config.request_cls
 
     def _get_request(self, request_id):
-        """Get associated request."""
+        """Get associated request.
+        
+        Returns:
+            Request: The associated request object.
+        """
         # If it's already a request, return it
         if isinstance(request_id, self.request_cls):
             return request_id
         return self.request_cls.get_record(request_id)
 
     def _get_event(self, event_id, with_deleted=True):
-        """Get associated event_id."""
+        """Get associated event_id.
+        
+        Returns:
+            RequestEvent: The associated request event.
+        """
         return self.record_cls.get_record(event_id, with_deleted=with_deleted)
 
     def _get_creator(self, identity, request=None):
-        """Get the creator dict from the identity."""
+        """Get the creator dict from the identity.
+        
+        Returns:
+            dict: Creator information dictionary.
+        """
         creator = None
         if isinstance(identity, AnonymousIdentity):
             # not ideal - assumes that comment is created by same person

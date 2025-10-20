@@ -26,7 +26,9 @@ from flask import request
 from invenio_stats.utils import get_user
 
 
-def file_download_event_builder(event: dict[str, Any], sender_app: str, **kwargs: Any) -> dict[str, Any] | None:
+def file_download_event_builder(
+    event: dict[str, Any], sender_app: str, **kwargs: Any
+) -> dict[str, Any] | None:
     """Build a file-download event.
 
     *Note* that this function assumes a request context by accessing properties of
@@ -80,7 +82,9 @@ def file_download_event_builder(event: dict[str, Any], sender_app: str, **kwargs
     return event
 
 
-def record_view_event_builder(event: dict[str, Any], sender_app: str, **kwargs: Any) -> dict[str, Any] | None:
+def record_view_event_builder(
+    event: dict[str, Any], sender_app: str, **kwargs: Any
+) -> dict[str, Any] | None:
     """Build a record-view event.
 
     *Note* that this function assumes a request context by accessing properties of

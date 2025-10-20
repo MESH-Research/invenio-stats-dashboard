@@ -64,7 +64,11 @@ def reindex_usage_events_with_metadata(
 
 @shared_task
 def get_reindexing_progress():
-    """Get current reindexing progress as a Celery task."""
+    """Get current reindexing progress as a Celery task.
+    
+    Returns:
+        dict: Progress information or error details.
+    """
     try:
         from .proxies import current_event_reindexing_service
 

@@ -123,12 +123,12 @@ STATS_DASHBOARD_INDICES = [
 )
 @with_appcontext
 def destroy_indices_command():
-    """Destroy all search indices created by the invenio-stats-dashboard package.
+    r"""Destroy all search indices created by the invenio-stats-dashboard package.
 
     This command permanently deletes all search indices created by the
     invenio-stats-dashboard package from OpenSearch.
 
-    WARNING:
+    Warning:
     THIS COMMAND WILL WIPE ALL STATISTICS DATA STORED IN OPENSEARCH/ELASTICSEARCH.
     ONLY RUN THIS WHEN YOU KNOW WHAT YOU ARE DOING. Statistics data is stored in
     the search engine and is not persisted in the database.
@@ -147,7 +147,6 @@ def destroy_indices_command():
       - events-stats-file-download-*-v2.0.0
 
     Note:
-
     \b
     This command will NOT destroy:
     - View and download events in non-migrated indices (original usage events)

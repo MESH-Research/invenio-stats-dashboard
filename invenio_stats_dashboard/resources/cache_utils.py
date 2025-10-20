@@ -42,11 +42,12 @@ class StatsCache:
         2. CACHE_REDIS_URL + STATS_CACHE_REDIS_DB - use main cache
            URL with stats DB
         3. Default to redis://localhost:6379/7
+
+        Returns:
+            str: The url for the Redis db.
         """
         # Check for full override first
-        stats_redis_url = str(
-            current_app.config.get("STATS_CACHE_REDIS_URL", "")
-        )
+        stats_redis_url = str(current_app.config.get("STATS_CACHE_REDIS_URL", ""))
         if stats_redis_url:
             return stats_redis_url
 
@@ -138,19 +139,13 @@ class StatsCache:
         try:
             deleted_count = self.redis_client.delete(key)
             if deleted_count > 0:
-                current_app.logger.info(
-                    f"Deleted cache key: {key}"
-                )
+                current_app.logger.info(f"Deleted cache key: {key}")
                 return True
             else:
-                current_app.logger.info(
-                    f"Cache key not found: {key}"
-                )
+                current_app.logger.info(f"Cache key not found: {key}")
                 return False
         except Exception as e:
-            current_app.logger.warning(
-                f"Cache delete error for key {key}: {e}"
-            )
+            current_app.logger.warning(f"Cache delete error for key {key}: {e}")
             return False
 
     def keys(self, pattern: str | None = None) -> list[str]:
@@ -173,9 +168,7 @@ class StatsCache:
                 for key in keys
             ]
         except Exception as e:
-            current_app.logger.warning(
-                f"Cache keys error: {e}"
-            )
+            current_app.logger.warning(f"Cache keys error: {e}")
             return []
 
     def clear_all(self, pattern: str | None = None) -> tuple[bool, int]:
@@ -202,15 +195,11 @@ class StatsCache:
                 return True, 0
 
             deleted_count: int = self.redis_client.delete(*keys)
-            current_app.logger.info(
-                f"Cleared {deleted_count} cache entries"
-            )
+            current_app.logger.info(f"Cleared {deleted_count} cache entries")
             return True, deleted_count
 
         except Exception as e:
-            current_app.logger.warning(
-                f"Cache clear all error: {e}"
-            )
+            current_app.logger.warning(f"Cache clear all error: {e}")
             return False, 0
 
     def get_cache_size_info(self) -> dict[str, Any]:
@@ -231,9 +220,7 @@ class StatsCache:
                 for key in all_keys:
                     try:
                         # type: ignore
-                        memory_usage: int | None = (
-                            self.redis_client.memory_usage(key)
-                        )
+                        memory_usage: int | None = self.redis_client.memory_usage(key)
                         if memory_usage:
                             total_memory += int(memory_usage)
                     except Exception:
@@ -246,12 +233,8 @@ class StatsCache:
             return {
                 "key_count": key_count,
                 "total_memory_bytes": total_memory,
-                "total_memory_human": self._format_bytes(
-                    total_memory
-                ),
-                "redis_used_memory": redis_info.get(
-                    "used_memory", 0
-                ),
+                "total_memory_human": self._format_bytes(total_memory),
+                "redis_used_memory": redis_info.get("used_memory", 0),
                 "redis_used_memory_human": redis_info.get(
                     "used_memory_human", "unknown"
                 ),
@@ -263,7 +246,11 @@ class StatsCache:
             return {"error": str(e)}
 
     def _format_bytes(self, bytes_value: int) -> str:
-        """Format bytes into human readable format."""
+        """Format bytes into human readable format.
+
+        Returns:
+            str: Bytes size in human readable format.
+        """
         value = float(bytes_value)
         for unit in ["B", "KB", "MB", "GB", "TB"]:
             if value < 1024.0:
@@ -279,21 +266,13 @@ class StatsCache:
         """
         try:
             # type: ignore
-            redis_info: dict[str, Any] | None = (
-                self.redis_client.info()
-            )
+            redis_info: dict[str, Any] | None = self.redis_client.info()
             if isinstance(redis_info, dict):
                 return {
                     "cache_type": "Redis (Direct)",
-                    "redis_version": redis_info.get(
-                        "redis_version", "unknown"
-                    ),
-                    "used_memory_human": redis_info.get(
-                        "used_memory_human", "unknown"
-                    ),
-                    "connected_clients": redis_info.get(
-                        "connected_clients", "unknown"
-                    ),
+                    "redis_version": redis_info.get("redis_version", "unknown"),
+                    "used_memory_human": redis_info.get("used_memory_human", "unknown"),
+                    "connected_clients": redis_info.get("connected_clients", "unknown"),
                     "timestamp": arrow.utcnow().isoformat(),
                 }
             else:

@@ -11,10 +11,7 @@ import numbers
 import arrow
 from flask import current_app
 from invenio_search.proxies import current_search_client
-from invenio_search.utils import prefix_index
-from opensearchpy.helpers.search import Search
 
-from ..exceptions import UsageEventsNotMigratedError
 from ..queries import (
     CommunityUsageSnapshotQuery,
 )
@@ -104,6 +101,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             latest_delta (UsageDeltaDocument): The latest delta document
             deltas (list): All delta documents for top subcounts
             exhaustive_counts_cache (dict | None): The exhaustive counts cache
+            
+        Returns:
+            UsageSnapshotDocument: The final aggregation document.
         """
         if exhaustive_counts_cache is None:
             exhaustive_counts_cache = {}
@@ -223,6 +223,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         Args:
             exhaustive_cache: Dictionary mapping item IDs to their cumulative totals
             angle: The angle to select top N items from (e.g. "view" or "download")
+            
+        Returns:
+            list: List of top N items sorted by the specified angle.
         """
         filtered_items = [
             (item_id, totals)
@@ -247,7 +250,11 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         new_dict: UsageSnapshotDocument,
         delta_doc: UsageDeltaDocument,
     ) -> UsageSnapshotDocument:
-        """Update cumulative totals with values from enriched daily delta documents."""
+        """Update cumulative totals with values from enriched daily delta documents.
+        
+        Returns:
+            UsageSnapshotDocument: The updated snapshot document with cumulative totals.
+        """
 
         def add_numeric_values(target: dict, source: dict) -> None:
             """Add numeric values from source to target dictionary."""
@@ -336,9 +343,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 the first delta document and the current date.
             exhaustive_counts_cache: The exhaustive counts cache
             latest_delta: The latest delta document
-
-        Returns:
-            The updated aggregation dictionary with the new top subcounts.
         """
         for subcount_key, config in self.subcount_configs.items():
             usage_config = config.get("usage_events", {})
@@ -369,7 +373,12 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
     def _initialize_subcounts_structure(
         self,
     ) -> dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]:
-        """Initialize the subcounts structure based on configuration."""
+        """Initialize the subcounts structure based on configuration.
+        
+        Returns:
+            dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]: Initialized
+                subcounts structure.
+        """
         subcounts: dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories] = {}
         for subcount_key, config in self.subcount_configs.items():
             usage_config = config.get("usage_events", {})
@@ -384,7 +393,11 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         return subcounts
 
     def _is_top_subcount(self, subcount_name: str) -> bool:
-        """Check if a subcount is configured as 'top' type."""
+        """Check if a subcount is configured as 'top' type.
+        
+        Returns:
+            bool: True if the subcount is configured as 'top' type, False otherwise.
+        """
         config = self.subcount_configs.get(subcount_name, {})
         usage_config = config.get("usage_events", {})
         snapshot_type = usage_config.get("snapshot_type", "all")

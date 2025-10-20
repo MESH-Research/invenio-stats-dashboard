@@ -40,6 +40,9 @@ class DataSeriesQueryBase(Query):
 
         Base implementation returns the index as-is. Child classes can override
         to append the date_basis suffix.
+
+        Returns:
+            str: The index to be used for the date basis query.
         """
         return str(self.index)
 
@@ -67,6 +70,10 @@ class DataSeriesQueryBase(Query):
             subcount_id: Specific subcount item ID (for subcount series)
             date_basis: The date basis for the query ("added", "created",
                 "published"). Default is "added".
+
+        Raises:
+            ValueError: if the community can't be found.
+            AssertionError: if the index doesn't exist.
 
         Returns:
             DataSeries object or Response with serialized data
@@ -202,7 +209,11 @@ class RecordSnapshotDataSeriesQuery(DataSeriesQueryBase):
         self.transformer_class = RecordSnapshotDataSeriesSet
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
-        """Get the appropriate index based on date_basis."""
+        """Get the appropriate index based on date_basis.
+
+        Returns:
+            str: The full index with date basis appended.
+        """
         return f"{self.index}-{date_basis}"
 
 
@@ -218,7 +229,11 @@ class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
         self.transformer_class = RecordDeltaDataSeriesSet
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
-        """Get the appropriate index based on date_basis."""
+        """Get the appropriate index based on date_basis.
+
+        Returns:
+            str: The full index with date basis appended.
+        """
         return f"{self.index}-{date_basis}"
 
 
@@ -239,6 +254,9 @@ class CategoryDataSeriesQueryBase(Query):
 
         Base implementation returns the index as-is. Child classes can override
         to append the date_basis suffix.
+
+        Returns:
+            str: Index name.
         """
         return str(self.index)
 
@@ -260,6 +278,10 @@ class CategoryDataSeriesQueryBase(Query):
                 arrow.get() or a datetime object.
             date_basis: The date basis for the query ("added", "created",
                 "published"). Default is "added".
+
+        Raises:
+            ValueError: if the community can't be found.
+            AssertionError: if the index doesn't exist.
 
         Returns:
             Dictionary of DataSeries objects or Response with serialized data
@@ -380,7 +402,11 @@ class RecordSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
         self.transformer_class = RecordSnapshotDataSeriesSet
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
-        """Get the appropriate index based on date_basis."""
+        """Get the appropriate index based on date_basis.
+
+        Returns:
+            str: The full index name with date basis appended.
+        """
         return f"{self.index}-{date_basis}"
 
 
@@ -396,5 +422,9 @@ class RecordDeltaCategoryQuery(CategoryDataSeriesQueryBase):
         self.transformer_class = RecordDeltaDataSeriesSet
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
-        """Get the appropriate index based on date_basis."""
+        """Get the appropriate index based on date_basis.
+
+        Returns:
+            str: The full index name with date basis appended.
+        """
         return f"{self.index}-{date_basis}"

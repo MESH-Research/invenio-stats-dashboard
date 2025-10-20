@@ -186,14 +186,22 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
         return ["file_presence"]
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
-        """Get the metrics for a special subcount."""
+        """Get the metrics for a special subcount.
+        
+        Returns:
+            list[str]: List of metrics for the special subcount.
+        """
         # Return empty list to fall back to regular metrics discovery
         return []
 
     def _create_special_series_array(
         self, subcount: str, metric: str
     ) -> DataSeriesArray:
-        """Create a data series array for a special subcount and metric."""
+        """Create a data series array for a special subcount and metric.
+        
+        Returns:
+            DataSeriesArray: The created data series array.
+        """
         if subcount == "file_presence":
             series_array = DataSeriesArray(
                 "file_presence",
@@ -231,6 +239,9 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
 
         For record deltas, we need to split the 'files' metric into
         'file_count' and 'data_volume' to match dataTransformer.js output.
+        
+        Returns:
+            dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
         # Get the base metrics from parent class
         base_metrics = super()._discover_metrics_from_documents()
@@ -256,7 +267,11 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
         }
 
     def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for record delta data when no documents exist."""
+        """Get default metrics for record delta data when no documents exist.
+        
+        Returns:
+            dict[str, list[str]]: Dictionary mapping category to list of metrics.
+        """
         # Standard record delta metrics that should always be available
         global_metrics = [
             "records",
@@ -272,7 +287,11 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
         }
 
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
-        """Create a data series array for the given subcount and metric."""
+        """Create a data series array for the given subcount and metric.
+        
+        Returns:
+            DataSeriesArray: The created data series array.
+        """
         # Set appropriate value type based on metric
         value_type = "filesize" if metric == "data_volume" else "number"
 

@@ -22,7 +22,12 @@ from .data_series_serializers import (  # type: ignore
 
 # Basic serializer wrapper functions
 def json_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for JSON serialization."""
+    """Wrapper function for JSON serialization.
+
+    Returns:
+        Response: The Flask Response object for a regular
+            JSON serialized response.
+    """
     serializer = StatsJSONSerializer()
     json_data = serializer.serialize(data, **kwargs)
     response = jsonify(json_data)
@@ -33,7 +38,12 @@ def json_serializer_func(data, code=200, headers=None, **kwargs):
 
 # Data series serializer wrapper functions
 def gzip_json_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for Gzip JSON serialization."""
+    """Wrapper function for Gzip JSON serialization.
+
+    Returns:
+        Response: The Flask Response object for a compressed
+            JSON serialized response.
+    """
     serializer = GzipStatsJSONSerializer()
     compressed_data = serializer.serialize(data, **kwargs)
     response = Response(
@@ -51,7 +61,12 @@ def gzip_json_serializer_func(data, code=200, headers=None, **kwargs):
 
 
 def brotli_json_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for Brotli JSON serialization."""
+    """Wrapper function for Brotli JSON serialization.
+
+    Returns:
+        Response: The Flask Response object for a compressed
+            JSON serialized response.
+    """
     serializer = BrotliStatsJSONSerializer()
     compressed_data = serializer.serialize(data, **kwargs)
     response = Response(
@@ -69,17 +84,21 @@ def brotli_json_serializer_func(data, code=200, headers=None, **kwargs):
 
 
 def data_series_csv_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for Data Series CSV serialization."""
+    """Wrapper function for Data Series CSV serialization.
+
+    Returns:
+        Response: The Flask Response object for a csv serialized response.
+    """
     serializer = DataSeriesCSVSerializer()
     compressed_data = serializer.serialize(data, **kwargs)
-    
+
     # Generate proper filename with community ID if provided
     community_id = kwargs.get("community_id")
     if community_id:
         filename = f"data_series_csv_{community_id}.tar.gz"
     else:
         filename = "data_series_csv.tar.gz"
-    
+
     response = Response(
         compressed_data,
         mimetype="application/gzip",
@@ -95,17 +114,21 @@ def data_series_csv_serializer_func(data, code=200, headers=None, **kwargs):
 
 
 def data_series_xml_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for Data Series XML serialization."""
+    """Wrapper function for Data Series XML serialization.
+
+    Returns:
+        Response: The Falsk Response object for an xml serialized response.
+    """
     serializer = DataSeriesXMLSerializer()
     xml_string = serializer.serialize(data, **kwargs)
-    
+
     # Generate proper filename with community ID if provided
     community_id = kwargs.get("community_id")
     if community_id:
         filename = f"data_series_xml_{community_id}.xml"
     else:
         filename = "data_series_xml.xml"
-    
+
     response = Response(
         xml_string,
         mimetype="application/xml",
@@ -118,17 +141,21 @@ def data_series_xml_serializer_func(data, code=200, headers=None, **kwargs):
 
 
 def data_series_excel_serializer_func(data, code=200, headers=None, **kwargs):
-    """Wrapper function for Data Series Excel serialization."""
+    """Wrapper function for Data Series Excel serialization.
+
+    Returns:
+        Response: The Flask Response object for an Excel serialized response.
+    """
     serializer = DataSeriesExcelSerializer()
     compressed_data = serializer.serialize(data, **kwargs)
-    
+
     # Generate proper filename with community ID if provided
     community_id = kwargs.get("community_id")
     if community_id:
         filename = f"data_series_excel_{community_id}.tar.gz"
     else:
         filename = "data_series_excel.tar.gz"
-    
+
     response = Response(
         compressed_data,
         mimetype="application/gzip",

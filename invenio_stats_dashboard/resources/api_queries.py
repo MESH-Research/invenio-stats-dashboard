@@ -37,6 +37,9 @@ class CommunityStatsResultsQueryBase(Query):
 
         Base implementation returns the index as-is. Child classes can override
         to append the date_basis suffix.
+
+        Returns:
+            str: Index name
         """
         return str(self.index)
 
@@ -63,6 +66,10 @@ class CommunityStatsResultsQueryBase(Query):
                 arrow.get() or a datetime object.
             date_basis (str): The date basis for the query ("added", "created",
                 "published"). Default is "added".
+
+        Raises:
+            ValueError: if the community can't be found.
+            AssertionError: if the index doesn't exist.
 
         Returns:
             Response | list[dict[str, Any]] | dict[str, Any]: The results of the query.
@@ -155,7 +162,11 @@ class CommunityRecordDeltaResultsQuery(CommunityStatsResultsQueryBase):
         self.date_field = "period_start"
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
-        """Get the appropriate index based on date_basis."""
+        """Get the appropriate index based on date_basis.
+
+        Returns:
+            str: Full index name with date basis added.
+        """
         return f"{self.index}-{date_basis}"
 
 
@@ -170,7 +181,11 @@ class CommunityRecordSnapshotResultsQuery(CommunityStatsResultsQueryBase):
         self.date_field = "snapshot_date"
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
-        """Get the appropriate index based on date_basis."""
+        """Get the appropriate index based on date_basis.
+
+        Returns:
+            str: Full index name with date basis added.
+        """
         return f"{self.index}-{date_basis}"
 
 

@@ -11,7 +11,14 @@ from werkzeug.local import LocalProxy
 
 
 def _get_community_stats_service():
-    """Get the community stats service, checking if it's enabled."""
+    """Get the community stats service, checking if it's enabled.
+    
+    Returns:
+        CommunityStatsService: The community stats service instance.
+        
+    Raises:
+        RuntimeError: If the stats dashboard extension is not enabled.
+    """
     extension = current_app.extensions.get("invenio-stats-dashboard")
     if extension is None:
         raise RuntimeError("Invenio Stats Dashboard extension not initialized")
@@ -26,7 +33,14 @@ def _get_community_stats_service():
 
 
 def _get_event_reindexing_service():
-    """Get the event reindexing service, checking if it's enabled."""
+    """Get the event reindexing service, checking if it's enabled.
+    
+    Returns:
+        EventReindexingService: The event reindexing service instance.
+        
+    Raises:
+        RuntimeError: If the stats dashboard extension is not enabled.
+    """
     extension = current_app.extensions.get("invenio-stats-dashboard")
     if extension is None:
         raise RuntimeError("Invenio Stats Dashboard extension not initialized")

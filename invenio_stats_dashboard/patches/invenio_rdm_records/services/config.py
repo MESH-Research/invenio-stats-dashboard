@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2020-2025 CERN.
 # Copyright (C) 2020-2025 Northwestern University.
@@ -82,10 +81,9 @@ from .result_items import GrantItem, GrantList, SecretLinkItem, SecretLinkList
 from .results import RDMRecordList, RDMRecordRevisionsList
 from .schemas import RDMParentSchema, RDMRecordSchema
 from .schemas.community_records import CommunityRecordsSchema
-from .schemas.parent.access import AccessSettingsSchema
+from .schemas.parent.access import AccessSettingsSchema, RequestAccessSchema
 from .schemas.parent.access import Grant as GrantSchema
 from .schemas.parent.access import Grants as GrantsSchema
-from .schemas.parent.access import RequestAccessSchema
 from .schemas.parent.access import SecretLink as SecretLinkSchema
 from .schemas.parent.communities import CommunitiesSchema
 from .schemas.quota import QuotaSchema
@@ -101,30 +99,50 @@ from .sort import VerifiedRecordsSortParam
 
 
 def is_draft_and_has_review(record, ctx):
-    """Determine if draft has doi."""
+    """Determine if draft has doi.
+    
+    Returns:
+        bool: True if draft has review, False otherwise.
+    """
     return is_draft(record, ctx) and record.parent.review is not None
 
 
 def is_record_and_has_doi(record, ctx):
-    """Determine if record has doi."""
+    """Determine if record has doi.
+    
+    Returns:
+        bool: True if record has DOI, False otherwise.
+    """
     return is_record(record, ctx) and has_doi(record, ctx)
 
 
 def is_record_or_draft_and_has_parent_doi(record, ctx):
-    """Determine if draft or record has parent doi."""
+    """Determine if draft or record has parent doi.
+    
+    Returns:
+        bool: True if record/draft has parent DOI, False otherwise.
+    """
     return (is_record(record, ctx) or is_draft(record, ctx)) and has_doi(
         record.parent, ctx
     )
 
 
 def has_doi(record, ctx):
-    """Determine if a record has a DOI."""
+    """Determine if a record has a DOI.
+    
+    Returns:
+        bool: True if record has DOI, False otherwise.
+    """
     pids = record.pids or {}
     return "doi" in pids and pids["doi"].get("identifier") is not None
 
 
 def is_iiif_compatible(file_, ctx):
-    """Determine if a file is IIIF compatible."""
+    """Determine if a file is IIIF compatible.
+    
+    Returns:
+        bool: True if file is IIIF compatible, False otherwise.
+    """
     file_ext = splitext(file_.key)[1].replace(".", "").lower()
     return file_ext in current_app.config["IIIF_FORMATS"]
 
@@ -166,13 +184,18 @@ def record_thumbnail_sizes():
 
 
 def get_record_thumbnail_file(record, **kwargs):
-    """Generate the URL for a record's thumbnail."""
+    """Generate the URL for a record's thumbnail.
+    
+    Returns:
+        str | None: URL for the thumbnail file, or None if not found.
+    """
     files = record.files
     default_preview = files.get("default_preview")
     file_entries = files.entries
     image_extensions = current_app.config["IIIF_FORMATS"]
     if file_entries:
-        # Verify file has allowed extension and select the default preview file if present else the first valid file
+        # Verify file has allowed extension and select the default preview
+        # file if present else the first valid file
         file_key = next(
             (
                 key
@@ -281,14 +304,22 @@ class ThumbnailLinks:
         self._when_func = when
 
     def should_render(self, obj, context):
-        """Determine if the dictionary of links should be rendered."""
+        """Determine if the dictionary of links should be rendered.
+        
+        Returns:
+            bool: True if links should be rendered, False otherwise.
+        """
         if self._when_func:
             return bool(self._when_func(obj, context))
         else:
             return True
 
     def expand(self, obj, context):
-        """Expand the thumbs size dictionary of URIs."""
+        """Expand the thumbs size dictionary of URIs.
+        
+        Returns:
+            dict: Expanded dictionary of URIs.
+        """
         vars = {}
         vars.update(deepcopy(context))
         record = obj
@@ -324,7 +355,11 @@ def vars_preview_html(drafcord, vars):
 
 
 def get_pid_value(drafcord):
-    """Get the pid_value or None of draft or record."""
+    """Get the pid_value or None of draft or record.
+    
+    Returns:
+        str | None: PID value if available, None otherwise.
+    """
     return getattr(drafcord.pid, "pid_value", None)
 
 

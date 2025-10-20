@@ -279,13 +279,21 @@ class AggregationTaskLock:
         self.lock_id = str(uuid.uuid4())
 
     def acquire(self):
-        """Acquire the lock."""
+        """Acquire the lock.
+        
+        Returns:
+            bool: True if lock was acquired, False otherwise.
+        """
         # Use cache add method which is atomic and only succeeds if key doesn't exist
         result = current_cache.add(self.lock_name, self.lock_id, timeout=self.timeout)
         return result
 
     def release(self):
-        """Release the lock."""
+        """Release the lock.
+        
+        Returns:
+            bool: True if lock was released, False otherwise.
+        """
         current_value = current_cache.get(self.lock_name)
         if current_value == self.lock_id:
             return current_cache.delete(self.lock_name)

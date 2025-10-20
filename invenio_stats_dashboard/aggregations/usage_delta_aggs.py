@@ -112,7 +112,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         
                         if not has_community_ids:
                             raise UsageEventsNotMigratedError(
-                                f"Usage events in '{event_index}' lack community_ids field. "
+                                f"Usage events in '{event_index}' lack community_ids field. "  # noqa: E501
                                 "Please run usage events migration first."
                             )
                 except Exception as e:
@@ -525,7 +525,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         view_results: AttrList | None,
         download_results: AttrList | None,
     ) -> UsageDeltaDocument:
-        """Make the top level results for the usage delta document."""
+        """Make the top level results for the usage delta document.
+        
+        Returns:
+            UsageDeltaDocument: The usage delta document with top level results.
+        """
         combined_results: UsageDeltaDocument = {
             "community_id": community_id,
             "period_start": date.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
@@ -591,7 +595,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         subcount_name: str,
         index: int = 0,
     ) -> list[UsageSubcountItem]:
-        """Assemble subcount items from view and download results."""
+        """Assemble subcount items from view and download results.
+        
+        Returns:
+            list[UsageSubcountItem]: List of assembled subcount items.
+        """
         assembled_results: list[UsageSubcountItem] = []
 
         view_buckets = []
@@ -692,7 +700,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
     def _merge_field_results(
         self, item_sets: list[list[dict[str, Any]]]
     ) -> list[dict[str, Any]]:
-        """Merge results from multiple fields."""
+        """Merge results from multiple fields.
+        
+        Returns:
+            list[dict[str, Any]]: Merged list of results from all fields.
+        """
         all_result_items = [item for item_set in item_sets for item in item_set]
 
         if not all_result_items:
@@ -794,7 +806,13 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
     ) -> Generator[tuple[dict, float], None, None]:
-        """Create a dictionary representing the aggregation result for indexing."""
+        """Create a dictionary representing the aggregation result for indexing.
+        
+        Yields:
+            tuple[dict, float]: A tuple containing:
+                - [0]: A dictionary representing an aggregation document for indexing
+                - [1]: The time taken to generate this document (in seconds)
+        """
         # Check if we should skip aggregation due to no events after start_date
         should_skip = self._should_skip_aggregation(
             start_date, last_event_date, community_id, end_date=end_date
@@ -951,7 +969,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
     def _get_id_name_buckets(
         self, view_results, download_results, id_agg_name, name_agg_name
     ):
-        """Get all buckets from id and name aggregations for both view and download."""
+        """Get all buckets from id and name aggregations for both view and download.
+        
+        Returns:
+            list: List of tuples containing (agg_name, bucket, agg_type).
+        """
         buckets = []
 
         def add_buckets(results, agg_name, agg_type):
@@ -975,7 +997,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         name_field_path: str,
         config: dict,
     ) -> UsageSubcountItem:
-        """Extract id and name from a bucket based on its type."""
+        """Extract id and name from a bucket based on its type.
+        
+        Returns:
+            UsageSubcountItem: Dictionary containing extracted id and label.
+        """
         extracted_values: UsageSubcountItem = {
             "id": bucket.key,
             "label": bucket.key,
@@ -1029,7 +1055,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     @staticmethod
     def _extract_fields_from_label(bucket, bucket_type, id_field_path, name_field_path):
-        """Extract a field value from bucket label aggregation after merging items."""
+        """Extract a field value from bucket label aggregation after merging items.
+        
+        Returns:
+            dict | None: Dictionary containing id and label, or None if not found.
+        """
         if hasattr(bucket, "label"):
             if hasattr(bucket.label, "hits"):
                 title_hits = bucket.label.hits.hits
@@ -1076,7 +1106,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     @staticmethod
     def _get_nested_field_value(item, field_path, fallback):
-        """Get a nested field value from an item using dot notation."""
+        """Get a nested field value from an item using dot notation.
+        
+        Returns:
+            Any: The nested field value, or the fallback if not found.
+        """
         if "." not in field_path:
             try:
                 return item[field_path]
@@ -1162,7 +1196,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         return {"id": id_val, "label": label_val}
 
     def _create_empty_subcount_item(self, item_id, name):
-        """Create an empty subcount item with zero metrics."""
+        """Create an empty subcount item with zero metrics.
+        
+        Returns:
+            dict: Dictionary containing empty subcount item with zero metrics.
+        """
         return {
             "id": str(item_id),
             "label": name,
@@ -1183,7 +1221,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         }
 
     def _extract_view_metrics(self, bucket):
-        """Extract view metrics from a bucket."""
+        """Extract view metrics from a bucket.
+        
+        Returns:
+            dict: Dictionary containing view metrics.
+        """
         return {
             "total_events": bucket.doc_count,
             "unique_visitors": bucket.unique_visitors.value,
@@ -1192,7 +1234,11 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         }
 
     def _extract_download_metrics(self, bucket):
-        """Extract download metrics from a bucket."""
+        """Extract download metrics from a bucket.
+        
+        Returns:
+            dict: Dictionary containing download metrics.
+        """
         return {
             "total_events": bucket.doc_count,
             "unique_visitors": bucket.unique_visitors.value,

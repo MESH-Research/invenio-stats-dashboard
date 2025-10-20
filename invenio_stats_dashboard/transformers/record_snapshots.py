@@ -143,14 +143,22 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         return ["file_presence"]
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
-        """Get the metrics for a special subcount."""
+        """Get the metrics for a special subcount.
+        
+        Returns:
+            list[str]: List of metrics for the special subcount.
+        """
         # Return empty list to fall back to regular metrics discovery
         return []
 
     def _create_special_series_array(
         self, subcount: str, metric: str
     ) -> DataSeriesArray:
-        """Create a data series array for a special subcount and metric."""
+        """Create a data series array for a special subcount and metric.
+        
+        Returns:
+            DataSeriesArray: The created data series array.
+        """
         if subcount == "file_presence":
             series_array = DataSeriesArray(
                 "file_presence",
@@ -185,7 +193,11 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         raise NotImplementedError(f"Special subcount {subcount} not implemented")
 
     def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
-        """Discover metrics from record snapshot documents."""
+        """Discover metrics from record snapshot documents.
+        
+        Returns:
+            dict[str, list[str]]: Dictionary mapping category to list of metrics.
+        """
         metrics = super()._discover_metrics_from_documents()
         assert isinstance(metrics, dict)
 
@@ -206,9 +218,15 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         return metrics
 
     def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for record snapshot data when no documents exist."""
+        """Get default metrics for record snapshot data when no documents exist.
+        
+        Returns:
+            dict[str, list[str]]: Dictionary mapping category to list of metrics.
+        """
         # Standard record snapshot metrics that should always be available
-        global_metrics = ["records", "parents", "uploaders", "data_volume", "file_count"]
+        global_metrics = [
+            "records", "parents", "uploaders", "data_volume", "file_count"
+        ]
         subcount_metrics = ["records", "parents", "data_volume", "file_count"]
         return {
             "global": global_metrics,
@@ -216,7 +234,11 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         }
 
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
-        """Create a data series array for the given subcount and metric."""
+        """Create a data series array for the given subcount and metric.
+        
+        Returns:
+            DataSeriesArray: The created data series array.
+        """
         if subcount == "global":
             return DataSeriesArray(
                 "global",

@@ -23,8 +23,12 @@ from .usage_delta_aggs import CommunityUsageDeltaAggregator
 from .usage_snapshot_aggs import CommunityUsageSnapshotAggregator
 
 
-def register_aggregations():
-    """Register the aggregations for community statistics."""
+def register_aggregations() -> dict:
+    """Register the aggregations for community statistics.
+    
+    Returns:
+        dict: Dictionary mapping aggregation names to their configurations.
+    """
     return {
         # "community-records-snapshot-created-agg": {
         #     "templates": (

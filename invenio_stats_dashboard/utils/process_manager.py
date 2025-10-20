@@ -124,6 +124,9 @@ class ProcessManager:
         """Check if the process is currently running.
 
         Falls back to the status file if the PID file is missing.
+        
+        Returns:
+            bool: True if process is running, False otherwise.
         """
         pid: int | None = None
 
@@ -172,7 +175,11 @@ class ProcessManager:
         return running
 
     def get_pid(self) -> int | None:
-        """Get the PID of the running process."""
+        """Get the PID of the running process.
+        
+        Returns:
+            int | None: Process ID if found, None otherwise.
+        """
         # Try PID file first
         if self.pid_file.exists():
             try:
@@ -190,7 +197,11 @@ class ProcessManager:
             return None
 
     def get_status(self) -> dict[str, Any] | None:
-        """Get the current status of the process."""
+        """Get the current status of the process.
+        
+        Returns:
+            dict[str, Any] | None: Status dictionary if found, None otherwise.
+        """
         if not self.status_file.exists():
             return None
 
@@ -279,7 +290,11 @@ class ProcessManager:
             pass  # Ignore cleanup errors
 
     def get_log_tail(self, lines: int = 50) -> str:
-        """Get the last N lines of the process log."""
+        """Get the last N lines of the process log.
+        
+        Returns:
+            str: Last N lines of the log file.
+        """
         if not self.log_file.exists():
             return "No log file found"
 
@@ -394,7 +409,11 @@ class ProcessMonitor:
             click.echo(log_tail)
 
     def _get_status(self) -> dict[str, Any] | None:
-        """Get the process status."""
+        """Get the process status.
+        
+        Returns:
+            dict[str, Any] | None: Status dictionary if found, None otherwise.
+        """
         if not self.status_file.exists():
             return None
 
@@ -409,6 +428,9 @@ class ProcessMonitor:
         """Check if the process is actually running.
 
         Falls back to the status file if the PID file is missing.
+        
+        Returns:
+            bool: True if process is running, False otherwise.
         """
         pid: int | None = None
 
@@ -440,7 +462,11 @@ class ProcessMonitor:
             return False
 
     def _get_log_tail(self, lines: int) -> str:
-        """Get the last N lines of the log."""
+        """Get the last N lines of the log.
+        
+        Returns:
+            str: Last N lines of the log file.
+        """
         if not self.log_file.exists():
             return "No log file found"
 

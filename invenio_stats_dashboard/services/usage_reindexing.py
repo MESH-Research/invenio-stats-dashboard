@@ -184,7 +184,11 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
 
     @staticmethod
     def _ensure_index_exists(func):
-        """Decorator for ensuring the bookmarks index exists."""
+        """Decorator for ensuring the bookmarks index exists.
+        
+        Returns:
+            Callable: The wrapped function.
+        """
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
@@ -209,6 +213,9 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
                 - arrow.Arrow object
                 - ISO format string
                 - datetime.datetime object
+                
+        Raises:
+            ValueError: If timestamp format is invalid.
         """
         if isinstance(last_event_timestamp, str):
             timestamp = arrow.get(last_event_timestamp)
@@ -236,7 +243,11 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
 
     @_ensure_index_exists
     def get_bookmark(self, task_id: str, refresh_time=60):
-        """Get last event_id and timestamp for a reindexing task."""
+        """Get last event_id and timestamp for a reindexing task.
+        
+        Returns:
+            tuple | None: Tuple of (event_id, timestamp) if found, None otherwise.
+        """
         try:
             response = self.client.get(
                 index=prefix_index(self.bookmark_index), id=task_id
@@ -407,6 +418,9 @@ class EventReindexingService:
                 - Range: "2024-01:2024-03"
                 - Multiple months: ("2024-01", "2024-02", "2024-03")
                 - None: return all months
+                
+        Returns:
+            list[str]: List of matching index names.
         """
         try:
             pattern = self.index_patterns[event_type]
@@ -451,12 +465,20 @@ class EventReindexingService:
             return []
 
     def get_current_month(self) -> str:
-        """Get the current month in YYYY-MM format."""
+        """Get the current month in YYYY-MM format.
+        
+        Returns:
+            str: Current month in YYYY-MM format.
+        """
         result = arrow.utcnow().format("YYYY-MM")
         return str(result)
 
     def is_current_month_index(self, index_name: str) -> bool:
-        """Check if an index is for the current month."""
+        """Check if an index is for the current month.
+        
+        Returns:
+            bool: True if index is for current month, False otherwise.
+        """
         current_month = self.get_current_month()
         return index_name.endswith(f"-{current_month}")
 
@@ -465,6 +487,9 @@ class EventReindexingService:
 
         We check if the memory usage is too high, and if the OpenSearch cluster is
         responsive.
+        
+        Returns:
+            HealthCheckResult: Health check result with status and message.
         """
         memory_usage = psutil.virtual_memory().percent
         if memory_usage > self.max_memory_percent:
@@ -490,6 +515,9 @@ class EventReindexingService:
             event_type: The type of event (view or download)
             month: The month in YYYY-MM format
             fresh_start: If True, delete existing target index before creating new one
+            
+        Returns:
+            str: Name of the created index.
         """
         try:
             target_pattern = self.index_patterns[event_type]
@@ -944,7 +972,11 @@ class EventReindexingService:
     def update_alias(
         self, event_type: str, month: str, old_index: str, new_index: str
     ) -> bool:
-        """Update the alias to point to the new enriched index for this month."""
+        """Update the alias to point to the new enriched index for this month.
+        
+        Returns:
+            bool: True if alias was updated successfully, False otherwise.
+        """
         try:
             alias_pattern = self.index_patterns[event_type]
             current_app.logger.info(
@@ -1296,7 +1328,11 @@ class EventReindexingService:
             return []
 
     def get_metadata_for_records(self, record_ids: list[str]) -> dict[str, dict]:
-        """Get metadata for a batch of record IDs."""
+        """Get metadata for a batch of record IDs.
+        
+        Returns:
+            dict[str, dict]: Dictionary mapping record IDs to their metadata.
+        """
         if not record_ids:
             return {}
 
@@ -1349,6 +1385,9 @@ class EventReindexingService:
 
         Returns:
             Dictionary of record IDs to lists of (community_id, effective_date) tuples
+            
+        Raises:
+            MissingCommunityEventsError: If community events index is missing.
         """
         if not record_ids:
             return {}
@@ -1730,11 +1769,6 @@ class EventReindexingService:
 
         Returns:
             Tuple of (processed_count, last_event_id, should_continue)
-
-        Raises:
-            ConnectionTimeout: If the connection to OpenSearch times out
-            ConnectionError: If there is a connection error to OpenSearch
-            RequestError: If there is a request error to OpenSearch
         """
         try:
             # Check health conditions
@@ -2362,7 +2396,10 @@ class EventReindexingService:
         """Check which templates need to be updated.
 
         Check which templates need to be updated (do not exist or are missing
-        'community_ids'). Returns a list of template names to update.
+        'community_ids').
+        
+        Returns:
+            list: List of template names to update.
         """
         templates_to_update = []
         for _event_type, event_config in stats_events.items():
@@ -2872,7 +2909,11 @@ class EventReindexingService:
         return progress
 
     def _get_last_event_timestamp(self, index_name: str) -> str | None:
-        """Get the timestamp of the last event in an index, sorted by timestamp."""
+        """Get the timestamp of the last event in an index, sorted by timestamp.
+        
+        Returns:
+            str | None: Timestamp of last event, or None if no events found.
+        """
         try:
             search_query = Search(using=self.client, index=index_name)
             search_query = search_query.sort({"timestamp": {"order": "desc"}})
@@ -2889,7 +2930,11 @@ class EventReindexingService:
             return None
 
     def delete_old_index(self, index_name: str) -> bool:
-        """Delete an old index if it exists."""
+        """Delete an old index if it exists.
+        
+        Returns:
+            bool: True if index was deleted, False otherwise.
+        """
         try:
             # Check if any aliases point to this index (and remove them first)
             aliases_pointing_to_index = self.client.indices.get_alias(

@@ -14,6 +14,10 @@ AllowAllPermission = type(
 
 
 def CommunityStatsPermissionFactory(obj_id, action):
-    """Permission factory for the stats dashboard."""
+    """Permission factory for the stats dashboard.
+    
+    Returns:
+        AllowAllPermission: Permission object allowing all access.
+    """
     # FIXME: restrict this permission to authorized users with the proper role
     return AllowAllPermission

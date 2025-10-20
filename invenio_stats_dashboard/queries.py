@@ -326,6 +326,9 @@ class CommunityUsageDeltaQuery:
         Args:
             field (str): The field to aggregate on.
             event_type (str): The type of event (view or download).
+            
+        Returns:
+            dict: Simple subcount aggregation dictionary.
         """
         return {
             "terms": {"field": field, "size": 1000},
@@ -343,6 +346,9 @@ class CommunityUsageDeltaQuery:
             field (str): The field to aggregate on.
             label_source_includes (list[str]): The fields to include in the label.
             event_type (str): The type of event (view or download).
+            
+        Returns:
+            dict: Labeled subcount aggregation dictionary.
         """
         agg = self._make_simple_subcount_aggregation(field, event_type)
         agg["aggs"]["label"] = {
@@ -378,7 +384,9 @@ class CommunityUsageDeltaQuery:
                     # Handle combined subfields (e.g., id and name.keyword)
                     for subfield in combine_subfields:
                         if len(source_fields) > 1:
-                            query_name = f"{subcount_key}_{field_index}_{subfield.split('.')[-1]}"
+                            query_name = (
+                                f"{subcount_key}_{field_index}_{subfield.split('.')[-1]}"
+                            )
                         else:
                             query_name = f"{subcount_key}_{subfield.split('.')[-1]}"
                         subcounts[query_name] = self._make_labeled_subcount_aggregation(
@@ -691,7 +699,11 @@ class CommunityRecordDeltaQuery:
         return sub_aggs
 
     def _make_subcount_agg_dict(self, field, label_field, label_includes):
-        """Make a subcount aggregation dictionary."""
+        """Make a subcount aggregation dictionary.
+        
+        Returns:
+            dict: Subcount aggregation dictionary.
+        """
         return {
             "terms": {"field": field, "size": 1000},
             "aggs": {
@@ -727,7 +739,11 @@ class CommunityRecordDeltaQuery:
     def _build_single_field_aggregation(
         self, sub_aggs, records_config, subcount_key, field_index
     ):
-        """Build a single aggregations for a single subcount's field/subfields."""
+        """Build a single aggregations for a single subcount's field/subfields.
+        
+        Returns:
+            dict: Aggregation dictionary for the subcount field.
+        """
         field = get_subcount_field(records_config, "field", field_index)
         label_field = get_subcount_field(records_config, "label_field", field_index)
         label_includes = get_subcount_label_includes(records_config, field_index)
@@ -792,6 +808,9 @@ class CommunityRecordDeltaQuery:
 
         Returns:
             dict: The query for the daily record delta counts.
+            
+        Raises:
+            ValueError: If community_id is None.
         """
         if community_id is None:
             raise ValueError("community_id must not be None")

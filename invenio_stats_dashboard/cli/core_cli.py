@@ -22,7 +22,11 @@ from ..utils.process_manager import ProcessManager
 
 
 def check_stats_enabled():
-    """Check if community stats are enabled."""
+    """Check if community stats are enabled.
+    
+    Raises:
+        click.ClickException: If community stats are disabled.
+    """
     if not current_app.config.get("COMMUNITY_STATS_ENABLED", True):
         raise click.ClickException(
             "Community stats dashboard is disabled. "
@@ -31,7 +35,11 @@ def check_stats_enabled():
 
 
 def check_scheduled_tasks_enabled(command="aggregate"):
-    """Check if scheduled tasks are enabled."""
+    """Check if scheduled tasks are enabled.
+    
+    Raises:
+        click.ClickException: If scheduled tasks are disabled.
+    """
     if not current_app.config.get("COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED", True):
         message = (
             "Community stats scheduled tasks are disabled. "
@@ -266,6 +274,9 @@ def aggregate_stats_background_command(
     - Cancel: invenio community-stats processes cancel aggregation
     - View logs: invenio community-stats processes status aggregation \\
         --show-log
+    
+    Returns:
+        None: This is a CLI command function.
     """
     check_stats_enabled()
 
@@ -386,7 +397,6 @@ def read_stats_command(community_id, start_date, end_date, query_type):
     - community-usage-snapshot
 
     Examples:
-
     \b
     - invenio community-stats read
     - invenio community-stats read --community-id my-community
@@ -424,7 +434,11 @@ def read_stats_command(community_id, start_date, end_date, query_type):
 
 
 def _abbreviate_agg_name(agg_type):
-    """Abbreviate aggregation type name for display."""
+    """Abbreviate aggregation type name for display.
+    
+    Returns:
+        str: Abbreviated aggregation type name.
+    """
     # Remove "community-records" from beginning and "-agg" from end
     name = agg_type
     if name.startswith("community-records-"):
@@ -526,12 +540,14 @@ def status_command(community_id, verbose):
       time covered by each aggregation
 
     Examples:
-
     \b
     - invenio community-stats status
     - invenio community-stats status --community-id my-community-id
     - invenio community-stats status --verbose
     - invenio community-stats status --community-id comm1 --community-id comm2
+    
+    Returns:
+        None: This is a CLI command function.
     """
     check_stats_enabled()
 
@@ -701,7 +717,6 @@ def clear_bookmarks_command(
     - community-usage-snapshot-agg
 
     Examples:
-
     \b
     - invenio community-stats clear-bookmarks --all-communities --all-aggregation-types
     - invenio community-stats clear-bookmarks --community-id my-community-id
@@ -709,6 +724,9 @@ def clear_bookmarks_command(
         community-records-delta-created-agg
     - invenio community-stats clear-bookmarks --community-id comm1 \\
         --community-id comm2 --confirm
+    
+    Returns:
+        None: This is a CLI command function.
     """
     check_stats_enabled()
 
@@ -822,12 +840,14 @@ def clear_lock_command(lock_name, list_locks, dry_run):
     - community_stats_cache_generation
 
     Examples:
-
     \b
     - invenio community-stats clear-lock
     - invenio community-stats clear-lock --lock-name community_stats_cache_generation
     - invenio community-stats clear-lock --list-locks
     - invenio community-stats clear-lock --dry-run
+    
+    Returns:
+        None: This is a CLI command function.
     """
     check_stats_enabled()
 

@@ -9,7 +9,7 @@
 import json
 from typing import Any
 
-from flask import Response, current_app
+from flask import current_app
 
 
 class StatsJSONSerializer:

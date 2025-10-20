@@ -92,7 +92,11 @@ class UsageEventFactory:
     def _create_base_event_data(
         record: dict, event_date: arrow.Arrow, ident: int
     ) -> dict:
-        """Create base event data common to all event types."""
+        """Create base event data common to all event types.
+        
+        Returns:
+            dict: Base event data dictionary.
+        """
         # Ensure event time is not in the future
         current_time = arrow.utcnow()
         event_date_arrow = arrow.get(event_date)
@@ -139,7 +143,11 @@ class UsageEventFactory:
 
     @staticmethod
     def _enrich_event(event: dict, event_type: str) -> dict:
-        """Enrich the event with additional data."""
+        """Enrich the event with additional data.
+        
+        Returns:
+            dict: Enriched event data dictionary.
+        """
         record_metadata = records_service.read(
             system_identity, id_=event["recid"]
         ).to_dict()
@@ -257,7 +265,11 @@ class UsageEventFactory:
     def _get_records_for_date_range(
         start_date: str, end_date: str, max_records: int | None = None
     ) -> list:
-        """Get records within a date range."""
+        """Get records within a date range.
+        
+        Returns:
+            list: List of record dictionaries.
+        """
         index_name = prefix_index("rdmrecords-records")
 
         record_search = Search(using=current_search_client, index=index_name)
@@ -284,6 +296,9 @@ class UsageEventFactory:
         """Ensure date range doesn't start before record creation.
 
         If start_date is None or invalid, defaults to record creation date.
+        
+        Returns:
+            tuple[arrow.Arrow, arrow.Arrow]: Adjusted start and end dates.
         """
         # If start_date is None or invalid, use record creation date
         if start_date is None:
@@ -304,7 +319,11 @@ class UsageEventFactory:
         events_per_record: int,
         enrich_events: bool = False,
     ) -> list:
-        """Generate events for a list of records."""
+        """Generate events for a list of records.
+        
+        Returns:
+            list: List of (event, event_id) tuples.
+        """
         events: list[tuple[dict, str]] = []
 
         for record in records:
@@ -367,7 +386,11 @@ class UsageEventFactory:
 
     @staticmethod
     def _check_migrated_index_exists(index_pattern: str, month: str) -> bool:
-        """Check if a migrated index with -v2.0.0 suffix exists."""
+        """Check if a migrated index with -v2.0.0 suffix exists.
+        
+        Returns:
+            bool: True if migrated index exists, False otherwise.
+        """
         migrated_index = f"{index_pattern}-{month}-v2.0.0"
         try:
             result = current_search_client.indices.exists(index=migrated_index)
@@ -383,6 +406,9 @@ class UsageEventFactory:
             events: List of (event, event_id) tuples to index
             use_migrated_indices: If True, use migrated indices with -v2.0.0 suffix
                 when they exist
+                
+        Returns:
+            dict: Dictionary with 'indexed' and 'errors' counts.
         """
         if not events:
             return {"indexed": 0, "errors": 0}
@@ -476,6 +502,9 @@ class UsageEventFactory:
 
         Returns:
             List of (event, event_id) tuples.
+            
+        Raises:
+            IndexError: If no records are found in the specified date range.
         """
         if end_date == "":
             end_date = arrow.utcnow().format("YYYY-MM-DD")

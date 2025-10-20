@@ -42,7 +42,11 @@ class CommunityBookmarkAPI(BookmarkAPI):
 
     @staticmethod
     def _ensure_index_exists(func):
-        """Decorator for ensuring the bookmarks index exists."""
+        """Decorator for ensuring the bookmarks index exists.
+        
+        Returns:
+            function: The wrapped function that ensures index exists before execution.
+        """
 
         @wraps(func)
         def wrapped(self, *args, **kwargs):
@@ -77,7 +81,12 @@ class CommunityBookmarkAPI(BookmarkAPI):
 
     @_ensure_index_exists
     def get_bookmark(self, community_id: str, refresh_time=60):
-        """Get last aggregation date."""
+        """Get last aggregation date.
+        
+        Returns:
+            arrow.Arrow | None: The last aggregation date, or None if no bookmark
+                exists.
+        """
         # Use the same document ID as set_bookmark for direct retrieval
         doc_id = f"{self.agg_type}_{community_id}"
 
@@ -114,7 +123,11 @@ class CommunityBookmarkAPI(BookmarkAPI):
 
     @_ensure_index_exists
     def clear_bookmark(self, community_id: str):
-        """Clear the bookmark for a specific community and aggregation type."""
+        """Clear the bookmark for a specific community and aggregation type.
+        
+        Returns:
+            int: Number of bookmarks deleted (0 or 1).
+        """
         try:
             doc_id = f"{self.agg_type}_{community_id}"
 

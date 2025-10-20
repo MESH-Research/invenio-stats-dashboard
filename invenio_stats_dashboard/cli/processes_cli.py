@@ -43,21 +43,22 @@ def processes_cli():
     help="Directory containing PID and status files.",
 )
 def process_status_command(process_name, show_log, log_lines, pid_dir):
-    """Show the status of a background process.
+    r"""Show the status of a background process.
 
     This command monitors and displays the status of a running background
     process. It can show process information, recent logs, and current status.
 
-    Arguments:
-
-    \n
-    - process_name: Name of the process to monitor (e.g., event-migration,
-      community-event-generation, usage-event-generation).
+    Args:
+        process_name: Name of the process to monitor (e.g., event-migration,
+            community-event-generation, usage-event-generation).
+        show_log: Whether to show recent log output.
+        log_lines: Number of log lines to display.
+        pid_dir: Directory containing PID and status files.
 
     Examples:
-    - invenio community-stats processes status event-migration
-    - invenio community-stats processes status event-migration --show-log
-    - invenio community-stats processes status event-migration --log-lines 50
+        - invenio community-stats processes status event-migration
+        - invenio community-stats processes status event-migration --show-log
+        - invenio community-stats processes status event-migration --log-lines 50
     """
     monitor = ProcessMonitor(process_name, pid_dir)
     monitor.show_status(show_log=show_log, log_lines=log_lines)
@@ -84,13 +85,18 @@ def cancel_process_command(process_name, timeout, pid_dir):
     a termination signal and waits for the process to shut down gracefully
     before force killing if necessary.
 
-    Arguments:
-    - process_name: Name of the process to cancel (e.g., event-migration,
-      community-event-generation, usage-event-generation).
+    Args:
+        process_name: Name of the process to cancel (e.g., event-migration,
+            community-event-generation, usage-event-generation).
+        timeout: Timeout in seconds to wait for graceful shutdown.
+        pid_dir: Directory containing PID and status files.
 
     Examples:
-    - invenio community-stats processes cancel event-migration
-    - invenio community-stats processes cancel event-migration --timeout 60
+        - invenio community-stats processes cancel event-migration
+        - invenio community-stats processes cancel event-migration --timeout 60
+    
+    Returns:
+        None: This is a CLI command function.
     """
     process_manager = ProcessManager(process_name, pid_dir)
 

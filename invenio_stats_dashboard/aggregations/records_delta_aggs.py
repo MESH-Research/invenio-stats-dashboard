@@ -178,7 +178,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
     def _find_item_label(
         added: dict, removed: dict, path_strings: list[str], key: str
     ) -> str | dict[str, str]:
-        """Find the label for a given item."""
+        """Find the label for a given item.
+        
+        Returns:
+            str | dict[str, str]: The label for the item, or empty string if not found.
+        """
         label: str | dict[str, str] = ""
 
         if len(path_strings) > 1:
@@ -208,7 +212,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         return label
 
     def _deduplicate_and_merge_buckets(self, buckets):
-        """Remove keyword buckets that duplicate ID-based buckets."""
+        """Remove keyword buckets that duplicate ID-based buckets.
+        
+        Returns:
+            list: List of buckets with duplicates removed.
+        """
         if not buckets:
             return []
 
@@ -218,7 +226,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         return [b for b in buckets if b["key"] not in label_values]
 
     def _make_subcount_list(self, subcount_name, aggs_added, aggs_removed):
-        """Make a subcount list for a given subcount type."""
+        """Make a subcount list for a given subcount type.
+        
+        Returns:
+            list: List of subcount items for the given subcount type.
+        """
         config = self.subcount_configs.get(subcount_name, {}).get("records", {})
 
         if not config:
@@ -241,7 +253,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
     def _process_single_field_subcount(
         self, subcount_name, aggs_added, aggs_removed, config, field_index
     ):
-        """Process subcount with single source field."""
+        """Process subcount with single source field.
+        
+        Returns:
+            list: List of processed subcount items.
+        """
         combine_subfields = get_subcount_combine_subfields(config, field_index)
         if combine_subfields:
             all_added_buckets = []
@@ -272,12 +288,16 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
     def _process_multi_field_subcount(
         self, subcount_type: str, aggs_added: dict, aggs_removed: dict, config: dict
     ) -> list[RecordDeltaSubcountItem]:
-        """Process subcount with multiple source fields."""
+        """Process subcount with multiple source fields.
+        
+        Returns:
+            list[RecordDeltaSubcountItem]: List of processed subcount items.
+        """
         source_fields = config.get("source_fields", [])
         agg_results = []
 
         agg_names = []
-        for field_index, source_field in enumerate(source_fields):
+        for field_index, _source_field in enumerate(source_fields):
             field = get_subcount_field(config, "field", field_index)
             if not field:
                 continue
@@ -309,7 +329,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         config: dict,
         field_index: int,
     ) -> list[RecordDeltaSubcountItem]:
-        """Process results for a single field."""
+        """Process results for a single field.
+        
+        Returns:
+            list[RecordDeltaSubcountItem]: List of processed subcount items.
+        """
         combined_keys = list(
             set(b["key"] for b in added_items) | set(b["key"] for b in removed_items)
         )
@@ -408,7 +432,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
     def _merge_field_results(
         self, result_lists: list[list[dict[str, Any]]]
     ) -> dict[str, Any]:
-        """Merge results from multiple fields."""
+        """Merge results from multiple fields.
+        
+        Returns:
+            dict[str, Any]: Merged results from multiple fields.
+        """
         all_result_items = [
             item for result_list in result_lists for item in result_list
         ]
@@ -442,7 +470,11 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         aggs_added: dict,
         aggs_removed: dict,
     ) -> RecordDeltaDocument:
-        """Create a dictionary representing the aggregation result for indexing."""
+        """Create a dictionary representing the aggregation result for indexing.
+        
+        Returns:
+            RecordDeltaDocument: Dictionary representing the aggregation result.
+        """
         agg_dict: RecordDeltaDocument = {
             "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
             "community_id": community_id,
@@ -537,9 +569,10 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             last_event_date (arrow.Arrow | None): The last event date, or None
                 if no events exist.
 
-        Returns:
-            Generator[tuple[dict, float], None, None]: A generator yielding tuples of
-                (document, generation_time) for each day in the period.
+        Yields:
+            tuple[dict, float]: A tuple containing:
+                - [0]: A dictionary representing an aggregation document for indexing
+                - [1]: The time taken to generate this document (in seconds)
         """
         # Check if we should skip aggregation due to no events after start_date
         # If so, we index a zero document for the community for each day

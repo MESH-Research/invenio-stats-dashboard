@@ -6,7 +6,6 @@
 
 """Test helper for FilesHelper."""
 
-from pathlib import Path
 
 from flask import current_app as app
 from invenio_access.permissions import system_identity

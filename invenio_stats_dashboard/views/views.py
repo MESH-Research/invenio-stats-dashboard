@@ -26,7 +26,11 @@ from ..services.cached_response_service import CachedResponseService
 
 
 def global_stats_dashboard():
-    """Global stats dashboard view."""
+    """Global stats dashboard view.
+    
+    Returns:
+        str: Rendered HTML template for the global stats dashboard.
+    """
     return render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["global"],
         dashboard_config={
@@ -54,7 +58,14 @@ def global_stats_dashboard():
 
 @pass_community(serialize=True)
 def community_stats_dashboard(pid_value, community, community_ui):
-    """Community stats dashboard view."""
+    """Community stats dashboard view.
+    
+    Returns:
+        str: Rendered HTML template for the community stats dashboard.
+        
+    Raises:
+        PermissionDeniedError: If user lacks read permission for the community.
+    """
     permissions = community.has_permissions_to(HEADER_PERMISSIONS)
     if not permissions["can_read"]:
         raise PermissionDeniedError()
@@ -133,7 +144,11 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
         return b"{" + b"".join(json_parts) + b"}"
 
     def post(self, **kwargs):
-        """Handle stats dashboard API requests with cache checking."""
+        """Handle stats dashboard API requests with cache checking.
+        
+        Returns:
+            Response: JSON response with stats data or error message.
+        """
         try:
             request_data = request.get_json()
             if not request_data:
@@ -195,7 +210,11 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
 
 def create_blueprint(app: Flask) -> Blueprint:
-    """Create the Invenio-Stats-Dashboard blueprint."""
+    """Create the Invenio-Stats-Dashboard blueprint.
+    
+    Returns:
+        Blueprint: The configured stats dashboard blueprint.
+    """
     routes = app.config["STATS_DASHBOARD_ROUTES"]
 
     blueprint = Blueprint(
@@ -224,6 +243,9 @@ def create_api_blueprint(app: Flask) -> Blueprint:
 
     This supplements the regular stats api endpoint to allow
     for content negotiation and serialized responses.
+    
+    Returns:
+        Blueprint: The configured stats dashboard API blueprint.
     """
     api_routes = app.config["STATS_DASHBOARD_API_ROUTES"]
 

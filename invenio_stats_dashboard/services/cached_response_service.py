@@ -37,7 +37,11 @@ class CachedResponseService:
         )
 
     def _get_available_categories(self) -> list[str]:
-        """Get available category queries from STATS_QUERIES configuration."""
+        """Get available category queries from STATS_QUERIES configuration.
+        
+        Returns:
+            list[str]: List of available category names.
+        """
         configured_queries = current_app.config.get("STATS_QUERIES", {})
 
         # Filter for category queries (those ending with "-category")
@@ -117,7 +121,11 @@ class CachedResponseService:
         return None
 
     def read_all(self, community_id: str, year: int) -> list[CachedResponse]:
-        """Read all cached responses for a community/year combination."""
+        """Read all cached responses for a community/year combination.
+        
+        Returns:
+            list[CachedResponse]: List of cached response objects.
+        """
         responses = []
         for category in self.categories:
             response = self.read(community_id, year, category)
@@ -165,7 +173,11 @@ class CachedResponseService:
     def _normalize_community_ids(
         self, community_ids: str | list[str] | None
     ) -> list[str]:
-        """Convert various inputs to list of community IDs."""
+        """Convert various inputs to list of community IDs.
+        
+        Returns:
+            list[str]: List of community IDs.
+        """
         if community_ids is None:
             return ["global"]
         elif community_ids == "all":
@@ -178,7 +190,11 @@ class CachedResponseService:
     def _normalize_years(
         self, years: int | list[int] | str | None, community_ids: list[str]
     ) -> dict[str, list[int]]:
-        """Convert various inputs to years per community."""
+        """Convert various inputs to years per community.
+        
+        Returns:
+            dict[str, list[int]]: Dictionary mapping community IDs to year lists.
+        """
         result = {}
 
         for community_id in community_ids:
@@ -200,7 +216,11 @@ class CachedResponseService:
         return result
 
     def _get_years_for_community(self, community_id: str) -> list[int]:
-        """Get valid years for a specific community based on its creation date."""
+        """Get valid years for a specific community based on its creation date.
+        
+        Returns:
+            list[int]: List of valid years for the community.
+        """
         current_year = arrow.now().year
 
         if community_id == "global":
@@ -213,7 +233,11 @@ class CachedResponseService:
             return list(range(creation_year, current_year + 1))
 
     def _get_all_community_ids(self) -> list[str]:
-        """Get all community IDs from communities service."""
+        """Get all community IDs from communities service.
+        
+        Returns:
+            list[str]: List of all community IDs.
+        """
         try:
             # Use scan to get all communities without size limits
             communities_result = current_communities.service.scan(system_identity)
@@ -225,7 +249,11 @@ class CachedResponseService:
             return ["global"]
 
     def _get_first_record_creation_year(self) -> int:
-        """Get the creation year for the first record."""
+        """Get the creation year for the first record.
+        
+        Returns:
+            int: Year of first record creation.
+        """
         first_record = current_search_client.search(
             index=prefix_index("rdmrecords-records"),
             body={
@@ -271,7 +299,11 @@ class CachedResponseService:
     def _generate_all_response_objects(
         self, community_ids: list[str], years: list[int] | dict[str, list[int]]
     ) -> list[CachedResponse]:
-        """Generate CachedResponse objects for all combinations."""
+        """Generate CachedResponse objects for all combinations.
+        
+        Returns:
+            list[CachedResponse]: List of generated cached response objects.
+        """
         responses = []
 
         for community_id in community_ids:
@@ -288,7 +320,6 @@ class CachedResponseService:
                     responses.append(response)
 
         return responses
-
 
     def get_or_create(self, request_data: dict, as_json_bytes: bool = False
                       ) -> bytes | dict | list:
@@ -308,11 +339,14 @@ class CachedResponseService:
         # Return in requested format
         return response.bytes_data if as_json_bytes else response.object_data
 
-
     def _create(
         self, responses: list[CachedResponse], progress_callback: Callable | None = None
     ) -> dict[str, Any]:
-        """Create responses synchronously."""
+        """Create responses synchronously.
+        
+        Returns:
+            dict[str, Any]: Results dictionary with success/failed counts and errors.
+        """
         results = {"success": 0, "failed": 0, "errors": [], "responses": []}
         total_responses = len(responses)
 

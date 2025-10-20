@@ -25,7 +25,11 @@ from ..tasks.cache_tasks import generate_cached_responses_task
 
 
 def check_scheduled_tasks_enabled(command="cache"):
-    """Check if scheduled tasks are enabled."""
+    """Check if scheduled tasks are enabled.
+    
+    Raises:
+        click.ClickException: If scheduled tasks are disabled.
+    """
     if not current_app.config.get(
         "COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED", True
     ):
@@ -69,6 +73,9 @@ def clear_all_cache_command(force, yes_i_know):
     - invenio community-stats cache clear-all
     - invenio community-stats cache clear-all --force
     - invenio community-stats cache clear-all --force --yes-i-know
+    
+    Returns:
+        None: This is a CLI command function.
     """
     cache = StatsCache()
 
@@ -117,6 +124,9 @@ def clear_pattern_cache_command(pattern, force):
     - invenio community-stats cache clear-pattern "*global*"
     - invenio community-stats cache clear-pattern "*2023*" --force
     - invenio community-stats cache clear-pattern "*record_delta*"
+    
+    Returns:
+        None: This is a CLI command function.
     """
     cache = StatsCache()
 
@@ -175,8 +185,8 @@ def clear_pattern_cache_command(pattern, force):
 )
 @with_appcontext
 def clear_item_cache_command(
-    community_id, stat_name, start_date, end_date, date_basis, content_type
-):
+      community_id, stat_name, start_date, end_date, date_basis, content_type
+  ):
     r"""Clear a specific cached statistics item.
 
     This command removes a specific cached statistics entry based on the
@@ -197,6 +207,9 @@ def clear_item_cache_command(
       --start-date 2024-01-01
     - invenio community-stats cache clear-item global record_created \\
       --date-basis created
+    
+    Returns:
+        None: This is a CLI command function.
     """
     cache = StatsCache()
 
@@ -246,6 +259,9 @@ def cache_info_command(detailed):
     Examples:
     - invenio community-stats cache info
     - invenio community-stats cache info --detailed
+    
+    Returns:
+        None: This is a CLI command function.
     """
     cache = StatsCache()
 
@@ -356,6 +372,9 @@ def test_cache_command(community_id, stat_name):
     - invenio community-stats cache test
     - invenio community-stats cache test --community-id my-community \\
       --stat-name test_query
+    
+    Returns:
+        None: This is a CLI command function.
     """
     cache = StatsCache(cache_prefix="stats_test")
 
@@ -490,6 +509,9 @@ def generate_cache_command(
             --years 2020-2023
     - invenio community-stats cache generate --all-years --async
     - invenio community-stats cache generate --community-id global --year 2023 --dry-run
+    
+    Returns:
+        None: This is a CLI command function.
     """
     if not force:
         check_scheduled_tasks_enabled(command="cache")
@@ -593,7 +615,15 @@ def generate_cache_command(
 
 
 def resolve_slug_to_id(slug: str) -> str:
-    """Resolve community slug to ID using communities service."""
+    """Resolve community slug to ID using communities service.
+    
+    Returns:
+        str: The community ID corresponding to the slug.
+        
+    Raises:
+        ValueError: If the community slug is not found or if there's an error
+            searching for the community.
+    """
     try:
         communities_result = current_communities.service.search(
             system_identity, params={"q": f"slug:{slug}"}, size=1
@@ -601,13 +631,22 @@ def resolve_slug_to_id(slug: str) -> str:
         if communities_result.hits:
             return str(communities_result.hits[0]["id"])
     except Exception as e:
-        raise ValueError(f"Error searching for community with slug '{slug}': {e}")
+        raise ValueError(
+            f"Error searching for community with slug '{slug}': {e}"
+        ) from e
 
     raise ValueError(f"Community with slug '{slug}' not found")
 
 
 def parse_year_range(year_range: str) -> list[int]:
-    """Parse year range string (e.g., '2020-2023') into list."""
+    """Parse year range string (e.g., '2020-2023') into list.
+    
+    Returns:
+        list[int]: List of years in the range.
+        
+    Raises:
+        ValueError: If the year range format is invalid.
+    """
     try:
         start, end = map(int, year_range.split("-"))
         return list(range(start, end + 1))

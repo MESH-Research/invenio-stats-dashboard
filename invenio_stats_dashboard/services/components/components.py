@@ -324,7 +324,11 @@ def update_community_events_index(
     parsed_published_date = parse_publication_date_for_events(record_published_date)
 
     def get_newest_event(record_id: str, community_id: str, is_removal: bool = False):
-        """Get the newest event for a record/community combination using the alias."""
+        """Get the newest event for a record/community combination using the alias.
+        
+        Returns:
+            dict | None: The newest event document, or None if not found.
+        """
         query = {
             "query": {
                 "bool": {

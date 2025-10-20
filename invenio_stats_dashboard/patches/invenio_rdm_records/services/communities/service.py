@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023-2024 CERN.
 # Copyright (C) 2024      Graz University of Technology.
@@ -93,7 +92,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
         return next(results.hits)["id"] if results.total > 0 else None
 
     def _include(self, identity, community_id, comment, require_review, record, uow):
-        """Create request to add the community to the record."""
+        """Create request to add the community to the record.
+        
+        Returns:
+            Request: The created community inclusion request.
+        """
         # check if the community exists
         community = current_communities.service.record_cls.pid.resolve(community_id)
         com_id = str(community.id)
@@ -135,7 +138,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
 
     @unit_of_work()
     def add(self, identity, id_, data, uow):
-        """Include the record in the given communities."""
+        """Include the record in the given communities.
+        
+        Returns:
+            dict: Result of the community addition operation.
+        """
         valid_data, errors = self.schema.load(
             data,
             context={
@@ -226,7 +233,7 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
             community_required = current_app.config["RDM_COMMUNITY_REQUIRED_TO_PUBLISH"]
             is_last_community = len(record.parent.communities.ids) <= 1
             if community_required and is_last_community:
-                raise CannotRemoveCommunityError()
+                raise CannotRemoveCommunityError() from None
             else:
                 # If the config wasn't enabled, then raise the PermissionDeniedError
                 raise exc
@@ -248,7 +255,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
 
     @unit_of_work()
     def remove(self, identity, id_, data, uow):
-        """Remove communities from the record."""
+        """Remove communities from the record.
+        
+        Returns:
+            dict: Result of the community removal operation.
+        """
         record = self.record_cls.pid.resolve(id_)
 
         valid_data, errors = self.schema.load(
@@ -301,7 +312,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
         extra_filter=None,
         **kwargs,
     ):
-        """Search for record's communities."""
+        """Search for record's communities.
+        
+        Returns:
+            CommunityList: List of communities associated with the record.
+        """
         try:
             record = self.record_cls.pid.resolve(id_)
         except PIDUnregistered:
@@ -365,7 +380,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
         extra_filter=None,
         **kwargs,
     ):
-        """Search for communities that can be added to a record."""
+        """Search for communities that can be added to a record.
+        
+        Returns:
+            CommunityList: List of communities that can be added.
+        """
         record = self.record_cls.pid.resolve(id_)
 
         self.require_permission(identity, "add_community", record=record)
@@ -397,7 +416,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
 
     @unit_of_work()
     def set_default(self, identity, id_, data, uow):
-        """Set default community."""
+        """Set default community.
+        
+        Returns:
+            dict: Result of setting the default community.
+        """
         valid_data, _ = self.communities_schema.load(
             data,
             context={
@@ -437,7 +460,11 @@ class RecordCommunitiesService(Service, RecordIndexerMixin):
         :param identity: The identity performing the action.
         :param community_id: The ID of the community.
         :param record_ids: List of record IDs to be added to the community.
-        :param set_default: Whether to set the community as default for the added records.
+        :param set_default: Whether to set the community as default for the
+            added records.
+        
+        Returns:
+            dict: Result of the bulk addition operation.
         """
         self.require_permission(identity, "bulk_add")
         errors = []

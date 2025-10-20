@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2021 CERN.
 # Copyright (C) 2021 Northwestern University.
@@ -37,7 +36,11 @@ class RequestEventList(RecordList):
 
     @property
     def hits(self):
-        """Iterator over the hits."""
+        """Iterator over the hits.
+        
+        Yields:
+            RequestEvent: Processed request event objects.
+        """
         for hit in self._results:
             # Load dump
             record = self._service.record_cls.loads(hit.to_dict())

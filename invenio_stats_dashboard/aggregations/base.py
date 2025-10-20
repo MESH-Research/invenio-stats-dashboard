@@ -28,8 +28,8 @@ from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
 from ..exceptions import (
-    DeltaDataGapError,
     CommunityEventsNotInitializedError,
+    DeltaDataGapError,
 )
 from .bookmarks import CommunityBookmarkAPI
 from .types import (
@@ -160,7 +160,11 @@ class CommunityAggregatorBase(StatAggregator):
         latest_date = None
 
         def check_index_exists(index_name: str) -> bool:
-            """Check if the index exists."""
+            """Check if the index exists.
+            
+            Returns:
+                bool: True if the index exists, False otherwise.
+            """
             return bool(self.client.indices.exists(index=prefix_index(index_name)))
 
         if isinstance(self.first_event_index, str):
@@ -202,6 +206,9 @@ class CommunityAggregatorBase(StatAggregator):
 
         If there's more than self.catchup_interval days between the lower limit
         and the end date, we will only aggregate for self.catchup_interval days.
+        
+        Returns:
+            arrow.Arrow: The calculated end date for aggregation.
         """
         upper_limit = end_date if end_date else arrow.utcnow()
         if (upper_limit - lower_limit).days > self.catchup_interval:
@@ -568,7 +575,11 @@ class CommunityAggregatorBase(StatAggregator):
         target_path: list,
         key: str | dict,
     ) -> str | dict[str, str]:
-        """Find a matching item in a data source by key and extract the label."""
+        """Find a matching item in a data source by key and extract the label.
+        
+        Returns:
+            str | dict[str, str]: The extracted label or empty string if not found.
+        """
         if not isinstance(data_source, list) or len(data_source) == 0:
             return ""
 
@@ -658,6 +669,9 @@ class CommunityAggregatorBase(StatAggregator):
 
         Returns:
             Tuple of (docs_indexed, errors)
+            
+        Raises:
+            TransportError: If the connection fails after all retry attempts.
         """
         try:
             result = bulk(
@@ -850,6 +864,9 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
 
         Returns:
             Index of the delta document for the current iteration date
+            
+        Raises:
+            DeltaDataGapError: If no delta document is found for the expected date.
         """
         target_date = current_iteration_date.date()
 
@@ -1059,10 +1076,10 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 events exist. In this case the events we're looking for are delta
                 aggregations.
 
-        Returns:
-            A generator of tuples, where each tuple contains:
-            - [0]: A dictionary representing an aggregation document for indexing
-            - [1]: The time taken to generate this document (in seconds)
+        Yields:
+            tuple[dict, float]: A tuple containing:
+                - [0]: A dictionary representing an aggregation document for indexing
+                - [1]: The time taken to generate this document (in seconds)
         """
         current_iteration_date = arrow.get(start_date)
 
@@ -1196,7 +1213,11 @@ class CommunityEventsIndexAggregator(CommunityAggregatorBase):
         first_event_date: arrow.Arrow | None,
         last_event_date: arrow.Arrow | None,
     ) -> Generator[tuple[dict, float], None, None]:
-        """This aggregator doesn't perform any aggregation."""
+        """This aggregator doesn't perform any aggregation.
+        
+        Yields:
+            Nothing - this is an empty generator that yields no results.
+        """
         # Return empty generator - no aggregation needed
         return
         yield  # This line is never reached but satisfies the generator requirement

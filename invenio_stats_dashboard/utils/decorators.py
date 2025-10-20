@@ -79,6 +79,9 @@ def time_operation(func):
 
     Expects the decorated method to return a dict with results.
     Adds timing fields: total_time_seconds, total_time_minutes, total_time_hours
+    
+    Returns:
+        Callable: The wrapped function with timing functionality.
     """
 
     @functools.wraps(func)

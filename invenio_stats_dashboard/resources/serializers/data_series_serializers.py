@@ -76,7 +76,12 @@ class CompressedStatsJSONSerializer:
         return compressed_data
 
     def _create_gzip_response(self, compressed_data: bytes) -> Response:
-        """Create a gzip-compressed response."""
+        """Create a gzip-compressed response.
+
+        Returns:
+            Response: The Flask response object holding the gzipped
+               response body.
+        """
         return Response(
             compressed_data,
             mimetype="application/json",
@@ -88,7 +93,12 @@ class CompressedStatsJSONSerializer:
         )
 
     def _create_brotli_response(self, compressed_data: bytes) -> Response:
-        """Create a brotli-compressed response."""
+        """Create a brotli-compressed response.
+
+        Returns:
+            Response: The Falsk Response object holding the compressed
+                response body.
+        """
         return Response(
             compressed_data,
             mimetype="application/json",
@@ -134,6 +144,9 @@ class DataSeriesCSVSerializer:
             data: Nested dictionary with structure like sample_usage_delta_data_series
             community_id: Optional community ID for community-specific stats
             **kwargs: Additional keyword arguments
+
+        Raises:
+            ValueError: If the content cannot be serialized.
 
         Returns:
             Flask Response with gzip-compressed tar archive containing CSV files
@@ -311,16 +324,16 @@ class DataSeriesCSVSerializer:
                 if isinstance(data_point, dict):
                     # Extract date and value from data_point
                     value_array = data_point.get("value", [])
-                    if (
-                        isinstance(value_array, list)
-                        and len(value_array) >= 2
-                    ):
+                    if isinstance(value_array, list) and len(value_array) >= 2:
                         date_val = value_array[0]
                         numeric_val = value_array[1]
-                        all_rows.append(
-                            [series_id, series_label, date_val,
-                             numeric_val, unit]
-                        )
+                        all_rows.append([
+                            series_id,
+                            series_label,
+                            date_val,
+                            numeric_val,
+                            unit,
+                        ])
 
         # Only write file if we have data
         if not all_rows:
@@ -378,6 +391,9 @@ class DataSeriesExcelSerializer:
             community_id: Optional community ID for community-specific stats
             **kwargs: Additional keyword arguments
 
+        Raises:
+            ValueError: If the content cannot be serialized.
+
         Returns:
             Flask Response with gzip-compressed tar archive containing Excel files
         """
@@ -424,9 +440,13 @@ class DataSeriesExcelSerializer:
                     continue
 
                 # Create workbook for this series set
-                self._create_series_set_workbook(series_set_name, series_set_data, query_path)
+                self._create_series_set_workbook(
+                    series_set_name, series_set_data, query_path
+                )
 
-    def _create_series_set_workbook(self, series_set_name: str, series_set_data: dict, query_path: str) -> None:
+    def _create_series_set_workbook(
+        self, series_set_name: str, series_set_data: dict, query_path: str
+    ) -> None:
         """Create a single Excel workbook for a series set with sheets per metric.
 
         Args:
@@ -451,9 +471,7 @@ class DataSeriesExcelSerializer:
             ws = wb.create_sheet(title=sheet_name)
 
             # Add consolidated data to sheet
-            self._add_consolidated_data_to_sheet(
-                ws, metric_name, data_series_list
-            )
+            self._add_consolidated_data_to_sheet(ws, metric_name, data_series_list)
             sheets_created += 1
 
         # If no sheets were created, add a "No Data" sheet
@@ -474,8 +492,7 @@ class DataSeriesExcelSerializer:
             ws.cell(
                 row=3,
                 column=1,
-                value="This may indicate no activity during the "
-                "requested period.",
+                value="This may indicate no activity during the requested period.",
             )
 
             # Style the message
@@ -541,22 +558,15 @@ class DataSeriesExcelSerializer:
                 if isinstance(data_point, dict):
                     # Extract date and value from data_point
                     value_array = data_point.get("value", [])
-                    if (
-                        isinstance(value_array, list)
-                        and len(value_array) >= 2
-                    ):
+                    if isinstance(value_array, list) and len(value_array) >= 2:
                         date_val = value_array[0]
                         numeric_val = value_array[1]
 
                         # Add row with all columns
                         ws.cell(row=current_row, column=1, value=series_id)
-                        ws.cell(
-                            row=current_row, column=2, value=series_label
-                        )
+                        ws.cell(row=current_row, column=2, value=series_label)
                         ws.cell(row=current_row, column=3, value=date_val)
-                        ws.cell(
-                            row=current_row, column=4, value=numeric_val
-                        )
+                        ws.cell(row=current_row, column=4, value=numeric_val)
                         ws.cell(row=current_row, column=5, value=unit)
                         current_row += 1
 
@@ -669,8 +679,7 @@ class DataSeriesExcelSerializer:
             }
         except Exception as e:
             current_app.logger.warning(
-                f"Failed to retrieve community metadata for "
-                f"{community_id}: {e}"
+                f"Failed to retrieve community metadata for {community_id}: {e}"
             )
             return None
 
@@ -717,6 +726,9 @@ class DataSeriesXMLSerializer:
             data: Nested dictionary with structure like sample_usage_delta_data_series
             community_id: Optional community ID for community-specific stats
             **kwargs: Additional keyword arguments
+
+        Raises:
+            ValueError: If the content cannot be serialized.
 
         Returns:
             Flask Response with XML content
@@ -816,7 +828,9 @@ class DataSeriesXMLSerializer:
                 for series_set_data in query_data.values():
                     if isinstance(series_set_data, dict):
                         total_metrics_count += sum(
-                            1 for v in series_set_data.values() if isinstance(v, list) and v
+                            1
+                            for v in series_set_data.values()
+                            if isinstance(v, list) and v
                         )
             category_elem.set("metricsCount", str(total_metrics_count))
 
@@ -828,7 +842,9 @@ class DataSeriesXMLSerializer:
 
                     series_set_elem = ET.SubElement(category_elem, "seriesSet")
                     series_set_elem.set("name", str(series_set_name))
-                    series_set_elem.set("id", self._sanitize_xml_id(str(series_set_name)))
+                    series_set_elem.set(
+                        "id", self._sanitize_xml_id(str(series_set_name))
+                    )
 
                     # Count metrics in this series set
                     series_set_metrics_count = sum(
@@ -863,7 +879,9 @@ class DataSeriesXMLSerializer:
                         if measurement_type:
                             metric_elem.set("measurementType", measurement_type)
 
-                        aggregation_method = self._get_aggregation_method(str(metric_name))
+                        aggregation_method = self._get_aggregation_method(
+                            str(metric_name)
+                        )
                         if aggregation_method:
                             metric_elem.set("aggregationMethod", aggregation_method)
 
@@ -873,7 +891,10 @@ class DataSeriesXMLSerializer:
 
                         # Process each data series in the metric
                         for series_obj in metric_data:
-                            if not isinstance(series_obj, dict) or "id" not in series_obj:
+                            if (
+                                not isinstance(series_obj, dict)
+                                or "id" not in series_obj
+                            ):
                                 continue
 
                             series_elem = ET.SubElement(metric_elem, "series")
@@ -885,7 +906,9 @@ class DataSeriesXMLSerializer:
                             if "type" in series_obj:
                                 series_elem.set("type", str(series_obj["type"]))
                             if "valueType" in series_obj:
-                                series_elem.set("valueType", str(series_obj["valueType"]))
+                                series_elem.set(
+                                    "valueType", str(series_obj["valueType"])
+                                )
 
                             # Add semantic attributes
                             if "label" in series_obj:
@@ -908,7 +931,8 @@ class DataSeriesXMLSerializer:
                                         # Add readable date if available
                                         if "readableDate" in point:
                                             point_elem.set(
-                                                "readableDate", str(point["readableDate"])
+                                                "readableDate",
+                                                str(point["readableDate"]),
                                             )
 
                                         # Add value array
@@ -927,7 +951,9 @@ class DataSeriesXMLSerializer:
                                                 )
 
                                             # Add semantic attributes
-                                            unit = self._get_metric_unit(str(metric_name))
+                                            unit = self._get_metric_unit(
+                                                str(metric_name)
+                                            )
                                             if unit:
                                                 point_elem.set("unit", unit)
 

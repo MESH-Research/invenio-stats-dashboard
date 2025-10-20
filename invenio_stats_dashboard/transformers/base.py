@@ -45,7 +45,11 @@ class DataPoint:
         self.value_type = value_type
 
     def to_dict(self) -> DataPointDict:
-        """Convert to dictionary format matching JavaScript output."""
+        """Convert to dictionary format matching JavaScript output.
+        
+        Returns:
+            DataPointDict: Dictionary representation of the data point.
+        """
         return {
             "value": [self.date, self.value],
             "readableDate": self._format_readable_date(),
@@ -53,7 +57,11 @@ class DataPoint:
         }
 
     def _format_readable_date(self) -> str:
-        """Format date as localized human-readable string matching JavaScript output."""
+        """Format date as localized human-readable string matching JavaScript output.
+        
+        Returns:
+            str: Formatted date string.
+        """
         try:
             date_obj = datetime.strptime(self.date, "%Y-%m-%d")
 
@@ -122,7 +130,11 @@ class DataSeries(ABC):
         self.data.append(DataPoint(date, value, value_type))
 
     def to_dict(self) -> DataSeriesDict:
-        """Convert to dictionary format matching JavaScript output."""
+        """Convert to dictionary format matching JavaScript output.
+        
+        Returns:
+            DataSeriesDict: Dictionary representation of the data series.
+        """
         # Handle multilingual labels - preserve as object for JavaScript processing
         name = self.series_name
         if isinstance(name, dict):
@@ -141,7 +153,11 @@ class DataSeries(ABC):
         }
 
     def for_json(self) -> DataSeriesDict:
-        """Convert to dictionary format for JSON serialization."""
+        """Convert to dictionary format for JSON serialization.
+        
+        Returns:
+            DataSeriesDict: Dictionary representation for JSON serialization.
+        """
         return self.to_dict()
 
 
@@ -276,7 +292,11 @@ class DataSeriesArray:
     def _get_item_data_for_series(
         self, doc: dict[str, Any], data_series: DataSeries
     ) -> dict[str, Any] | None:
-        """Get the specific item data for a DataSeries from the document."""
+        """Get the specific item data for a DataSeries from the document.
+        
+        Returns:
+            dict[str, Any] | None: Item data dictionary, or None if not found.
+        """
         if self.is_global:
             # Return global document without subcounts
             global_doc = dict(doc)
@@ -325,7 +345,11 @@ class DataSeriesArray:
         return None
 
     def to_dict(self) -> list[DataSeriesDict]:
-        """Convert to dictionary format."""
+        """Convert to dictionary format.
+        
+        Returns:
+            list[DataSeriesDict]: List of data series dictionaries.
+        """
         if isinstance(self.series, list):
             return [s.to_dict() for s in self.series]
         elif self.series is not None:
@@ -334,7 +358,11 @@ class DataSeriesArray:
             return []
 
     def to_json(self) -> str:
-        """Convert to JSON string."""
+        """Convert to JSON string.
+        
+        Returns:
+            str: JSON string representation.
+        """
         return json.dumps(self.to_dict(), indent=2)
 
 
@@ -370,7 +398,11 @@ class DataSeriesSet(ABC):
         self._built_result: dict[str, dict[str, list[DataSeriesDict]]] | None = None
 
     def _get_default_series_keys(self) -> list[str]:
-        """Get the default series keys for this document category."""
+        """Get the default series keys for this document category.
+        
+        Returns:
+            list[str]: List of default series keys.
+        """
         from flask import current_app
 
         # Get subcount configurations from Flask config
@@ -494,14 +526,22 @@ class DataSeriesSet(ABC):
         return result
 
     def for_json(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
-        """Convert to dictionary format for JSON serialization with camelCase keys."""
+        """Convert to dictionary format for JSON serialization with camelCase keys.
+        
+        Returns:
+            dict[str, dict[str, list[DataSeriesDict]]]: Dictionary with camelCase keys.
+        """
         result = self.build()
         return self._convert_to_camelcase(result)
 
     def _convert_to_camelcase(
         self, data: dict[str, dict[str, list[DataSeriesDict]]]
     ) -> dict[str, dict[str, list[DataSeriesDict]]]:
-        """Convert snake_case keys to camelCase for JSON serialization."""
+        """Convert snake_case keys to camelCase for JSON serialization.
+        
+        Returns:
+            dict[str, dict[str, list[DataSeriesDict]]]: Dictionary with camelCase keys.
+        """
         result: dict[str, dict[str, list[DataSeriesDict]]] = {}
         for subcount_key, subcount_data in data.items():
             # Convert subcount key (e.g., "access_statuses" -> "accessStatuses")
@@ -518,7 +558,11 @@ class DataSeriesSet(ABC):
         return result
 
     def _to_camelcase(self, snake_str: str) -> str:
-        """Convert snake_case string to camelCase."""
+        """Convert snake_case string to camelCase.
+        
+        Returns:
+            str: camelCase string.
+        """
         components = snake_str.split("_")
         return components[0] + "".join(x.capitalize() for x in components[1:])
 
@@ -618,5 +662,9 @@ class DataSeriesSet(ABC):
         raise NotImplementedError("Special subcounts not implemented")
 
     def to_json(self) -> str:
-        """Convert all series to JSON string."""
+        """Convert all series to JSON string.
+        
+        Returns:
+            str: JSON string representation.
+        """
         return json.dumps(self.for_json(), indent=2)

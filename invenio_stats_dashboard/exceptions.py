@@ -50,6 +50,6 @@ class CommunityEventsNotInitializedError(Exception):
 
 
 class UsageEventsNotMigratedError(Exception):
-    """Exception raised when usage events have not been migrated to include community_ids."""
+    """Exception raised when usage events lack community_ids after migration."""
 
     pass

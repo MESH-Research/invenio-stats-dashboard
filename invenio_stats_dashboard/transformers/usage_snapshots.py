@@ -100,7 +100,11 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         return "usage_events"
 
     def _get_default_series_keys(self) -> list[str]:
-        """Get the default series keys for usage snapshot data."""
+        """Get the default series keys for usage snapshot data.
+        
+        Returns:
+            list[str]: List of default series keys.
+        """
         from flask import current_app
 
         subcount_configs = current_app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
@@ -141,7 +145,11 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         ]
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
-        """Get the metrics for a special subcount."""
+        """Get the metrics for a special subcount.
+        
+        Returns:
+            list[str]: List of metrics for the special subcount.
+        """
         return [
             "views",
             "downloads",
@@ -153,7 +161,11 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
     def _create_special_series_array(
         self, subcount: str, metric: str
     ) -> DataSeriesArray:
-        """Create a data series array for a special subcount and metric."""
+        """Create a data series array for a special subcount and metric.
+        
+        Returns:
+            DataSeriesArray: The created data series array.
+        """
         # All special subcounts use the same class - it auto-detects structure
         return DataSeriesArray(
             subcount,
@@ -174,6 +186,9 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         - download.unique_visitors → download_visitors
         - download.total_volume → data_volume
         - Plus additional metrics from view/download structures
+        
+        Returns:
+            dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
         if not self.documents:
             return {"global": [], "subcount": []}
@@ -212,7 +227,11 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         return {"global": metrics, "subcount": metrics}
 
     def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for usage snapshot data when no documents exist."""
+        """Get default metrics for usage snapshot data when no documents exist.
+        
+        Returns:
+            dict[str, list[str]]: Dictionary mapping category to list of metrics.
+        """
         # Standard usage snapshot metrics that should always be available
         metrics = [
             "data_volume", "download_unique_files", "download_unique_parents",
@@ -225,7 +244,11 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         }
 
     def _create_series_array(self, series_key: str, metric: str) -> DataSeriesArray:
-        """Create a data series array for the given series key and metric."""
+        """Create a data series array for the given series key and metric.
+        
+        Returns:
+            DataSeriesArray: The created data series array.
+        """
         if series_key == "global":
             return DataSeriesArray(
                 "global",

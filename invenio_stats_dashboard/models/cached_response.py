@@ -70,7 +70,9 @@ class CachedResponse:
         }
 
     @staticmethod
-    def from_request_data(request_data: dict, cache_type: str = "community") -> "CachedResponse":
+    def from_request_data(
+        request_data: dict, cache_type: str = "community"
+    ) -> "CachedResponse":
         """Create a CachedResponse from raw request data.
 
         Args:
@@ -93,7 +95,8 @@ class CachedResponse:
     def _resolve_community_id(self, community_id: str) -> str:
         """Resolve community ID from slug or return as-is if already UUID or 'global'.
 
-        If resolution fails, return the original value. This allows for graceful handling of invalid slugs.
+        If resolution fails, return the original value. This allows for graceful
+        handling of invalid slugs.
 
         NOTE: This assumes a UUID of the form xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
 
@@ -139,6 +142,9 @@ class CachedResponse:
 
         Returns:
             JSON bytes
+            
+        Raises:
+            ValueError: If data cannot be serialized to JSON.
         """
         if self._bytes_data is not None:
             return self._bytes_data
@@ -155,6 +161,9 @@ class CachedResponse:
 
         Returns:
             Python dict or list
+            
+        Raises:
+            ValueError: If bytes data cannot be deserialized from JSON.
         """
         if self._object_data is not None:
             return self._object_data
@@ -263,6 +272,9 @@ class CachedResponse:
 
         Returns:
             Self (for method chaining)
+            
+        Raises:
+            ValueError: If query type is not configured or parameters are invalid.
         """
         configured_queries = current_app.config.get("STATS_QUERIES", {})
         allowed_params = {

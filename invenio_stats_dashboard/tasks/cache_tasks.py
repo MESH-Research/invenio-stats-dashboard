@@ -6,16 +6,15 @@
 
 """Celery tasks for cache generation."""
 
-import arrow
-from celery import shared_task
-from flask import current_app
 from typing import Any
 
+import arrow
+from celery import shared_task
 from celery.schedules import crontab
+from flask import current_app
 
-from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
 from ..services.cached_response_service import CachedResponseService
-
+from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
 
 CachedResponsesGenerationTask = {
     "task": "invenio_stats_dashboard.tasks.generate_cached_responses_task",
@@ -71,7 +70,7 @@ def generate_cached_responses_task(
             try:
                 with lock:
                     current_app.logger.info(
-                        f"Acquired cache generation lock, starting cache generation"
+                        "Acquired cache generation lock, starting cache generation"
                     )
                     result: dict[str, Any] = service.create(
                         community_ids=community_ids,
@@ -87,7 +86,8 @@ def generate_cached_responses_task(
 
             except TaskLockAcquisitionError:
                 current_app.logger.warning(
-                    "Cache generation task skipped - another instance is already running"
+                    "Cache generation task skipped - "
+                    "another instance is already running"
                 )
                 return {
                     'success': False,
@@ -99,7 +99,7 @@ def generate_cached_responses_task(
         else:
             # Run without locking
             current_app.logger.info(
-                f"Running cache generation without distributed lock"
+                "Running cache generation without distributed lock"
             )
             result_no_lock: dict[str, Any] = service.create(
                 community_ids=community_ids,

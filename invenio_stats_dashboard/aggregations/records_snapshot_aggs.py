@@ -205,9 +205,6 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
                 the first delta document and the current date.
             exhaustive_counts_cache: The exhaustive counts cache
             latest_delta: The latest delta document
-
-        Returns:
-            The updated aggregation dictionary with the new top subcounts.
         """
         for subcount_key, config in self.subcount_configs.items():
             records_config = config.get("records", {})
@@ -246,7 +243,11 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         """
 
         def calculate_net_value(delta_item, category, field):
-            """Calculate net value (added - removed) for a field."""
+            """Calculate net value (added - removed) for a field.
+            
+            Returns:
+                int: The net value (added - removed) for the field.
+            """
             return (
                 delta_item[category]["added"][field]
                 - delta_item[category]["removed"][field]
@@ -310,7 +311,12 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
     def _update_cumulative_totals(  # type: ignore[override]
         self, new_dict: RecordSnapshotDocument, delta_doc: RecordDeltaDocument
     ) -> RecordSnapshotDocument:
-        """Update cumulative totals with values from a daily delta document."""
+        """Update cumulative totals with values from a daily delta document.
+        
+        Returns:
+            RecordSnapshotDocument: The updated snapshot document with cumulative
+                totals.
+        """
         new_dict["total_records"]["metadata_only"] = max(
             0,
             (
@@ -401,6 +407,9 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             latest_delta (RecordDeltaDocument): The latest delta document to add
             deltas (list): All delta documents for top subcounts (from earliest date)
             exhaustive_counts_cache (dict | None): The exhaustive counts cache
+            
+        Returns:
+            RecordSnapshotDocument: The aggregation result for indexing.
         """
         if exhaustive_counts_cache is None:
             exhaustive_counts_cache = {}

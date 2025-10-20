@@ -69,6 +69,9 @@ class CommunityStatsService:
 
         Returns:
             AggregationResponse object
+            
+        Raises:
+            ValueError: If invalid parameters are provided.
         """
         agg_args = CommunityStatsAggregationTask["args"]
         current_app.logger.debug(f"agg_type_args: {agg_args}")
@@ -464,6 +467,9 @@ class CommunityStatsService:
 
         Returns:
             Tuple of (success, result) where success indicates if data was found
+            
+        Raises:
+            ValueError: If invalid parameters are provided.
         """
         try:
             if query_type:
@@ -799,7 +805,10 @@ class CommunityStatsService:
             if current_value is None:
                 return {
                     "success": True,
-                    "message": f"Lock '{full_lock_key}' not found (already cleared or never existed)",
+                    "message": (
+                        f"Lock '{full_lock_key}' not found "
+                        "(already cleared or never existed)"
+                    ),
                     "lock_key": full_lock_key,
                     "lock_value": None,
                     "cleared": False,

@@ -4,4 +4,4 @@
 # Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-"""OpenSearch v2 index templates for community records snapshot published aggregations."""
+"""OpenSearch v2 index templates for records snapshot published aggregations."""
