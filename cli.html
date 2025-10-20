@@ -1033,7 +1033,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-even
 <li><p><code class="docutils literal notranslate"><span class="pre">--max-memory-percent</span></code>: Maximum memory usage percentage before stopping (default from <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code>: Show what would be migrated without doing it.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--async</span></code>: Run reindexing asynchronously using Celery.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--delete-old-indices</span></code>: Delete old indices after migration (default is to keep them).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--delete-old-indices</span></code>: Delete old indices after migration (default is to keep them). Use <code class="docutils literal notranslate"><span class="pre">cleanup-old-indices</span></code> command to clean up later if needed.</p></li>
 </ul>
 <p><strong>Examples:</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Basic migration for all event types</span>
@@ -1065,7 +1065,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-even
 <li><p><code class="docutils literal notranslate"><span class="pre">--max-batches,</span> <span class="pre">-b</span></code>: Maximum batches to process per month.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code>: Number of events to process per batch (default: 1000).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--max-memory-percent</span></code>: Maximum memory usage percentage before stopping (default: 85).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--delete-old-indices</span></code>: Delete old indices after migration.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--delete-old-indices</span></code>: Delete old indices after migration. Use <code class="docutils literal notranslate"><span class="pre">cleanup-old-indices</span></code> command to clean up later if needed.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--pid-dir</span></code>: Directory to store PID and status files (default: <code class="docutils literal notranslate"><span class="pre">/tmp</span></code>).</p></li>
 </ul>
 <p><strong>Examples:</strong></p>
@@ -1133,6 +1133,40 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-even
 invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>clear-bookmarks<span class="w"> </span>--months<span class="w"> </span><span class="m">2024</span>-01<span class="w"> </span>--months<span class="w"> </span><span class="m">2024</span>-02
 </pre></div>
 </div>
+</section>
+<section id="usage-events-cleanup-old-indices">
+<h3><code class="docutils literal notranslate"><span class="pre">usage-events</span> <span class="pre">cleanup-old-indices</span></code><a class="headerlink" href="#usage-events-cleanup-old-indices" title="Link to this heading">¶</a></h3>
+<p>Clean up old indices that have been successfully migrated. This command identifies old indices that have corresponding migrated indices and validates that the migration was completed successfully before deleting the old indices.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>cleanup-old-indices<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--event-types,</span> <span class="pre">-e</span></code>: Event types to clean up (view, download). Can be specified multiple times. Defaults to both.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code>: Show what would be deleted without actually deleting.</p></li>
+</ul>
+<p><strong>Validation Checks:</strong></p>
+<p>This command performs multiple validation checks before deleting old indices:</p>
+<ol class="arabic simple">
+<li><p><strong>Bookmark Validation</strong>: Checks that the migration bookmark indicates completion</p></li>
+<li><p><strong>Document Count Validation</strong>: Verifies that at least 95% of events were migrated</p></li>
+<li><p><strong>Existence Validation</strong>: Ensures the migrated index has events</p></li>
+</ol>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Preview what would be deleted (recommended first step)</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>cleanup-old-indices<span class="w"> </span>--dry-run
+
+<span class="c1"># Clean up old indices for all event types</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>cleanup-old-indices
+
+<span class="c1"># Clean up only view event indices</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>cleanup-old-indices<span class="w"> </span>--event-types<span class="w"> </span>view
+
+<span class="c1"># Clean up specific event types</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>cleanup-old-indices<span class="w"> </span>--event-types<span class="w"> </span>view<span class="w"> </span>download
+</pre></div>
+</div>
+<p><strong>Note:</strong> This command is useful when migrations were run with <code class="docutils literal notranslate"><span class="pre">--delete-old-indices=false</span></code> (the default) and you want to clean up old indices after verifying that migrations completed successfully.</p>
 </section>
 </section>
 <section id="process-management-commands">
@@ -1308,6 +1342,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>processes<
 <li><a class="reference internal" href="#usage-events-migrate-background"><code class="docutils literal notranslate"><span class="pre">usage-events</span> <span class="pre">migrate-background</span></code></a></li>
 <li><a class="reference internal" href="#usage-events-status"><code class="docutils literal notranslate"><span class="pre">usage-events</span> <span class="pre">status</span></code></a></li>
 <li><a class="reference internal" href="#usage-events-clear-bookmarks"><code class="docutils literal notranslate"><span class="pre">usage-events</span> <span class="pre">clear-bookmarks</span></code></a></li>
+<li><a class="reference internal" href="#usage-events-cleanup-old-indices"><code class="docutils literal notranslate"><span class="pre">usage-events</span> <span class="pre">cleanup-old-indices</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#process-management-commands">Process Management Commands</a><ul>

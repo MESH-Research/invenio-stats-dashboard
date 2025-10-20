@@ -319,7 +319,7 @@
 <li><p>Delete the legacy monthly indices for months prior to the current month (if desired).</p></li>
 <li><p>Switch new event writes from the old current-month index to the new current-month index by:</p>
 <ul class="simple">
-<li><p>creating a temporary backup copy of the old current-month index</p></li>
+<li><p>creating a temporary backup copy of the old current-month index (named <code class="docutils literal notranslate"><span class="pre">backup-{old_index}</span></code>)</p></li>
 <li><p>quickly deleting the old current-month index and creating a write alias to the new current-month index</p></li>
 <li><p>recovering any events that arrived since the original enriched index creation from the backup index to the new enriched index</p></li>
 <li><p>validating the enriched index integrity before (optionally) deleting the temporary backup index</p></li>

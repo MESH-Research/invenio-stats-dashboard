@@ -66,7 +66,7 @@ The migration and enrichment process are handled by the `EventReindexingService`
 5. Update the read aliases (`events-stats-record-view` and `events-stats-file-download`) to point to the new monthly indices.
 6. Delete the legacy monthly indices for months prior to the current month (if desired).
 7. Switch new event writes from the old current-month index to the new current-month index by:
-   - creating a temporary backup copy of the old current-month index
+   - creating a temporary backup copy of the old current-month index (named `backup-{old_index}`)
    - quickly deleting the old current-month index and creating a write alias to the new current-month index
    - recovering any events that arrived since the original enriched index creation from the backup index to the new enriched index
    - validating the enriched index integrity before (optionally) deleting the temporary backup index
