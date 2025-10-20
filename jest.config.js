@@ -19,7 +19,7 @@ module.exports = {
   testMatch: ['**/*.test.js?(x)', '**/*.spec.js?(x)'],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/tests_stats_dashboard/',
+    '/tests/',
   ],
   collectCoverageFrom: [
     'invenio_stats_dashboard/assets/**/*.{js,jsx}',
