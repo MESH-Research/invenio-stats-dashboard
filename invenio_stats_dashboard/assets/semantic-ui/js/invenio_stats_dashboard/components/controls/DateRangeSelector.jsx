@@ -420,6 +420,83 @@ const validateDate = (year, month, day, fieldPrefix) => {
   return errors;
 };
 
+/**
+ * Auto-format year input (1-digit or 2-digit to 4-digit)
+ * @param {string} year - The year input value
+ * @returns {string} Formatted year
+ */
+const formatYear = (year) => {
+  if (!year) return "";
+
+  const yearNum = parseInt(year, 10);
+  if (isNaN(yearNum)) return year;
+
+  // If it's already 4 digits, return as is
+  if (year.length === 4) return year;
+
+  // If it's 1 or 2 digits, assume closest year
+  if (year.length === 1 || year.length === 2) {
+    const currentYear = new Date().getFullYear();
+    const currentCentury = Math.floor(currentYear / 100) * 100;
+    const nextCentury = currentCentury + 100;
+
+    const fullYear = currentCentury + yearNum;
+    const nextFullYear = nextCentury + yearNum;
+
+    // Choose the closest year
+    const currentDiff = Math.abs(fullYear - currentYear);
+    const nextDiff = Math.abs(nextFullYear - currentYear);
+
+    return currentDiff <= nextDiff ? fullYear.toString() : nextFullYear.toString();
+  }
+
+  return year;
+};
+
+/**
+ * Auto-format month input (1-digit to 2-digit with leading zero)
+ * @param {string} month - The month input value
+ * @returns {string} Formatted month
+ */
+const formatMonth = (month) => {
+  if (!month) return "";
+
+  const monthNum = parseInt(month, 10);
+  if (isNaN(monthNum)) return month;
+
+  // If it's already 2 digits, return as is
+  if (month.length === 2) return month;
+
+  // If it's 1 digit, add leading zero
+  if (month.length === 1) {
+    return monthNum.toString().padStart(2, "0");
+  }
+
+  return month;
+};
+
+/**
+ * Auto-format day input (1-digit to 2-digit with leading zero)
+ * @param {string} day - The day input value
+ * @returns {string} Formatted day
+ */
+const formatDay = (day) => {
+  if (!day) return "";
+
+  const dayNum = parseInt(day, 10);
+  if (isNaN(dayNum)) return day;
+
+  // If it's already 2 digits, return as is
+  if (day.length === 2) return day;
+
+  // If it's 1 digit, add leading zero
+  if (day.length === 1) {
+    return dayNum.toString().padStart(2, "0");
+  }
+
+  return day;
+};
+
 /** Custom Date Range Popup Component
  *
  * @param {object} props - The component props
@@ -601,6 +678,7 @@ const CustomDateRangePopup = ({
                         placeholder="YYYY"
                         value={startYear}
                         onChange={(e) => setStartYear(e.target.value)}
+                        onBlur={(e) => setStartYear(formatYear(e.target.value))}
                         maxLength={4}
                       />
                       {errors.startYear && (
@@ -617,6 +695,7 @@ const CustomDateRangePopup = ({
                         placeholder="MM"
                         value={startMonth}
                         onChange={(e) => setStartMonth(e.target.value)}
+                        onBlur={(e) => setStartMonth(formatMonth(e.target.value))}
                         maxLength={2}
                       />
                       {errors.startMonth && (
@@ -633,6 +712,7 @@ const CustomDateRangePopup = ({
                         placeholder="DD"
                         value={startDay}
                         onChange={(e) => setStartDay(e.target.value)}
+                        onBlur={(e) => setStartDay(formatDay(e.target.value))}
                         maxLength={2}
                       />
                       {errors.startDay && (
@@ -660,6 +740,7 @@ const CustomDateRangePopup = ({
                         placeholder="YYYY"
                         value={endYear}
                         onChange={(e) => setEndYear(e.target.value)}
+                        onBlur={(e) => setEndYear(formatYear(e.target.value))}
                         maxLength={4}
                       />
                       {errors.endYear && (
@@ -675,6 +756,7 @@ const CustomDateRangePopup = ({
                         placeholder="MM"
                         value={endMonth}
                         onChange={(e) => setEndMonth(e.target.value)}
+                        onBlur={(e) => setEndMonth(formatMonth(e.target.value))}
                         maxLength={2}
                       />
                       {errors.endMonth && (
@@ -690,6 +772,7 @@ const CustomDateRangePopup = ({
                         placeholder="DD"
                         value={endDay}
                         onChange={(e) => setEndDay(e.target.value)}
+                        onBlur={(e) => setEndDay(formatDay(e.target.value))}
                         maxLength={2}
                       />
                       {errors.endDay && (
