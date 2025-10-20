@@ -96,7 +96,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                 )
                 sample_search = sample_search[:10]  # Sample first 10 records
                 sample_search = sample_search.source(["community_ids"])
-                
+
                 try:
                     results = sample_search.execute()
                     if results.hits.total.value > 0:
@@ -104,12 +104,12 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                         has_community_ids = False
                         for hit in results.hits:
                             if (
-                                hasattr(hit, 'community_ids') 
+                                hasattr(hit, 'community_ids')
                                 and hit.community_ids is not None
                             ):
                                 has_community_ids = True
                                 break
-                        
+
                         if not has_community_ids:
                             raise UsageEventsNotMigratedError(
                                 f"Usage events in '{event_index}' lack community_ids field. "  # noqa: E501
@@ -526,7 +526,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         download_results: AttrList | None,
     ) -> UsageDeltaDocument:
         """Make the top level results for the usage delta document.
-        
+
         Returns:
             UsageDeltaDocument: The usage delta document with top level results.
         """
@@ -596,7 +596,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         index: int = 0,
     ) -> list[UsageSubcountItem]:
         """Assemble subcount items from view and download results.
-        
+
         Returns:
             list[UsageSubcountItem]: List of assembled subcount items.
         """
@@ -701,7 +701,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         self, item_sets: list[list[dict[str, Any]]]
     ) -> list[dict[str, Any]]:
         """Merge results from multiple fields.
-        
+
         Returns:
             list[dict[str, Any]]: Merged list of results from all fields.
         """
@@ -807,7 +807,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         last_event_date: arrow.Arrow | None,
     ) -> Generator[tuple[dict, float], None, None]:
         """Create a dictionary representing the aggregation result for indexing.
-        
+
         Yields:
             tuple[dict, float]: A tuple containing:
                 - [0]: A dictionary representing an aggregation document for indexing
@@ -970,7 +970,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         self, view_results, download_results, id_agg_name, name_agg_name
     ):
         """Get all buckets from id and name aggregations for both view and download.
-        
+
         Returns:
             list: List of tuples containing (agg_name, bucket, agg_type).
         """
@@ -998,7 +998,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         config: dict,
     ) -> UsageSubcountItem:
         """Extract id and name from a bucket based on its type.
-        
+
         Returns:
             UsageSubcountItem: Dictionary containing extracted id and label.
         """
@@ -1056,7 +1056,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
     @staticmethod
     def _extract_fields_from_label(bucket, bucket_type, id_field_path, name_field_path):
         """Extract a field value from bucket label aggregation after merging items.
-        
+
         Returns:
             dict | None: Dictionary containing id and label, or None if not found.
         """
@@ -1107,7 +1107,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
     @staticmethod
     def _get_nested_field_value(item, field_path, fallback):
         """Get a nested field value from an item using dot notation.
-        
+
         Returns:
             Any: The nested field value, or the fallback if not found.
         """
@@ -1197,7 +1197,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     def _create_empty_subcount_item(self, item_id, name):
         """Create an empty subcount item with zero metrics.
-        
+
         Returns:
             dict: Dictionary containing empty subcount item with zero metrics.
         """
@@ -1222,7 +1222,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     def _extract_view_metrics(self, bucket):
         """Extract view metrics from a bucket.
-        
+
         Returns:
             dict: Dictionary containing view metrics.
         """
@@ -1235,7 +1235,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
     def _extract_download_metrics(self, bucket):
         """Extract download metrics from a bucket.
-        
+
         Returns:
             dict: Dictionary containing download metrics.
         """
@@ -1264,28 +1264,39 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             bucket_key: The bucket key (ID) to match against
 
         Returns:
-            The label string, or the bucket_key as fallback
+            The label string or dict, or the bucket_key as fallback. For fields that
+            expect objects (like resource_type.title), returns {"en": bucket_key}
+            when only a string is available.
         """
         if "." not in title_field:
             result = source.get(title_field, str(bucket_key))
-            return result if isinstance(result, str | dict) else str(bucket_key)
+            if isinstance(result, str | dict):
+                return result
+            else:
+                # Determine if this field expects an object based on the field name
+                return CommunityUsageDeltaAggregator._create_fallback_label(
+                    bucket_key, title_field
+                )
 
         parts = title_field.split(".")
 
         # The first part should be the array field (e.g., "subjects")
         array_field = parts[0]
         if array_field not in source:
-            return str(bucket_key)
+            return CommunityUsageDeltaAggregator._create_fallback_label(
+                bucket_key, title_field
+            )
 
         field_value = source[array_field]
 
         if not isinstance(field_value, list):
             if len(parts) == 1:
-                return (
-                    field_value
-                    if isinstance(field_value, str | dict)
-                    else str(field_value)
-                )
+                if isinstance(field_value, str | dict):
+                    return field_value
+                else:
+                    return CommunityUsageDeltaAggregator._create_fallback_label(
+                        bucket_key, title_field
+                    )
             else:
                 label_path = parts[1:]
                 value = field_value
@@ -1295,11 +1306,12 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     else:
                         value = ""
                         break
-                return (
-                    value
-                    if isinstance(value, str | dict) and value
-                    else str(bucket_key)
-                )
+                if isinstance(value, str | dict) and value:
+                    return value
+                else:
+                    return CommunityUsageDeltaAggregator._create_fallback_label(
+                        bucket_key, title_field
+                    )
 
         if isinstance(field_value, list) and len(field_value) > 0:
             label_path_leaf = parts[1:] if len(parts) > 1 else []
@@ -1309,6 +1321,43 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             if label and isinstance(label, str | dict):
                 return label
             else:
-                return str(bucket_key)
+                return CommunityUsageDeltaAggregator._create_fallback_label(
+                    bucket_key, title_field
+                )
 
-        return str(bucket_key)
+        return CommunityUsageDeltaAggregator._create_fallback_label(
+            bucket_key, title_field
+        )
+
+    @staticmethod
+    def _create_fallback_label(
+        bucket_key: str, title_field: str
+    ) -> str | dict[str, str]:
+        """Create an appropriate fallback label based on the field type.
+
+        For fields that expect objects (like resource_type.title), returns
+        {"en": bucket_key}. For other fields, returns the bucket_key as string.
+
+        Args:
+            bucket_key: The bucket key to use as fallback
+            title_field: The field path to determine expected type
+
+        Returns:
+            String or dict based on expected field type
+        """
+        # Fields that expect object values (localized titles)
+        object_fields = {
+            "resource_type.title",
+            "subjects.title",
+            "rights.title",
+            "funders.title",
+            "periodicals.title",
+            "publishers.title",
+            "affiliations.title",
+            "countries.title"
+        }
+
+        if title_field in object_fields:
+            return {"en": bucket_key}
+        else:
+            return bucket_key

@@ -161,7 +161,7 @@ class CommunityAggregatorBase(StatAggregator):
 
         def check_index_exists(index_name: str) -> bool:
             """Check if the index exists.
-            
+
             Returns:
                 bool: True if the index exists, False otherwise.
             """
@@ -206,7 +206,7 @@ class CommunityAggregatorBase(StatAggregator):
 
         If there's more than self.catchup_interval days between the lower limit
         and the end date, we will only aggregate for self.catchup_interval days.
-        
+
         Returns:
             arrow.Arrow: The calculated end date for aggregation.
         """
@@ -310,11 +310,9 @@ class CommunityAggregatorBase(StatAggregator):
         start_date = arrow.get(start_date) if start_date else None
         end_date = arrow.get(end_date) if end_date else None
 
-        # Check if community events are initialized before proceeding
         self._check_community_events_initialized()
 
-        # Check if usage events have been migrated (for usage aggregators)
-        self._check_usage_events_migrated()
+        self._check_usage_events_migrated()  # for usage aggregators
 
         # If no records have been indexed there is nothing to aggregate
         if (
@@ -421,7 +419,7 @@ class CommunityAggregatorBase(StatAggregator):
                 f"About to begin adaptive bulk indexing for community {community_id} "
                 f"with initial chunk_size={self.current_chunk_size}"
             )
-            
+
             docs_indexed, errors = self._adaptive_bulk_index(
                 document_generator_with_metadata(community_docs_info),
                 stats_only=False if return_results else True,
@@ -430,9 +428,10 @@ class CommunityAggregatorBase(StatAggregator):
 
             if update_bookmark:
                 if errors:
+                    error_count = len(errors) if isinstance(errors, list) else errors
                     current_app.logger.error(
                         f"Bulk indexing errors for {community_id}: "
-                        f"{len(errors)} errors. Skipping bookmark update."
+                        f"{error_count} errors. Skipping bookmark update."
                     )
                     continue
 
@@ -448,7 +447,6 @@ class CommunityAggregatorBase(StatAggregator):
                     )
                     continue
 
-                # Validate that we have document info for all indexed documents
                 if len(community_docs_info) != docs_indexed:
                     current_app.logger.error(
                         f"Document info count mismatch for {community_id}: "
@@ -460,7 +458,6 @@ class CommunityAggregatorBase(StatAggregator):
 
                 self._update_bookmark(community_id, community_docs_info)
 
-        # Refresh all indices to make documents available for subsequent aggregators
         self.client.indices.refresh(index=f"{self.aggregation_index}-*")
         return results
 
@@ -576,7 +573,7 @@ class CommunityAggregatorBase(StatAggregator):
         key: str | dict,
     ) -> str | dict[str, str]:
         """Find a matching item in a data source by key and extract the label.
-        
+
         Returns:
             str | dict[str, str]: The extracted label or empty string if not found.
         """
@@ -654,14 +651,14 @@ class CommunityAggregatorBase(StatAggregator):
         return bool(last_event_date < start_date)
 
     def _adaptive_bulk_index(
-        self, 
-        documents: Generator[dict, None, None], 
-        stats_only: bool = True
+        self, documents: Generator[dict, None, None], stats_only: bool = True
     ) -> tuple[int, int | list[dict]]:
         """Perform bulk indexing with adaptive chunk size based on request size limits.
 
         This method automatically adjusts chunk size when encountering 413 errors
         (request too large) by gradually reducing the chunk size until it succeeds.
+        When indexing errors occur, they are logged and returned to prevent
+        bookmark updates.
 
         Args:
             documents: Generator of documents to index
@@ -669,30 +666,47 @@ class CommunityAggregatorBase(StatAggregator):
 
         Returns:
             Tuple of (docs_indexed, errors)
-            
+
         Raises:
             TransportError: If the connection fails after all retry attempts.
         """
         try:
-            result = bulk(
+            result: tuple[int, int | list[dict]] = bulk(
                 self.client,
                 documents,
                 stats_only=stats_only,
                 chunk_size=self.current_chunk_size,
             )
-            
+
+            docs_indexed, errors = result
+
+            error_count = len(errors) if isinstance(errors, list) else (
+                errors if isinstance(errors, int) else 0
+            )
+
+            if error_count > 0:
+                current_app.logger.error(
+                    f"Bulk indexing completed with {error_count} errors out of "
+                    f"{docs_indexed + error_count} documents. "
+                    f"Bookmark will not be updated to prevent data inconsistency."
+                )
+                if isinstance(errors, list) and len(errors) > 0:
+                    first_error = errors[0]
+                    current_app.logger.error(f"First indexing error: {first_error}")
+                return result
+
             if self.current_chunk_size < self.max_chunk_size:
                 self.current_chunk_size = min(
-                    int(self.current_chunk_size * self.chunk_size_growth_factor), 
-                    self.max_chunk_size
+                    int(self.current_chunk_size * self.chunk_size_growth_factor),
+                    self.max_chunk_size,
                 )
                 current_app.logger.debug(
                     f"Bulk indexing successful with "
                     f"chunk_size={self.current_chunk_size}"
                 )
-            
+
             return cast(tuple[int, int | list[dict]], result)
-            
+
         except TransportError as e:
             if e.status_code == 413:  # Request too large
                 if self.current_chunk_size > self.min_chunk_size:
@@ -700,14 +714,14 @@ class CommunityAggregatorBase(StatAggregator):
                     old_chunk_size = self.current_chunk_size
                     self.current_chunk_size = max(
                         int(self.current_chunk_size * self.chunk_size_reduction_factor),
-                        self.min_chunk_size
+                        self.min_chunk_size,
                     )
-                    
+
                     current_app.logger.warning(
                         f"Request too large (413) with chunk_size={old_chunk_size}, "
                         f"reducing to {self.current_chunk_size} and retrying"
                     )
-                    
+
                     return self._adaptive_bulk_index(documents, stats_only)
                 else:
                     current_app.logger.error(
@@ -863,7 +877,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
 
         Returns:
             Index of the delta document for the current iteration date
-            
+
         Raises:
             DeltaDataGapError: If no delta document is found for the expected date.
         """
@@ -1209,7 +1223,7 @@ class CommunityEventsIndexAggregator(CommunityAggregatorBase):
         last_event_date: arrow.Arrow | None,
     ) -> Generator[tuple[dict, float], None, None]:
         """This aggregator doesn't perform any aggregation.
-        
+
         Yields:
             Nothing - this is an empty generator that yields no results.
         """
