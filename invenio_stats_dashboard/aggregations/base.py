@@ -811,11 +811,10 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             Previous snapshot document or a zero document if none exists, and a
             boolean indicating if the snapshot is a zero placeholder document.
         """
-        previous_date = current_date.shift(days=-1)
+        # Search all snapshot indices using the alias, not just a specific year
+        index_name = prefix_index(self.aggregation_index)
 
-        index_name = prefix_index(f"{self.aggregation_index}-{previous_date.year}")
-
-        # First try: Query for snapshot with exact previous day's date
+        # Query for the most recent snapshot on or before the current date
         try:
             snapshot_search = Search(using=self.client, index=index_name)
             snapshot_search = snapshot_search.query(
@@ -825,12 +824,12 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                     {
                         "range": {
                             "snapshot_date": {
-                                "lte": previous_date.format("YYYY-MM-DDTHH:mm:ss")
+                                "lte": current_date.format("YYYY-MM-DDTHH:mm:ss")
                             }
                         }
                     },
                 ],
-            ).sort({"snapshot_date": {"order": "asc"}})
+            ).sort({"snapshot_date": {"order": "desc"}})
             snapshot_search = snapshot_search.extra(size=1)
             snapshot_results = snapshot_search.execute()
             if snapshot_results.hits.total.value > 0:
@@ -841,7 +840,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             pass
 
         return (
-            self._create_zero_document(community_id, previous_date),
+            self._create_zero_document(community_id, current_date),
             True,
         )
 
@@ -1092,13 +1091,9 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             else None
         )
 
-        # Catch up missing snapshots before the start date
-        if previous_snapshot_date and previous_snapshot_date < start_date.shift(
-            days=-1
-        ):
-            current_iteration_date = previous_snapshot_date.shift(days=1)
-            # FIXME: Add +1 to match delta aggregator's inclusive range calculation
-            # Delta aggregators use _get_end_date() which creates inclusive ranges
+        if previous_snapshot_date and previous_snapshot_date <= end_date:
+            current_iteration_date = previous_snapshot_date
+            # Apply catchup limit to prevent processing too many days at once
             end_date = min(
                 end_date, previous_snapshot_date.shift(days=self.catchup_interval + 1)
             )
