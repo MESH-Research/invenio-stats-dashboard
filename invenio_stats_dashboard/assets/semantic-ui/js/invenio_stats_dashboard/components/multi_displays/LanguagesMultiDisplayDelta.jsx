@@ -9,13 +9,13 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from "../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
-import { CHART_COLORS, RECORD_START_BASES } from '../../constants';
+import { CHART_COLORS, RECORD_START_BASES } from "../../constants";
 import { formatDate } from "../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../utils/multiDisplayHelpers";
 
 const LanguagesMultiDisplayDelta = ({
@@ -33,23 +33,48 @@ const LanguagesMultiDisplayDelta = ({
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
+      setSubtitle(
+        i18next.t("during") +
+          " " +
+          formatDate(dateRange.start, "day", true, dateRange.end),
+      );
     }
   }, [dateRange]);
 
   // Extract and process languages data using DELTA data (period-restricted)
-  const rawLanguages = extractData(stats, recordStartBasis, 'languages', 'records', dateRange, true, false);
+  const rawLanguages = extractData(
+    stats,
+    recordStartBasis,
+    "languages",
+    "records",
+    dateRange,
+    true,
+    false,
+  );
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
+  const {
+    transformedData,
+    otherData,
+    originalOtherData,
+    totalCount,
+    otherPercentage,
+  } = transformMultiDisplayData(
     rawLanguages,
     pageSize,
-    'metadata.languages.title',
+    "metadata.languages.id",
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+  const chartOptions = generateMultiDisplayChartOptions(
+    transformedData,
+    otherData,
+    available_views,
+    otherPercentage,
+    originalOtherData,
+    hideOtherInCharts,
+  );
 
   return (
     <StatsMultiDisplay

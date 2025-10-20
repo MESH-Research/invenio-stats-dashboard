@@ -6,12 +6,11 @@
 
 import React from "react";
 import { formatNumber } from "./numbers";
-import { CHART_COLORS, RECORD_START_BASES } from '../constants';
-import { extractLocalizedLabel } from '../api/dataTransformer';
-import { filterSeriesArrayByDate } from './filters';
+import { CHART_COLORS, RECORD_START_BASES } from "../constants";
+import { extractLocalizedLabel } from "../api/dataTransformer";
+import { filterSeriesArrayByDate } from "./filters";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { getCountryNames } from './mapHelpers';
-
+import { getCountryNames } from "./mapHelpers";
 
 /**
  * Transform multi-display data into chart-ready format
@@ -25,14 +24,22 @@ import { getCountryNames } from './mapHelpers';
  * @param {boolean} isDelta - Whether the data is delta (sum all points) or snapshot (take latest point)
  * @returns {Object} Object containing transformedData, otherData, originalOtherData, totalCount, and otherPercentage
  */
-const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary, hideOtherInCharts = false, globalData = null, isDelta = false) => {
+const transformMultiDisplayData = (
+  rawData,
+  pageSize = 10,
+  searchField,
+  colorPalette = CHART_COLORS.secondary,
+  hideOtherInCharts = false,
+  globalData = null,
+  isDelta = false,
+) => {
   if (!rawData || !Array.isArray(rawData)) {
     return {
       transformedData: [],
       otherData: null,
       originalOtherData: null,
       totalCount: 0,
-      otherPercentage: 0
+      otherPercentage: 0,
     };
   }
 
@@ -42,7 +49,10 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
 
     if (isDelta) {
       // For delta data, sum all data points
-      return item.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+      return item.data.reduce(
+        (sum, point) => sum + (point?.value?.[1] || 0),
+        0,
+      );
     } else {
       // For snapshot data, take the first (and only) data point
       return item.data[0]?.value?.[1] || 0;
@@ -50,7 +60,10 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
   };
 
   // Calculate total count from subcount items (for backward compatibility)
-  const subcountTotalCount = rawData.reduce((sum, item) => sum + getItemValue(item), 0);
+  const subcountTotalCount = rawData.reduce(
+    (sum, item) => sum + getItemValue(item),
+    0,
+  );
 
   // Calculate global total count if global data is provided
   let globalTotalCount = 0;
@@ -59,22 +72,28 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
     if (globalSeries && globalSeries.data && globalSeries.data.length > 0) {
       if (isDelta) {
         // For delta data, sum all values
-        globalTotalCount = globalSeries.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+        globalTotalCount = globalSeries.data.reduce(
+          (sum, point) => sum + (point?.value?.[1] || 0),
+          0,
+        );
       } else {
         // For snapshot data, use latest value
-        globalTotalCount = globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
+        globalTotalCount =
+          globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
       }
     }
   }
 
   // Use global total if available, otherwise fall back to subcount total
-  const totalCount = globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
+  const totalCount =
+    globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
   // Transform all items first, then sort and slice
   const allTransformedData = rawData.map((item, index) => {
     const value = getItemValue(item);
-    const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
-    const currentLanguage = i18next.language || 'en';
+    const percentage =
+      totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
+    const currentLanguage = i18next.language || "en";
 
     const itemName = item.name || item.id;
     const localizedName = extractLocalizedLabel(itemName, currentLanguage);
@@ -84,47 +103,59 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
       value: value,
       percentage: percentage,
       id: item.id,
-      link: searchField ? `/search?q=${searchField}:${item.id}` : null,
+      link: searchField ? `/search?q=${searchField}:"${item.id}"` : null,
       itemStyle: {
-        color: colorPalette[index % colorPalette.length][1]
-      }
+        color: colorPalette[index % colorPalette.length][1],
+      },
     };
   });
 
   // Sort by value (descending) and slice
-  const sortedTransformedData = allTransformedData.sort((a, b) => b.value - a.value);
+  const sortedTransformedData = allTransformedData.sort(
+    (a, b) => b.value - a.value,
+  );
   const transformedData = sortedTransformedData.slice(0, pageSize);
   const otherItems = sortedTransformedData.slice(pageSize);
 
-  const otherData = otherItems.length > 0 ? otherItems.reduce((acc, item) => {
-    acc.value += item.value;
-    return acc;
-  }, {
-    id: "other",
-    name: i18next.t("Other"),
-    value: 0,
-    itemStyle: {
-      color: colorPalette[colorPalette.length - 1][1]
-    }
-  }) : null;
+  const otherData =
+    otherItems.length > 0
+      ? otherItems.reduce(
+          (acc, item) => {
+            acc.value += item.value;
+            return acc;
+          },
+          {
+            id: "other",
+            name: i18next.t("Other"),
+            value: 0,
+            itemStyle: {
+              color: colorPalette[colorPalette.length - 1][1],
+            },
+          },
+        )
+      : null;
 
   if (otherData) {
-    otherData.percentage = totalCount > 0 ? Math.round((otherData.value / totalCount) * 100) : 0;
+    otherData.percentage =
+      totalCount > 0 ? Math.round((otherData.value / totalCount) * 100) : 0;
   }
 
   const otherPercentage = otherData ? otherData.percentage : 0;
   const shouldHideOther = hideOtherInCharts && otherPercentage > 30;
 
   // Filter out zero values from the final data
-  const filteredTransformedData = transformedData.filter(item => item.value !== 0);
-  const filteredOtherData = otherData && otherData.value !== 0 ? otherData : null;
+  const filteredTransformedData = transformedData.filter(
+    (item) => item.value !== 0,
+  );
+  const filteredOtherData =
+    otherData && otherData.value !== 0 ? otherData : null;
 
   return {
     transformedData: filteredTransformedData,
     otherData: shouldHideOther ? null : filteredOtherData,
     originalOtherData: otherData, // Keep original for floating label count
     totalCount,
-    otherPercentage
+    otherPercentage,
   };
 };
 
@@ -141,14 +172,22 @@ const transformMultiDisplayData = (rawData, pageSize = 10, searchField, colorPal
  * @param {boolean} isDelta - Whether the data is delta (sum all points) or snapshot (take latest point)
  * @returns {Object} Object containing transformedData, otherData, originalOtherData, totalCount, and otherPercentage
  */
-const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, colorPalette = CHART_COLORS.secondary, hideOtherInCharts = false, globalData = null, isDelta = false) => {
+const transformCountryMultiDisplayData = (
+  rawData,
+  pageSize = 10,
+  searchField,
+  colorPalette = CHART_COLORS.secondary,
+  hideOtherInCharts = false,
+  globalData = null,
+  isDelta = false,
+) => {
   if (!rawData || !Array.isArray(rawData)) {
     return {
       transformedData: [],
       otherData: null,
       originalOtherData: null,
       totalCount: 0,
-      otherPercentage: 0
+      otherPercentage: 0,
     };
   }
 
@@ -158,7 +197,10 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
 
     if (isDelta) {
       // For delta data, sum all data points
-      return item.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+      return item.data.reduce(
+        (sum, point) => sum + (point?.value?.[1] || 0),
+        0,
+      );
     } else {
       // For snapshot data, take the first (and only) data point
       return item.data[0]?.value?.[1] || 0;
@@ -166,7 +208,10 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
   };
 
   // Calculate total count from subcount items (for backward compatibility)
-  const subcountTotalCount = rawData.reduce((sum, item) => sum + getItemValue(item), 0);
+  const subcountTotalCount = rawData.reduce(
+    (sum, item) => sum + getItemValue(item),
+    0,
+  );
 
   // Calculate global total count if global data is provided
   let globalTotalCount = 0;
@@ -175,21 +220,27 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
     if (globalSeries && globalSeries.data && globalSeries.data.length > 0) {
       if (isDelta) {
         // For delta data, sum all values
-        globalTotalCount = globalSeries.data.reduce((sum, point) => sum + (point?.value?.[1] || 0), 0);
+        globalTotalCount = globalSeries.data.reduce(
+          (sum, point) => sum + (point?.value?.[1] || 0),
+          0,
+        );
       } else {
         // For snapshot data, use latest value
-        globalTotalCount = globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
+        globalTotalCount =
+          globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
       }
     }
   }
 
   // Use global total if available, otherwise fall back to subcount total
-  const totalCount = globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
+  const totalCount =
+    globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
   // Transform all items first, then filter out zero values, sort and slice
   const allTransformedData = rawData.map((item, index) => {
     const value = getItemValue(item);
-    const percentage = totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
+    const percentage =
+      totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
     const countryCode = item.name || item.id;
     const countryName = getCountryNames(countryCode).displayName;
     return {
@@ -197,48 +248,62 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
       value: value,
       percentage: percentage,
       id: item.id,
-      link: searchField ? `/search?q=${searchField}:${item.id}` : null,
+      link: searchField ? `/search?q=${searchField}:"${item.id}"` : null,
       itemStyle: {
-        color: colorPalette[index % colorPalette.length][1]
-      }
+        color: colorPalette[index % colorPalette.length][1],
+      },
     };
   });
 
   // Filter out items with zero values, then sort by value (descending) and slice
-  const nonZeroTransformedData = allTransformedData.filter(item => item.value !== 0);
-  const sortedTransformedData = nonZeroTransformedData.sort((a, b) => b.value - a.value);
+  const nonZeroTransformedData = allTransformedData.filter(
+    (item) => item.value !== 0,
+  );
+  const sortedTransformedData = nonZeroTransformedData.sort(
+    (a, b) => b.value - a.value,
+  );
   const transformedData = sortedTransformedData.slice(0, pageSize);
   const otherItems = sortedTransformedData.slice(pageSize);
 
-  const otherData = otherItems.length > 0 ? otherItems.reduce((acc, item) => {
-    acc.value += item.value;
-    return acc;
-  }, {
-    id: "other",
-    name: i18next.t("Other"),
-    value: 0,
-    itemStyle: {
-      color: colorPalette[colorPalette.length - 1][1]
-    }
-  }) : null;
+  const otherData =
+    otherItems.length > 0
+      ? otherItems.reduce(
+          (acc, item) => {
+            acc.value += item.value;
+            return acc;
+          },
+          {
+            id: "other",
+            name: i18next.t("Other"),
+            value: 0,
+            itemStyle: {
+              color: colorPalette[colorPalette.length - 1][1],
+            },
+          },
+        )
+      : null;
 
   if (otherData) {
-    otherData.percentage = totalCount > 0 ? Math.round((otherData.value / totalCount) * 100) : 0;
+    otherData.percentage =
+      totalCount > 0 ? Math.round((otherData.value / totalCount) * 100) : 0;
   }
 
   const otherPercentage = otherData ? otherData.percentage : 0;
   const shouldHideOther = hideOtherInCharts && otherPercentage > 30;
 
   // Filter out zero values from the final data
-  const filteredTransformedData = transformedData.filter(item => item.value !== 0);
-  const filteredOtherData = otherData && otherData.value !== 0 ? otherData : null;
+  const filteredTransformedData = transformedData.filter(
+    (item) => item.value !== 0,
+  );
+  const filteredOtherData =
+    otherData && otherData.value !== 0 ? otherData : null;
 
   return {
     transformedData: filteredTransformedData,
     otherData: shouldHideOther ? null : filteredOtherData,
     originalOtherData: otherData, // Keep original for floating label count
     totalCount,
-    otherPercentage
+    otherPercentage,
   };
 };
 
@@ -250,15 +315,18 @@ const transformCountryMultiDisplayData = (rawData, pageSize = 10, searchField, c
  * @returns {Array} Array of row arrays for the table
  */
 const assembleMultiDisplayRows = (transformedData, otherData) => {
-  const allData = [
-    ...transformedData,
-    ...(otherData ? [otherData] : [])
-  ];
+  const allData = [...transformedData, ...(otherData ? [otherData] : [])];
 
   return allData.map(({ name, value, percentage, link }) => [
     null,
-    link ? <a href={link} target="_blank" rel="noopener noreferrer">{name}</a> : name,
-    `${formatNumber(value, 'compact')} (${percentage}%)`,
+    link ? (
+      <a href={link} target="_blank" rel="noopener noreferrer">
+        {name}
+      </a>
+    ) : (
+      name
+    ),
+    `${formatNumber(value, "compact")} (${percentage}%)`,
   ]);
 };
 
@@ -274,28 +342,44 @@ const assembleMultiDisplayRows = (transformedData, otherData) => {
  * @param {boolean} isUsageData - Whether to extract usage data or record data
  * @returns {Array} Filtered array of series data
  */
-const extractData = (stats, recordStartBasis, category, metric, dateRange, isDelta = false, isUsageData = false) => {
+const extractData = (
+  stats,
+  recordStartBasis,
+  category,
+  metric,
+  dateRange,
+  isDelta = false,
+  isUsageData = false,
+) => {
   let allItems;
 
   if (isUsageData) {
     // Extract usage data
-    allItems = stats?.flatMap(yearlyStats =>
-      yearlyStats?.[isDelta ? 'usageDeltaData' : 'usageSnapshotData']?.[category]?.[metric] || []
+    allItems = stats?.flatMap(
+      (yearlyStats) =>
+        yearlyStats?.[isDelta ? "usageDeltaData" : "usageSnapshotData"]?.[
+          category
+        ]?.[metric] || [],
     );
   } else {
     // Extract record data
-    const seriesCategoryMap = isDelta ? {
-      [RECORD_START_BASES.ADDED]: 'recordDeltaDataAdded',
-      [RECORD_START_BASES.CREATED]: 'recordDeltaDataCreated',
-      [RECORD_START_BASES.PUBLISHED]: 'recordDeltaDataPublished',
-    } : {
-      [RECORD_START_BASES.ADDED]: 'recordSnapshotDataAdded',
-      [RECORD_START_BASES.CREATED]: 'recordSnapshotDataCreated',
-      [RECORD_START_BASES.PUBLISHED]: 'recordSnapshotDataPublished',
-    };
+    const seriesCategoryMap = isDelta
+      ? {
+          [RECORD_START_BASES.ADDED]: "recordDeltaDataAdded",
+          [RECORD_START_BASES.CREATED]: "recordDeltaDataCreated",
+          [RECORD_START_BASES.PUBLISHED]: "recordDeltaDataPublished",
+        }
+      : {
+          [RECORD_START_BASES.ADDED]: "recordSnapshotDataAdded",
+          [RECORD_START_BASES.CREATED]: "recordSnapshotDataCreated",
+          [RECORD_START_BASES.PUBLISHED]: "recordSnapshotDataPublished",
+        };
 
-    allItems = stats?.flatMap(yearlyStats =>
-      yearlyStats?.[seriesCategoryMap[recordStartBasis]]?.[category]?.[metric] || []
+    allItems = stats?.flatMap(
+      (yearlyStats) =>
+        yearlyStats?.[seriesCategoryMap[recordStartBasis]]?.[category]?.[
+          metric
+        ] || [],
     );
   }
 
@@ -306,14 +390,14 @@ const extractData = (stats, recordStartBasis, category, metric, dateRange, isDel
   // Group items by ID and combine their time series data
   const combinedItems = {};
 
-  allItems.forEach(item => {
+  allItems.forEach((item) => {
     const itemId = item.id;
 
     if (!combinedItems[itemId]) {
       combinedItems[itemId] = {
         id: itemId,
         name: item.name,
-        data: []
+        data: [],
       };
     }
 
@@ -334,38 +418,42 @@ const extractData = (stats, recordStartBasis, category, metric, dateRange, isDel
  * @param {string} otherColor - Color for the "other" region
  * @returns {Object} ECharts graphic group element
  */
-const createFloatingOtherLabel = (originalOtherData, otherPercentage, otherColor) => {
+const createFloatingOtherLabel = (
+  originalOtherData,
+  otherPercentage,
+  otherColor,
+) => {
   return {
-    type: 'group',
-    left: 'center',
-    bottom: '5px',
+    type: "group",
+    left: "center",
+    bottom: "5px",
     children: [
       {
-        type: 'rect',
+        type: "rect",
         left: -5,
-        top: 'middle',
+        top: "middle",
         shape: {
           width: 16,
-          height: 16
+          height: 16,
         },
         style: {
-          fill: otherColor
-        }
+          fill: otherColor,
+        },
       },
       {
-        type: 'text',
+        type: "text",
         left: 20,
-        top: 'middle',
+        top: "middle",
         style: {
-          text: `${i18next.t("Other")}: ${formatNumber(originalOtherData?.value || 0, 'compact')} (${otherPercentage}%)`,
+          text: `${i18next.t("Other")}: ${formatNumber(originalOtherData?.value || 0, "compact")} (${otherPercentage}%)`,
           fontSize: 14,
-          fontWeight: 'normal',
-          fill: '#666',
-          textAlign: 'left',
-          textVerticalAlign: 'middle'
-        }
-      }
-    ]
+          fontWeight: "normal",
+          fill: "#666",
+          textAlign: "left",
+          textVerticalAlign: "middle",
+        },
+      },
+    ],
   };
 };
 
@@ -380,36 +468,57 @@ const createFloatingOtherLabel = (originalOtherData, otherPercentage, otherColor
  * @param {boolean} hideOtherInCharts - Whether to hide "other" in charts and show as floating label when >30%
  * @returns {Object} Chart options object
  */
-const generateMultiDisplayChartOptions = (transformedData, otherData, availableViews, otherPercentage = 0, originalOtherData = null, hideOtherInCharts = false) => {
+const generateMultiDisplayChartOptions = (
+  transformedData,
+  otherData,
+  availableViews,
+  otherPercentage = 0,
+  originalOtherData = null,
+  hideOtherInCharts = false,
+) => {
   const allData = [...transformedData, ...(otherData ? [otherData] : [])];
 
   // Get the color for the "other" data to use in the floating label
-  const otherColor = originalOtherData?.itemStyle?.color || '#999';
+  const otherColor = originalOtherData?.itemStyle?.color || "#999";
 
   const options = {
     list: {},
     pie: {
       grid: {
-        top: hideOtherInCharts && otherPercentage > 30 ? '2%' : '7%',
-        right: '5%',
-        bottom: hideOtherInCharts && otherPercentage > 30 ? '15%' : '5%',
-        left: '2%',
-        containLabel: true
+        top: hideOtherInCharts && otherPercentage > 30 ? "2%" : "7%",
+        right: "5%",
+        bottom: hideOtherInCharts && otherPercentage > 30 ? "15%" : "5%",
+        left: "2%",
+        containLabel: true,
       },
       tooltip: {
         trigger: "item",
+        confine: true,
+        appendToBody: false,
         formatter: (params) => {
           return `<div>
-            ${params.name}: ${formatNumber(params.value, 'compact')} (${params.data.percentage}%)
+            ${params.name}: ${formatNumber(params.value, "compact")} (${params.data.percentage}%)
           </div>`;
         },
       },
-      graphic: hideOtherInCharts && otherPercentage > 30 ? [createFloatingOtherLabel(originalOtherData, otherPercentage, otherColor)] : [],
+      graphic:
+        hideOtherInCharts && otherPercentage > 30
+          ? [
+              createFloatingOtherLabel(
+                originalOtherData,
+                otherPercentage,
+                otherColor,
+              ),
+            ]
+          : [],
       series: [
         {
           type: "pie",
           radius: ["30%", "70%"],
-          center: hideOtherInCharts && otherPercentage > 30 ? ['50%', '45%'] : ['50%', '50%'],
+          center:
+            hideOtherInCharts && otherPercentage > 30
+              ? ["50%", "45%"]
+              : ["50%", "50%"],
           data: allData,
           spacing: 2,
           itemStyle: {
@@ -432,21 +541,32 @@ const generateMultiDisplayChartOptions = (transformedData, otherData, availableV
     },
     bar: {
       grid: {
-        top: hideOtherInCharts && otherPercentage > 30 ? '2%' : '7%',
-        right: '5%',
-        bottom: hideOtherInCharts && otherPercentage > 30 ? '15%' : '5%',
-        left: '2%',
-        containLabel: true
+        top: hideOtherInCharts && otherPercentage > 30 ? "2%" : "7%",
+        right: "5%",
+        bottom: hideOtherInCharts && otherPercentage > 30 ? "15%" : "5%",
+        left: "2%",
+        containLabel: true,
       },
       tooltip: {
         trigger: "item",
+        confine: true,
+        appendToBody: false,
         formatter: (params) => {
           return `<div>
-            ${params.name}: ${formatNumber(params.value, 'compact')} (${params.data.percentage}%)
+            ${params.name}: ${formatNumber(params.value, "compact")} (${params.data.percentage}%)
           </div>`;
         },
       },
-      graphic: hideOtherInCharts && otherPercentage > 30 ? [createFloatingOtherLabel(originalOtherData, otherPercentage, otherColor)] : [],
+      graphic:
+        hideOtherInCharts && otherPercentage > 30
+          ? [
+              createFloatingOtherLabel(
+                originalOtherData,
+                otherPercentage,
+                otherColor,
+              ),
+            ]
+          : [],
       yAxis: {
         type: "category",
         data: allData.map(({ name }) => name),
@@ -466,19 +586,22 @@ const generateMultiDisplayChartOptions = (transformedData, otherData, availableV
         {
           type: "bar",
           barWidth: "90%",
+          barMaxWidth: 50,
           data: allData.map((item, index) => {
             const maxValue = Math.max(...allData.map((d) => d.value));
             return {
               value: item.value,
               percentage: item.percentage,
               id: item.id,
+              link: item.link,
               itemStyle: item.itemStyle,
               label: {
                 show: true,
                 formatter: "{b}",
                 fontSize: 14,
                 position: item.value < maxValue * 0.3 ? "right" : "inside",
-                color: item.value < maxValue * 0.3 ? item.itemStyle.color : "#fff",
+                color:
+                  item.value < maxValue * 0.3 ? item.itemStyle.color : "#fff",
                 align: item.value < maxValue * 0.3 ? "left" : "center",
                 verticalAlign: "middle",
               },
@@ -490,7 +613,7 @@ const generateMultiDisplayChartOptions = (transformedData, otherData, availableV
   };
 
   return Object.fromEntries(
-    Object.entries(options).filter(([key]) => availableViews.includes(key))
+    Object.entries(options).filter(([key]) => availableViews.includes(key)),
   );
 };
 
@@ -499,5 +622,6 @@ export {
   transformCountryMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 };
+
