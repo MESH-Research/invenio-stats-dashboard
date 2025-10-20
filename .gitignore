@@ -37,3 +37,4 @@ coverage/
 *.log
 .ropeproject/autoimport.db
 tests/test_logs/
+.ropeproject/autoimport.db-journal
