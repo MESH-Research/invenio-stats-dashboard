@@ -426,6 +426,7 @@ const validateDate = (year, month, day, fieldPrefix) => {
  * @param {boolean} props.isOpen - Whether the popup is open
  * @param {function} props.onClose - The function to close the popup
  * @param {function} props.onSubmit - The function to submit the form
+ * @param {function} props.onClear - The function to clear and reset to default range
  * @param {Date} props.initialStartDate - The initial start date
  * @param {Date} props.initialEndDate - The initial end date
  * @param {React.RefObject} props.triggerRef - The ref object to trigger the popup
@@ -436,6 +437,7 @@ const CustomDateRangePopup = ({
   isOpen,
   onClose,
   onSubmit,
+  onClear,
   initialStartDate,
   initialEndDate,
   triggerRef,
@@ -448,6 +450,7 @@ const CustomDateRangePopup = ({
   const [endDay, setEndDay] = useState("");
   const [errors, setErrors] = useState({});
   const popupRef = useRef(null);
+  const firstInputRef = useRef(null);
 
   useEffect(() => {
     if (initialStartDate && initialEndDate) {
@@ -483,6 +486,15 @@ const CustomDateRangePopup = ({
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
   }, [isOpen, onClose, triggerRef]);
+
+  // Focus the first input field when popup opens
+  useEffect(() => {
+    if (isOpen && firstInputRef?.current) {
+      setTimeout(() => {
+        firstInputRef.current.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
 
   const handleSubmit = (e) => {
@@ -543,22 +555,26 @@ const CustomDateRangePopup = ({
     }
   };
 
+  const handleClose = () => {
+    onClose();
+    if (triggerRef?.current) {
+      triggerRef.current.focus();
+    }
+  };
+
   const handleClear = () => {
-    const today = getCurrentUTCDate();
-    setStartYear(today.getUTCFullYear().toString());
-    setStartMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
-    setStartDay(today.getUTCDate().toString().padStart(2, "0"));
-    setEndYear(today.getUTCFullYear().toString());
-    setEndMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
-    setEndDay(today.getUTCDate().toString().padStart(2, "0"));
-    setErrors({});
+    onClear();
+    onClose();
+    if (triggerRef?.current) {
+      triggerRef.current.focus();
+    }
   };
 
   return (
     <Popup
       ref={popupRef}
       open={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       on="click"
       position="bottom right"
       wide
@@ -581,6 +597,7 @@ const CustomDateRangePopup = ({
                     <Form.Field error={!!errors.startYear}>
                       <label>{i18next.t("Year")}</label>
                       <Input
+                        ref={firstInputRef}
                         placeholder="YYYY"
                         value={startYear}
                         onChange={(e) => setStartYear(e.target.value)}
@@ -708,6 +725,7 @@ CustomDateRangePopup.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
+  onClear: PropTypes.func.isRequired,
   initialStartDate: PropTypes.instanceOf(Date),
   initialEndDate: PropTypes.instanceOf(Date),
   triggerRef: PropTypes.object,
@@ -909,8 +927,14 @@ const DateRangeSelector = ({
 
       <CustomDateRangePopup
         isOpen={isPopupOpen}
-        onClose={() => setIsPopupOpen(false)}
+        onClose={() => {
+          setIsPopupOpen(false);
+          if (customButtonRef?.current) {
+            customButtonRef.current.focus();
+          }
+        }}
         onSubmit={handleCustomRangeSubmit}
+        onClear={handleClearCustomRange}
         initialStartDate={dateRange?.start}
         initialEndDate={dateRange?.end}
         triggerRef={customButtonRef}
