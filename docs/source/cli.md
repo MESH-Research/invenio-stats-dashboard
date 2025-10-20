@@ -851,7 +851,7 @@ invenio community-stats usage-events migrate [OPTIONS]
 - `--max-memory-percent`: Maximum memory usage percentage before stopping (default from `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT`).
 - `--dry-run`: Show what would be migrated without doing it.
 - `--async`: Run reindexing asynchronously using Celery.
-- `--delete-old-indices`: Delete old indices after migration (default is to keep them).
+- `--delete-old-indices`: Delete old indices after migration (default is to keep them). Use `cleanup-old-indices` command to clean up later if needed.
 
 **Examples:**
 
@@ -886,7 +886,7 @@ invenio community-stats usage-events migrate-background [OPTIONS]
 - `--max-batches, -b`: Maximum batches to process per month.
 - `--batch-size`: Number of events to process per batch (default: 1000).
 - `--max-memory-percent`: Maximum memory usage percentage before stopping (default: 85).
-- `--delete-old-indices`: Delete old indices after migration.
+- `--delete-old-indices`: Delete old indices after migration. Use `cleanup-old-indices` command to clean up later if needed.
 - `--pid-dir`: Directory to store PID and status files (default: `/tmp`).
 
 **Examples:**
@@ -961,6 +961,45 @@ invenio community-stats usage-events clear-bookmarks --event-type view --months 
 # Clear bookmarks for multiple months
 invenio community-stats usage-events clear-bookmarks --months 2024-01 --months 2024-02
 ```
+
+#### `usage-events cleanup-old-indices`
+
+Clean up old indices that have been successfully migrated. This command identifies old indices that have corresponding migrated indices and validates that the migration was completed successfully before deleting the old indices.
+
+```bash
+invenio community-stats usage-events cleanup-old-indices [OPTIONS]
+```
+
+**Options:**
+
+- `--event-types, -e`: Event types to clean up (view, download). Can be specified multiple times. Defaults to both.
+- `--dry-run`: Show what would be deleted without actually deleting.
+
+**Validation Checks:**
+
+This command performs multiple validation checks before deleting old indices:
+
+1. **Bookmark Validation**: Checks that the migration bookmark indicates completion
+2. **Document Count Validation**: Verifies that at least 95% of events were migrated
+3. **Existence Validation**: Ensures the migrated index has events
+
+**Examples:**
+
+```bash
+# Preview what would be deleted (recommended first step)
+invenio community-stats usage-events cleanup-old-indices --dry-run
+
+# Clean up old indices for all event types
+invenio community-stats usage-events cleanup-old-indices
+
+# Clean up only view event indices
+invenio community-stats usage-events cleanup-old-indices --event-types view
+
+# Clean up specific event types
+invenio community-stats usage-events cleanup-old-indices --event-types view download
+```
+
+**Note:** This command is useful when migrations were run with `--delete-old-indices=false` (the default) and you want to clean up old indices after verifying that migrations completed successfully.
 
 ### Process Management Commands
 

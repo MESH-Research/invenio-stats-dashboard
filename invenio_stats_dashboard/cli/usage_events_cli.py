@@ -284,7 +284,7 @@ def generate_usage_events_background_command(
       usage-event-generation
     - View logs: invenio community-stats processes status \\
       usage-event-generation --show-log
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -652,7 +652,7 @@ def _report_migration_results(results):
 @click.option(
     "--delete-old-indices",
     is_flag=True,
-    help="Delete old indices after migration (default is to keep them).",
+    help="Delete old indices after migration (default is to keep them). Use 'cleanup-old-indices' command to clean up later if needed.",
 )
 @click.option(
     "--fresh-start",
@@ -771,6 +771,230 @@ def migrate_events_command(
         except Exception as e:
             click.echo(f"❌ Migration failed with error: {e}")
             raise
+
+
+@usage_events_cli.command(name="remove-backup-aliases")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be done without actually removing aliases.",
+)
+@with_appcontext
+def remove_backup_aliases_command(dry_run):
+    r"""Remove aliases from backup indices with old naming convention.
+
+    FIXME: Deprecate this when we're done with it.
+
+    This command removes aliases from backup indices that were created with
+    the old '-backup' suffix naming convention. These aliases cause backup
+    indices to be included in aggregation queries, leading to Elasticsearch
+    mapping errors because the backup indices contain unenriched events.
+
+    Examples:
+    \b
+    - invenio community-stats usage-events remove-backup-aliases
+    - invenio community-stats usage-events remove-backup-aliases --dry-run
+    """
+    check_stats_enabled()
+
+    service = current_event_reindexing_service
+
+    if dry_run:
+        click.echo("DRY RUN - No aliases will be removed")
+        click.echo("\nScanning for backup indices with old naming convention...")
+
+        for event_type in ["view", "download"]:
+            pattern = service.index_patterns[event_type]
+            try:
+                indices = service.client.indices.get(index=f"{pattern}-*")
+                backup_indices = [
+                    idx for idx in indices.keys()
+                    if idx.endswith("-backup")
+                ]
+
+                if backup_indices:
+                    click.echo(f"\n{event_type} backup indices found:")
+                    for backup_index in backup_indices:
+                        try:
+                            aliases_info = service.client.indices.get_alias(
+                                index=backup_index, ignore=[404]
+                            )
+                            if backup_index in aliases_info:
+                                aliases = aliases_info[backup_index].get("aliases", {})
+                                if aliases:
+                                    click.echo(
+                                        f"  {backup_index}: {list(aliases.keys())}"
+                                    )
+                                else:
+                                    click.echo(f"  {backup_index}: (no aliases)")
+                            else:
+                                click.echo(f"  {backup_index}: (no aliases)")
+                        except Exception as e:
+                            click.echo(
+                                f"  {backup_index}: Error checking aliases - {e}"
+                            )
+                else:
+                    click.echo(f"\n{event_type}: No backup indices found")
+
+            except Exception as e:
+                click.echo(f"Error scanning {event_type} indices: {e}")
+    else:
+        click.echo("Removing aliases from backup indices...")
+        results = service.remove_backup_index_aliases()
+
+        click.echo("\nResults:")
+        for index_name, success in results.items():
+            if success:
+                click.echo(f"  [OK] {index_name}")
+            else:
+                click.echo(f"  [FAIL] {index_name}")
+
+        failed_count = sum(1 for success in results.values() if not success)
+        if failed_count == 0:
+            click.echo("\nSUCCESS: All backup index aliases removed successfully!")
+        else:
+            click.echo(
+                f"\nWARNING: {failed_count} operations failed. Check logs for details."
+            )
+
+
+@usage_events_cli.command(name="cleanup-old-indices")
+@click.option(
+    "--event-types",
+    "-e",
+    multiple=True,
+    help="Event types to clean up (view, download). Defaults to both.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be deleted without actually deleting.",
+)
+@with_appcontext
+def cleanup_old_indices_command(event_types, dry_run):
+    r"""Clean up old indices that have been successfully migrated.
+
+    This command identifies old indices that have corresponding migrated indices
+    and validates that the migration was completed successfully before deleting
+    the old indices. It performs multiple validation checks:
+
+    1. Checks that migration bookmark indicates completion
+    2. Verifies that at least 95% of events were migrated
+    3. Ensures the migrated index has events
+
+    Examples:
+    \b
+    - invenio community-stats usage-events cleanup-old-indices
+    - invenio community-stats usage-events cleanup-old-indices --dry-run
+    - invenio community-stats usage-events cleanup-old-indices --event-types view
+    """
+    check_stats_enabled()
+
+    if not event_types:
+        event_types = ["view", "download"]
+
+    service = current_event_reindexing_service
+
+    if dry_run:
+        click.echo("DRY RUN - No indices will be deleted")
+    else:
+        click.echo("Cleaning up old indices after migration...")
+
+    click.echo(f"Processing event types: {list(event_types)}")
+
+    results = service.cleanup_old_indices(
+        event_types=list(event_types), dry_run=dry_run
+    )
+
+    # Display results
+    for event_type in event_types:
+        if event_type not in results:
+            click.echo(
+                f"\n[ERROR] {event_type}: Error processing - "
+                f"{results.get('error', 'Unknown error')}"
+            )
+            continue
+
+        result = results[event_type]
+        click.echo(f"\n{event_type.upper()} Events:")
+
+        if not result.get("cleanup_candidates"):
+            click.echo("  No cleanup candidates found")
+            continue
+
+        for candidate in result["cleanup_candidates"]:
+            old_index = candidate["old_index"]
+            migrated_index = candidate["migrated_index"]
+            validation = result["validation_results"].get(old_index, {})
+            deletion_result = result["deletion_results"].get(
+                old_index, "not_processed"
+            )
+
+            click.echo(f"  {old_index} → {migrated_index}")
+
+            if validation.get("passed", False):
+                if deletion_result == "would_delete":
+                    click.echo("    [OK] Would delete (validation passed)")
+                elif deletion_result is True:
+                    click.echo("    [OK] Deleted successfully")
+                elif deletion_result is False:
+                    click.echo("    [FAIL] Deletion failed")
+                else:
+                    click.echo(
+                        f"    [WARNING] Validation passed but not deleted: "
+                        f"{deletion_result}"
+                    )
+
+                # Show validation details
+                old_count = validation.get("old_count", 0)
+                migrated_count = validation.get("migrated_count", 0)
+                count_ratio = validation.get("count_ratio", 0)
+                click.echo(
+                    f"      Old: {old_count:,}, Migrated: {migrated_count:,}, "
+                    f"Ratio: {count_ratio:.2%}"
+                )
+            else:
+                click.echo(
+                    f"    [FAIL] Validation failed: "
+                    f"{validation.get('reason', 'Unknown reason')}"
+                )
+
+    # Summary
+    total_candidates = sum(
+        len(results.get(event_type, {}).get("cleanup_candidates", []))
+        for event_type in event_types
+    )
+    total_deleted = sum(
+        sum(
+            1
+            for result in results.get(event_type, {}).get(
+                "deletion_results", {}
+            ).values()
+            if result is True
+        )
+        for event_type in event_types
+    )
+    total_would_delete = sum(
+        sum(
+            1
+            for result in results.get(event_type, {}).get(
+                "deletion_results", {}
+            ).values()
+            if result == "would_delete"
+        )
+        for event_type in event_types
+    )
+
+    if dry_run:
+        click.echo(
+            f"\n[SUMMARY] {total_would_delete}/{total_candidates} "
+            f"indices would be deleted"
+        )
+    else:
+        click.echo(
+            f"\n[SUMMARY] {total_deleted}/{total_candidates} "
+            f"indices deleted"
+        )
 
 
 @usage_events_cli.command(name="status")
@@ -1370,7 +1594,7 @@ def clear_bookmarks_command(event_type, month, confirm):
 @click.option(
     "--delete-old-indices",
     is_flag=True,
-    help="Delete old indices after migration (default is to keep them).",
+    help="Delete old indices after migration (default is to keep them). Use 'cleanup-old-indices' command to clean up later if needed.",
 )
 @click.option(
     "--fresh-start",
@@ -1422,7 +1646,7 @@ def migrate_events_background_command(
     - Monitor progress: invenio community-stats processes status event-migration
     - Cancel process: invenio community-stats processes cancel event-migration
     - View logs: invenio community-stats processes status event-migration --show-log
-    
+
     Returns:
         None: This is a CLI command function.
     """

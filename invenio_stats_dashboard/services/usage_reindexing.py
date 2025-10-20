@@ -185,7 +185,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
     @staticmethod
     def _ensure_index_exists(func):
         """Decorator for ensuring the bookmarks index exists.
-        
+
         Returns:
             Callable: The wrapped function.
         """
@@ -213,7 +213,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
                 - arrow.Arrow object
                 - ISO format string
                 - datetime.datetime object
-                
+
         Raises:
             ValueError: If timestamp format is invalid.
         """
@@ -244,7 +244,7 @@ class EventReindexingBookmarkAPI(CommunityBookmarkAPI):
     @_ensure_index_exists
     def get_bookmark(self, task_id: str, refresh_time=60):
         """Get last event_id and timestamp for a reindexing task.
-        
+
         Returns:
             tuple | None: Tuple of (event_id, timestamp) if found, None otherwise.
         """
@@ -418,7 +418,7 @@ class EventReindexingService:
                 - Range: "2024-01:2024-03"
                 - Multiple months: ("2024-01", "2024-02", "2024-03")
                 - None: return all months
-                
+
         Returns:
             list[str]: List of matching index names.
         """
@@ -427,10 +427,12 @@ class EventReindexingService:
             indices = self.client.indices.get(index=f"{pattern}-*")
             all_indices = sorted(indices.keys())
 
+            # Filter out v2.0.0 indices (already migrated) and backup indices
+            # (backup indices use 'backup-' prefix to avoid template pattern matching)
             old_indices = [
                 idx
                 for idx in all_indices
-                if not idx.endswith("-v2.0.0") and not idx.endswith("-backup")
+                if not idx.endswith("-v2.0.0") and not idx.startswith("backup-")
             ]
 
             if not month_filter:
@@ -466,7 +468,7 @@ class EventReindexingService:
 
     def get_current_month(self) -> str:
         """Get the current month in YYYY-MM format.
-        
+
         Returns:
             str: Current month in YYYY-MM format.
         """
@@ -475,7 +477,7 @@ class EventReindexingService:
 
     def is_current_month_index(self, index_name: str) -> bool:
         """Check if an index is for the current month.
-        
+
         Returns:
             bool: True if index is for current month, False otherwise.
         """
@@ -487,7 +489,7 @@ class EventReindexingService:
 
         We check if the memory usage is too high, and if the OpenSearch cluster is
         responsive.
-        
+
         Returns:
             HealthCheckResult: Health check result with status and message.
         """
@@ -515,7 +517,7 @@ class EventReindexingService:
             event_type: The type of event (view or download)
             month: The month in YYYY-MM format
             fresh_start: If True, delete existing target index before creating new one
-            
+
         Returns:
             str: Name of the created index.
         """
@@ -973,7 +975,7 @@ class EventReindexingService:
         self, event_type: str, month: str, old_index: str, new_index: str
     ) -> bool:
         """Update the alias to point to the new enriched index for this month.
-        
+
         Returns:
             bool: True if alias was updated successfully, False otherwise.
         """
@@ -1035,9 +1037,12 @@ class EventReindexingService:
     def _create_backup_index(self, old_index: str, backup_index: str) -> bool:
         """Step 1 of current month switchover: Create a backup copy of the old index.
 
+        The backup index is named with the prefix 'backup-' to avoid matching
+        template patterns and prevent inclusion in aliases.
+
         Args:
             old_index: Name of the index to backup
-            backup_index: Name for the backup index
+            backup_index: Name for the backup index (will be 'backup-{old_index}')
 
         Returns:
             bool: True if successful, False otherwise
@@ -1240,7 +1245,8 @@ class EventReindexingService:
             bool: True if successful, False otherwise
         """
         try:
-            backup_index = f"{old_index}-backup"
+            # Use 'backup-' prefix to avoid matching template patterns and aliases
+            backup_index = f"backup-{old_index}"
 
             # Step 1: Create backup copy of old index using reindex
             if not self._create_backup_index(old_index, backup_index):
@@ -1329,7 +1335,7 @@ class EventReindexingService:
 
     def get_metadata_for_records(self, record_ids: list[str]) -> dict[str, dict]:
         """Get metadata for a batch of record IDs.
-        
+
         Returns:
             dict[str, dict]: Dictionary mapping record IDs to their metadata.
         """
@@ -1385,7 +1391,7 @@ class EventReindexingService:
 
         Returns:
             Dictionary of record IDs to lists of (community_id, effective_date) tuples
-            
+
         Raises:
             MissingCommunityEventsError: If community events index is missing.
         """
@@ -2397,7 +2403,7 @@ class EventReindexingService:
 
         Check which templates need to be updated (do not exist or are missing
         'community_ids').
-        
+
         Returns:
             list: List of template names to update.
         """
@@ -2712,11 +2718,12 @@ class EventReindexingService:
             pattern = self.index_patterns[event_type]
             indices = self.client.indices.get(index=f"{pattern}-*")
             all_monthly_indices = sorted(indices.keys())
-            # Filter out the -v2.0.0 indices and backup indices to get only old indices
+            # Filter out v2.0.0 indices (already migrated) and backup indices
+            # (backup indices use 'backup-' prefix to avoid template pattern matching)
             old_monthly_indices = [
                 idx
                 for idx in all_monthly_indices
-                if not idx.endswith("-v2.0.0") and not idx.endswith("-backup")
+                if not idx.endswith("-v2.0.0") and not idx.startswith("backup-")
             ]
 
             event_type_old_count = 0
@@ -2910,7 +2917,7 @@ class EventReindexingService:
 
     def _get_last_event_timestamp(self, index_name: str) -> str | None:
         """Get the timestamp of the last event in an index, sorted by timestamp.
-        
+
         Returns:
             str | None: Timestamp of last event, or None if no events found.
         """
@@ -2929,9 +2936,244 @@ class EventReindexingService:
             )
             return None
 
+    def remove_backup_index_aliases(self) -> dict[str, bool]:
+        """Remove aliases from existing backup indices with old naming convention.
+
+        FIXME: Deprecate this when we're done with it.
+
+        This method removes aliases from backup indices that were created with
+        the old '-backup' suffix naming convention, which causes them to be
+        included in aggregation queries and leads to Elasticsearch mapping errors.
+
+        Returns:
+            dict: Results of alias removal operations
+        """
+        results = {}
+
+        for event_type in ["view", "download"]:
+            pattern = self.index_patterns[event_type]
+
+            try:
+                # Find all indices matching the pattern
+                indices = self.client.indices.get(index=f"{pattern}-*")
+
+                # Find backup indices with old naming convention
+                backup_indices = [
+                    idx for idx in indices.keys()
+                    if idx.endswith("-backup")
+                ]
+
+                for backup_index in backup_indices:
+                    try:
+                        # Get aliases for this backup index
+                        aliases_info = self.client.indices.get_alias(
+                            index=backup_index, ignore=[404]
+                        )
+
+                        if backup_index in aliases_info:
+                            aliases = aliases_info[backup_index].get("aliases", {})
+
+                            # Remove each alias
+                            for alias_name in aliases.keys():
+                                self.client.indices.delete_alias(
+                                    index=backup_index, name=alias_name
+                                )
+                                current_app.logger.info(
+                                    f"Removed alias '{alias_name}' from "
+                                    f"backup index '{backup_index}'"
+                                )
+
+                            results[backup_index] = True
+                        else:
+                            current_app.logger.info(
+                                f"Backup index '{backup_index}' has no aliases"
+                            )
+                            results[backup_index] = True
+
+                    except Exception as e:
+                        current_app.logger.error(
+                            f"Failed to remove aliases from backup index "
+                            f"'{backup_index}': {e}"
+                        )
+                        results[backup_index] = False
+
+            except Exception as e:
+                current_app.logger.error(
+                    f"Failed to process {event_type} backup indices: {e}"
+                )
+                results[f"{event_type}_error"] = False
+
+        return results
+
+    def cleanup_old_indices(
+        self, event_types: list[str] | None = None, dry_run: bool = False
+    ) -> dict[str, dict[str, bool | str]]:
+        """Clean up old indices that have been successfully migrated.
+
+        This method identifies old indices that have corresponding migrated indices
+        and validates that the migration was completed successfully before
+        deleting the old indices.
+
+        Args:
+            event_types: List of event types to process (default: ["view", "download"])
+            dry_run: If True, only show what would be deleted without actually deleting
+
+        Returns:
+            dict: Results of cleanup operations with validation status
+        """
+        if event_types is None:
+            event_types = ["view", "download"]
+
+        results = {}
+
+        for event_type in event_types:
+            pattern = self.index_patterns[event_type]
+
+            try:
+                indices = self.client.indices.get(index=f"{pattern}-*")
+
+                old_indices = [
+                    idx for idx in indices.keys()
+                    if not idx.endswith("-v2.0.0") and not idx.startswith("backup-")
+                ]
+
+                migrated_indices = [
+                    idx for idx in indices.keys()
+                    if idx.endswith("-v2.0.0")
+                ]
+
+                results[event_type] = {
+                    "old_indices": old_indices,
+                    "migrated_indices": migrated_indices,
+                    "cleanup_candidates": [],
+                    "validation_results": {},
+                    "deletion_results": {}
+                }
+
+                # Find cleanup candidates (old indices with corresponding migrated indices)
+                for old_index in old_indices:
+                    # Extract month from old index name
+                    # e.g., "kcworks-events-stats-record-view-2025-10" -> "2025-10"
+                    month_match = old_index.split("-")[-2:]  # Last two parts
+                    if len(month_match) == 2:
+                        month = "-".join(month_match)
+                        expected_migrated = f"{old_index}-v2.0.0"
+
+                        if expected_migrated in migrated_indices:
+                            results[event_type]["cleanup_candidates"].append({
+                                "old_index": old_index,
+                                "migrated_index": expected_migrated,
+                                "month": month
+                            })
+
+                # Validate each cleanup candidate
+                for candidate in results[event_type]["cleanup_candidates"]:
+                    old_index = candidate["old_index"]
+                    migrated_index = candidate["migrated_index"]
+
+                    try:
+                        # Check if migration bookmark indicates completion
+                        bookmark_key = (
+                            f"{event_type}-{candidate['month']}-reindexing"
+                        )
+                        bookmark = self.reindexing_bookmark_api.get_bookmark(
+                            bookmark_key
+                        )
+
+                        if bookmark and bookmark.get("completed", False):
+                            # Additional validation: check document counts
+                            old_count = self.client.count(
+                                index=old_index
+                            )["count"]
+                            migrated_count = self.client.count(
+                                index=migrated_index
+                            )["count"]
+
+                            # Allow for some variance (e.g., new events during migration)
+                            count_ratio = (
+                                migrated_count / old_count
+                                if old_count > 0
+                                else 0
+                            )
+
+                            validation_passed = (
+                                count_ratio >= 0.95 and  # At least 95% migrated
+                                migrated_count > 0      # Some events migrated
+                            )
+
+                            results[event_type]["validation_results"][old_index] = {
+                                "passed": validation_passed,
+                                "old_count": old_count,
+                                "migrated_count": migrated_count,
+                                "count_ratio": count_ratio,
+                                "bookmark_completed": True
+                            }
+
+                            # If validation passed and not dry run, delete the old index
+                            if validation_passed and not dry_run:
+                                deletion_success = self.delete_old_index(
+                                    old_index
+                                )
+                                results[event_type]["deletion_results"][
+                                    old_index
+                                ] = deletion_success
+
+                                if deletion_success:
+                                    current_app.logger.info(
+                                        f"Successfully deleted old index: "
+                                        f"{old_index}"
+                                    )
+                                else:
+                                    current_app.logger.error(
+                                        f"Failed to delete old index: "
+                                        f"{old_index}"
+                                    )
+                            elif validation_passed and dry_run:
+                                results[event_type]["deletion_results"][
+                                    old_index
+                                ] = "would_delete"
+                            else:
+                                results[event_type]["deletion_results"][
+                                    old_index
+                                ] = "validation_failed"
+
+                        else:
+                            results[event_type]["validation_results"][old_index] = {
+                                "passed": False,
+                                "reason": (
+                                    "Migration not marked as completed "
+                                    "in bookmark"
+                                ),
+                                "bookmark_completed": False
+                            }
+                            results[event_type]["deletion_results"][
+                                old_index
+                            ] = "not_completed"
+
+                    except Exception as e:
+                        current_app.logger.error(
+                            f"Error validating {old_index}: {e}"
+                        )
+                        results[event_type]["validation_results"][old_index] = {
+                            "passed": False,
+                            "reason": f"Validation error: {e}",
+                            "bookmark_completed": False
+                        }
+                        results[event_type]["deletion_results"][
+                            old_index
+                        ] = "validation_error"
+
+            except Exception as e:
+                current_app.logger.error(
+                    f"Error processing {event_type} indices: {e}"
+                )
+                results[event_type] = {"error": str(e)}
+
+        return results
+
     def delete_old_index(self, index_name: str) -> bool:
         """Delete an old index if it exists.
-        
+
         Returns:
             bool: True if index was deleted, False otherwise.
         """
