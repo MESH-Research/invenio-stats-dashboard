@@ -678,7 +678,7 @@ class CommunityAggregatorBase(StatAggregator):
                 documents,
                 stats_only=stats_only,
                 chunk_size=self.current_chunk_size,
-                timeout=f"{bulk_timeout}s",  # custom timeout for bulk operations (format: "300s")
+                timeout=bulk_timeout,  # Pass as integer, not string
             )
 
             docs_indexed, errors = result
