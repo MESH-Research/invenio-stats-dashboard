@@ -67,14 +67,13 @@ const AccessStatusesMultiDisplay = ({
   } = transformMultiDisplayData(
     rawAccessStatuses,
     pageSize,
-    "metadata.access_status.id",
+    "access.status",
     CHART_COLORS.secondary,
     hideOtherInCharts,
     globalData,
     false, // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
-
 
   const chartOptions = generateMultiDisplayChartOptions(
     transformedData,
@@ -121,4 +120,3 @@ AccessStatusesMultiDisplay.propTypes = {
 };
 
 export { AccessStatusesMultiDisplay };
-

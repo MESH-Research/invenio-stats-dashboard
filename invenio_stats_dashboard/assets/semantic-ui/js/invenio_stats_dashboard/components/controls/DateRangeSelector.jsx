@@ -420,12 +420,90 @@ const validateDate = (year, month, day, fieldPrefix) => {
   return errors;
 };
 
+/**
+ * Auto-format year input (1-digit or 2-digit to 4-digit)
+ * @param {string} year - The year input value
+ * @returns {string} Formatted year
+ */
+const formatYear = (year) => {
+  if (!year) return "";
+
+  const yearNum = parseInt(year, 10);
+  if (isNaN(yearNum)) return year;
+
+  // If it's already 4 digits, return as is
+  if (year.length === 4) return year;
+
+  // If it's 1 or 2 digits, assume closest year
+  if (year.length === 1 || year.length === 2) {
+    const currentYear = new Date().getFullYear();
+    const currentCentury = Math.floor(currentYear / 100) * 100;
+    const nextCentury = currentCentury + 100;
+
+    const fullYear = currentCentury + yearNum;
+    const nextFullYear = nextCentury + yearNum;
+
+    // Choose the closest year
+    const currentDiff = Math.abs(fullYear - currentYear);
+    const nextDiff = Math.abs(nextFullYear - currentYear);
+
+    return currentDiff <= nextDiff ? fullYear.toString() : nextFullYear.toString();
+  }
+
+  return year;
+};
+
+/**
+ * Auto-format month input (1-digit to 2-digit with leading zero)
+ * @param {string} month - The month input value
+ * @returns {string} Formatted month
+ */
+const formatMonth = (month) => {
+  if (!month) return "";
+
+  const monthNum = parseInt(month, 10);
+  if (isNaN(monthNum)) return month;
+
+  // If it's already 2 digits, return as is
+  if (month.length === 2) return month;
+
+  // If it's 1 digit, add leading zero
+  if (month.length === 1) {
+    return monthNum.toString().padStart(2, "0");
+  }
+
+  return month;
+};
+
+/**
+ * Auto-format day input (1-digit to 2-digit with leading zero)
+ * @param {string} day - The day input value
+ * @returns {string} Formatted day
+ */
+const formatDay = (day) => {
+  if (!day) return "";
+
+  const dayNum = parseInt(day, 10);
+  if (isNaN(dayNum)) return day;
+
+  // If it's already 2 digits, return as is
+  if (day.length === 2) return day;
+
+  // If it's 1 digit, add leading zero
+  if (day.length === 1) {
+    return dayNum.toString().padStart(2, "0");
+  }
+
+  return day;
+};
+
 /** Custom Date Range Popup Component
  *
  * @param {object} props - The component props
  * @param {boolean} props.isOpen - Whether the popup is open
  * @param {function} props.onClose - The function to close the popup
  * @param {function} props.onSubmit - The function to submit the form
+ * @param {function} props.onClear - The function to clear and reset to default range
  * @param {Date} props.initialStartDate - The initial start date
  * @param {Date} props.initialEndDate - The initial end date
  * @param {React.RefObject} props.triggerRef - The ref object to trigger the popup
@@ -436,6 +514,7 @@ const CustomDateRangePopup = ({
   isOpen,
   onClose,
   onSubmit,
+  onClear,
   initialStartDate,
   initialEndDate,
   triggerRef,
@@ -448,6 +527,7 @@ const CustomDateRangePopup = ({
   const [endDay, setEndDay] = useState("");
   const [errors, setErrors] = useState({});
   const popupRef = useRef(null);
+  const firstInputRef = useRef(null);
 
   useEffect(() => {
     if (initialStartDate && initialEndDate) {
@@ -483,6 +563,15 @@ const CustomDateRangePopup = ({
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
   }, [isOpen, onClose, triggerRef]);
+
+  // Focus the first input field when popup opens
+  useEffect(() => {
+    if (isOpen && firstInputRef?.current) {
+      setTimeout(() => {
+        firstInputRef.current.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
 
   const handleSubmit = (e) => {
@@ -543,22 +632,26 @@ const CustomDateRangePopup = ({
     }
   };
 
+  const handleClose = () => {
+    onClose();
+    if (triggerRef?.current) {
+      triggerRef.current.focus();
+    }
+  };
+
   const handleClear = () => {
-    const today = getCurrentUTCDate();
-    setStartYear(today.getUTCFullYear().toString());
-    setStartMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
-    setStartDay(today.getUTCDate().toString().padStart(2, "0"));
-    setEndYear(today.getUTCFullYear().toString());
-    setEndMonth((today.getUTCMonth() + 1).toString().padStart(2, "0"));
-    setEndDay(today.getUTCDate().toString().padStart(2, "0"));
-    setErrors({});
+    onClear();
+    onClose();
+    if (triggerRef?.current) {
+      triggerRef.current.focus();
+    }
   };
 
   return (
     <Popup
       ref={popupRef}
       open={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       on="click"
       position="bottom right"
       wide
@@ -581,9 +674,11 @@ const CustomDateRangePopup = ({
                     <Form.Field error={!!errors.startYear}>
                       <label>{i18next.t("Year")}</label>
                       <Input
+                        ref={firstInputRef}
                         placeholder="YYYY"
                         value={startYear}
                         onChange={(e) => setStartYear(e.target.value)}
+                        onBlur={(e) => setStartYear(formatYear(e.target.value))}
                         maxLength={4}
                       />
                       {errors.startYear && (
@@ -600,6 +695,7 @@ const CustomDateRangePopup = ({
                         placeholder="MM"
                         value={startMonth}
                         onChange={(e) => setStartMonth(e.target.value)}
+                        onBlur={(e) => setStartMonth(formatMonth(e.target.value))}
                         maxLength={2}
                       />
                       {errors.startMonth && (
@@ -616,6 +712,7 @@ const CustomDateRangePopup = ({
                         placeholder="DD"
                         value={startDay}
                         onChange={(e) => setStartDay(e.target.value)}
+                        onBlur={(e) => setStartDay(formatDay(e.target.value))}
                         maxLength={2}
                       />
                       {errors.startDay && (
@@ -643,6 +740,7 @@ const CustomDateRangePopup = ({
                         placeholder="YYYY"
                         value={endYear}
                         onChange={(e) => setEndYear(e.target.value)}
+                        onBlur={(e) => setEndYear(formatYear(e.target.value))}
                         maxLength={4}
                       />
                       {errors.endYear && (
@@ -658,6 +756,7 @@ const CustomDateRangePopup = ({
                         placeholder="MM"
                         value={endMonth}
                         onChange={(e) => setEndMonth(e.target.value)}
+                        onBlur={(e) => setEndMonth(formatMonth(e.target.value))}
                         maxLength={2}
                       />
                       {errors.endMonth && (
@@ -673,6 +772,7 @@ const CustomDateRangePopup = ({
                         placeholder="DD"
                         value={endDay}
                         onChange={(e) => setEndDay(e.target.value)}
+                        onBlur={(e) => setEndDay(formatDay(e.target.value))}
                         maxLength={2}
                       />
                       {errors.endDay && (
@@ -708,6 +808,7 @@ CustomDateRangePopup.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
+  onClear: PropTypes.func.isRequired,
   initialStartDate: PropTypes.instanceOf(Date),
   initialEndDate: PropTypes.instanceOf(Date),
   triggerRef: PropTypes.object,
@@ -909,8 +1010,14 @@ const DateRangeSelector = ({
 
       <CustomDateRangePopup
         isOpen={isPopupOpen}
-        onClose={() => setIsPopupOpen(false)}
+        onClose={() => {
+          setIsPopupOpen(false);
+          if (customButtonRef?.current) {
+            customButtonRef.current.focus();
+          }
+        }}
         onSubmit={handleCustomRangeSubmit}
+        onClear={handleClearCustomRange}
         initialStartDate={dateRange?.start}
         initialEndDate={dateRange?.end}
         triggerRef={customButtonRef}
