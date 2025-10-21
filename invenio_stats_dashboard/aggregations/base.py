@@ -21,7 +21,7 @@ from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from invenio_stats.aggregations import StatAggregator
 from opensearchpy import AttrDict, AttrList
-from opensearchpy.exceptions import NotFoundError, TransportError
+from opensearchpy.exceptions import ConnectionTimeout, NotFoundError, TransportError
 from opensearchpy.helpers.actions import bulk
 from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
@@ -670,12 +670,15 @@ class CommunityAggregatorBase(StatAggregator):
         Raises:
             TransportError: If the connection fails after all retry attempts.
         """
+        bulk_timeout = current_app.config.get("COMMUNITY_STATS_BULK_INDEX_TIMEOUT", 300)
+        
         try:
             result: tuple[int, int | list[dict]] = bulk(
                 self.client,
                 documents,
                 stats_only=stats_only,
                 chunk_size=self.current_chunk_size,
+                timeout=f"{bulk_timeout}s",  # custom timeout for bulk operations (format: "300s")
             )
 
             docs_indexed, errors = result
@@ -707,10 +710,12 @@ class CommunityAggregatorBase(StatAggregator):
 
             return cast(tuple[int, int | list[dict]], result)
 
-        except TransportError as e:
-            if e.status_code == 413:  # Request too large
+        except (TransportError, ConnectionTimeout) as e:
+            if e.status_code == 413 or "timeout" in str(e).lower() or "read timeout" in str(e).lower():
+                # Handle both "request too large" and timeout errors with chunk size reduction
+                error_type = "Request too large (413)" if e.status_code == 413 else "Timeout"
+                
                 if self.current_chunk_size > self.min_chunk_size:
-                    # Reduce chunk size gradually
                     old_chunk_size = self.current_chunk_size
                     self.current_chunk_size = max(
                         int(self.current_chunk_size * self.chunk_size_reduction_factor),
@@ -718,14 +723,14 @@ class CommunityAggregatorBase(StatAggregator):
                     )
 
                     current_app.logger.warning(
-                        f"Request too large (413) with chunk_size={old_chunk_size}, "
+                        f"{error_type} with chunk_size={old_chunk_size}, "
                         f"reducing to {self.current_chunk_size} and retrying"
                     )
 
                     return self._adaptive_bulk_index(documents, stats_only)
                 else:
                     current_app.logger.error(
-                        f"Request too large even with minimum "
+                        f"{error_type} even with minimum "
                         f"chunk_size={self.min_chunk_size}"
                     )
                     raise
