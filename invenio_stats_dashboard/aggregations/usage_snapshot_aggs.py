@@ -7,16 +7,14 @@
 """Community usage snapshot aggregators for tracking cumulative usage statistics."""
 
 import numbers
+from collections.abc import Generator
 
 import arrow
-from flask import current_app
-from invenio_search.proxies import current_search_client
 
 from ..queries import (
     CommunityUsageSnapshotQuery,
 )
 from .base import CommunitySnapshotAggregatorBase
-from .bookmarks import CommunityBookmarkAPI
 from .types import (
     UsageDeltaDocument,
     UsageSnapshotDocument,
@@ -49,6 +47,25 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
     def _check_usage_events_migrated(self) -> None:
         """Override abstract method - checking done in usage delta aggregator."""
         pass
+
+    def _get_latest_delta_date(self, community_id: str) -> arrow.Arrow | None:
+        """Get the latest delta record date for dependency checking.
+        
+        Uses the query builder to find the latest usage delta record.
+        
+        Args:
+            community_id: The community ID to check
+            
+        Returns:
+            The latest delta record date, or None if no records exist
+        """
+        search = self.query_builder.build_dependency_check_query(community_id)
+        result = search.execute()
+
+        if not result.aggregations.max_date.value:
+            return None
+
+        return arrow.get(result.aggregations.max_date.value_as_string)
 
     def _create_zero_document(
         self, community_id: str, current_day: arrow.Arrow
@@ -101,7 +118,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             latest_delta (UsageDeltaDocument): The latest delta document
             deltas (list): All delta documents for top subcounts
             exhaustive_counts_cache (dict | None): The exhaustive counts cache
-            
+
         Returns:
             UsageSnapshotDocument: The final aggregation document.
         """
@@ -126,60 +143,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         )
 
         return new_dict
-
-    def _check_usage_delta_dependency(
-        self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
-    ) -> bool:
-        """Check if usage delta aggregator has caught up to the snapshot aggregator.
-
-        This method checks if the usage delta aggregator has processed data up to
-        the end_date that the snapshot aggregator is trying to process. If the
-        delta aggregator hasn't caught up, the snapshot aggregator should skip
-        this run to avoid creating incomplete snapshots.
-
-        Args:
-            community_id: The community ID
-            start_date: The start date for snapshot aggregation
-            end_date: The end date for snapshot aggregation
-
-        Returns:
-            True if delta aggregator has caught up, False if it hasn't
-        """
-        # Get the usage delta aggregator's bookmark
-        delta_bookmark_api = CommunityBookmarkAPI(
-            current_search_client, "community-usage-delta-agg", "day"
-        )
-        delta_bookmark = delta_bookmark_api.get_bookmark(community_id)
-
-        if not delta_bookmark:
-            # If no bookmark exists, check if there are any delta records at all
-            search = self.query_builder.build_dependency_check_query(community_id)
-            result = search.execute()
-
-            if not result.aggregations.max_date.value:
-                # No delta records exist at all, skip
-                return False
-
-            # Use the latest delta record date as the bookmark
-            delta_bookmark_date = arrow.get(
-                result.aggregations.max_date.value_as_string
-            )
-        else:
-            delta_bookmark_date = arrow.get(delta_bookmark)
-
-        # Check if delta aggregator has processed data for the period we want
-        # to snapshot
-        # The snapshot can run for any day where delta data exists
-        if delta_bookmark_date.date() < start_date.date():
-            current_app.logger.info(
-                f"Usage delta aggregator for {community_id} has not processed "
-                f"data for the requested period. Delta bookmark: "
-                f"{delta_bookmark_date.date()}, Snapshot start_date: "
-                f"{start_date.date()}. Skipping snapshot aggregation."
-            )
-            return False
-
-        return True
 
     def _accumulate_category_in_place(
         self, accumulated: dict, category_items: list
@@ -223,7 +186,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         Args:
             exhaustive_cache: Dictionary mapping item IDs to their cumulative totals
             angle: The angle to select top N items from (e.g. "view" or "download")
-            
+
         Returns:
             list: List of top N items sorted by the specified angle.
         """
@@ -251,7 +214,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         delta_doc: UsageDeltaDocument,
     ) -> UsageSnapshotDocument:
         """Update cumulative totals with values from enriched daily delta documents.
-        
+
         Returns:
             UsageSnapshotDocument: The updated snapshot document with cumulative totals.
         """
@@ -374,7 +337,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         self,
     ) -> dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]:
         """Initialize the subcounts structure based on configuration.
-        
+
         Returns:
             dict[str, list[UsageSubcountItem] | UsageSnapshotTopCategories]: Initialized
                 subcounts structure.
@@ -394,7 +357,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
     def _is_top_subcount(self, subcount_name: str) -> bool:
         """Check if a subcount is configured as 'top' type.
-        
+
         Returns:
             bool: True if the subcount is configured as 'top' type, False otherwise.
         """
@@ -402,3 +365,33 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         usage_config = config.get("usage_events", {})
         snapshot_type = usage_config.get("snapshot_type", "all")
         return str(snapshot_type) == "top"
+
+    def agg_iter(
+        self,
+        community_id: str,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        first_event_date: arrow.Arrow | None,
+        last_event_date: arrow.Arrow | None,
+    ) -> Generator[tuple[dict, float], None, None]:
+        """Create a dictionary representing the aggregation result for indexing.
+
+        Args:
+            community_id (str): The ID of the community to aggregate.
+            start_date (arrow.Arrow): The start date for the aggregation.
+            end_date (arrow.Arrow): The end date for the aggregation.
+            first_event_date (arrow.Arrow | None): The first event date, or None if
+                no events exist.
+            last_event_date (arrow.Arrow | None): The last event date, or None if no
+                events exist. In this case the events we're looking for are delta
+                aggregations.
+
+        Yields:
+            tuple[dict, float]: A tuple containing:
+                - [0]: A dictionary representing an aggregation document for indexing
+                - [1]: The time taken to generate this document (in seconds)
+        """
+        # Call the parent class agg_iter method
+        yield from super().agg_iter(
+            community_id, start_date, end_date, first_event_date, last_event_date
+        )

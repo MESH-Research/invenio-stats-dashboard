@@ -49,6 +49,31 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
         """Override abstract method - checking done in usage delta aggregator."""
         pass
 
+    def _get_latest_delta_date(self, community_id: str) -> arrow.Arrow | None:
+        """Get the latest delta record date for dependency checking.
+        
+        Queries the records delta index directly to find the latest record.
+        
+        Args:
+            community_id: The community ID to check
+            
+        Returns:
+            The latest delta record date, or None if no records exist
+        """
+        search = (
+            Search(using=self.client, index=prefix_index(self.delta_index))
+            .query(Q("term", community_id=community_id))
+            .extra(size=0)
+        )
+        search.aggs.bucket("max_date", "max", field="period_start")
+        
+        result = search.execute()
+        
+        if not result.aggregations.max_date.value:
+            return None
+            
+        return arrow.get(result.aggregations.max_date.value_as_string)
+
     @property
     def use_included_dates(self):
         """Whether to use included dates for community queries."""

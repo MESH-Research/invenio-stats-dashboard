@@ -11,7 +11,7 @@ import datetime
 import time
 from abc import abstractmethod
 from collections.abc import Generator
-from typing import Any, cast
+from typing import Any
 
 import arrow
 from flask import current_app
@@ -338,8 +338,6 @@ class CommunityAggregatorBase(StatAggregator):
 
         results = []
         for community_id in communities_to_aggregate:
-            current_app.logger.debug(f"start_date: {start_date}")
-            current_app.logger.debug(f"end_date: {end_date}")
             try:
                 first_event_date, last_event_date = self._find_first_event_date(
                     community_id
@@ -372,9 +370,6 @@ class CommunityAggregatorBase(StatAggregator):
             first_event_date_safe = first_event_date or arrow.utcnow()
             last_event_date_safe = last_event_date or arrow.utcnow()
 
-            current_app.logger.debug(f"upper_limit: {upper_limit}")
-            current_app.logger.debug(f"lower_limit: {lower_limit}")
-
             agg_iter_generator = self.agg_iter(
                 community_id,
                 lower_limit,
@@ -388,7 +383,9 @@ class CommunityAggregatorBase(StatAggregator):
             # Wrapper generator that collects metadata while yielding documents
             # so that we can return the detailed information in the result
             def document_generator_with_metadata(docs_info_list):
+                doc_count = 0
                 for doc, doc_generation_time in agg_iter_generator:  # noqa: B023
+                    doc_count += 1
                     doc_info = {
                         "document_id": doc["_id"],
                         "index_name": doc["_index"],
@@ -413,12 +410,8 @@ class CommunityAggregatorBase(StatAggregator):
                         }
 
                     docs_info_list.append(doc_info)
+                    
                     yield doc
-
-            current_app.logger.debug(
-                f"About to begin adaptive bulk indexing for community {community_id} "
-                f"with initial chunk_size={self.current_chunk_size}"
-            )
 
             docs_indexed, errors = self._adaptive_bulk_index(
                 document_generator_with_metadata(community_docs_info),
@@ -506,11 +499,6 @@ class CommunityAggregatorBase(StatAggregator):
             return False
 
         next_bookmark = latest_date.format("YYYY-MM-DDTHH:mm:ss.SSS")
-        current_app.logger.debug(
-            f"Setting bookmark for {community_id} to last "
-            f"processed date: {next_bookmark}"
-        )
-
         self.bookmark_api.set_bookmark(community_id, next_bookmark)
         return True
 
@@ -703,17 +691,19 @@ class CommunityAggregatorBase(StatAggregator):
                     int(self.current_chunk_size * self.chunk_size_growth_factor),
                     self.max_chunk_size,
                 )
-                current_app.logger.debug(
-                    f"Bulk indexing successful with "
-                    f"chunk_size={self.current_chunk_size}"
-                )
 
-            return cast(tuple[int, int | list[dict]], result)
+            return result
 
         except (TransportError, ConnectionTimeout) as e:
-            if e.status_code == 413 or "timeout" in str(e).lower() or "read timeout" in str(e).lower():
+            if (
+                e.status_code == 413 
+                or "timeout" in str(e).lower() 
+                or "read timeout" in str(e).lower()
+            ):
                 # Handle both "request too large" and timeout errors with chunk size reduction
-                error_type = "Request too large (413)" if e.status_code == 413 else "Timeout"
+                error_type = (
+                    "Request too large (413)" if e.status_code == 413 else "Timeout"
+                )
                 
                 if self.current_chunk_size > self.min_chunk_size:
                     old_chunk_size = self.current_chunk_size
@@ -790,6 +780,79 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         )
         self.delta_index: str | None = None
 
+    @abstractmethod
+    def _get_latest_delta_date(self, community_id: str) -> arrow.Arrow | None:
+        """Get the latest delta record date for dependency checking.
+        
+        This method should be implemented by subclasses to query their specific
+        delta index and return the latest date, or None if no records exist.
+        
+        Args:
+            community_id: The community ID to check
+            
+        Returns:
+            The latest delta record date, or None if no records exist
+        """
+        pass
+
+    def _check_delta_dependency(
+        self, community_id: str, start_date: arrow.Arrow, end_date: arrow.Arrow
+    ) -> bool:
+        """Check if delta aggregator has processed data for the requested period.
+        
+        This method checks if the corresponding delta aggregator has processed data
+        for at least some of the period that the snapshot aggregator is trying to
+        process. If the delta aggregator hasn't caught up, the snapshot aggregator
+        should skip this run to avoid creating incomplete snapshots.
+        
+        Args:
+            community_id: The community ID
+            start_date: The start date for snapshot aggregation
+            end_date: The end date for snapshot aggregation
+            
+        Returns:
+            True if delta aggregator has caught up, False if it hasn't
+        """
+        if not self.delta_index:
+            return True
+            
+        stats_aggregations = current_app.config.get("STATS_AGGREGATIONS", {})
+        delta_aggregator_name = None
+        for agg_name in stats_aggregations.keys():
+            if "delta" in agg_name:
+                expected_name = self.delta_index.replace("stats-", "") + "-agg"
+                if agg_name == expected_name:
+                    delta_aggregator_name = agg_name
+                    break
+        
+        if not delta_aggregator_name:
+            # Fallback: try simple conversion
+            delta_aggregator_name = self.delta_index.replace("stats-", "") + "-agg"
+            
+        # Get the delta aggregator's bookmark
+        delta_bookmark_api = CommunityBookmarkAPI(
+            current_search_client, delta_aggregator_name, "day"
+        )
+        delta_bookmark = delta_bookmark_api.get_bookmark(community_id)
+
+        if not delta_bookmark:
+            # If no bookmark exists, check if there are any delta records at all
+            # Use the subclass-specific dependency check query
+            delta_bookmark_date = self._get_latest_delta_date(community_id)
+            if not delta_bookmark_date:
+                # No delta records exist at all, skip
+                return False
+        else:
+            delta_bookmark_date = arrow.get(delta_bookmark)
+
+        # Check if delta aggregator has processed data for the period we want
+        # to snapshot
+        # The snapshot can run for any day where delta data exists
+        if delta_bookmark_date.date() < start_date.date():
+            return False
+
+        return True
+
     def _copy_snapshot_forward(
         self,
         previous_snapshot: RecordSnapshotDocument | UsageSnapshotDocument,
@@ -850,12 +913,19 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 ],
             ).sort({"snapshot_date": {"order": "desc"}})
             snapshot_search = snapshot_search.extra(size=1)
+            
             snapshot_results = snapshot_search.execute()
+            
             if snapshot_results.hits.total.value > 0:
                 return snapshot_results.hits.hits[0].to_dict()["_source"], False
             else:
                 pass
         except NotFoundError:
+            pass
+        except Exception as e:
+            current_app.logger.error(
+                f"_get_previous_snapshot: Unexpected error: {e}"
+            )
             pass
 
         return (
@@ -912,7 +982,8 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         Returns:
             A list of daily delta records for the community between start and end dates
         """
-        delta_search = Search(using=self.client, index=prefix_index(self.delta_index))
+        index_name = prefix_index(self.delta_index)
+        delta_search = Search(using=self.client, index=index_name)
         delta_search = delta_search.query(
             "bool",
             must=[
@@ -927,15 +998,71 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 },
             ],
         )
+        
         delta_search = delta_search.sort({"period_start": {"order": "asc"}})
-        delta_search = delta_search.extra(size=10000)
-
-        delta_results = delta_search.execute()
-        delta_documents = delta_results.to_dict()["hits"]["hits"]
+        
+        # Adaptive page sizing - start large, reduce on timeout
+        current_page_size = 1000  # Start with moderate page size
+        min_page_size = 50        # Minimum page size (very small)
+        page_size_reduction_factor = 0.5
+        
+        # Use search_after pagination for large datasets
+        all_delta_documents = []
+        search_after = None
+        page_count = 0
+        
+        while True:
+            page_count += 1
+            
+            try:
+                # Build query for this page with current page size
+                page_search = delta_search.extra(size=current_page_size)
+                if search_after:
+                    page_search = page_search.extra(search_after=search_after)
+                
+                # Set timeout on the search object
+                timeout_value = '120s'
+                page_search = page_search.extra(timeout=timeout_value)
+                results = page_search.execute()
+                hits = results.to_dict()["hits"]["hits"]
+                
+                if not hits:
+                    break
+                    
+                all_delta_documents.extend(hits)
+                
+                # Get search_after value for next page
+                search_after = hits[-1]["sort"] if hits else None
+                
+                if not search_after:
+                    break
+                    
+            except Exception as e:
+                if (
+                    "timeout" in str(e).lower() 
+                    and current_page_size > min_page_size
+                ):
+                    # Reduce page size and retry
+                    new_page_size = max(
+                        int(current_page_size * page_size_reduction_factor), 
+                        min_page_size
+                    )
+                    current_app.logger.warning(
+                        f"_fetch_all_delta_documents: Timeout with page_size="
+                        f"{current_page_size}, reducing to {new_page_size} and retrying"
+                    )
+                    current_page_size = new_page_size
+                    continue  # Retry the same page with smaller size
+                else:
+                    # Non-timeout error or already at minimum page size
+                    current_app.logger.error(
+                        f"_fetch_all_delta_documents: Pagination failed: {e}"
+                    )
+                    return []
 
         # With unified field names, no field mapping is needed
         # Return delta documents directly
-        return [doc["_source"] for doc in delta_documents]
+        return [doc["_source"] for doc in all_delta_documents]
 
     def _build_exhaustive_cache(self, deltas: list, category_name: str) -> dict:
         """Build exhaustive cache for a category from all delta documents.
@@ -1099,8 +1226,16 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                 - [0]: A dictionary representing an aggregation document for indexing
                 - [1]: The time taken to generate this document (in seconds)
         """
-        current_iteration_date = arrow.get(start_date)
+        # Check if delta aggregator has processed data for the requested period
+        if not self._check_delta_dependency(community_id, start_date, end_date):
+            current_app.logger.info(
+                f"Skipping snapshot aggregation for {community_id} "
+                f"from {start_date.date()} to {end_date.date()} - "
+                f"delta aggregator has not processed data for this period"
+            )
+            return
 
+        current_iteration_date = arrow.get(start_date)
         previous_snapshot, is_zero_placeholder = self._get_previous_snapshot(
             community_id, current_iteration_date
         )
@@ -1130,10 +1265,16 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         if first_event_date is None:
             # No events exist, return empty generator
             return
-
-        all_delta_documents = self._fetch_all_delta_documents(
-            community_id, first_event_date, end_date
-        )
+        
+        try:
+            all_delta_documents = self._fetch_all_delta_documents(
+                community_id, first_event_date, end_date
+            )
+        except Exception as e:
+            current_app.logger.error(
+                f"Base agg_iter: _fetch_all_delta_documents failed: {e}"
+            )
+            return
 
         if not all_delta_documents:
             # No delta documents exist, return empty generator
