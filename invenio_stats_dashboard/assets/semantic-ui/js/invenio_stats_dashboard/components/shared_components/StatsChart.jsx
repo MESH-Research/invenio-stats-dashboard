@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
@@ -450,6 +450,11 @@ const FilterSelector = ({
   setIsStackedLine,
   chartType,
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const popupRef = useRef(null);
+  const clearButtonRef = useRef(null);
+
   // Get available breakdown options from data
   console.log("data", data);
   const availableBreakdowns =
@@ -477,6 +482,22 @@ const FilterSelector = ({
         return allowedSubcountsArray.includes(backendKey);
       });
 
+  const handleClose = () => {
+    setIsOpen(false);
+    if (triggerRef?.current) {
+      triggerRef.current.focus();
+    }
+  };
+
+  // Focus the clear button when popup opens
+  useEffect(() => {
+    if (isOpen && clearButtonRef?.current) {
+      setTimeout(() => {
+        clearButtonRef.current.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   // Don't render filter if no data available
   if (!data) {
     return null;
@@ -486,53 +507,57 @@ const FilterSelector = ({
     <>
       {/* Filter Popup */}
       <Popup
+        ref={popupRef}
+        open={isOpen}
+        onClose={handleClose}
+        on="click"
+        position="bottom right"
         trigger={
           <Button
+            ref={triggerRef}
             name="stats-chart-filter"
             size="small"
             aria-label={i18next.t("Stats Chart Filter")}
             className="stats-chart-filter-selector"
             toggle
+            onClick={() => setIsOpen(true)}
           >
             <Icon name="filter fitted" />
           </Button>
         }
-        content={
-          <Form>
-            <fieldset>
-              <legend className="rel-mb-1">
-                <label htmlFor="stats-chart-filter">Show separately</label>
-              </legend>
-              {breakdownOptions.map((key) => (
-                <Form.Field key={key} className="rel-mb-0">
-                  <Checkbox
-                    radio
-                    label={BREAKDOWN_NAMES[key] || key}
-                    name={`${key}_checkbox`}
-                    checked={displaySeparately === key}
-                    onChange={() => setDisplaySeparately(key)}
-                  />
-                </Form.Field>
-              ))}
-              <Form.Field className="rel-mt-1">
-                <Button
-                  type="submit"
-                  icon
-                  labelPosition="right"
-                  onClick={() => setDisplaySeparately(null)}
-                >
-                  Clear
-                  <Icon name="close" />
-                </Button>
-              </Form.Field>
-            </fieldset>
-          </Form>
-        }
-        on="click"
-        position="bottom right"
-        style={{ zIndex: 1000 }}
         className="stats-chart-filter-selector"
-      />
+      >
+        <Form role="menu" aria-label={i18next.t("Filter Options")}>
+          <fieldset>
+            <legend className="rel-mb-1">
+              <label htmlFor="stats-chart-filter">Show separately</label>
+            </legend>
+            {breakdownOptions.map((key) => (
+              <Form.Field key={key} className="rel-mb-0">
+                <Checkbox
+                  radio
+                  label={BREAKDOWN_NAMES[key] || key}
+                  name={`${key}_checkbox`}
+                  checked={displaySeparately === key}
+                  onChange={() => setDisplaySeparately(key)}
+                />
+              </Form.Field>
+            ))}
+            <Form.Field className="rel-mt-1">
+              <Button
+                ref={clearButtonRef}
+                type="submit"
+                icon
+                labelPosition="right"
+                onClick={() => setDisplaySeparately(null)}
+              >
+                Clear
+                <Icon name="close" />
+              </Button>
+            </Form.Field>
+          </fieldset>
+        </Form>
+      </Popup>
 
       {/* Stack Toggle Buttons - only show for line charts with multiple series */}
       {chartType === "line" && displaySeparately && (

@@ -497,6 +497,112 @@ const formatDay = (day) => {
   return day;
 };
 
+/**
+ * Expand date range to complete granularity units
+ * @param {Object} dateRange - The current date range {start: Date, end: Date}
+ * @param {string} granularity - The target granularity ('day', 'week', 'month', 'quarter', 'year')
+ * @returns {Object} Expanded date range {start: Date, end: Date}
+ */
+const expandDateRangeToGranularity = (dateRange, granularity) => {
+  if (!dateRange?.start || !dateRange?.end) {
+    return dateRange;
+  }
+
+  let expandedStart = new Date(dateRange.start);
+  let expandedEnd = new Date(dateRange.end);
+
+  switch (granularity) {
+    case "day":
+      // For day granularity, keep the exact dates
+      break;
+
+    case "week":
+      // Expand to complete weeks (Monday to Sunday)
+      const startDayOfWeek = expandedStart.getUTCDay();
+      const startMondayOffset = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek; // Convert Sunday=0 to Monday=1
+      expandedStart.setUTCDate(expandedStart.getUTCDate() + startMondayOffset);
+
+      const endDayOfWeek = expandedEnd.getUTCDay();
+      const endSundayOffset = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek; // Convert to Sunday
+      expandedEnd.setUTCDate(expandedEnd.getUTCDate() + endSundayOffset);
+      break;
+
+    case "month":
+      // Expand to complete months (1st to last day)
+      expandedStart.setUTCDate(1);
+      expandedEnd.setUTCDate(1);
+      expandedEnd.setUTCMonth(expandedEnd.getUTCMonth() + 1);
+      expandedEnd.setUTCDate(expandedEnd.getUTCDate() - 1);
+      break;
+
+    case "quarter":
+      // Expand to complete quarters
+      const startQuarter = Math.floor(expandedStart.getUTCMonth() / 3);
+      const startQuarterStartMonth = startQuarter * 3;
+      expandedStart.setUTCMonth(startQuarterStartMonth);
+      expandedStart.setUTCDate(1);
+
+      const endQuarter = Math.floor(expandedEnd.getUTCMonth() / 3);
+      const endQuarterEndMonth = endQuarter * 3 + 2;
+      expandedEnd.setUTCMonth(endQuarterEndMonth);
+      expandedEnd.setUTCDate(1);
+      expandedEnd.setUTCMonth(expandedEnd.getUTCMonth() + 1);
+      expandedEnd.setUTCDate(expandedEnd.getUTCDate() - 1);
+      break;
+
+    case "year":
+      // Expand to complete years (Jan 1 to Dec 31)
+      expandedStart.setUTCMonth(0);
+      expandedStart.setUTCDate(1);
+      expandedEnd.setUTCMonth(11);
+      expandedEnd.setUTCDate(31);
+      break;
+
+    default:
+      // For unknown granularity, return original range
+      break;
+  }
+
+  return {
+    start: expandedStart,
+    end: expandedEnd,
+  };
+};
+
+/**
+ * Format date range for display in dropdown
+ * @param {Object} dateRange - The date range {start: Date, end: Date}
+ * @returns {string} Formatted date range string
+ */
+const formatDateRangeForDisplay = (dateRange) => {
+  if (!dateRange?.start || !dateRange?.end) {
+    return i18next.t("Custom");
+  }
+
+  const startDate = dateRange.start;
+  const endDate = dateRange.end;
+
+  // Format dates as MMM DD, YYYY
+  const formatDate = (date) => {
+    const monthNames = [
+      i18next.t("Jan"), i18next.t("Feb"), i18next.t("Mar"), i18next.t("Apr"),
+      i18next.t("May"), i18next.t("Jun"), i18next.t("Jul"), i18next.t("Aug"),
+      i18next.t("Sep"), i18next.t("Oct"), i18next.t("Nov"), i18next.t("Dec")
+    ];
+
+    const month = monthNames[date.getUTCMonth()];
+    const day = date.getUTCDate();
+    const year = date.getUTCFullYear();
+
+    return `${month} ${day}, ${year}`;
+  };
+
+  const startFormatted = formatDate(startDate);
+  const endFormatted = formatDate(endDate);
+
+  return `${startFormatted} - ${endFormatted}`;
+};
+
 /** Custom Date Range Popup Component
  *
  * @param {object} props - The component props
@@ -852,22 +958,40 @@ const DateRangeSelector = ({
   }, []);
 
   useEffect(() => {
-    const newDefaultPeriod = defaultRangeOptions?.[granularity];
-    setCurrentSelectedOption(newDefaultPeriod);
-    const newDateRange = getDateRange(
-      todayDate,
-      newDefaultPeriod,
-      maxHistoryYears,
-    );
-    setDateRange(newDateRange);
+    // Only expand the date range if we have an existing date range
+    if (dateRange?.start && dateRange?.end) {
+      const expandedDateRange = expandDateRangeToGranularity(dateRange, granularity);
+      setDateRange(expandedDateRange);
+      setCurrentSelectedOption("custom");
+      setIsCustomRange(true);
 
-    // Update dataFetchRange if the new range extends beyond current dataFetchRange
-    if (
-      !dataFetchRange ||
-      newDateRange.start < dataFetchRange.start ||
-      newDateRange.end > dataFetchRange.end
-    ) {
-      setDataFetchRange(newDateRange);
+      // Update dataFetchRange if the new range extends beyond current dataFetchRange
+      if (
+        !dataFetchRange ||
+        expandedDateRange.start < dataFetchRange.start ||
+        expandedDateRange.end > dataFetchRange.end
+      ) {
+        setDataFetchRange(expandedDateRange);
+      }
+    } else {
+      // If no existing date range, use the default for the granularity
+      const newDefaultPeriod = defaultRangeOptions?.[granularity];
+      setCurrentSelectedOption(newDefaultPeriod);
+      const newDateRange = getDateRange(
+        todayDate,
+        newDefaultPeriod,
+        maxHistoryYears,
+      );
+      setDateRange(newDateRange);
+
+      // Update dataFetchRange if the new range extends beyond current dataFetchRange
+      if (
+        !dataFetchRange ||
+        newDateRange.start < dataFetchRange.start ||
+        newDateRange.end > dataFetchRange.end
+      ) {
+        setDataFetchRange(newDateRange);
+      }
     }
   }, [granularity]);
 
@@ -953,10 +1077,28 @@ const DateRangeSelector = ({
   // Get display text for dropdown
   const getDisplayText = () => {
     if (isCustomRange) {
-      return i18next.t("Custom");
+      return formatDateRangeForDisplay(dateRange);
     }
     const selectedOption = currentPeriodOptions.find(option => option.value === currentSelectedOption);
     return selectedOption ? selectedOption.text : currentPeriodOptions[0].text;
+  };
+
+  // Create dynamic options that include custom range when applicable
+  const getDropdownOptions = () => {
+    // Start with base options
+    const options = [...currentPeriodOptions];
+
+    // Add custom option if we have a custom range
+    if (isCustomRange && dateRange?.start && dateRange?.end) {
+      const customOption = {
+        key: "custom",
+        text: formatDateRangeForDisplay(dateRange),
+        value: "custom"
+      };
+      options.unshift(customOption);
+    }
+
+    return options;
   };
 
   return (
@@ -966,13 +1108,14 @@ const DateRangeSelector = ({
         className="stats-dashboard-field-label"
         htmlFor="date-range-selector"
       >
-        {i18next.t("for the")}
+        {isCustomRange ? i18next.t("for") : i18next.t("for the")}
       </label>
       <Dropdown
+        key={`dropdown-${isCustomRange}-${currentSelectedOption}`}
         id="date-range-selector"
         selection
         fluid
-        options={currentPeriodOptions}
+        options={getDropdownOptions()}
         value={currentSelectedOption}
         onChange={handlePeriodChange}
         className="period-selector"
