@@ -54,7 +54,8 @@ describe('AffiliationsMultiDisplay', () => {
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         recordSnapshotDataAdded: {
           affiliations: {
             records: [
@@ -76,9 +77,10 @@ describe('AffiliationsMultiDisplay', () => {
             ]
           }
         }
-      },
+      }],
       recordStartBasis: 'added',
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -533,7 +535,8 @@ describe('AffiliationsMultiDisplay', () => {
   describe('Component rendering with different display types', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             affiliations: {
               records: [
@@ -555,9 +558,10 @@ describe('AffiliationsMultiDisplay', () => {
               ]
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
     });
 
@@ -605,15 +609,17 @@ describe('AffiliationsMultiDisplay', () => {
 
     it('should render with empty data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             affiliations: {
               records: []
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
 
       render(<AffiliationsMultiDisplay default_view="list" />);

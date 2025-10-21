@@ -26,7 +26,8 @@ jest.mock('../../context/StatsDashboardContext', () => ({
 describe('PublishersMultiDisplay', () => {
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         recordSnapshotDataAdded: {
           publishers: {
             records: [
@@ -48,9 +49,10 @@ describe('PublishersMultiDisplay', () => {
             ]
           }
         }
-      },
+      }],
       recordStartBasis: 'added',
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -394,15 +396,17 @@ describe('PublishersMultiDisplay', () => {
 
     it('should render with empty data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             publishers: {
               records: []
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
 
       render(<PublishersMultiDisplay default_view="list" />);

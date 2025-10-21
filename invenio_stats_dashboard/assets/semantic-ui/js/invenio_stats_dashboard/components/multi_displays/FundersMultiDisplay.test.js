@@ -50,7 +50,8 @@ describe('FundersMultiDisplay', () => {
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         recordSnapshotDataAdded: {
           funders: {
             records: [
@@ -72,9 +73,10 @@ describe('FundersMultiDisplay', () => {
             ]
           }
         }
-      },
+      }],
       recordStartBasis: 'added',
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -529,7 +531,8 @@ describe('FundersMultiDisplay', () => {
   describe('Component rendering with different display types', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             funders: {
               records: [
@@ -551,9 +554,10 @@ describe('FundersMultiDisplay', () => {
               ]
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
     });
 
@@ -601,15 +605,17 @@ describe('FundersMultiDisplay', () => {
 
     it('should render with empty data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             funders: {
               records: []
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
 
       render(<FundersMultiDisplay default_view="list" />);

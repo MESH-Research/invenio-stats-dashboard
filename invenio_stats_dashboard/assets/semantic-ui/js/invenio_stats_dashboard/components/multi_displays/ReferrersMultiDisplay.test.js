@@ -50,7 +50,8 @@ describe('TopReferrersMultiDisplay', () => {
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         usageSnapshotData: {
           referrersByView: {
             views: [
@@ -72,8 +73,9 @@ describe('TopReferrersMultiDisplay', () => {
             ]
           }
         }
-      },
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      }],
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -84,7 +86,9 @@ describe('TopReferrersMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -94,7 +98,9 @@ describe('TopReferrersMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -104,7 +110,9 @@ describe('TopReferrersMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -159,9 +167,9 @@ describe('TopReferrersMultiDisplay', () => {
       const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
-      expect(result.transformedData).toHaveLength(3);
-      expect(result.transformedData[1].value).toBe(0);
-      expect(result.transformedData[1].percentage).toBe(0);
+      expect(result.transformedData).toHaveLength(2); // Zero value items are filtered out
+      expect(result.transformedData[0].value).toBe(100); // Google
+      expect(result.transformedData[1].value).toBe(50); // Bing
     });
 
     it('should calculate percentages correctly', () => {
@@ -196,7 +204,7 @@ describe('TopReferrersMultiDisplay', () => {
 
       const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
 
-      expect(result.transformedData[0].link).toBe('/search?q=metadata.referrer.id:google');
+      expect(result.transformedData[0].link).toBe('/search?q=metadata.referrer.id:"google"');
     });
 
     it('should create transformed data with all expected properties', () => {
@@ -223,7 +231,7 @@ describe('TopReferrersMultiDisplay', () => {
       expect(firstItem).toHaveProperty('value', 100);
       expect(firstItem).toHaveProperty('percentage', 67); // 100/150 * 100 rounded
       expect(firstItem).toHaveProperty('id', 'google');
-      expect(firstItem).toHaveProperty('link', '/search?q=metadata.referrer.id:google');
+      expect(firstItem).toHaveProperty('link', '/search?q=metadata.referrer.id:"google"');
       expect(firstItem).toHaveProperty('itemStyle');
       expect(firstItem.itemStyle).toHaveProperty('color');
       expect(typeof firstItem.itemStyle.color).toBe('string');
@@ -302,7 +310,7 @@ describe('TopReferrersMultiDisplay', () => {
       const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(0);
-      expect(result.transformedData[0].percentage).toBe(0);
+      expect(result.transformedData).toHaveLength(0); // Zero value items are filtered out
     });
   });
 
@@ -528,7 +536,8 @@ describe('TopReferrersMultiDisplay', () => {
   describe('Component rendering with different display types', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           usageSnapshotData: {
             referrersByView: {
               views: [
@@ -550,8 +559,9 @@ describe('TopReferrersMultiDisplay', () => {
               ]
             }
           }
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
     });
 
@@ -599,14 +609,16 @@ describe('TopReferrersMultiDisplay', () => {
 
     it('should render with empty data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           usageSnapshotData: {
             referrersByView: {
               views: []
             }
           }
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
 
       render(<TopReferrersMultiDisplay default_view="list" />);
