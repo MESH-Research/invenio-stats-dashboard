@@ -26,24 +26,28 @@ describe('SingleStatTraffic', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false // Use default setting
+        binary_sizes: false,
+        isLoading: false // Use default setting
       });
     });
 
@@ -65,27 +69,30 @@ describe('SingleStatTraffic', () => {
 
       // The description should contain the date range
       expect(screen.getByText(/from/)).toBeInTheDocument();
-      expect(screen.getByText(/to/)).toBeInTheDocument();
+      expect(screen.getByText(/–/)).toBeInTheDocument();
     });
 
     it('should use binary formatting when binary_sizes is true', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         binary_sizes: true // Test binary formatting
       });
@@ -99,24 +106,29 @@ describe('SingleStatTraffic', () => {
   describe('HTML Structure and Accessibility', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false,
+        isLoading: false
       });
     });
 
@@ -124,7 +136,7 @@ describe('SingleStatTraffic', () => {
       const { container } = render(<SingleStatTraffic />);
 
       // Check main container
-      const mainContainer = container.querySelector('.ui.statistic.stats-single-stat-container.centered.rel-mb-2.rel-mt-2');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       expect(mainContainer).toBeInTheDocument();
       expect(mainContainer).toHaveAttribute('role', 'region');
       expect(mainContainer).toHaveAttribute('aria-describedby');
@@ -200,13 +212,15 @@ describe('SingleStatTraffic', () => {
     it('should filter data by date range and sum values correctly', () => {
       // Test data with values inside and outside the date range
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Outside range
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // Inside range
@@ -214,12 +228,14 @@ describe('SingleStatTraffic', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // Outside range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -230,13 +246,15 @@ describe('SingleStatTraffic', () => {
 
     it('should handle data completely outside date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-30T00:00:00.000Z'), 512] },  // Outside range
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] }, // Outside range
@@ -244,12 +262,14 @@ describe('SingleStatTraffic', () => {
                     { value: [new Date('2024-01-04T00:00:00.000Z'), 4096] }  // Outside range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -260,13 +280,15 @@ describe('SingleStatTraffic', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before start
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // On start date
@@ -274,12 +296,14 @@ describe('SingleStatTraffic', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After start
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -290,13 +314,15 @@ describe('SingleStatTraffic', () => {
 
     it('should handle partial date ranges (only end date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before end
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // Before end
@@ -304,12 +330,14 @@ describe('SingleStatTraffic', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After end
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -324,7 +352,8 @@ describe('SingleStatTraffic', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: null,
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -334,21 +363,25 @@ describe('SingleStatTraffic', () => {
 
     it('should handle empty data array', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: []
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -358,21 +391,25 @@ describe('SingleStatTraffic', () => {
 
     it('should handle missing data property', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume'
-                  // Missing data property
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global'
+                    // Missing data property
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -382,13 +419,15 @@ describe('SingleStatTraffic', () => {
 
     it('should handle invalid data points', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: null }, // Invalid data point
@@ -397,12 +436,14 @@ describe('SingleStatTraffic', () => {
                     { value: ['not a date', 4096] } // Invalid date
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);
@@ -413,24 +454,28 @@ describe('SingleStatTraffic', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: null,
-        binary_sizes: false
+        binary_sizes: false,
+        isLoading: false
       });
 
       render(<SingleStatTraffic />);

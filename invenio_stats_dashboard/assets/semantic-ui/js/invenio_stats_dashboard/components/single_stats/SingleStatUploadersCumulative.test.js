@@ -26,23 +26,27 @@ describe('SingleStatUploadersCumulative', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
     });
@@ -71,23 +75,27 @@ describe('SingleStatUploadersCumulative', () => {
   describe('HTML Structure and Accessibility', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
     });
@@ -96,7 +104,7 @@ describe('SingleStatUploadersCumulative', () => {
       const { container } = render(<SingleStatUploadersCumulative />);
 
       // Check main container
-      const mainContainer = container.querySelector('.ui.statistic.stats-single-stat-container.centered.rel-mb-2.rel-mt-2');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       expect(mainContainer).toBeInTheDocument();
       expect(mainContainer).toHaveAttribute('role', 'region');
       expect(mainContainer).toHaveAttribute('aria-describedby');
@@ -172,13 +180,15 @@ describe('SingleStatUploadersCumulative', () => {
     it('should get the latest snapshot value within date range', () => {
       // Test data with multiple snapshot values
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },   // Before range
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },  // In range
@@ -186,11 +196,13 @@ describe('SingleStatUploadersCumulative', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }   // After range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -202,13 +214,15 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle data completely outside date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-30T00:00:00.000Z'), 5] },   // Outside range
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Outside range
@@ -216,11 +230,13 @@ describe('SingleStatUploadersCumulative', () => {
                     { value: [new Date('2024-01-04T00:00:00.000Z'), 20] }   // Outside range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -232,13 +248,15 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle partial date ranges (only end date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },   // Before end
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },  // Before end
@@ -246,11 +264,13 @@ describe('SingleStatUploadersCumulative', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }   // After end
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -262,22 +282,26 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle single data point in range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }  // Only one point in range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -291,23 +315,27 @@ describe('SingleStatUploadersCumulative', () => {
   describe('Different Record Bases', () => {
     it('should handle different record start basis correctly', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataCreated: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataCreated: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'created'
       });
 
@@ -318,23 +346,27 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle published record basis', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataPublished: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataPublished: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 8] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 12] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'published'
       });
 
@@ -349,6 +381,7 @@ describe('SingleStatUploadersCumulative', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: null,
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -359,20 +392,24 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle empty data array', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: []
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -383,20 +420,24 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle missing data property', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders'
-                  // Missing data property
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global'
+                    // Missing data property
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -407,13 +448,15 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle invalid data points', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: null }, // Invalid data point
@@ -422,11 +465,13 @@ describe('SingleStatUploadersCumulative', () => {
                     { value: ['not a date', 20] } // Invalid date
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -438,23 +483,27 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: null,
+        isLoading: false,
         recordStartBasis: 'added'
       });
 
@@ -466,22 +515,25 @@ describe('SingleStatUploadersCumulative', () => {
 
     it('should handle no end date in range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordSnapshotDataAdded: {
-            global: {
-              uploaders: [
-                {
-                  id: 'uploaders',
-                  name: 'Uploaders',
+        stats: [
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
         recordStartBasis: 'added'
       });

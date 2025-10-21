@@ -24,7 +24,7 @@ import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { CHART_COLORS, getSubcountKeyMapping } from "../../constants";
 import { formatNumber, filterSeriesArrayByDate } from "../../utils";
 import { formatDateRange, readableGranularDate } from "../../utils/dates";
-import { extractLocalizedLabel } from "../../api/dataTransformer";
+import { extractLocalizedLabel } from "../../utils/i18n";
 import {
   ChartDataAggregator,
   ChartDataProcessor,

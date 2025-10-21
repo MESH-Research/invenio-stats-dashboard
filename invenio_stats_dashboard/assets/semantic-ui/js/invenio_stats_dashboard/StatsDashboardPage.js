@@ -133,7 +133,7 @@ const StatsDashboardPage = ({ dashboardConfig, stats: initialStats, community = 
 
 StatsDashboardPage.propTypes = {
   dashboardConfig: PropTypes.object.isRequired,
-  stats: PropTypes.object,
+  stats: PropTypes.array,
   community: PropTypes.object,
   variant: PropTypes.string.isRequired,
 };

@@ -1,6 +1,6 @@
 import { filterSeriesArrayByDate } from "./filters";
 import { readableGranularDate } from "./dates";
-import { extractLocalizedLabel } from "../api/dataTransformer";
+import { extractLocalizedLabel } from "./i18n";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
 /**

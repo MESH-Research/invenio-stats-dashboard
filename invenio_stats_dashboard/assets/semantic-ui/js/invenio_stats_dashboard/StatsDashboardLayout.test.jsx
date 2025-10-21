@@ -12,12 +12,20 @@ import { StatsDashboardLayout } from './StatsDashboardLayout';
 import { getCachedStats, setCachedStats, clearCachedStats } from './utils/statsCache';
 import { fetchStats } from './api/api';
 import { statsApiClient } from './api/api';
-import { transformApiData } from './api/dataTransformer';
 
 // Mock dependencies
-jest.mock('./utils/statsCache');
-jest.mock('./api/api');
-jest.mock('./api/dataTransformer');
+jest.mock('./utils/statsCache', () => ({
+  getCachedStats: jest.fn(),
+  setCachedStats: jest.fn(),
+  clearCachedStats: jest.fn()
+}));
+
+jest.mock('./api/api', () => ({
+  fetchStats: jest.fn(),
+  statsApiClient: {
+    getStats: jest.fn()
+  }
+}));
 
 const mockDashboardConfig = {
   layout: {
@@ -25,7 +33,19 @@ const mockDashboardConfig = {
       {
         name: 'content',
         label: 'Content',
-        icon: 'file text'
+        icon: 'file text',
+        rows: [
+          {
+            name: 'test-row',
+            components: [
+              {
+                type: 'SingleStatRecordCount',
+                title: 'Records',
+                icon: 'file'
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -54,16 +74,123 @@ const mockRawStats = {
   usage_snapshots: []
 };
 
-const mockTransformedStats = {
-  recordDeltaDataCreated: {},
-  recordDeltaDataAdded: {},
-  recordDeltaDataPublished: {},
-  recordSnapshotDataCreated: {},
-  recordSnapshotDataAdded: {},
-  recordSnapshotDataPublished: {},
-  usageDeltaData: {},
-  usageSnapshotData: {}
-};
+const mockTransformedStats = [
+  {
+    year: 2024,
+    recordDeltaDataCreated: {
+      global: {
+        records: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+            ]
+          }
+        ]
+      }
+    },
+    recordDeltaDataAdded: {
+      global: {
+        records: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+            ]
+          }
+        ]
+      }
+    },
+    recordDeltaDataPublished: {
+      global: {
+        records: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 8] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 12] }
+            ]
+          }
+        ]
+      }
+    },
+    recordSnapshotDataCreated: {
+      global: {
+        records: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 100] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 120] }
+            ]
+          }
+        ]
+      }
+    },
+    recordSnapshotDataAdded: {
+      global: {
+        records: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 95] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 110] }
+            ]
+          }
+        ]
+      }
+    },
+    recordSnapshotDataPublished: {
+      global: {
+        records: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 90] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 102] }
+            ]
+          }
+        ]
+      }
+    },
+    usageDeltaData: {
+      global: {
+        downloads: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 50] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 75] }
+            ]
+          }
+        ]
+      }
+    },
+    usageSnapshotData: {
+      global: {
+        downloads: [
+          {
+            id: 'global',
+            name: 'Global',
+            data: [
+              { value: [new Date('2024-01-01T00:00:00.000Z'), 500] },
+              { value: [new Date('2024-01-02T00:00:00.000Z'), 575] }
+            ]
+          }
+        ]
+      }
+    }
+  }
+];
 
 describe('StatsDashboardLayout with caching', () => {
   beforeEach(() => {
@@ -72,7 +199,6 @@ describe('StatsDashboardLayout with caching', () => {
     getCachedStats.mockReturnValue(null);
     setCachedStats.mockClear();
     statsApiClient.getStats.mockResolvedValue(mockRawStats);
-    transformApiData.mockReturnValue(mockTransformedStats);
     fetchStats.mockImplementation(({ onStateChange, isMounted, useTestData }) => {
       // Simulate the API behavior
       if (onStateChange) {

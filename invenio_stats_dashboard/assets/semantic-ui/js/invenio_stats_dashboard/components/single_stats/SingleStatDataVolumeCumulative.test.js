@@ -26,13 +26,14 @@ describe('SingleStatDataVolumeCumulative', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -41,9 +42,10 @@ describe('SingleStatDataVolumeCumulative', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
     });
@@ -70,13 +72,14 @@ describe('SingleStatDataVolumeCumulative', () => {
 
     it('should use binary formatting when binary_sizes is true', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -85,9 +88,10 @@ describe('SingleStatDataVolumeCumulative', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: true // Test binary formatting
       });
 
@@ -100,13 +104,14 @@ describe('SingleStatDataVolumeCumulative', () => {
   describe('HTML Structure and Accessibility', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -115,9 +120,10 @@ describe('SingleStatDataVolumeCumulative', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false
       });
     });
@@ -222,6 +228,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -253,6 +260,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -284,6 +292,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -315,6 +324,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -343,6 +353,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -374,6 +385,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'created',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -402,6 +414,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'published',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -417,6 +430,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         stats: null,
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -442,6 +456,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -467,6 +482,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -498,6 +514,7 @@ describe('SingleStatDataVolumeCumulative', () => {
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 
@@ -509,13 +526,14 @@ describe('SingleStatDataVolumeCumulative', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -524,9 +542,10 @@ describe('SingleStatDataVolumeCumulative', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: null,
         recordStartBasis: 'added',
+        isLoading: false,
         binary_sizes: false // Use default setting
       });
 

@@ -26,13 +26,14 @@ describe('SingleStatDataVolume', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -41,9 +42,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
     });
 
@@ -65,7 +67,7 @@ describe('SingleStatDataVolume', () => {
 
       // The description should contain the date range
       expect(screen.getByText(/from/)).toBeInTheDocument();
-      expect(screen.getByText(/to/)).toBeInTheDocument();
+      expect(screen.getByText(/–/)).toBeInTheDocument();
     });
   });
 
@@ -73,13 +75,14 @@ describe('SingleStatDataVolume', () => {
     it('should filter data by date range and sum values correctly', () => {
       // Test data with values inside and outside the date range
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Outside range
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // Inside range
@@ -90,9 +93,11 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false,
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -103,13 +108,14 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle data completely outside date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2023-12-30T00:00:00.000Z'), 512] },  // Outside range
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] }, // Outside range
@@ -120,9 +126,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -133,13 +140,14 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before start
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // On start date
@@ -150,9 +158,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -165,13 +174,14 @@ describe('SingleStatDataVolume', () => {
   describe('Different Record Bases', () => {
     it('should handle different record start basis correctly', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataCreated: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -180,9 +190,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'created'
+        recordStartBasis: 'created',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -192,13 +203,14 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle published record basis', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataPublished: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 512] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 1024] }
@@ -207,9 +219,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'published'
+        recordStartBasis: 'published',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -223,7 +236,8 @@ describe('SingleStatDataVolume', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: null,
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -233,21 +247,23 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle empty data array', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: []
                 }
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -257,21 +273,23 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle missing data property', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume'
+                  id: 'global',
+                  name: 'Global'
                   // Missing data property
                 }
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -281,13 +299,14 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle invalid data points', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: null }, // Invalid data point
@@ -299,9 +318,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);
@@ -312,13 +332,14 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordDeltaDataAdded: {
             global: {
               dataVolume: [
                 {
-                  id: 'dataVolume',
-                  name: 'Data Volume',
+                  id: 'global',
+                  name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
@@ -327,9 +348,10 @@ describe('SingleStatDataVolume', () => {
               ]
             }
           }
-        },
+        }],
         dateRange: null,
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatDataVolume />);

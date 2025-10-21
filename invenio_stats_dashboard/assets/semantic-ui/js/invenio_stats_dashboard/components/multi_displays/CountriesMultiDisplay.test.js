@@ -73,7 +73,8 @@ describe('TopCountriesMultiDisplay', () => {
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         usageSnapshotData: {
           countriesByView: {
             views: [
@@ -95,8 +96,9 @@ describe('TopCountriesMultiDisplay', () => {
             ]
           }
         }
-      },
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      }],
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -551,7 +553,8 @@ describe('TopCountriesMultiDisplay', () => {
   describe('Component rendering with different display types', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           usageSnapshotData: {
             countriesByView: {
               views: [
@@ -573,8 +576,9 @@ describe('TopCountriesMultiDisplay', () => {
               ]
             }
           }
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
     });
 
@@ -622,14 +626,16 @@ describe('TopCountriesMultiDisplay', () => {
 
     it('should render with empty data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           usageSnapshotData: {
             countriesByView: {
               views: []
             }
           }
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
 
       render(<TopCountriesMultiDisplay default_view="list" />);

@@ -7,7 +7,7 @@
 import React from "react";
 import { formatNumber } from "./numbers";
 import { CHART_COLORS, RECORD_START_BASES } from '../constants';
-import { extractLocalizedLabel } from '../api/dataTransformer';
+import { extractLocalizedLabel } from './i18n';
 import { filterSeriesArrayByDate } from './filters';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getCountryNames } from './mapHelpers';

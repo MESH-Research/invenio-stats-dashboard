@@ -26,22 +26,26 @@ describe('SingleStatDownloadsCumulative', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
     });
 
@@ -69,22 +73,26 @@ describe('SingleStatDownloadsCumulative', () => {
   describe('HTML Structure and Accessibility', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
     });
 
@@ -92,7 +100,7 @@ describe('SingleStatDownloadsCumulative', () => {
       const { container } = render(<SingleStatDownloadsCumulative />);
 
       // Check main container
-      const mainContainer = container.querySelector('.ui.statistic.stats-single-stat-container.centered.rel-mb-2.rel-mt-2');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       expect(mainContainer).toBeInTheDocument();
       expect(mainContainer).toHaveAttribute('role', 'region');
       expect(mainContainer).toHaveAttribute('aria-describedby');
@@ -168,25 +176,44 @@ describe('SingleStatDownloadsCumulative', () => {
     it('should get the latest value within the date range', () => {
       // Test data with multiple values, should get the latest one within range
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Outside range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 20] }, // Inside range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }, // Inside range (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }  // Outside range
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 20] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] },
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -197,25 +224,44 @@ describe('SingleStatDownloadsCumulative', () => {
 
     it('should handle data completely outside date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 10] },  // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 20] }, // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 30] }, // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 40] }  // Outside range
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-30T00:00:00.000Z'), 10] },
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 20] }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 30] },
+                      { value: [new Date('2024-01-04T00:00:00.000Z'), 40] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -226,25 +272,44 @@ describe('SingleStatDownloadsCumulative', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 20] }, // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }, // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }  // After start (latest)
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 20] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] },
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -255,25 +320,44 @@ describe('SingleStatDownloadsCumulative', () => {
 
     it('should handle partial date ranges (only end date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Before end
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 20] }, // Before end
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }, // On end date (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }  // After end
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 20] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] },
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -287,7 +371,8 @@ describe('SingleStatDownloadsCumulative', () => {
     it('should handle empty stats gracefully', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: null,
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -302,15 +387,16 @@ describe('SingleStatDownloadsCumulative', () => {
             global: {
               downloads: [
                 {
-                  id: 'downloads',
-                  name: 'Downloads',
+                  id: 'global',
+                  name: 'Global',
                   data: []
                 }
               ]
             }
           }
         },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -333,7 +419,8 @@ describe('SingleStatDownloadsCumulative', () => {
             }
           }
         },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -343,26 +430,30 @@ describe('SingleStatDownloadsCumulative', () => {
 
     it('should handle invalid data points', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 30] } // Invalid date
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: null }, // Invalid data point
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
+                      { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
+                      { value: ['not a date', 30] } // Invalid date
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);
@@ -373,23 +464,27 @@ describe('SingleStatDownloadsCumulative', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageSnapshotData: {
-            global: {
-              downloads: [
-                {
-                  id: 'downloads',
-                  name: 'Downloads',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageSnapshotData: {
+              global: {
+                downloads: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: null
+        ],
+        dateRange: null,
+        isLoading: false
       });
 
       render(<SingleStatDownloadsCumulative />);

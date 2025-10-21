@@ -50,7 +50,8 @@ describe('RightsMultiDisplay', () => {
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         recordSnapshotDataAdded: {
           rights: {
             records: [
@@ -72,9 +73,10 @@ describe('RightsMultiDisplay', () => {
             ]
           }
         }
-      },
+      }],
       recordStartBasis: 'added',
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -529,7 +531,8 @@ describe('RightsMultiDisplay', () => {
   describe('Component rendering with different display types', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             rights: {
               records: [
@@ -551,9 +554,10 @@ describe('RightsMultiDisplay', () => {
               ]
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
     });
 
@@ -601,15 +605,17 @@ describe('RightsMultiDisplay', () => {
 
     it('should render with empty data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             rights: {
               records: []
             }
           }
-        },
+        }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
 
       render(<RightsMultiDisplay default_view="list" />);

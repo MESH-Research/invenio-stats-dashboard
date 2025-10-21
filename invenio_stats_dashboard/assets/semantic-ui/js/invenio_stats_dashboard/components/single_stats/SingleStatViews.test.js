@@ -26,23 +26,27 @@ describe('SingleStatViews', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
     });
 
@@ -64,30 +68,34 @@ describe('SingleStatViews', () => {
 
       // The description should contain the date range
       expect(screen.getByText(/from/)).toBeInTheDocument();
-      expect(screen.getByText(/to/)).toBeInTheDocument();
+      expect(screen.getByText(/–/)).toBeInTheDocument();
     });
   });
 
   describe('HTML Structure and Accessibility', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
     });
 
@@ -95,7 +103,7 @@ describe('SingleStatViews', () => {
       const { container } = render(<SingleStatViews />);
 
       // Check main container
-      const mainContainer = container.querySelector('.ui.statistic.stats-single-stat-container.centered.rel-mb-2.rel-mt-2');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       expect(mainContainer).toBeInTheDocument();
       expect(mainContainer).toHaveAttribute('role', 'region');
       expect(mainContainer).toHaveAttribute('aria-describedby');
@@ -171,13 +179,15 @@ describe('SingleStatViews', () => {
     it('should filter data by date range and sum values correctly', () => {
       // Test data with values inside and outside the date range
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Outside range
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Inside range
@@ -185,11 +195,13 @@ describe('SingleStatViews', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // Outside range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -200,13 +212,15 @@ describe('SingleStatViews', () => {
 
     it('should handle data completely outside date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-30T00:00:00.000Z'), 5] },  // Outside range
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }, // Outside range
@@ -214,11 +228,13 @@ describe('SingleStatViews', () => {
                     { value: [new Date('2024-01-04T00:00:00.000Z'), 20] }  // Outside range
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -229,13 +245,15 @@ describe('SingleStatViews', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Before start
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // On start date
@@ -243,11 +261,13 @@ describe('SingleStatViews', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After start
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -258,13 +278,15 @@ describe('SingleStatViews', () => {
 
     it('should handle partial date ranges (only end date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Before end
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Before end
@@ -272,11 +294,13 @@ describe('SingleStatViews', () => {
                     { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After end
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -290,7 +314,8 @@ describe('SingleStatViews', () => {
     it('should handle empty stats gracefully', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: null,
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -300,20 +325,24 @@ describe('SingleStatViews', () => {
 
     it('should handle empty data array', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: []
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -323,20 +352,24 @@ describe('SingleStatViews', () => {
 
     it('should handle missing data property', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views'
-                  // Missing data property
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global'
+                    // Missing data property
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -346,13 +379,15 @@ describe('SingleStatViews', () => {
 
     it('should handle invalid data points', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: null }, // Invalid data point
@@ -361,11 +396,13 @@ describe('SingleStatViews', () => {
                     { value: ['not a date', 30] } // Invalid date
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') }
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        isLoading: false
       });
 
       render(<SingleStatViews />);
@@ -376,23 +413,27 @@ describe('SingleStatViews', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          usageDeltaData: {
-            global: {
-              views: [
-                {
-                  id: 'views',
-                  name: 'Views',
+        stats: [
+          {
+            year: 2024,
+            usageDeltaData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
                   data: [
                     { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
                     { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
                   ]
                 }
-              ]
+                ]
+              }
             }
           }
-        },
-        dateRange: null
+        ],
+        dateRange: null,
+        isLoading: false
       });
 
       render(<SingleStatViews />);

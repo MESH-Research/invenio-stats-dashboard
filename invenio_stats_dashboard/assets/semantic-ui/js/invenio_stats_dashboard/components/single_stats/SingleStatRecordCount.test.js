@@ -26,24 +26,29 @@ describe('SingleStatRecordCount', () => {
   describe('Basic Rendering', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false,
+        isLoading: false
       });
     });
 
@@ -65,31 +70,36 @@ describe('SingleStatRecordCount', () => {
 
       // The description should contain the date range
       expect(screen.getByText(/from/)).toBeInTheDocument();
-      expect(screen.getByText(/to/)).toBeInTheDocument();
+      expect(screen.getByText(/–/)).toBeInTheDocument();
     });
   });
 
   describe('HTML Structure and Accessibility', () => {
     beforeEach(() => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false,
+        isLoading: false
       });
     });
 
@@ -97,7 +107,7 @@ describe('SingleStatRecordCount', () => {
       const { container } = render(<SingleStatRecordCount />);
 
       // Check main container
-      const mainContainer = container.querySelector('.ui.statistic.stats-single-stat-container.centered.rel-mb-2.rel-mt-2');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       expect(mainContainer).toBeInTheDocument();
       expect(mainContainer).toHaveAttribute('role', 'region');
       expect(mainContainer).toHaveAttribute('aria-describedby');
@@ -142,7 +152,7 @@ describe('SingleStatRecordCount', () => {
     it('should have proper accessibility attributes', () => {
       const { container } = render(<SingleStatRecordCount />);
 
-      const mainContainer = container.querySelector('.ui.statistic');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       const descriptionElement = container.querySelector('.stats-single-stat-description');
 
       // Check that aria-describedby points to the description element
@@ -153,7 +163,7 @@ describe('SingleStatRecordCount', () => {
     it('should handle custom title in accessibility attributes', () => {
       const { container } = render(<SingleStatRecordCount title="Custom Title" />);
 
-      const mainContainer = container.querySelector('.ui.statistic');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       const valueElement = container.querySelector('.value');
 
       expect(mainContainer).toHaveAttribute('aria-label', 'Custom Title');
@@ -173,26 +183,31 @@ describe('SingleStatRecordCount', () => {
     it('should filter data by date range and sum values correctly', () => {
       // Test data with values inside and outside the date range
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Outside range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Inside range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // Inside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // Outside range
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Outside range
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Inside range
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // Inside range
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // Outside range
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false,
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -203,26 +218,31 @@ describe('SingleStatRecordCount', () => {
 
     it('should handle data completely outside date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 5] },  // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }, // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 15] }, // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 20] }  // Outside range
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-30T00:00:00.000Z'), 5] },  // Outside range
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }, // Outside range
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 15] }, // Outside range
+                      { value: [new Date('2024-01-04T00:00:00.000Z'), 20] }  // Outside range
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false,
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -233,26 +253,45 @@ describe('SingleStatRecordCount', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After start
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 5] }  // Before start
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // On start date
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // After start
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After start
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
-        recordStartBasis: 'added'
+        ],
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-12-31T00:00:00.000Z') },
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -263,26 +302,31 @@ describe('SingleStatRecordCount', () => {
 
     it('should handle partial date ranges (only end date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Before end
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Before end
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // On end date
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After end
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Before end
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Before end
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // On end date
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After end
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false,
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -295,24 +339,28 @@ describe('SingleStatRecordCount', () => {
   describe('Different Record Bases', () => {
     it('should handle different record start basis correctly', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataCreated: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataCreated: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'created'
+        recordStartBasis: 'created',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -322,24 +370,28 @@ describe('SingleStatRecordCount', () => {
 
     it('should handle published record basis', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataPublished: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataPublished: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'published'
+        recordStartBasis: 'published',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -353,7 +405,8 @@ describe('SingleStatRecordCount', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: null,
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -368,7 +421,7 @@ describe('SingleStatRecordCount', () => {
             global: {
               records: [
                 {
-                  id: 'records',
+                  id: 'global',
                   name: 'Records',
                   data: []
                 }
@@ -377,7 +430,8 @@ describe('SingleStatRecordCount', () => {
           }
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -392,7 +446,7 @@ describe('SingleStatRecordCount', () => {
             global: {
               records: [
                 {
-                  id: 'records',
+                  id: 'global',
                   name: 'Records'
                   // Missing data property
                 }
@@ -401,7 +455,8 @@ describe('SingleStatRecordCount', () => {
           }
         },
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -411,27 +466,31 @@ describe('SingleStatRecordCount', () => {
 
     it('should handle invalid data points', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 30] } // Invalid date
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: null }, // Invalid data point
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
+                      { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
+                      { value: ['not a date', 30] } // Invalid date
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);
@@ -442,24 +501,28 @@ describe('SingleStatRecordCount', () => {
 
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
-          recordDeltaDataAdded: {
-            global: {
-              records: [
-                {
-                  id: 'records',
-                  name: 'Records',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                    ]
+                  }
+                ]
+              }
             }
           }
-        },
+        ],
         dateRange: null,
-        recordStartBasis: 'added'
+        recordStartBasis: 'added',
+        isLoading: false
       });
 
       render(<SingleStatRecordCount />);

@@ -11,6 +11,7 @@ export * from "./filters";
 export * from "./chartHelpers";
 export * from "./multiDisplayHelpers";
 export * from "./jsonDownloadSerializer";
+export * from "./i18n";
 
 function kebabToCamel(str) {
 	return str.replace(/-./g, (x) => x[1].toUpperCase());

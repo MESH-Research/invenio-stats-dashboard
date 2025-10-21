@@ -43,7 +43,8 @@ describe('SubjectsMultiDisplay', () => {
 
   beforeEach(() => {
     mockUseStatsDashboard.mockReturnValue({
-      stats: {
+      stats: [{
+        year: 2024,
         recordSnapshotDataAdded: {
           subjects: {
             records: [
@@ -65,8 +66,9 @@ describe('SubjectsMultiDisplay', () => {
             ]
           }
         }
-      },
-      dateRange: { start: '2024-01-01', end: '2024-01-31' }
+      }],
+      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      isLoading: false
     });
   });
 
@@ -98,14 +100,16 @@ describe('SubjectsMultiDisplay', () => {
 
     it('should handle empty subjects data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             subjects: {
               records: []
             }
           }
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);
       const statsDisplay = screen.getByRole('region');
@@ -117,10 +121,12 @@ describe('SubjectsMultiDisplay', () => {
 
     it('should handle missing subjects data', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {}
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);
       const statsDisplay = screen.getByRole('region');
@@ -220,7 +226,8 @@ describe('SubjectsMultiDisplay', () => {
 
     it('should handle zero total count', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: {
+        stats: [{
+          year: 2024,
           recordSnapshotDataAdded: {
             subjects: {
               records: [
@@ -232,8 +239,9 @@ describe('SubjectsMultiDisplay', () => {
               ]
             }
           }
-        },
-        dateRange: { start: '2024-01-01', end: '2024-01-31' }
+        }],
+        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);
       expect(screen.getByText('0 (0%)')).toBeInTheDocument();
