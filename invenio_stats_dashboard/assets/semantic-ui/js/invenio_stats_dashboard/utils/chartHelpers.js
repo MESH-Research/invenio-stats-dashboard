@@ -2,6 +2,7 @@ import { filterSeriesArrayByDate } from "./filters";
 import { readableGranularDate } from "./dates";
 import { extractLocalizedLabel } from "./i18n";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
+import { getLicenseLabelForms } from "./nameTransformHelpers";
 
 /**
  * ChartDataAggregator class handles all data aggregation and processing for charts
@@ -547,9 +548,16 @@ export class ChartDataProcessor {
           seriesName,
           currentLanguage,
         );
+
+        // Apply license abbreviation for rights data
+        const labelForms = displaySeparately === 'rights'
+          ? getLicenseLabelForms(seriesItem.id, localizedName)
+          : { short: localizedName, long: localizedName, isAbbreviated: false };
+
         return {
           ...seriesItem,
-          name: localizedName,
+          name: labelForms.short,
+          fullName: labelForms.long, // Store full name for tooltips
         };
       } else {
         // For global view, use the metric name

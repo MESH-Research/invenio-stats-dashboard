@@ -162,10 +162,11 @@ const TOOLTIP_CONFIG = {
     });
 
     sortedParams.forEach((param) => {
+      const displayName = param.data?.fullName || param.seriesName;
       result +=
         param.marker +
         " " +
-        param.seriesName +
+        displayName +
         ": " +
         formatNumber(
           param.data.value[1],

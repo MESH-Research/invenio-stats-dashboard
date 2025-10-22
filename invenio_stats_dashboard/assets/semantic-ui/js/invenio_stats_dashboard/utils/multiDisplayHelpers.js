@@ -11,6 +11,7 @@ import { extractLocalizedLabel } from './i18n';
 import { filterSeriesArrayByDate } from './filters';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getCountryNames } from "./mapHelpers";
+import { transformItemForChart } from "./nameTransformHelpers";
 
 /**
  * Transform multi-display data into chart-ready format
@@ -24,6 +25,7 @@ import { getCountryNames } from "./mapHelpers";
  * @param {boolean} isDelta - Whether the data is delta (sum all points) or snapshot (take latest point)
  * @returns {Object} Object containing transformedData, otherData, originalOtherData, totalCount, and otherPercentage
  */
+
 const transformMultiDisplayData = (
   rawData,
   pageSize = 10,
@@ -95,11 +97,13 @@ const transformMultiDisplayData = (
       totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
     const currentLanguage = i18next.language || "en";
 
-    const itemName = item.name || item.id;
-    const localizedName = extractLocalizedLabel(itemName, currentLanguage);
+    // Transform item for chart display with appropriate name forms
+    const transformedItem = transformItemForChart(item, searchField, currentLanguage, extractLocalizedLabel);
 
     return {
-      name: localizedName,
+      name: transformedItem.name,
+      fullName: transformedItem.fullName,
+      isAbbreviated: transformedItem.isAbbreviated,
       value: value,
       percentage: percentage,
       id: item.id,
@@ -496,8 +500,9 @@ const generateMultiDisplayChartOptions = (
         confine: true,
         appendToBody: false,
         formatter: (params) => {
+          const displayName = params.data.fullName || params.name;
           return `<div>
-            ${params.name}: ${formatNumber(params.value, "compact")} (${params.data.percentage}%)
+            ${displayName}: ${formatNumber(params.value, "compact")} (${params.data.percentage}%)
           </div>`;
         },
       },
@@ -552,8 +557,9 @@ const generateMultiDisplayChartOptions = (
         confine: true,
         appendToBody: false,
         formatter: (params) => {
+          const displayName = params.data.fullName || params.name;
           return `<div>
-            ${params.name}: ${formatNumber(params.value, "compact")} (${params.data.percentage}%)
+            ${displayName}: ${formatNumber(params.value, "compact")} (${params.data.percentage}%)
           </div>`;
         },
       },

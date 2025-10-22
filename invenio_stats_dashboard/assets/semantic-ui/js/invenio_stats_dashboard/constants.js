@@ -38,7 +38,7 @@ export const CHART_COLORS = {
     ["yellow", "#c8a41b"], // Lighter yellow
     ["green", "#2c5c4c"], // Lighter green
     ["olive", "#7c8a43"], // Lighter olive
-    ["grey", "#808080"], // Lighter grey
+    ["grey", "#b8b8b8"], // Lighter grey
   ],
 
   // Pastel color palette
