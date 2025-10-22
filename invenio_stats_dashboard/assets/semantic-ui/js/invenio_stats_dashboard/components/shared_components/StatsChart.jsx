@@ -383,14 +383,8 @@ class ChartConfigBuilder {
         label: {
           ...this.config.series.label,
           show: ["quarter", "year"].includes(granularity) ? true : false,
-          position:
-            (chartType || series.type || "bar") === "bar" ? "inside" : "top",
-          color:
-            (chartType || series.type || "bar") === "bar"
-              ? "#fff"
-              : CHART_COLORS.primary[
-                  seriesColorIndex % CHART_COLORS.primary.length
-                ][1],
+          position: "top",
+          color: CHART_COLORS.secondary[seriesColorIndex % CHART_COLORS.secondary.length][1],
         },
         itemStyle: {
           color:
