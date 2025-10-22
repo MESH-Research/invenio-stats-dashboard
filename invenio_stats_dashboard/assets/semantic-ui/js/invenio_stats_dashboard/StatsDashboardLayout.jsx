@@ -163,107 +163,107 @@ const StatsDashboardLayout = ({
 
   return (
     <StatsDashboardProvider value={contextValue}>
-        {showSubheader && (
-          <div className="ui container fluid page-subheader-outer compact stats-dashboard-header ml-0-mobile mr-0-mobile">
-            <div className="ui container stats-dashboard page-subheader flex align-items-center justify-space-between">
-              <h1 className="ui header">
-                {dashboardConfig?.title || i18next.t("Statistics")}
-              </h1>
-              {showDescription && (
-                <p className="ui description">
-                  {dashboardConfig?.description || ""}
-                </p>
-              )}
-            </div>
+      {showSubheader && (
+        <div className="ui container fluid page-subheader-outer compact stats-dashboard-header ml-0-mobile mr-0-mobile">
+          <div className="ui container stats-dashboard page-subheader flex align-items-center justify-space-between">
+            <h1 className="ui huge header">
+              {dashboardConfig?.title || i18next.t("Statistics")}
+            </h1>
+            {showDescription && (
+              <p className="ui description">
+                {dashboardConfig?.description || ""}
+              </p>
+            )}
           </div>
-        )}
-        <Container
-          className={`grid ${containerClassNames} rel-m-2 stats-dashboard-container`}
-          id={`${dashboardType}-stats-dashboard`}
-        >
-          <Grid.Row>
-            <Grid.Column
-              computer={3}
-              tablet={16}
-              mobile={16}
-              className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0`}
+        </div>
+      )}
+      <Container
+        className={`grid ${containerClassNames} ${dashboardType !== "global" ? "rel-m-2" : "rel-mb-2"} stats-dashboard-container`}
+        id={`${dashboardType}-stats-dashboard`}
+      >
+        <Grid.Row>
+          <Grid.Column
+            computer={3}
+            tablet={16}
+            mobile={16}
+            className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0`}
+          >
+            {showTitle && (
+              <h2 className="stats-dashboard-header tablet computer widescreen large-monitor only">
+                {dashboardConfig.title || i18next.t("Statistics")}
+              </h2>
+            )}
+            <Menu
+              fluid
+              vertical
+              className="stats-dashboard-sidebar-menu rel-mt-2 rel-mb-2 theme-primary-menu horizontal tablet horizontal mobile"
             >
-              {showTitle && (
-                <h2 className="stats-dashboard-header tablet computer widescreen large-monitor only">
-                  {dashboardConfig.title || i18next.t("Statistics")}
-                </h2>
-              )}
-              <Menu
-                fluid
-                vertical
-                className="stats-dashboard-sidebar-menu rel-mt-2 rel-mb-2 theme-primary-menu horizontal tablet horizontal mobile"
-              >
-                {availableTabs.map((tab) => (
-                  <Menu.Item
-                    key={tab.name}
-                    name={tab.name}
-                    onClick={handleTabChange}
-                    active={selectedTab === tab.name}
-                    as="button"
-                    fluid
-                    tabIndex={0}
-                    aria-pressed={selectedTab === tab.name}
-                    role="tab"
-                  >
-                    <span>{tab.label}</span>
-                    <Icon name={tab.icon} />
-                  </Menu.Item>
-                ))}
-              </Menu>
-              {showDescription && (
-                <p className="ui description">
-                  {dashboardConfig?.description || ""}
-                </p>
-              )}
-              <DateRangeSelector
-                dateRange={dateRange}
-                dataFetchRange={dataFetchRange}
-                defaultRangeOptions={dashboardConfig?.default_range_options}
-                granularity={granularity}
-                maxHistoryYears={maxHistoryYears}
-                setDateRange={setDateRange}
-                setDataFetchRange={setDataFetchRange}
-              />
-              <GranularitySelector
-                defaultGranularity={dashboardConfig?.default_granularity}
-                granularity={granularity}
-                setGranularity={setGranularity}
-              />
-              <ReportSelector />
-              <UpdateStatusMessage
-                isUpdating={isUpdating}
-                lastUpdated={lastUpdated}
-                className="rel-mt-2"
-              />
-            </Grid.Column>
-            <Grid.Column
-              computer={13}
-              tablet={16}
-              mobile={16}
-              className={`${bodyClassNames} stats-dashboard-body`}
+              {availableTabs.map((tab) => (
+                <Menu.Item
+                  key={tab.name}
+                  name={tab.name}
+                  onClick={handleTabChange}
+                  active={selectedTab === tab.name}
+                  as="button"
+                  fluid
+                  tabIndex={0}
+                  aria-pressed={selectedTab === tab.name}
+                  role="tab"
+                >
+                  <span>{tab.label}</span>
+                  <Icon name={tab.icon} />
+                </Menu.Item>
+              ))}
+            </Menu>
+            {showDescription && (
+              <p className="ui description">
+                {dashboardConfig?.description || ""}
+              </p>
+            )}
+            <DateRangeSelector
+              dateRange={dateRange}
+              dataFetchRange={dataFetchRange}
+              defaultRangeOptions={dashboardConfig?.default_range_options}
+              granularity={granularity}
+              maxHistoryYears={maxHistoryYears}
+              setDateRange={setDateRange}
+              setDataFetchRange={setDataFetchRange}
+            />
+            <GranularitySelector
+              defaultGranularity={dashboardConfig?.default_granularity}
+              granularity={granularity}
+              setGranularity={setGranularity}
+            />
+            <ReportSelector />
+            <UpdateStatusMessage
+              isUpdating={isUpdating}
+              lastUpdated={lastUpdated}
+              className="rel-mt-2"
+            />
+          </Grid.Column>
+          <Grid.Column
+            computer={13}
+            tablet={16}
+            mobile={16}
+            className={`${bodyClassNames} stats-dashboard-body`}
+          >
+            <Transition.Group
+              animation="fade"
+              duration={{ show: 1000, hide: 20 }}
             >
-              <Transition.Group
-                animation="fade"
-                duration={{ show: 1000, hide: 20 }}
-              >
-                {selectedTab && (
-                  <StatsDashboardPage
-                    community={community}
-                    dashboardConfig={dashboardConfig}
-                    stats={stats}
-                    variant={selectedTab}
-                    key={selectedTab}
-                  />
-                )}
-              </Transition.Group>
-            </Grid.Column>
-          </Grid.Row>
-        </Container>
+              {selectedTab && (
+                <StatsDashboardPage
+                  community={community}
+                  dashboardConfig={dashboardConfig}
+                  stats={stats}
+                  variant={selectedTab}
+                  key={selectedTab}
+                />
+              )}
+            </Transition.Group>
+          </Grid.Column>
+        </Grid.Row>
+      </Container>
     </StatsDashboardProvider>
   );
 };

@@ -64,6 +64,13 @@ const GranularitySelector = ({ defaultGranularity, granularity, setGranularity }
     }, 100);
   };
 
+  const handleKeyDown = (e) => {
+    if (isOpen && e.key === 'Enter') {
+      e.preventDefault();
+      setIsOpen(false);
+    }
+  };
+
   return (
     <Segment className="stats-dashboard-granularity-selector rel-mt-1 rel-mb-1 communities-detail-stats-sidebar-segment">
       <label
@@ -89,6 +96,7 @@ const GranularitySelector = ({ defaultGranularity, granularity, setGranularity }
         onOpen={handleMenuOpen}
         onClose={handleMenuClose}
         onBlur={handleMenuClose}
+        onKeyDown={handleKeyDown}
       />
     </Segment>
   );

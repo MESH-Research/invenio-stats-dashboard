@@ -1014,8 +1014,6 @@ const DateRangeSelector = ({
       ) {
         setDataFetchRange(newDateRange);
       }
-
-      setIsOpen(false);
     }
   };
 
@@ -1074,6 +1072,13 @@ const DateRangeSelector = ({
     }, 100);
   };
 
+  const handleKeyDown = (e) => {
+    if (isOpen && e.key === 'Enter') {
+      e.preventDefault();
+      setIsOpen(false);
+    }
+  };
+
   // Get display text for dropdown
   const getDisplayText = () => {
     if (isCustomRange) {
@@ -1111,7 +1116,7 @@ const DateRangeSelector = ({
         {isCustomRange ? i18next.t("for") : i18next.t("for the")}
       </label>
       <Dropdown
-        key={`dropdown-${isCustomRange}-${currentSelectedOption}`}
+        key={`dropdown-${isCustomRange}`}
         id="date-range-selector"
         selection
         fluid
@@ -1126,6 +1131,7 @@ const DateRangeSelector = ({
         onOpen={handleMenuOpen}
         onClose={handleMenuClose}
         onBlur={handleMenuClose}
+        onKeyDown={handleKeyDown}
         ref={menuRef}
         text={getDisplayText()}
       />

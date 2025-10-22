@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { Segment, Dropdown, Button, Icon } from "semantic-ui-react";
+import { Segment, Dropdown, Button, Icon, Loader, Popup } from "semantic-ui-react";
 import PropTypes from "prop-types";
 import {
   downloadStatsSeriesWithFilename,
@@ -21,7 +21,6 @@ const ReportSelector = ({ defaultFormat }) => {
 
   const handleReportChange = (e, { value }) => {
     setSelectedReport(value);
-    setIsOpen(false);
   };
 
   const handleReportDownload = async () => {
@@ -117,6 +116,13 @@ const ReportSelector = ({ defaultFormat }) => {
     }, 100);
   };
 
+  const handleKeyDown = (e) => {
+    if (isOpen && e.key === 'Enter') {
+      e.preventDefault();
+      setIsOpen(false);
+    }
+  };
+
   return (
     <Segment className="stats-dashboard-report-selector rel-mt-1 rel-mb-1 communities-detail-stats-sidebar-segment">
       <label
@@ -125,6 +131,12 @@ const ReportSelector = ({ defaultFormat }) => {
         className="stats-dashboard-field-label"
       >
         {i18next.t("generate report")}
+        <Popup
+          content={i18next.t("Includes complete time-series data for the currently selected time period.")}
+          trigger={<Icon name="info circle" style={{ marginLeft: '0.5rem', cursor: 'help' }} />}
+          position="top center"
+          size="small"
+        />
       </label>
       <Dropdown
         id="stats-dashboard-report-dropdown"
@@ -163,18 +175,28 @@ const ReportSelector = ({ defaultFormat }) => {
         onOpen={handleMenuOpen}
         onClose={handleMenuClose}
         onBlur={handleMenuClose}
+        onKeyDown={handleKeyDown}
       />
       {selectedReport && (
-        <Button
-          className="stats-dashboard-report-button mt-10"
-          content={i18next.t("Download")}
-          onClick={handleReportDownload}
-          classNames="mt-10"
-          icon="download"
-          labelPosition="right"
-          loading={isDownloading}
-          disabled={isDownloading}
-        />
+        <div>
+          <Button
+            className="stats-dashboard-report-button mt-10"
+            content={i18next.t("Download")}
+            onClick={handleReportDownload}
+            classNames="mt-10"
+            icon={"download"}
+            labelPosition="right"
+            disabled={isDownloading}
+          />
+          {isDownloading && (
+            <>
+            <Loader active inline="centered" size="small" className="mt-10" />
+            <div className="stats-dashboard-download-message mt-5 centered">
+              {i18next.t("Preparing your download. This may take a minute.")}
+            </div>
+            </>
+          )}
+        </div>
       )}
     </Segment>
   );
