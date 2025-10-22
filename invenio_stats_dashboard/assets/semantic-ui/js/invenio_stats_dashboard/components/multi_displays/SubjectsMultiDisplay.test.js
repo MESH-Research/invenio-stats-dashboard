@@ -35,6 +35,11 @@ jest.mock('../../constants', () => ({
       ['#d62728', '#d62728'],
       ['#9467bd', '#9467bd']
     ]
+  },
+  RECORD_START_BASES: {
+    ADDED: "added",
+    CREATED: "created",
+    PUBLISHED: "published"
   }
 }));
 
@@ -244,7 +249,7 @@ describe('SubjectsMultiDisplay', () => {
         isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);
-      expect(screen.getByText('0 (0%)')).toBeInTheDocument();
+      expect(screen.getByText('No Data Available')).toBeInTheDocument();
     });
   });
 
@@ -282,7 +287,7 @@ describe('SubjectsMultiDisplay', () => {
       render(<SubjectsMultiDisplay default_view="list" />);
       const links = screen.getAllByRole('link');
       links.forEach(link => {
-        expect(link.href).toContain('/search?q=metadata.subjects.subject.id:');
+        expect(link.href).toContain('/search?q=metadata.subjects.id:');
       });
     });
   });

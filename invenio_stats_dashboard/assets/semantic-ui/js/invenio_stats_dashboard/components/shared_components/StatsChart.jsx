@@ -214,6 +214,7 @@ class ChartConfigBuilder {
     yAxisMin,
     yAxisMax,
     selectedMetric,
+    seriesSelectorOptions,
   ) {
     this.config.xAxis = {
       ...CHART_CONFIG.xAxis,
@@ -246,11 +247,16 @@ class ChartConfigBuilder {
       },
       axisLabel: {
         ...CHART_CONFIG.yAxis.axisLabel,
-        formatter: (value) =>
-          formatNumber(
+        formatter: (value) => {
+          // Find the selected metric's valueType from seriesSelectorOptions
+          const selectedOption = seriesSelectorOptions?.find(option => option.value === selectedMetric);
+          const valueType = selectedOption?.valueType || 'number';
+          
+          return formatNumber(
             value,
-            selectedMetric === "New Data Volume" ? "filesize" : "compact",
-          ),
+            valueType === "filesize" ? "filesize" : "compact",
+          );
+        },
       },
     };
 
@@ -451,7 +457,6 @@ const FilterSelector = ({
   const clearButtonRef = useRef(null);
 
   // Get available breakdown options from data
-  console.log("data", data);
   const availableBreakdowns =
     data && data.length > 0
       ? Object.keys(data[0]).filter((k) => k !== "global")
@@ -800,6 +805,7 @@ const StatsChart = ({
         yAxisMin,
         yAxisMax,
         selectedMetric,
+        seriesSelectorOptions,
       )
       .withLegend(showLegend, displaySeparately)
       .withSeries(

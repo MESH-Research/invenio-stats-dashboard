@@ -149,7 +149,7 @@ describe('SingleStatUploadersCumulative', () => {
     it('should have proper accessibility attributes', () => {
       const { container } = render(<SingleStatUploadersCumulative />);
 
-      const mainContainer = container.querySelector('.ui.statistic');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       const descriptionElement = container.querySelector('.stats-single-stat-description');
 
       // Check that aria-describedby points to the description element
@@ -160,7 +160,7 @@ describe('SingleStatUploadersCumulative', () => {
     it('should handle custom title in accessibility attributes', () => {
       const { container } = render(<SingleStatUploadersCumulative title="Custom Title" />);
 
-      const mainContainer = container.querySelector('.ui.statistic');
+      const mainContainer = container.querySelector('.stats-single-stat-container');
       const valueElement = container.querySelector('.value');
 
       expect(mainContainer).toHaveAttribute('aria-label', 'Custom Title');

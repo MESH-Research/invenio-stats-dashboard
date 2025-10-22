@@ -87,7 +87,9 @@ describe('FundersMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -97,7 +99,9 @@ describe('FundersMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -107,7 +111,9 @@ describe('FundersMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -162,9 +168,9 @@ describe('FundersMultiDisplay', () => {
       const result = transformMultiDisplayData(mockData, 10, 'metadata.funding.funder');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
-      expect(result.transformedData).toHaveLength(3);
-      expect(result.transformedData[1].value).toBe(0);
-      expect(result.transformedData[1].percentage).toBe(0);
+      expect(result.transformedData).toHaveLength(2); // Zero value items are filtered out
+      expect(result.transformedData[0].value).toBe(100); // National Science Foundation
+      expect(result.transformedData[1].value).toBe(50); // Department of Energy
     });
 
     it('should calculate percentages correctly', () => {
@@ -199,7 +205,7 @@ describe('FundersMultiDisplay', () => {
 
       const result = transformMultiDisplayData(mockData, 10, 'metadata.funding.funder');
 
-      expect(result.transformedData[0].link).toBe('/search?q=metadata.funding.funder:national-science-foundation');
+      expect(result.transformedData[0].link).toBe('/search?q=metadata.funding.funder:"national-science-foundation"');
     });
 
     it('should create transformed data with all expected properties', () => {
@@ -226,7 +232,7 @@ describe('FundersMultiDisplay', () => {
       expect(firstItem).toHaveProperty('value', 100);
       expect(firstItem).toHaveProperty('percentage', 67); // 100/150 * 100 rounded
       expect(firstItem).toHaveProperty('id', 'national-science-foundation');
-      expect(firstItem).toHaveProperty('link', '/search?q=metadata.funding.funder:national-science-foundation');
+      expect(firstItem).toHaveProperty('link', '/search?q=metadata.funding.funder:"national-science-foundation"');
       expect(firstItem).toHaveProperty('itemStyle');
       expect(firstItem.itemStyle).toHaveProperty('color');
       expect(typeof firstItem.itemStyle.color).toBe('string');
@@ -237,7 +243,7 @@ describe('FundersMultiDisplay', () => {
       expect(secondItem).toHaveProperty('value', 50);
       expect(secondItem).toHaveProperty('percentage', 33); // 50/150 * 100 rounded
       expect(secondItem).toHaveProperty('id', 'national-institutes-of-health');
-      expect(secondItem).toHaveProperty('link', '/search?q=metadata.funding.funder:national-institutes-of-health');
+      expect(secondItem).toHaveProperty('link', '/search?q=metadata.funding.funder:"national-institutes-of-health"');
       expect(secondItem).toHaveProperty('itemStyle');
       expect(secondItem.itemStyle).toHaveProperty('color');
       expect(typeof secondItem.itemStyle.color).toBe('string');
@@ -305,7 +311,7 @@ describe('FundersMultiDisplay', () => {
       const result = transformMultiDisplayData(mockData, 10, 'metadata.funding.funder');
 
       expect(result.totalCount).toBe(0);
-      expect(result.transformedData[0].percentage).toBe(0);
+      expect(result.transformedData).toHaveLength(0); // Zero value items are filtered out
     });
   });
 

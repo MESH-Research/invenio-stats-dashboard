@@ -63,7 +63,9 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -73,7 +75,9 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -83,7 +87,9 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(result).toEqual({
         transformedData: [],
         otherData: null,
-        totalCount: 0
+        originalOtherData: null,
+        totalCount: 0,
+        otherPercentage: 0
       });
     });
 
@@ -138,8 +144,9 @@ describe('PeriodicalsMultiDisplay', () => {
       const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(150);
-      expect(result.transformedData).toHaveLength(3);
-      expect(result.otherData).toBeNull();
+      expect(result.transformedData).toHaveLength(2); // Zero value items are filtered out
+      expect(result.transformedData[0].value).toBe(100); // Journal One
+      expect(result.transformedData[1].value).toBe(50); // Journal Three
     });
 
     it('should calculate percentages correctly', () => {
@@ -173,7 +180,7 @@ describe('PeriodicalsMultiDisplay', () => {
 
       const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
 
-      expect(result.transformedData[0].link).toContain('custom_fields.journal\\:journal.title:periodical-1');
+      expect(result.transformedData[0].link).toContain('custom_fields.journal\\:journal.title:"periodical-1"');
     });
 
     it('should create transformed data with all expected properties', () => {
@@ -231,8 +238,7 @@ describe('PeriodicalsMultiDisplay', () => {
       const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(0);
-      expect(result.transformedData[0].percentage).toBe(0);
-      expect(result.transformedData[1].percentage).toBe(0);
+      expect(result.transformedData).toHaveLength(0); // Zero value items are filtered out
     });
   });
 

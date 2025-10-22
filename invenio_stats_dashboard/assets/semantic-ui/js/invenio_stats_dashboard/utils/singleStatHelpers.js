@@ -25,7 +25,7 @@ const extractDeltaValue = (stats, getDataSource, dateRange) => {
 
     if (dateRange) {
       const rangeStartYear = new Date(dateRange.start).getFullYear();
-      const rangeEndYear = new Date(dateRange.end).getFullYear();
+      const rangeEndYear = dateRange.end ? new Date(dateRange.end).getFullYear() : new Date().getFullYear();
 
       return yearlyStats.year >= rangeStartYear && yearlyStats.year <= rangeEndYear;
     }

@@ -242,7 +242,7 @@ describe('TopReferrersMultiDisplay', () => {
       expect(secondItem).toHaveProperty('value', 50);
       expect(secondItem).toHaveProperty('percentage', 33); // 50/150 * 100 rounded
       expect(secondItem).toHaveProperty('id', 'direct');
-      expect(secondItem).toHaveProperty('link', '/search?q=metadata.referrer.id:direct');
+      expect(secondItem).toHaveProperty('link', '/search?q=metadata.referrer.id:"direct"');
       expect(secondItem).toHaveProperty('itemStyle');
       expect(secondItem.itemStyle).toHaveProperty('color');
       expect(typeof secondItem.itemStyle.color).toBe('string');

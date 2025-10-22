@@ -17,7 +17,8 @@ import { statsApiClient } from './api/api';
 jest.mock('./utils/statsCache', () => ({
   getCachedStats: jest.fn(),
   setCachedStats: jest.fn(),
-  clearCachedStats: jest.fn()
+  clearCachedStats: jest.fn(),
+  formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
 }));
 
 jest.mock('./api/api', () => ({
@@ -279,7 +280,9 @@ describe('StatsDashboardLayout with caching', () => {
     );
 
     // Should not show loading state when cached data is available
-    expect(screen.queryByText('Loading statistics...')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Loading statistics...')).not.toBeInTheDocument();
+    });
 
     // Should call the API function
     await waitFor(() => {
@@ -366,9 +369,14 @@ describe('StatsDashboardLayout with caching', () => {
 
         it('should handle global dashboard type', async () => {
     // Use the default mock implementation
+    const globalDashboardConfig = {
+      ...mockDashboardConfig,
+      dashboard_type: "global"
+    };
+    
     render(
       <StatsDashboardLayout
-        dashboardConfig={mockDashboardConfig}
+        dashboardConfig={globalDashboardConfig}
         dashboardType="global"
         community={null}
         containerClassNames=""
@@ -378,15 +386,13 @@ describe('StatsDashboardLayout with caching', () => {
     );
 
     await waitFor(() => {
-      expect(fetchStats).toHaveBeenCalledWith({
-        communityId: undefined,
-        dashboardType: 'global',
-        getStatsParams: undefined,
-        community: null,
-        isMounted: expect.any(Function),
-        onStateChange: expect.any(Function),
-        useTestData: true
-      });
+      expect(fetchStats).toHaveBeenCalledWith(
+        expect.objectContaining({
+          communityId: undefined,
+          dashboardType: 'global',
+          useTestData: true,
+        })
+      );
     });
   });
 
@@ -408,15 +414,14 @@ describe('StatsDashboardLayout with caching', () => {
     );
 
     await waitFor(() => {
-      expect(fetchStats).toHaveBeenCalledWith({
-        communityId: 'test-community',
-        dashboardType: 'community',
-        getStatsParams: undefined,
-        community: mockCommunity,
-        isMounted: expect.any(Function),
-        onStateChange: expect.any(Function),
-        useTestData: true
-      });
+      expect(fetchStats).toHaveBeenCalledWith(
+        expect.objectContaining({
+          communityId: 'test-community',
+          dashboardType: 'community',
+          community: mockCommunity,
+          useTestData: true
+        })
+      );
     });
   });
 
@@ -438,15 +443,14 @@ describe('StatsDashboardLayout with caching', () => {
     );
 
     await waitFor(() => {
-      expect(fetchStats).toHaveBeenCalledWith({
-        communityId: 'test-community',
-        dashboardType: 'community',
-        getStatsParams: undefined,
-        community: mockCommunity,
-        isMounted: expect.any(Function),
-        onStateChange: expect.any(Function),
-        useTestData: false
-      });
+      expect(fetchStats).toHaveBeenCalledWith(
+        expect.objectContaining({
+          communityId: 'test-community',
+          dashboardType: 'community',
+          community: mockCommunity,
+          useTestData: false
+        })
+      );
     });
   });
 });

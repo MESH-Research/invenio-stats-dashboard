@@ -126,6 +126,11 @@ const getSubcountKeyMapping = (frontendKeys, allowedSubcounts = {}) => {
 // Export getSubcountKeyMapping as a named export
 export { getSubcountKeyMapping };
 
+// Function to clear the subcount key mapping cache (for testing)
+export const clearSubcountKeyMappingCache = () => {
+  _subcountKeyMapping = {};
+};
+
 // Export all constants as a single object
 export default {
   CHART_COLORS,

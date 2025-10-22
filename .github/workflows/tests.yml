@@ -51,9 +51,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-      - name: Run tests
+      - name: Run Python tests
         env:
           PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,ignore::UserWarning"
         run: |
           chmod +x run-tests.sh
           bash run-tests.sh -S
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Run JavaScript tests
+        run: npm test -- --passWithNoTests --silent
+
+      - name: Run JavaScript tests with coverage
+        run: npm test -- --coverage --passWithNoTests --silent
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/lcov.info
+          flags: invenio-stats-dashboard
+          name: invenio-stats-dashboard-coverage
+          fail_ci_if_error: false

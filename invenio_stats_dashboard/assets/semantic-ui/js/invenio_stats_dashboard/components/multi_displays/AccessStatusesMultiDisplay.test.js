@@ -243,7 +243,7 @@ describe('AccessStatusesMultiDisplay', () => {
       expect(secondItem).toHaveProperty('value', 50);
       expect(secondItem).toHaveProperty('percentage', 33); // 50/150 * 100 rounded
       expect(secondItem).toHaveProperty('id', 'restricted');
-      expect(secondItem).toHaveProperty('link', '/search?q=metadata.access_status.id:restricted');
+      expect(secondItem).toHaveProperty('link', '/search?q=metadata.access_status.id:"restricted"');
       expect(secondItem).toHaveProperty('itemStyle');
       expect(secondItem.itemStyle).toHaveProperty('color');
       expect(typeof secondItem.itemStyle.color).toBe('string');

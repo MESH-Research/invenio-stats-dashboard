@@ -8,22 +8,34 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { StatsChart } from './StatsChart';
 import { useStatsDashboard } from '../../context/StatsDashboardContext';
+import { clearSubcountKeyMappingCache } from '../../constants';
 
 // Mock the dependencies
 jest.mock('../../context/StatsDashboardContext');
+jest.mock('echarts-for-react', () => {
+  return function MockReactECharts({ option, ...props }) {
+    return (
+      <div data-testid="mock-echarts" {...props}>
+        <div data-testid="chart-option" data-option={JSON.stringify(option)} />
+      </div>
+    );
+  };
+});
 
 const mockUseStatsDashboard = useStatsDashboard;
 
 describe('StatsChart FilterSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearSubcountKeyMappingCache();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  const mockData = {
+  const mockData = [{
+    year: 2024,
     global: {
       records: [
         {
@@ -72,7 +84,7 @@ describe('StatsChart FilterSelector', () => {
         }
       ]
     }
-  };
+  }];
 
   const mockSeriesSelectorOptions = [
     { value: 'records', text: 'Records', valueType: 'number' }
@@ -85,8 +97,8 @@ describe('StatsChart FilterSelector', () => {
         granularity: 'day',
         isLoading: false,
         ui_subcounts: {
-          'resourceTypes': {},
-          'subjects': {}
+          'by_resource_types': {},
+          'by_subjects': {}
         }
       });
     });
@@ -120,8 +132,9 @@ describe('StatsChart FilterSelector', () => {
         granularity: 'day',
         isLoading: false,
         ui_subcounts: {
-          'resourceTypes': {},
-          'subjects': {}
+          'by_resource_types': {},
+          'by_subjects': {},
+          'by_languages': {}
         }
       });
     });
@@ -133,7 +146,7 @@ describe('StatsChart FilterSelector', () => {
           seriesSelectorOptions={mockSeriesSelectorOptions}
           title="Test Chart"
           display_subcounts={{
-            'languages': {}
+            'by_languages': {}
           }}
         />
       );
@@ -143,11 +156,11 @@ describe('StatsChart FilterSelector', () => {
       fireEvent.click(filterButton);
 
       // Check that only the component-specific allowed option is shown
-      expect(screen.getByText('Languages')).toBeInTheDocument(); // languages
+      expect(screen.getByText('Top Languages')).toBeInTheDocument(); // languages
 
       // Check that global config options are not shown
-      expect(screen.queryByText('Work Types')).not.toBeInTheDocument(); // resourceTypes
-      expect(screen.queryByText('Subjects')).not.toBeInTheDocument(); // subjects
+      expect(screen.queryByText('Top Work Types')).not.toBeInTheDocument(); // resourceTypes
+      expect(screen.queryByText('Top Subjects')).not.toBeInTheDocument(); // subjects
     });
   });
 
@@ -175,9 +188,9 @@ describe('StatsChart FilterSelector', () => {
       fireEvent.click(filterButton);
 
       // Check that all available breakdown options are shown
-      expect(screen.getByText('Work Types')).toBeInTheDocument(); // resourceTypes
-      expect(screen.getByText('Subjects')).toBeInTheDocument(); // subjects
-      expect(screen.getByText('Languages')).toBeInTheDocument(); // languages
+      expect(screen.getByText('Top Work Types')).toBeInTheDocument(); // resourceTypes
+      expect(screen.getByText('Top Subjects')).toBeInTheDocument(); // subjects
+      expect(screen.getByText('Top Languages')).toBeInTheDocument(); // languages
     });
   });
 });

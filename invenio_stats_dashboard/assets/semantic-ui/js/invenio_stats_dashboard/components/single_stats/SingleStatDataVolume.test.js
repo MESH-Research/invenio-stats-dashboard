@@ -140,25 +140,42 @@ describe('SingleStatDataVolume', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: [{
-          year: 2024,
-          recordDeltaDataAdded: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'global',
-                  name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After start
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            recordDeltaDataAdded: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2023-12-31T00:00:00.000Z'), 512] }  // Before start
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            recordDeltaDataAdded: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    data: [
+                      { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // On start date
+                      { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // After start
+                      { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After start
+                    ]
+                  }
+                ]
+              }
             }
           }
-        }],
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
         recordStartBasis: 'added',
         isLoading: false
