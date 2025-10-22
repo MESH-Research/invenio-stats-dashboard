@@ -460,3 +460,21 @@
     }
   }
 }
+
+// Fix z-index issue for dropdowns
+.ui.dropdown {
+  z-index: 999 !important;
+  position: relative !important;
+
+  &.active,
+  &.open {
+    z-index: 99999 !important;
+    position: relative !important;
+  }
+}
+
+// Ensure dynamically added buttons don't overlap dropdowns
+.stats-dashboard-report-button {
+  z-index: 1 !important;
+  position: relative !important;
+}

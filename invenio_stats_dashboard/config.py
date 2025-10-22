@@ -138,7 +138,7 @@ STATS_DASHBOARD_UI_CONFIG = {
         "description": _("This is the global stats dashboard."),
         "maxHistoryYears": 15,
         "default_granularity": "month",
-        "show_title": True,
+        "show_title": False,  # controls title at top of sidebar
         "show_description": False,
     },
     "community": {
