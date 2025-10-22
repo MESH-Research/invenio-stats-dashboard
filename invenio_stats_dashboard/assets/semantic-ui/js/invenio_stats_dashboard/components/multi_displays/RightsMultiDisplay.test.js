@@ -228,7 +228,7 @@ describe('RightsMultiDisplay', () => {
 
       // Check first item properties
       const firstItem = result.transformedData[0];
-      expect(firstItem).toHaveProperty('name', 'Creative Commons Attribution');
+      expect(firstItem).toHaveProperty('name', 'CC-BY');
       expect(firstItem).toHaveProperty('value', 100);
       expect(firstItem).toHaveProperty('percentage', 67); // 100/150 * 100 rounded
       expect(firstItem).toHaveProperty('id', 'cc-by');
@@ -239,7 +239,7 @@ describe('RightsMultiDisplay', () => {
 
       // Check second item properties
       const secondItem = result.transformedData[1];
-      expect(secondItem).toHaveProperty('name', 'Creative Commons Attribution-ShareAlike');
+      expect(secondItem).toHaveProperty('name', 'CC-BY-SA');
       expect(secondItem).toHaveProperty('value', 50);
       expect(secondItem).toHaveProperty('percentage', 33); // 50/150 * 100 rounded
       expect(secondItem).toHaveProperty('id', 'cc-by-sa');
@@ -574,11 +574,11 @@ describe('RightsMultiDisplay', () => {
       expect(statsDisplay).toBeInTheDocument();
 
       // For list view, we can check for actual table content
-      expect(screen.getByText('Creative Commons Attribution')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY')).toBeInTheDocument();
       expect(screen.getByText('100 (57%)')).toBeInTheDocument();
-      expect(screen.getByText('Creative Commons Attribution-ShareAlike')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY-SA')).toBeInTheDocument();
       expect(screen.getByText('50 (29%)')).toBeInTheDocument();
-      expect(screen.getByText('Creative Commons Attribution-NonCommercial')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY-NC')).toBeInTheDocument();
       expect(screen.getByText('25 (14%)')).toBeInTheDocument();
     });
 
@@ -589,9 +589,9 @@ describe('RightsMultiDisplay', () => {
       expect(statsDisplay).toBeInTheDocument();
 
       // Should only show top 2 items plus "Other"
-      expect(screen.getByText('Creative Commons Attribution')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY')).toBeInTheDocument();
       expect(screen.getByText('100 (57%)')).toBeInTheDocument();
-      expect(screen.getByText('Creative Commons Attribution-ShareAlike')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY-SA')).toBeInTheDocument();
       expect(screen.getByText('50 (29%)')).toBeInTheDocument();
       expect(screen.getByText('Other')).toBeInTheDocument();
       expect(screen.getByText('25 (14%)')).toBeInTheDocument();
@@ -604,9 +604,9 @@ describe('RightsMultiDisplay', () => {
       expect(statsDisplay).toBeInTheDocument();
 
       // Should still render the list view
-      expect(screen.getByText('Creative Commons Attribution')).toBeInTheDocument();
-      expect(screen.getByText('Creative Commons Attribution-ShareAlike')).toBeInTheDocument();
-      expect(screen.getByText('Creative Commons Attribution-NonCommercial')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY-SA')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY-NC')).toBeInTheDocument();
     });
 
     it('should render with empty data', () => {
@@ -675,7 +675,7 @@ describe('RightsMultiDisplay', () => {
       expect(firstRowCells).toHaveLength(3); // icon cell + 2 data cells
 
       // Check that the first data cell contains the rights name
-      expect(firstRowCells[1]).toHaveTextContent('Creative Commons Attribution');
+      expect(firstRowCells[1]).toHaveTextContent('CC-BY');
       expect(firstRowCells[2]).toHaveTextContent('100 (57%)');
     });
 
@@ -687,9 +687,9 @@ describe('RightsMultiDisplay', () => {
       expect(cells.length).toBeGreaterThan(0);
 
       // Check that we have the expected data in cells
-      expect(screen.getByText('Creative Commons Attribution')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY')).toBeInTheDocument();
       expect(screen.getByText('100 (57%)')).toBeInTheDocument();
-      expect(screen.getByText('Creative Commons Attribution-ShareAlike')).toBeInTheDocument();
+      expect(screen.getByText('CC-BY-SA')).toBeInTheDocument();
       expect(screen.getByText('50 (29%)')).toBeInTheDocument();
     });
 
