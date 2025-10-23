@@ -121,6 +121,7 @@ MostDownloadedRecordsMultiDisplay.propTypes = {
   default_view: PropTypes.string,
   available_views: PropTypes.arrayOf(PropTypes.string),
   maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  width: PropTypes.number,
 };
 
 export { MostDownloadedRecordsMultiDisplay };

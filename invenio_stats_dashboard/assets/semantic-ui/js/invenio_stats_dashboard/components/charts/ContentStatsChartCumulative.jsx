@@ -76,6 +76,10 @@ const ContentStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
 ContentStatsChartCumulative.propTypes = {
   title: PropTypes.string,
   height: PropTypes.number,
+  chartType: PropTypes.oneOf(['bar', 'line']),
+  maxSeries: PropTypes.number,
+  display_subcounts: PropTypes.object,
+  width: PropTypes.number,
 };
 
 export { ContentStatsChartCumulative };

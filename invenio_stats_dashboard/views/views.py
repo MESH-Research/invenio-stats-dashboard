@@ -9,6 +9,8 @@
 This module contains the views for the Invenio Stats Dashboard.
 """
 
+from typing import Any
+
 from flask import (
     Blueprint,
     Flask,
@@ -17,12 +19,56 @@ from flask import (
     render_template,
     request,
 )
+from invenio_communities.communities.services.results import CommunityItem
 from invenio_communities.views.communities import HEADER_PERMISSIONS
 from invenio_communities.views.decorators import pass_community
 from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
 from ..services.cached_response_service import CachedResponseService
+
+
+def get_community_dashboard_layout(community: CommunityItem, dashboard_type: str
+                                   ) -> dict[str, Any]:
+    """Get dashboard layout configuration for a community.
+    
+    Checks the community's custom field for dashboard layout configuration
+    and falls back to the global configuration if not available.
+    
+    Args:
+        community: Community record object
+        dashboard_type: Type of dashboard (Currently should only be "community")
+        
+    Returns:
+        dict: Dashboard layout configuration
+    """
+    # Map dashboard_type to the new field names
+    layout_key = f"{dashboard_type}_layout"
+    community_default_layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
+        layout_key, {}
+    )
+    global_default_layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
+        "global_layout", {}
+    )
+    default_layout: dict[str, Any] = community_default_layout or global_default_layout
+    
+    # Access custom fields through the serialized data (preferred) or underlying record
+    custom_fields = community.data.get('custom_fields', {})
+    if not custom_fields:
+        # Fallback to underlying record if not in serialized data
+        custom_fields = getattr(community._record, 'custom_fields', {})
+    
+    bespoke_layout: dict[str, Any] = custom_fields.get('stats:dashboard_layout', {}
+                                                       ).get(layout_key, {})
+    
+    if not bespoke_layout:
+        current_app.logger.debug(
+            f"No bespoke layout found for community {community.id}, "
+            "using default layout."
+        )
+        return default_layout
+    
+    return bespoke_layout
 
 
 def global_stats_dashboard():
@@ -37,7 +83,7 @@ def global_stats_dashboard():
             "display_binary_sizes": not current_app.config.get(
                 "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
             ),
-            "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global"],
+            "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global_layout"],
             "dashboard_type": "global",
             "default_range_options": current_app.config[
                 "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
@@ -57,8 +103,17 @@ def global_stats_dashboard():
 
 
 @pass_community(serialize=True)
-def community_stats_dashboard(pid_value, community, community_ui):
+def community_stats_dashboard(
+    pid_value: str,
+    community: CommunityItem,
+    community_ui: dict[str, Any],
+) -> str:
     """Community stats dashboard view.
+
+    Args:
+        pid_value: The community PID value (UUID or slug).
+        community: The community item (CommunityItem).
+        community_ui: The community UI data (dict).
     
     Returns:
         str: Rendered HTML template for the community stats dashboard.
@@ -70,18 +125,13 @@ def community_stats_dashboard(pid_value, community, community_ui):
     if not permissions["can_read"]:
         raise PermissionDeniedError()
 
-    return render_template(
+    return str(render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
         dashboard_config={
             "display_binary_sizes": not current_app.config.get(
                 "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
             ),
-            "layout": (
-                current_app.config["STATS_DASHBOARD_LAYOUT"].get(
-                    "community",
-                    current_app.config["STATS_DASHBOARD_LAYOUT"]["global"],
-                )
-            ),
+            "layout": get_community_dashboard_layout(community, "community"),
             "dashboard_type": "community",
             "default_range_options": current_app.config[
                 "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
@@ -99,7 +149,7 @@ def community_stats_dashboard(pid_value, community, community_ui):
         },
         community=community_ui,
         permissions=permissions,
-    )
+    ))
 
 
 class StatsDashboardAPIResource(ContentNegotiatedMethodView):

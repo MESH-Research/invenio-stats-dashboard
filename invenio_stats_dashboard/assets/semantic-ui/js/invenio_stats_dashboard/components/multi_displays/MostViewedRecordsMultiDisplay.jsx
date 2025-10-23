@@ -115,6 +115,7 @@ MostViewedRecordsMultiDisplay.propTypes = {
   available_views: PropTypes.arrayOf(PropTypes.string),
   default_view: PropTypes.string,
   maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  width: PropTypes.number,
 };
 
 export { MostViewedRecordsMultiDisplay };

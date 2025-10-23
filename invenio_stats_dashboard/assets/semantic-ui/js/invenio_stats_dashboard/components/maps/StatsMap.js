@@ -165,6 +165,7 @@ StatsMap.propTypes = {
   center: PropTypes.arrayOf(PropTypes.number),
   metric: PropTypes.oneOf(['views', 'downloads', 'visitors', 'dataVolume']),
   useSnapshot: PropTypes.bool,
+  width: PropTypes.number,
 };
 
 export { StatsMap };

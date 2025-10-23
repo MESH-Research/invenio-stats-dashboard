@@ -181,7 +181,7 @@ STATS_DASHBOARD_USE_TEST_DATA = False
 instead of making API calls."""
 
 STATS_DASHBOARD_LAYOUT = {
-    "global": {
+    "global_layout": {
         "tabs": [
             {
                 "name": "content",

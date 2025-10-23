@@ -118,6 +118,7 @@ SubjectsMultiDisplay.propTypes = {
   pageSize: PropTypes.number,
   available_views: PropTypes.arrayOf(PropTypes.string),
   hideOtherInCharts: PropTypes.bool,
+  width: PropTypes.number,
 };
 
 export { SubjectsMultiDisplay };

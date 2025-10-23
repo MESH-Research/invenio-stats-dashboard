@@ -22,6 +22,11 @@ from .services.components import (
 )
 from .services.service import CommunityStatsService
 from .services.usage_reindexing import EventReindexingService
+from .records.communities.custom_fields.custom_fields import (
+    COMMUNITY_STATS_FIELDS,
+    COMMUNITY_STATS_FIELDS_UI,
+    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
+)
 
 
 def _ensure_templates_registered(app: Flask) -> None:
@@ -198,6 +203,25 @@ class InvenioStatsDashboard:
         app.config["RDM_RECORD_COMMUNITIES_SERVICE_COMPONENTS"] = [
             *existing_record_communities_components,
             RecordCommunityEventTrackingComponent,
+        ]
+
+        # Merge communities custom fields
+        existing_namespaces = app.config.get("COMMUNITIES_NAMESPACES", {})
+        app.config["COMMUNITIES_NAMESPACES"] = {
+            **existing_namespaces,
+            **STATS_COMMUNITIES_NAMESPACES,
+        }
+
+        existing_custom_fields = app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
+        app.config["COMMUNITIES_CUSTOM_FIELDS"] = [
+            *existing_custom_fields,
+            *COMMUNITY_STATS_FIELDS,
+        ]
+
+        existing_custom_fields_ui = app.config.get("COMMUNITIES_CUSTOM_FIELDS_UI", [])
+        app.config["COMMUNITIES_CUSTOM_FIELDS_UI"] = [
+            *existing_custom_fields_ui,
+            COMMUNITY_STATS_FIELDS_UI,
         ]
 
     def _ensure_rdm_service_components(self, app, components_list):

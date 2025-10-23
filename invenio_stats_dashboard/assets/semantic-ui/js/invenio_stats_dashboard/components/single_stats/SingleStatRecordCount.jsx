@@ -56,6 +56,7 @@ SingleStatRecordCount.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   compactThreshold: PropTypes.number,
+  width: PropTypes.number,
 };
 
 export { SingleStatRecordCount };

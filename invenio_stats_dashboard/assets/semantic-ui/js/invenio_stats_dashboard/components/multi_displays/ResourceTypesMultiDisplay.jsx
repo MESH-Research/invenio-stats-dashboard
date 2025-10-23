@@ -124,6 +124,8 @@ ResourceTypesMultiDisplay.propTypes = {
   default_view: PropTypes.string,
   available_views: PropTypes.arrayOf(PropTypes.string),
   hideOtherInCharts: PropTypes.bool,
+  pageSize: PropTypes.number,
+  width: PropTypes.number,
 };
 
 export { ResourceTypesMultiDisplay };

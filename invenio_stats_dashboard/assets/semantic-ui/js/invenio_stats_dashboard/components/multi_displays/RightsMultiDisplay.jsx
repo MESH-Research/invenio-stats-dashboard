@@ -84,6 +84,7 @@ RightsMultiDisplay.propTypes = {
   pageSize: PropTypes.number,
   available_views: PropTypes.array,
   hideOtherInCharts: PropTypes.bool,
+  width: PropTypes.number,
 };
 
 export { RightsMultiDisplay };

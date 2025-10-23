@@ -41,6 +41,12 @@ from invenio_search.engine import dsl
 from invenio_search.engine import search as search_engine
 from invenio_search.utils import build_alias_name
 
+from invenio_stats_dashboard.records.communities.custom_fields.custom_fields import (
+    COMMUNITY_STATS_FIELDS,
+    COMMUNITY_STATS_FIELDS_UI,
+    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
+)
+
 
 def _(x):
     """Identity function for string extraction."""
@@ -62,6 +68,19 @@ test_config_fields["RDM_CUSTOM_FIELDS"] = [
     *CODEMETA_CUSTOM_FIELDS,
     *JOURNAL_CUSTOM_FIELDS,
     *MEETING_CUSTOM_FIELDS,
+]
+
+# Add stats dashboard custom fields for communities
+test_config_fields["COMMUNITIES_NAMESPACES"] = {
+    **STATS_COMMUNITIES_NAMESPACES,
+}
+
+test_config_fields["COMMUNITIES_CUSTOM_FIELDS"] = [
+    *COMMUNITY_STATS_FIELDS,
+]
+
+test_config_fields["COMMUNITIES_CUSTOM_FIELDS_UI"] = [
+    COMMUNITY_STATS_FIELDS_UI,
 ]
 
 
