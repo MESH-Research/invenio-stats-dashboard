@@ -862,10 +862,195 @@ If you want to reduce document sizes to improve performance:</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
 <td><p>Event type configurations for statistics processing</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITIES_NAMESPACES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Custom field namespaces (auto-merged by extension)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITIES_CUSTOM_FIELDS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Community custom fields (auto-merged by extension)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMMUNITIES_CUSTOM_FIELDS_UI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{...}</span></code></p></td>
+<td><p>Community custom fields UI configuration (auto-merged by extension)</p></td>
+</tr>
 </tbody>
 </table>
 </div>
 <p><strong>Note</strong>: Variables marked with <code class="docutils literal notranslate"><span class="pre">{...}</span></code> contain complex configuration objects that are documented in detail in the sections above.</p>
+</section>
+<section id="community-custom-fields">
+<h2>Community Custom Fields<a class="headerlink" href="#community-custom-fields" title="Link to this heading">¶</a></h2>
+<p>The stats dashboard extension automatically provides a custom field for communities to store dashboard layout configurations. This allows each community to have its own customized dashboard layout while maintaining a consistent global configuration.</p>
+<section id="automatic-integration">
+<h3>Automatic Integration<a class="headerlink" href="#automatic-integration" title="Link to this heading">¶</a></h3>
+<p>The custom field is automatically integrated into InvenioRDM communities through the extension’s initialization process. The extension merges its custom field configuration with any existing community custom fields, ensuring non-destructive integration.</p>
+<p><strong>Field Details:</strong></p>
+<ul class="simple">
+<li><p><strong>Field Name</strong>: <code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code></p></li>
+<li><p><strong>Field Type</strong>: Structured JSON object with validation</p></li>
+<li><p><strong>Namespace</strong>: <code class="docutils literal notranslate"><span class="pre">stats</span></code> (internal namespace)</p></li>
+<li><p><strong>Search Behavior</strong>: Indexed for retrieval but not searchable by content</p></li>
+</ul>
+</section>
+<section id="field-structure">
+<h3>Field Structure<a class="headerlink" href="#field-structure" title="Link to this heading">¶</a></h3>
+<p>The custom field stores a JSON object with the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;charts&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsChart&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViews&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="schema-validation">
+<h3>Schema Validation<a class="headerlink" href="#schema-validation" title="Link to this heading">¶</a></h3>
+<p>The field uses a structured Marshmallow schema for validation:</p>
+<ul class="simple">
+<li><p><strong>Component Props</strong>: Flexible dictionary for component-specific properties</p></li>
+<li><p><strong>Components</strong>: Individual dashboard components with validation</p></li>
+<li><p><strong>Rows</strong>: Groups of components with layout information</p></li>
+<li><p><strong>Tabs</strong>: Dashboard sections containing multiple rows</p></li>
+<li><p><strong>Dashboard Types</strong>: Separate configurations for <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code> dashboards</p></li>
+</ul>
+</section>
+<section id="integration-methods">
+<h3>Integration Methods<a class="headerlink" href="#integration-methods" title="Link to this heading">¶</a></h3>
+<p><strong>Method 1: Automatic Integration (Recommended)</strong></p>
+<p>For instances without existing custom field configurations, the extension automatically provides the custom field:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># No configuration needed - field is automatically available</span>
+<span class="c1"># Extension merges its configuration with defaults</span>
+</pre></div>
+</div>
+<p><strong>Method 2: Manual Integration</strong></p>
+<p>For instances with existing custom field configurations, manually integrate the stats dashboard fields:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In invenio.cfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.records.communities.custom_fields.custom_fields</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">COMMUNITY_STATS_FIELDS</span><span class="p">,</span>
+    <span class="n">COMMUNITY_STATS_FIELDS_UI</span><span class="p">,</span>
+    <span class="n">COMMUNITIES_NAMESPACES</span> <span class="k">as</span> <span class="n">STATS_COMMUNITIES_NAMESPACES</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Merge namespaces</span>
+<span class="n">COMMUNITIES_NAMESPACES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;your_namespace&quot;</span><span class="p">:</span> <span class="s2">&quot;https://your-site.org/terms/&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">STATS_COMMUNITIES_NAMESPACES</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Add custom fields</span>
+<span class="n">COMMUNITIES_CUSTOM_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Your existing fields</span>
+    <span class="n">TextCF</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;your_namespace:your_field&quot;</span><span class="p">),</span>
+    <span class="c1"># Stats dashboard fields</span>
+    <span class="o">*</span><span class="n">COMMUNITY_STATS_FIELDS</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Add UI configuration</span>
+<span class="n">COMMUNITIES_CUSTOM_FIELDS_UI</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Your existing UI config</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;section&quot;</span><span class="p">:</span> <span class="s2">&quot;Your Section&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="c1"># Stats dashboard UI config</span>
+    <span class="n">COMMUNITY_STATS_FIELDS_UI</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="field-initialization">
+<h3>Field Initialization<a class="headerlink" href="#field-initialization" title="Link to this heading">¶</a></h3>
+<p>After configuration, initialize the custom field in the search index:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the custom field</span>
+invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>init<span class="w"> </span>stats:dashboard_layout
+
+<span class="c1"># Verify the field exists</span>
+invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>exists<span class="w"> </span>stats:dashboard_layout
+</pre></div>
+</div>
+</section>
+<section id="usage-in-communities">
+<h3>Usage in Communities<a class="headerlink" href="#usage-in-communities" title="Link to this heading">¶</a></h3>
+<p>Once configured, community administrators can:</p>
+<ol class="arabic simple">
+<li><p><strong>Access the field</strong> in community creation/editing forms</p></li>
+<li><p><strong>Configure layouts</strong> using the structured JSON format</p></li>
+<li><p><strong>Override defaults</strong> by providing community-specific configurations</p></li>
+<li><p><strong>Maintain consistency</strong> with global dashboard structure</p></li>
+</ol>
+</section>
+<section id="benefits">
+<h3>Benefits<a class="headerlink" href="#benefits" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>✅ Flexible Configuration</strong>: Each community can customize its dashboard layout</p></li>
+<li><p><strong>✅ Structured Validation</strong>: Prevents invalid configurations through schema validation</p></li>
+<li><p><strong>✅ Non-Destructive</strong>: Integrates with existing custom field configurations</p></li>
+<li><p><strong>✅ Searchable</strong>: Field existence can be queried (though content is not searchable)</p></li>
+<li><p><strong>✅ Extensible</strong>: Easy to add new component types or layout options</p></li>
+</ul>
+</section>
+<section id="technical-details">
+<h3>Technical Details<a class="headerlink" href="#technical-details" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Marshmallow Schema</strong>: Uses <code class="docutils literal notranslate"><span class="pre">fields.Nested()</span></code> with structured validation</p></li>
+<li><p><strong>Elasticsearch Mapping</strong>: <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;object&quot;,</span> <span class="pre">&quot;enabled&quot;:</span> <span class="pre">false}</span></code> for retrieval without content indexing</p></li>
+<li><p><strong>Namespace</strong>: Internal <code class="docutils literal notranslate"><span class="pre">stats</span></code> namespace (no external URL required)</p></li>
+<li><p><strong>UI Widget</strong>: Custom widget for JSON configuration editing</p></li>
+</ul>
+</section>
 </section>
 <section id="content-negotiation-and-response-serializers">
 <h2>Content Negotiation and Response Serializers<a class="headerlink" href="#content-negotiation-and-response-serializers" title="Link to this heading">¶</a></h2>
@@ -1022,6 +1207,17 @@ If you want to reduce document sizes to improve performance:</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#configuration-reference">Configuration Reference</a></li>
+<li><a class="reference internal" href="#community-custom-fields">Community Custom Fields</a><ul>
+<li><a class="reference internal" href="#automatic-integration">Automatic Integration</a></li>
+<li><a class="reference internal" href="#field-structure">Field Structure</a></li>
+<li><a class="reference internal" href="#schema-validation">Schema Validation</a></li>
+<li><a class="reference internal" href="#integration-methods">Integration Methods</a></li>
+<li><a class="reference internal" href="#field-initialization">Field Initialization</a></li>
+<li><a class="reference internal" href="#usage-in-communities">Usage in Communities</a></li>
+<li><a class="reference internal" href="#benefits">Benefits</a></li>
+<li><a class="reference internal" href="#technical-details">Technical Details</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#content-negotiation-and-response-serializers">Content Negotiation and Response Serializers</a><ul>
 <li><a class="reference internal" href="#compression-support">Compression Support</a></li>
 <li><a class="reference internal" href="#custom-serializers">Custom Serializers</a></li>

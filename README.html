@@ -316,9 +316,23 @@
 <tr class="row-even"><td><p></p></td>
 <td><p>menu configuration options to add the global statistics dashboard to site-wide navigation</p></td>
 </tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><strong>Community custom fields</strong> for storing community-specific dashboard layout configurations</p></td>
+</tr>
 </tbody>
 </table>
 </div>
+<section id="community-custom-fields">
+<h3>Community Custom Fields<a class="headerlink" href="#community-custom-fields" title="Link to this heading">¶</a></h3>
+<p>The extension automatically provides a custom field (<code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code>) for communities to store customized dashboard layout configurations. This allows each community to have its own tailored dashboard while maintaining consistency with the global configuration.</p>
+<p><strong>Key Features:</strong></p>
+<ul class="simple">
+<li><p><strong>Automatic Integration</strong>: Field is automatically available in community forms</p></li>
+<li><p><strong>Structured Validation</strong>: Uses Marshmallow schema for configuration validation</p></li>
+<li><p><strong>Non-Destructive</strong>: Integrates with existing custom field configurations</p></li>
+<li><p><strong>Flexible Layout</strong>: Supports custom component arrangements and configurations</p></li>
+</ul>
+<p>See the <a class="reference internal" href="#configuration.html#community-custom-fields"><span class="xref myst">Configuration</span></a> documentation for detailed setup and usage instructions.</p>
 <p>Most initial setup of the statistics infrastructure is handled automatically when the module is installed. In existing InvenioRDM instances, this includes not only setup of the necessary search indices, but also:</p>
 <ul class="simple">
 <li><p>migration of historical indexed usage events to the expanded mappings with added community and record metadata</p></li>
@@ -327,6 +341,7 @@
 This initial setup is handled by the background tasks that run on a regular schedule to aggregate the statistics. If the instance has a large number of records, this may up to a day or more to complete.</p></li>
 </ul>
 <p>The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.</p>
+</section>
 </section>
 </section>
 
@@ -376,7 +391,10 @@ This initial setup is handled by the background tasks that run on a regular sche
             <ul>
 <li><a class="reference internal" href="#">Invenio Stats Dashboard</a><ul>
 <li><a class="reference internal" href="#current-status">Current Status</a></li>
-<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#overview">Overview</a><ul>
+<li><a class="reference internal" href="#community-custom-fields">Community Custom Fields</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

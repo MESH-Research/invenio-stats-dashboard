@@ -24,18 +24,33 @@ So the full setup process is currently:
 - `STATS_DASHBOARD_MENU_ENABLED` = `False`
 
 3. Restart the InvenioRDM instance
-4. Index community addition events for all existing records (via CLI command)
-5. Migrate and enrich the existing view and download events (via CLI command)
-6. OPTIONAL: Manually run the catch-up aggregation (via CLI command)
-7. Set config variables for normal operation:
+4. Initialize the community custom field (via CLI command)
+5. Index community addition events for all existing records (via CLI command)
+6. Migrate and enrich the existing view and download events (via CLI command)
+7. OPTIONAL: Manually run the catch-up aggregation (via CLI command)
+8. Set config variables for normal operation:
 
 - `COMMUNITY_STATS_ENABLED` = `True`
 - `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` = `True`
 - `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` = `True`
 - `STATS_DASHBOARD_MENU_ENABLED` = `True` (if desired)
 
-8. Set up other configuration and community page templates as desired
-9. Restart the InvenioRDM instance
+9. Set up other configuration and community page templates as desired
+10. Restart the InvenioRDM instance
+
+### Community Custom Field Initialization
+
+The extension provides a custom field (`stats:dashboard_layout`) for communities to store dashboard layout configurations. This field must be initialized in the search index before it can be used:
+
+```bash
+# Initialize the custom field
+invenio custom-fields communities init stats:dashboard_layout
+
+# Verify the field exists
+invenio custom-fields communities exists stats:dashboard_layout
+```
+
+**Note**: This step is required for both new and existing InvenioRDM instances. The custom field provides community-specific dashboard customization capabilities and is automatically integrated into community creation and editing forms.
 
 ### Search index template registration
 

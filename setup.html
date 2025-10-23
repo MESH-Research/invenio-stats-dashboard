@@ -277,6 +277,7 @@
 </ul>
 <ol class="arabic simple" start="3">
 <li><p>Restart the InvenioRDM instance</p></li>
+<li><p>Initialize the community custom field (via CLI command)</p></li>
 <li><p>Index community addition events for all existing records (via CLI command)</p></li>
 <li><p>Migrate and enrich the existing view and download events (via CLI command)</p></li>
 <li><p>OPTIONAL: Manually run the catch-up aggregation (via CLI command)</p></li>
@@ -288,10 +289,22 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code> (if desired)</p></li>
 </ul>
-<ol class="arabic simple" start="8">
+<ol class="arabic simple" start="9">
 <li><p>Set up other configuration and community page templates as desired</p></li>
 <li><p>Restart the InvenioRDM instance</p></li>
 </ol>
+<section id="community-custom-field-initialization">
+<h2>Community Custom Field Initialization<a class="headerlink" href="#community-custom-field-initialization" title="Link to this heading">¶</a></h2>
+<p>The extension provides a custom field (<code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code>) for communities to store dashboard layout configurations. This field must be initialized in the search index before it can be used:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the custom field</span>
+invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>init<span class="w"> </span>stats:dashboard_layout
+
+<span class="c1"># Verify the field exists</span>
+invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>exists<span class="w"> </span>stats:dashboard_layout
+</pre></div>
+</div>
+<p><strong>Note</strong>: This step is required for both new and existing InvenioRDM instances. The custom field provides community-specific dashboard customization capabilities and is automatically integrated into community creation and editing forms.</p>
+</section>
 <section id="search-index-template-registration">
 <h2>Search index template registration<a class="headerlink" href="#search-index-template-registration" title="Link to this heading">¶</a></h2>
 <p>If the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension is installed on a new InvenioRDM instance, the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module will automatically register the extension’s search index templates with the OpenSearch domain. But <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension will check at application startup to ensure that the extension’s search index templates are registered with the OpenSearch domain. If they are not, it registers them with the <code class="docutils literal notranslate"><span class="pre">invenio-search</span></code> module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.</p>
@@ -425,6 +438,7 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Setup and Migration</a><ul>
+<li><a class="reference internal" href="#community-custom-field-initialization">Community Custom Field Initialization</a></li>
 <li><a class="reference internal" href="#search-index-template-registration">Search index template registration</a></li>
 <li><a class="reference internal" href="#initial-indexing-of-community-addition-events">Initial indexing of community addition events</a></li>
 <li><a class="reference internal" href="#initial-migration-of-existing-view-download-events">Initial migration of existing view/download events</a><ul>

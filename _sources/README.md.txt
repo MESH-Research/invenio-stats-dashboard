@@ -42,6 +42,19 @@ The extension provides:
 | presentation-layer | API access to the aggregated daily statistics via the `/api/stats` endpoint |
 | | Jinja2 templates to display React-based global and community statistics dashboards |
 | | menu configuration options to add the global statistics dashboard to site-wide navigation |
+| | **Community custom fields** for storing community-specific dashboard layout configurations |
+
+### Community Custom Fields
+
+The extension automatically provides a custom field (`stats:dashboard_layout`) for communities to store customized dashboard layout configurations. This allows each community to have its own tailored dashboard while maintaining consistency with the global configuration.
+
+**Key Features:**
+- **Automatic Integration**: Field is automatically available in community forms
+- **Structured Validation**: Uses Marshmallow schema for configuration validation
+- **Non-Destructive**: Integrates with existing custom field configurations
+- **Flexible Layout**: Supports custom component arrangements and configurations
+
+See the [Configuration](configuration.html#community-custom-fields) documentation for detailed setup and usage instructions.
 
 Most initial setup of the statistics infrastructure is handled automatically when the module is installed. In existing InvenioRDM instances, this includes not only setup of the necessary search indices, but also:
 - migration of historical indexed usage events to the expanded mappings with added community and record metadata

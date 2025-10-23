@@ -544,8 +544,184 @@ The following table provides a complete reference of all available configuration
 | `STATS_DASHBOARD_REINDEXING_BATCH_SIZE`         | `5000`                                             | Events per batch for migration. **Note: OpenSearch has a hard limit of 10,000 documents for search results, so this value cannot exceed 10,000.** |
 | `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85`                                               | Maximum memory usage percentage before stopping migration                                                                                         |
 | `STATS_EVENTS`                                  | `{...}`                                            | Event type configurations for statistics processing                                                                                               |
+| `COMMUNITIES_NAMESPACES`                        | `{...}`                                            | Custom field namespaces (auto-merged by extension)                                                                                                |
+| `COMMUNITIES_CUSTOM_FIELDS`                     | `{...}`                                            | Community custom fields (auto-merged by extension)                                                                                               |
+| `COMMUNITIES_CUSTOM_FIELDS_UI`                  | `{...}`                                            | Community custom fields UI configuration (auto-merged by extension)                                                                              |
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
+
+### Community Custom Fields
+
+The stats dashboard extension automatically provides a custom field for communities to store dashboard layout configurations. This allows each community to have its own customized dashboard layout while maintaining a consistent global configuration.
+
+#### Automatic Integration
+
+The custom field is automatically integrated into InvenioRDM communities through the extension's initialization process. The extension merges its custom field configuration with any existing community custom fields, ensuring non-destructive integration.
+
+**Field Details:**
+- **Field Name**: `stats:dashboard_layout`
+- **Field Type**: Structured JSON object with validation
+- **Namespace**: `stats` (internal namespace)
+- **Search Behavior**: Indexed for retrieval but not searchable by content
+
+#### Field Structure
+
+The custom field stores a JSON object with the following structure:
+
+```python
+{
+    "global": {
+        "tabs": [
+            {
+                "name": "content",
+                "label": "Content",
+                "rows": [
+                    {
+                        "name": "date-range-selector",
+                        "components": [
+                            {"component": "DateRangeSelector", "width": 16}
+                        ]
+                    },
+                    {
+                        "name": "single-stats",
+                        "components": [
+                            {"component": "SingleStatRecordCount", "width": 3},
+                            {"component": "SingleStatUploaders", "width": 3},
+                            {"component": "SingleStatDataVolume", "width": 3}
+                        ]
+                    },
+                    {
+                        "name": "charts",
+                        "components": [
+                            {"component": "StatsChart", "width": 8}
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "community": {
+        "tabs": [
+            {
+                "name": "content",
+                "label": "Content",
+                "rows": [
+                    {
+                        "name": "date-range-selector",
+                        "components": [
+                            {"component": "DateRangeSelector", "width": 16}
+                        ]
+                    },
+                    {
+                        "name": "single-stats",
+                        "components": [
+                            {"component": "SingleStatRecordCount", "width": 4},
+                            {"component": "SingleStatUploaders", "width": 4},
+                            {"component": "SingleStatDataVolume", "width": 4},
+                            {"component": "SingleStatViews", "width": 4}
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+#### Schema Validation
+
+The field uses a structured Marshmallow schema for validation:
+
+- **Component Props**: Flexible dictionary for component-specific properties
+- **Components**: Individual dashboard components with validation
+- **Rows**: Groups of components with layout information
+- **Tabs**: Dashboard sections containing multiple rows
+- **Dashboard Types**: Separate configurations for `global` and `community` dashboards
+
+#### Integration Methods
+
+**Method 1: Automatic Integration (Recommended)**
+
+For instances without existing custom field configurations, the extension automatically provides the custom field:
+
+```python
+# No configuration needed - field is automatically available
+# Extension merges its configuration with defaults
+```
+
+**Method 2: Manual Integration**
+
+For instances with existing custom field configurations, manually integrate the stats dashboard fields:
+
+```python
+# In invenio.cfg
+from invenio_stats_dashboard.records.communities.custom_fields.custom_fields import (
+    COMMUNITY_STATS_FIELDS,
+    COMMUNITY_STATS_FIELDS_UI,
+    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
+)
+
+# Merge namespaces
+COMMUNITIES_NAMESPACES = {
+    "your_namespace": "https://your-site.org/terms/",
+    **STATS_COMMUNITIES_NAMESPACES,
+}
+
+# Add custom fields
+COMMUNITIES_CUSTOM_FIELDS = [
+    # Your existing fields
+    TextCF(name="your_namespace:your_field"),
+    # Stats dashboard fields
+    *COMMUNITY_STATS_FIELDS,
+]
+
+# Add UI configuration
+COMMUNITIES_CUSTOM_FIELDS_UI = [
+    # Your existing UI config
+    {
+        "section": "Your Section",
+        "fields": [...]
+    },
+    # Stats dashboard UI config
+    COMMUNITY_STATS_FIELDS_UI,
+]
+```
+
+#### Field Initialization
+
+After configuration, initialize the custom field in the search index:
+
+```bash
+# Initialize the custom field
+invenio custom-fields communities init stats:dashboard_layout
+
+# Verify the field exists
+invenio custom-fields communities exists stats:dashboard_layout
+```
+
+#### Usage in Communities
+
+Once configured, community administrators can:
+
+1. **Access the field** in community creation/editing forms
+2. **Configure layouts** using the structured JSON format
+3. **Override defaults** by providing community-specific configurations
+4. **Maintain consistency** with global dashboard structure
+
+#### Benefits
+
+- **✅ Flexible Configuration**: Each community can customize its dashboard layout
+- **✅ Structured Validation**: Prevents invalid configurations through schema validation
+- **✅ Non-Destructive**: Integrates with existing custom field configurations
+- **✅ Searchable**: Field existence can be queried (though content is not searchable)
+- **✅ Extensible**: Easy to add new component types or layout options
+
+#### Technical Details
+
+- **Marshmallow Schema**: Uses `fields.Nested()` with structured validation
+- **Elasticsearch Mapping**: `{"type": "object", "enabled": false}` for retrieval without content indexing
+- **Namespace**: Internal `stats` namespace (no external URL required)
+- **UI Widget**: Custom widget for JSON configuration editing
 
 ### Content Negotiation and Response Serializers
 
