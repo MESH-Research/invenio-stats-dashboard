@@ -9,7 +9,7 @@
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, cast
 
 import arrow
 from flask import current_app
@@ -122,7 +122,7 @@ class CachedResponse:
             )
 
             if communities_result.hits:
-                return communities_result.hits[0]["id"]
+                return str(communities_result.hits[0]["id"])
             else:
                 return community_id
 
@@ -287,7 +287,7 @@ class CachedResponse:
         }
 
         query_name = self.request_data["stat"]
-        query_params = self.request_data["params"]
+        query_params: dict[str, Any] = cast(dict[str, Any], self.request_data["params"])
 
         if query_name not in configured_queries:
             raise ValueError(f"Unknown query: {query_name}")

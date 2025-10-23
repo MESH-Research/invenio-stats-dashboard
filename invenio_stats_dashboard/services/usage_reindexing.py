@@ -9,6 +9,7 @@
 import random
 import time
 from functools import wraps
+from typing import Any
 
 import arrow
 import psutil
@@ -3007,7 +3008,7 @@ class EventReindexingService:
 
     def cleanup_old_indices(
         self, event_types: list[str] | None = None, dry_run: bool = False
-    ) -> dict[str, dict[str, bool | str]]:
+    ) -> dict[str, dict[str, Any]]:
         """Clean up old indices that have been successfully migrated.
 
         This method identifies old indices that have corresponding migrated indices
@@ -3024,7 +3025,7 @@ class EventReindexingService:
         if event_types is None:
             event_types = ["view", "download"]
 
-        results = {}
+        results: dict[str, dict[str, Any]] = {}
 
         for event_type in event_types:
             pattern = self.index_patterns[event_type]

@@ -247,7 +247,9 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
             if is_json_request and all(
                 isinstance(v, bytes) for v in results.values()
             ):
-                final_json = self._build_json_response(results)
+                # Cast to correct type since we've verified all values are bytes
+                bytes_results: dict[str, bytes] = results  # type: ignore
+                final_json = self._build_json_response(bytes_results)
                 return Response(final_json, mimetype=accept_header)
             
             # For all other cases, return the data and let the parent class's
