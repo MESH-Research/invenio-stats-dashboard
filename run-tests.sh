@@ -106,6 +106,10 @@ eval "$(uv run ${env_file_arg} docker-services-cli --filepath .venv/lib/python3.
 unset SQLALCHEMY_DATABASE_URI
 unset INVENIO_SQLALCHEMY_DATABASE_URI
 
+# Install the package in editable mode for pytest-ruff to work properly
+echo "Installing package in editable mode"
+uv pip install -e .
+
 # Run mypy
 echo "Running mypy on the invenio_stats_dashboard directory"
 uv run mypy --config-file pyproject.toml invenio_stats_dashboard/
