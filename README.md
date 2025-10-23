@@ -1,5 +1,11 @@
 # Invenio Stats Dashboard
 
+![Tests](https://img.shields.io/github/actions/workflow/status/mesh-research/invenio-stats-dashboard/tests.yml?label=tests&style=flat-square&logo=github&logoColor=white&color=6c7839)
+![Python](https://img.shields.io/badge/python-3.12+-276F86?style=flat-square&logo=python&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-D9B01C?style=flat-square&logo=opensourceinitiative&logoColor=white)
+![Ruff](https://img.shields.io/badge/code%20style-ruff-e47719?style=flat-square&logo=python&logoColor=white)
+![MyPy](https://img.shields.io/badge/type%20checking-mypy-547d7d?style=flat-square&logo=python&logoColor=white)
+
 **Pre-alpha version. Not ready for production use. Some things currently don't work!**
 
 Copyright 2025, MESH Research
