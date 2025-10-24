@@ -77,7 +77,7 @@ def file_download_event_builder(
             for c in record.metadata.get("contributors", [])
             + record.metadata.get("creators", [])
         ],
-        "file_types": file_type,
+        "file_types": [file_type] if file_type else None,
     })
     return event
 
