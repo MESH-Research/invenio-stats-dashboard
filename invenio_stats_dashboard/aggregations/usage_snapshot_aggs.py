@@ -7,9 +7,14 @@
 """Community usage snapshot aggregators for tracking cumulative usage statistics."""
 
 import numbers
+import time
 from collections.abc import Generator
+from typing import Any
 
 import arrow
+from flask import current_app
+from invenio_search.utils import prefix_index
+from opensearchpy.helpers.search import Search
 
 from ..queries import (
     CommunityUsageSnapshotQuery,
@@ -50,12 +55,12 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
     def _get_latest_delta_date(self, community_id: str) -> arrow.Arrow | None:
         """Get the latest delta record date for dependency checking.
-        
+
         Uses the query builder to find the latest usage delta record.
-        
+
         Args:
             community_id: The community ID to check
-            
+
         Returns:
             The latest delta record date, or None if no records exist
         """
@@ -107,7 +112,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         current_day: arrow.Arrow,
         previous_snapshot: UsageSnapshotDocument,
         latest_delta: UsageDeltaDocument,
-        deltas: list,
         exhaustive_counts_cache: dict | None = None,
     ) -> UsageSnapshotDocument:
         """Create the final aggregation document from cumulative totals.
@@ -116,7 +120,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             current_day (arrow.Arrow): The current day for the snapshot
             previous_snapshot (UsageSnapshotDocument): The previous snapshot document
             latest_delta (UsageDeltaDocument): The latest delta document
-            deltas (list): All delta documents for top subcounts
             exhaustive_counts_cache (dict | None): The exhaustive counts cache
 
         Returns:
@@ -138,9 +141,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         self._update_cumulative_totals(new_dict, latest_delta)
 
-        self._update_top_subcounts(
-            new_dict, deltas, exhaustive_counts_cache, latest_delta
-        )
+        self._update_top_subcounts(new_dict, exhaustive_counts_cache, latest_delta)
 
         return new_dict
 
@@ -274,15 +275,28 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         update_totals(new_dict, delta_doc, "totals")
 
         # Update simple subcounts from mapped delta document
-        # The mapping has already transformed field names to snapshot format
-        update_totals(new_dict, delta_doc, "subcounts")
+        # Only process "all" type subcounts to avoid double-counting with
+        # "top" type subcounts
+        filtered_subcounts = {}
+        delta_subcounts = delta_doc.get("subcounts", {})
+
+        for subcount_name, subcount_data in delta_subcounts.items():
+            config = self.subcount_configs.get(subcount_name, {})
+            usage_config = config.get("usage_events", {})
+            if usage_config and usage_config.get("snapshot_type", "all") == "all":
+                filtered_subcounts[subcount_name] = subcount_data
+
+        if filtered_subcounts:
+            # Create a temporary delta doc with only "all" type subcounts
+            temp_delta_doc = delta_doc.copy()
+            temp_delta_doc["subcounts"] = filtered_subcounts
+            update_totals(new_dict, temp_delta_doc, "subcounts")
 
         return new_dict
 
     def _update_top_subcounts(  # type: ignore[override]
         self,
         new_dict: UsageSnapshotDocument,
-        deltas: list,
         exhaustive_counts_cache: dict,
         latest_delta: UsageDeltaDocument,
     ) -> None:
@@ -301,9 +315,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         Args:
             new_dict: The aggregation dictionary to modify
-            deltas: The daily delta dictionaries to update the subcounts with.
-                These are the daily delta records for the community between
-                the first delta document and the current date.
             exhaustive_counts_cache: The exhaustive counts cache
             latest_delta: The latest delta document
         """
@@ -313,14 +324,13 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 # Use the subcount key directly
                 top_subcount_name = subcount_key
 
+                # exhaustive_counts_cache should already be populated by our scan query
+                # Just update it with the latest delta
                 if top_subcount_name not in exhaustive_counts_cache:
-                    exhaustive_counts_cache[top_subcount_name] = (
-                        self._build_exhaustive_cache(deltas, top_subcount_name)
-                    )
-                else:
-                    self._update_exhaustive_cache(
-                        top_subcount_name, latest_delta, exhaustive_counts_cache
-                    )
+                    exhaustive_counts_cache[top_subcount_name] = {}
+                self._update_exhaustive_cache(
+                    top_subcount_name, latest_delta, exhaustive_counts_cache
+                )
 
                 top_by_view = self._select_top_n_from_cache(
                     exhaustive_counts_cache[top_subcount_name], "view"
@@ -391,7 +401,317 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 - [0]: A dictionary representing an aggregation document for indexing
                 - [1]: The time taken to generate this document (in seconds)
         """
-        # Call the parent class agg_iter method
-        yield from super().agg_iter(
-            community_id, start_date, end_date, first_event_date, last_event_date
+        # Check if delta aggregator has processed data for the requested period
+        if not self._check_delta_dependency(community_id, start_date, end_date):
+            current_app.logger.info(
+                f"Skipping snapshot aggregation for {community_id} "
+                f"from {start_date.date()} to {end_date.date()} - "
+                f"delta aggregator has not processed data for this period"
+            )
+            return
+
+        current_iteration_date = arrow.get(start_date)
+        previous_snapshot, is_zero_placeholder = self._get_previous_snapshot(
+            community_id, current_iteration_date
         )
+        previous_snapshot_date = (
+            arrow.get(previous_snapshot["snapshot_date"])  # type: ignore
+            if previous_snapshot and not is_zero_placeholder
+            else None
+        )
+
+        if previous_snapshot_date and previous_snapshot_date <= end_date:
+            current_iteration_date = previous_snapshot_date
+            # Apply catchup limit to prevent processing too many days at once
+            end_date = min(
+                end_date, previous_snapshot_date.shift(days=self.catchup_interval + 1)
+            )
+        elif not previous_snapshot_date:  # No previous snapshot
+            if first_event_date is None:
+                # No events exist, return empty generator
+                return
+            current_iteration_date = first_event_date
+            # FIXME: Add +1 to match delta aggregator's inclusive range calculation
+            # Delta aggregators use _get_end_date() which creates inclusive ranges
+            end_date = min(
+                end_date, current_iteration_date.shift(days=self.catchup_interval + 1)
+            )
+
+        if first_event_date is None:
+            # No events exist, return empty generator
+            return
+
+        try:
+            # Build exhaustive_counts_cache from all historical
+            # deltas BEFORE current period
+            exhaustive_counts_cache: dict[str, Any] = {}
+            self._build_exhaustive_cache_from_scan(
+                exhaustive_counts_cache,
+                community_id,
+                first_event_date,
+                current_iteration_date,
+            )
+        except Exception as e:
+            current_app.logger.error(
+                "Optimized agg_iter: Failed to initialize "
+                "exhaustive_counts_cache: "
+                f"{e}"
+            )
+            return
+
+        # Initialize streaming for daily deltas
+        daily_deltas_buffer: list[dict] = []
+        last_processed_date = first_event_date.shift(
+            days=-1
+        )  # Start from day before first event
+        buffer_size = 50  # Small buffer of daily deltas
+
+        iteration_count = 0
+        while current_iteration_date <= end_date:
+            iteration_start_time = time.time()
+            iteration_count += 1
+
+            try:
+                # Get the delta document for this specific date
+                daily_delta, daily_deltas_buffer, last_processed_date = (
+                    self._get_delta_from_buffer(
+                        daily_deltas_buffer,
+                        current_iteration_date,
+                        community_id,
+                        end_date,
+                        last_processed_date,
+                        buffer_size,
+                    )
+                )
+                if not daily_delta:
+                    current_app.logger.warning(
+                        "No delta document found for date "
+                        f"{current_iteration_date.format('YYYY-MM-DD')} - "
+                        "stopping aggregation"
+                    )
+                    break
+
+                # Create the aggregation document using original method
+                source_content = self.create_agg_dict(
+                    current_iteration_date,
+                    previous_snapshot,
+                    daily_delta,
+                    exhaustive_counts_cache,
+                )
+
+                index_name = prefix_index(
+                    f"{self.aggregation_index}-{current_iteration_date.year}"
+                )
+                document_id = (
+                    f"{community_id}-{current_iteration_date.format('YYYY-MM-DD')}"
+                )
+
+                document = {
+                    "_id": document_id,
+                    "_index": index_name,
+                    "_source": source_content,
+                }
+
+                iteration_end_time = time.time()
+                iteration_duration = iteration_end_time - iteration_start_time
+                yield (document, iteration_duration)
+
+                previous_snapshot = source_content
+                previous_snapshot_date = current_iteration_date
+                current_iteration_date = current_iteration_date.shift(days=1)
+
+            except Exception as e:
+                current_app.logger.error(
+                    "Error processing date "
+                    f"{current_iteration_date.format('YYYY-MM-DD')}: {e}"
+                )
+                current_iteration_date = current_iteration_date.shift(days=1)
+                continue
+
+    def _fetch_daily_deltas_page(
+        self,
+        community_id: str,
+        start_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        page_size: int,
+    ) -> list[dict]:
+        """Fetch a page of daily delta documents starting from start_date.
+
+        Args:
+            community_id: The community ID to fetch data for
+            start_date: The start date to fetch from
+            end_date: The end date to fetch to
+            page_size: Number of documents to fetch per page
+
+        Returns:
+            List of delta documents
+        """
+        index_name = prefix_index(self.delta_index)
+        delta_search = Search(using=self.client, index=index_name)
+        delta_search = delta_search.query(
+            "bool",
+            must=[
+                {"term": {"community_id": community_id}},
+                {
+                    "range": {
+                        "period_start": {
+                            "gte": start_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            "lte": end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        }
+                    }
+                },
+            ],
+        )
+
+        delta_search = delta_search.sort({"period_start": {"order": "asc"}})
+
+        # Build query for this page
+        page_search = delta_search.extra(size=page_size)
+
+        # Set timeout
+        timeout_value = "120s"
+        page_search = page_search.extra(timeout=timeout_value)
+
+        try:
+            results = page_search.execute()
+            hits = results.to_dict()["hits"]["hits"]
+
+            # Convert hits to documents
+            documents = [hit["_source"] for hit in hits]
+
+            return documents
+
+        except Exception as e:
+            current_app.logger.error(f"_fetch_daily_deltas_page: Query failed: {e}")
+            return []
+
+    def _get_delta_from_buffer(
+        self,
+        buffer: list,
+        target_date: arrow.Arrow,
+        community_id: str,
+        end_date: arrow.Arrow,
+        last_processed_date: arrow.Arrow,
+        buffer_size: int,
+    ) -> tuple[dict | None, list, arrow.Arrow]:
+        """Get the delta document for a specific date from the buffer.
+
+        Args:
+            buffer: List of delta documents (sorted by date)
+            target_date: The target date to find
+            community_id: Community ID for fetching more documents
+            end_date: End date for fetching more documents
+            last_processed_date: Last date we successfully processed
+            buffer_size: Size of buffer to fetch
+
+        Returns:
+            Tuple of (delta_document, updated_buffer, updated_last_processed_date)
+        """
+        target_date_str = target_date.format("YYYY-MM-DD")
+
+        # If buffer is empty, try to fetch more documents from
+        # last_processed_date + 1 day
+        if not buffer:
+            next_date = last_processed_date.shift(days=1)
+            buffer = self._fetch_daily_deltas_page(
+                community_id, next_date, end_date, buffer_size
+            )
+            last_processed_date = next_date
+            if not buffer:
+                return None, buffer, last_processed_date
+
+        # Check the first document in the buffer
+        first_doc = buffer[0]
+        first_doc_date_str = arrow.get(first_doc["period_start"]).format("YYYY-MM-DD")
+
+        if first_doc_date_str == target_date_str:
+            # Found the target date - remove it from buffer and return it
+            return first_doc, buffer[1:], last_processed_date
+        elif first_doc_date_str < target_date_str:
+            # First document is earlier - remove it and recurse
+            return self._get_delta_from_buffer(
+                buffer[1:],
+                target_date,
+                community_id,
+                end_date,
+                last_processed_date,
+                buffer_size,
+            )
+        else:
+            # First document is later - target date doesn't exist
+            return None, buffer, last_processed_date
+
+    def _build_exhaustive_cache_from_scan(
+        self,
+        exhaustive_cache: dict,
+        community_id: str,
+        earliest_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+    ) -> None:
+        """Build exhaustive cache using scan query for memory efficiency.
+
+        Args:
+            exhaustive_cache: The exhaustive counts cache to populate
+            community_id: The community ID to fetch data for
+            earliest_date: The earliest date to fetch
+            end_date: The end date to fetch (exclusive)
+        """
+        index_name = prefix_index(self.delta_index)
+        delta_search = Search(using=self.client, index=index_name)
+        delta_search = delta_search.query(
+            "bool",
+            must=[
+                {"term": {"community_id": community_id}},
+                {
+                    "range": {
+                        "period_start": {
+                            "gte": earliest_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            "lt": end_date.format(
+                                "YYYY-MM-DDTHH:mm:ss"
+                            ),  # Use lt (less than) to exclude end_date
+                        }
+                    }
+                },
+            ],
+        )
+
+        delta_search = delta_search.sort({"period_start": {"order": "asc"}})
+
+        try:
+            # Use scan to process all documents efficiently without loading into memory
+            for hit in delta_search.scan():
+                doc = hit.to_dict()
+                self._update_exhaustive_cache_all_subcounts(exhaustive_cache, doc)
+
+        except Exception as e:
+            current_app.logger.error(
+                f"_build_exhaustive_cache_from_scan: Scan query failed: {e}"
+            )
+            raise
+
+    def _update_exhaustive_cache_all_subcounts(
+        self, exhaustive_cache: dict, delta_doc: dict
+    ) -> None:
+        """Update exhaustive cache incrementally with a single delta document.
+
+        Args:
+            exhaustive_cache: The exhaustive counts cache to update
+            delta_doc: The delta document to add to the cache
+        """
+        subcounts = delta_doc.get("subcounts", {})
+        for subcount_name, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if not usage_config:
+                continue
+
+            # Only process "top" type subcounts in exhaustive cache
+            if usage_config.get("snapshot_type", "all") != "top":
+                continue
+
+            if subcount_name not in exhaustive_cache:
+                exhaustive_cache[subcount_name] = {}
+
+            if subcounts and subcount_name in subcounts:
+                self._accumulate_category_in_place(
+                    exhaustive_cache[subcount_name], subcounts[subcount_name]
+                )
