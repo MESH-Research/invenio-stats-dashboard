@@ -7,6 +7,7 @@
 """Community usage snapshot aggregators for tracking cumulative usage statistics."""
 
 import copy
+import heapq
 import numbers
 import time
 from collections.abc import Generator
@@ -333,7 +334,7 @@ class MemoryEstimator:
         Uses predicted_peak_bytes from the estimate and current rss/budget to
         reduce page size proportionally when over budget. Always clamps to
         [scan_page_size_min, scan_page_size_max].
-        
+
         Args:
             mem_estimate: Output dict from `estimate()`.
             rss_bytes: Current process RSS in bytes.
@@ -615,23 +616,17 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         Returns:
             list: List of top N items sorted by the specified angle.
         """
-        filtered_items = [
+        iterable = (
             (item_id, totals)
             for item_id, totals in exhaustive_cache.items()
             if totals[angle]["total_events"] > 0
-        ]
-
-        sorted_items = sorted(
-            filtered_items,
-            key=lambda x: x[1][angle]["total_events"],
-            reverse=True,
         )
-
-        top_subcount_list = [
-            totals for _, totals in sorted_items[: self.top_subcount_limit]
-        ]
-
-        return top_subcount_list
+        top_pairs = heapq.nlargest(
+            self.top_subcount_limit,
+            iterable,
+            key=lambda kv: kv[1][angle]["total_events"],
+        )
+        return [totals for _, totals in top_pairs]
 
     def _update_cumulative_totals(  # type: ignore[override]
         self,

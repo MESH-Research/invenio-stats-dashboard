@@ -9,7 +9,6 @@
 
 import csv
 import gzip
-import json
 import os
 import shutil
 import tempfile
@@ -17,6 +16,7 @@ import xml.etree.ElementTree as ET
 
 import arrow
 import brotli
+import orjson
 from flask import Response, current_app, g
 from invenio_communities.proxies import current_communities
 from openpyxl import Workbook
@@ -66,12 +66,12 @@ class CompressedStatsJSONSerializer:
         else:
             json_data = data
 
-        json_str = json.dumps(json_data, indent=2, default=str)
+        json_bytes = orjson.dumps(json_data, option=orjson.OPT_NAIVE_UTC)
 
         if self.compression_method == "brotli":
-            compressed_data = brotli.compress(json_str.encode("utf-8"))
+            compressed_data = brotli.compress(json_bytes)
         else:
-            compressed_data = gzip.compress(json_str.encode("utf-8"))
+            compressed_data = gzip.compress(json_bytes)
 
         return compressed_data
 

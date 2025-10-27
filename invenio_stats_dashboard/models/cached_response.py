@@ -12,6 +12,7 @@ import json
 from typing import Any, cast
 
 import arrow
+import orjson
 from flask import current_app
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
@@ -150,7 +151,9 @@ class CachedResponse:
             return self._bytes_data
 
         if self._object_data is not None:
-            self._bytes_data = json.dumps(self._object_data).encode("utf-8")
+            self._bytes_data = orjson.dumps(
+                self._object_data, option=orjson.OPT_NAIVE_UTC
+            )
             return self._bytes_data
 
         raise ValueError("No data available")
@@ -169,7 +172,8 @@ class CachedResponse:
             return self._object_data
 
         if self._bytes_data is not None:
-            self._object_data = json.loads(self._bytes_data.decode("utf-8"))
+            # orjson.loads accepts bytes directly
+            self._object_data = orjson.loads(self._bytes_data)
             return self._object_data
 
         raise ValueError("No data available")
@@ -260,7 +264,7 @@ class CachedResponse:
         """
         response = cls(community_id, year, category, cache_type)
         if decode:
-            response._object_data = json.loads(data.decode("utf-8"))
+            response._object_data = orjson.loads(data)
         else:
             # Store as bytes for passthrough - no unnecessary decode/encode
             response._bytes_data = data
