@@ -27,6 +27,7 @@ from .fixtures.stats import test_config_stats
 pytest_plugins = (
     "celery.contrib.pytest",
     "tests.fixtures.files",
+    "texts.fixtures.fixtures",
     "tests.fixtures.mail",
     "tests.fixtures.communities",
     "tests.fixtures.custom_fields",

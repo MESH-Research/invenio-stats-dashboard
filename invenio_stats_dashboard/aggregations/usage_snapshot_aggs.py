@@ -10,9 +10,11 @@ import copy
 import numbers
 import time
 from collections.abc import Generator
+from pprint import pformat
 from typing import Any
 
 import arrow
+import psutil
 from flask import current_app
 from invenio_search.utils import prefix_index
 from opensearchpy import AttrDict
@@ -47,13 +49,27 @@ class MemoryEstimator:
 
     @staticmethod
     def _serialize_len(obj: Any) -> int:
+        """Return the byte length of a JSON-serializable object.
+
+        Args:
+            obj: Any JSON-serializable Python object.
+
+        Returns:
+            int: Number of bytes of the compact serialized representation.
+        """
         try:
             import orjson  # local import to avoid import issues in some envs
+
             return len(orjson.dumps(obj))
         except Exception:
             return len(str(obj).encode("utf-8"))
 
     def _partition_keys(self) -> tuple[list[str], list[str]]:
+        """Partition configured subcount keys into 'all' and 'top' groups.
+
+        Returns:
+            tuple[list[str], list[str]]: A tuple of (all_keys, top_keys).
+        """
         all_keys: list[str] = []
         top_keys: list[str] = []
         for key, cfg in self.subcount_configs.items():
@@ -70,7 +86,20 @@ class MemoryEstimator:
         top_keys: list[str],
         all_keys: list[str],
     ) -> tuple[int, int, int, int]:
-        """Return (per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all)."""
+        """Inspect one delta document to refine per-doc sizes.
+
+        Args:
+            community_id: Target community identifier (or "global").
+            top_keys: Subcount keys configured as 'top'.
+            all_keys: Subcount keys configured as 'all'.
+
+        Returns:
+            tuple[int, int, int, int]:
+                - per_doc_top_items: Count of 'top' items in the sampled delta.
+                - refined_avg_top: Avg bytes per 'top' item from sampling.
+                - per_doc_all_items: Count of 'all' items in the sampled delta.
+                - refined_avg_all: Avg bytes per 'all' item from sampling.
+        """
         try:
             index_name = prefix_index("stats-community-usage-delta")
             s = Search(using=self.client, index=index_name)
@@ -79,7 +108,11 @@ class MemoryEstimator:
             else:
                 s = s.query("match_all")
             includes = ["totals"] + [f"subcounts.{k}" for k in (top_keys + all_keys)]
-            s = s.sort({"period_start": {"order": "desc"}}).source(includes=includes).extra(size=1)
+            s = (
+                s.sort({"period_start": {"order": "desc"}})
+                .source(includes=includes)
+                .extra(size=1)
+            )
             hits = s.execute().to_dict().get("hits", {}).get("hits", [])
             if not hits:
                 return 0, 1500, 0, 500
@@ -88,18 +121,35 @@ class MemoryEstimator:
             per_doc_top_items = 0
             per_doc_all_items = 0
             for k in top_keys:
-                items = delta_subcounts.get(k, []) if isinstance(delta_subcounts, dict) else []
+                items = (
+                    delta_subcounts.get(k, [])
+                    if isinstance(delta_subcounts, dict)
+                    else []
+                )
                 per_doc_top_items += len(items) if isinstance(items, list) else 0
             for k in all_keys:
-                items = delta_subcounts.get(k, []) if isinstance(delta_subcounts, dict) else []
+                items = (
+                    delta_subcounts.get(k, [])
+                    if isinstance(delta_subcounts, dict)
+                    else []
+                )
                 per_doc_all_items += len(items) if isinstance(items, list) else 0
             top_only = {k: delta_subcounts.get(k, []) for k in top_keys}
             all_only = {k: delta_subcounts.get(k, []) for k in all_keys}
             top_only_bytes = self._serialize_len(top_only)
             all_only_bytes = self._serialize_len(all_only)
-            refined_avg_top = int(top_only_bytes / per_doc_top_items) if per_doc_top_items else 1500
-            refined_avg_all = int(all_only_bytes / per_doc_all_items) if per_doc_all_items else 500
-            return per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all
+            refined_avg_top = (
+                int(top_only_bytes / per_doc_top_items) if per_doc_top_items else 1500
+            )
+            refined_avg_all = (
+                int(all_only_bytes / per_doc_all_items) if per_doc_all_items else 500
+            )
+            return (
+                per_doc_top_items,
+                refined_avg_top,
+                per_doc_all_items,
+                refined_avg_all,
+            )
         except Exception:
             return 0, 1500, 0, 500
 
@@ -114,18 +164,45 @@ class MemoryEstimator:
     ) -> dict:
         """Compute initial memory usage estimates for the run.
 
-        Returns a dict with component sizes and predicted peaks in bytes.
+        Args:
+            previous_snapshot: The last stored snapshot for this community.
+            first_event_date: Earliest date with any usage events.
+            upper_limit: Upper bound date for the upcoming run.
+            planned_scan_page_size: Planned scan page size for historical scan.
+            planned_chunk_size: Planned bulk indexing chunk size.
+            planned_delta_buffer_size: Planned in-memory delta buffer size.
+
+        Returns:
+            dict: Component byte estimates and predicted peaks with keys:
+                - payload_bytes
+                - working_all_bytes
+                - working_top_bytes
+                - scan_page_bytes
+                - bulk_buffer_bytes
+                - delta_buffer_bytes
+                - build_payload_bytes
+                - predicted_scan_peak_bytes
+                - predicted_loop_peak_bytes
+                - predicted_peak_bytes
         """
         k_ws_overhead = current_app.config.get("COMMUNITY_STATS_WS_OVERHEAD", 1.1)
         k_scan_overhead = current_app.config.get("COMMUNITY_STATS_SCAN_OVERHEAD", 1.3)
         k_bulk_overhead = current_app.config.get("COMMUNITY_STATS_BULK_OVERHEAD", 1.3)
         k_delta_overhead = current_app.config.get("COMMUNITY_STATS_DELTA_OVERHEAD", 1.2)
         safety_factor = current_app.config.get("COMMUNITY_STATS_MEM_SAFETY_FACTOR", 1.2)
-        growth_factor_top = current_app.config.get("COMMUNITY_STATS_TOP_GROWTH_FACTOR", 3.0)
-        growth_floor_factor = current_app.config.get("COMMUNITY_STATS_TOP_GROWTH_FLOOR_FACTOR", 5.0)
-        hard_cap_per_key = current_app.config.get("COMMUNITY_STATS_TOP_HARD_CAP_PER_KEY", 10000)
+        growth_factor_top = current_app.config.get(
+            "COMMUNITY_STATS_TOP_GROWTH_FACTOR", 3.0
+        )
+        growth_floor_factor = current_app.config.get(
+            "COMMUNITY_STATS_TOP_GROWTH_FLOOR_FACTOR", 5.0
+        )
+        hard_cap_per_key = current_app.config.get(
+            "COMMUNITY_STATS_TOP_HARD_CAP_PER_KEY", 10000
+        )
         decay_top = current_app.config.get("COMMUNITY_STATS_TOP_DISCOVERY_DECAY", 0.3)
-        avg_delta_bytes = current_app.config.get("COMMUNITY_STATS_AVG_DELTA_BYTES", 1024)
+        avg_delta_bytes = current_app.config.get(
+            "COMMUNITY_STATS_AVG_DELTA_BYTES", 1024
+        )
 
         payload_bytes = self._serialize_len(previous_snapshot)
         prev_subcounts = previous_snapshot.get("subcounts", {})  # type: ignore[assignment]
@@ -135,15 +212,20 @@ class MemoryEstimator:
         all_bytes = self._serialize_len(all_projection)
         working_all_bytes = int(all_bytes * k_ws_overhead)
 
-        top_projection = {k: prev_subcounts.get(k, {"by_view": [], "by_download": []}) for k in top_keys}
+        top_projection = {
+            k: prev_subcounts.get(k, {"by_view": [], "by_download": []})
+            for k in top_keys
+        }
         top_bytes = self._serialize_len(top_projection)
         total_top_items = 0
         for k in top_keys:
             sc = prev_subcounts.get(k, {})
             byv = sc.get("by_view", []) if isinstance(sc, dict) else []
             byd = sc.get("by_download", []) if isinstance(sc, dict) else []
-            total_top_items += (len(byv) + len(byd))
-        avg_top_item_bytes = int(top_bytes / total_top_items) if total_top_items > 0 else 1500
+            total_top_items += len(byv) + len(byd)
+        avg_top_item_bytes = (
+            int(top_bytes / total_top_items) if total_top_items > 0 else 1500
+        )
 
         try:
             prev_date = arrow.get(previous_snapshot.get("snapshot_date", ""))
@@ -172,32 +254,57 @@ class MemoryEstimator:
             union_rate = union_count / days_elapsed_for_rate
             new_ids_est = union_rate * days_remaining * decay_top
             floor_est = self.top_limit * growth_floor_factor
-            est_ids = int(max(floor_est, (union_count + new_ids_est) * growth_factor_top))
+            est_ids = int(
+                max(floor_est, (union_count + new_ids_est) * growth_factor_top)
+            )
             est_total_top_ids += min(est_ids, hard_cap_per_key)
 
         working_top_bytes = est_total_top_ids * avg_top_item_bytes
 
-        scan_page_bytes = int(planned_scan_page_size * avg_top_item_bytes * k_scan_overhead)
+        scan_page_bytes = int(
+            planned_scan_page_size * avg_top_item_bytes * k_scan_overhead
+        )
         bulk_buffer_bytes = int(planned_chunk_size * payload_bytes * k_bulk_overhead)
 
-        per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all = self._preflight_delta_info(
-            previous_snapshot.get("community_id", "global"),  # type: ignore[index]
-            top_keys,
-            all_keys,
+        per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all = (
+            self._preflight_delta_info(
+                previous_snapshot.get("community_id", "global"),  # type: ignore[index]
+                top_keys,
+                all_keys,
+            )
         )
         if per_doc_top_items or per_doc_all_items:
-            scan_page_bytes = int(planned_scan_page_size * refined_avg_top * k_scan_overhead)
-            avg_delta_doc_bytes = per_doc_top_items * refined_avg_top + per_doc_all_items * refined_avg_all
-            delta_buffer_bytes = int(planned_delta_buffer_size * avg_delta_doc_bytes * k_delta_overhead)
+            per_doc_bytes = (
+                per_doc_top_items * refined_avg_top
+                + per_doc_all_items * refined_avg_all
+            )
+            scan_page_bytes = int(
+                planned_scan_page_size * per_doc_bytes * k_scan_overhead
+            )
+            delta_buffer_bytes = int(
+                planned_delta_buffer_size * per_doc_bytes * k_delta_overhead
+            )
         else:
-            delta_buffer_bytes = int(planned_delta_buffer_size * avg_delta_bytes * k_delta_overhead)
+            delta_buffer_bytes = int(
+                planned_delta_buffer_size * avg_delta_bytes * k_delta_overhead
+            )
 
         build_payload_bytes = payload_bytes
-        predicted_scan_peak = int(working_all_bytes + working_top_bytes + scan_page_bytes)
-        predicted_loop_peak = int(bulk_buffer_bytes + working_top_bytes + working_all_bytes + build_payload_bytes + delta_buffer_bytes)
-        predicted_peak = int(max(predicted_scan_peak, predicted_loop_peak) * safety_factor)
+        predicted_scan_peak = int(
+            working_all_bytes + working_top_bytes + scan_page_bytes
+        )
+        predicted_loop_peak = int(
+            bulk_buffer_bytes
+            + working_top_bytes
+            + working_all_bytes
+            + build_payload_bytes
+            + delta_buffer_bytes
+        )
+        predicted_peak = int(
+            max(predicted_scan_peak, predicted_loop_peak) * safety_factor
+        )
 
-        return {
+        return_object = {
             "payload_bytes": payload_bytes,
             "working_all_bytes": working_all_bytes,
             "working_top_bytes": working_top_bytes,
@@ -209,6 +316,61 @@ class MemoryEstimator:
             "predicted_loop_peak_bytes": predicted_loop_peak,
             "predicted_peak_bytes": predicted_peak,
         }
+        current_app.logger.info(f"MemoryEstimator returning {pformat(return_object)}")
+        return return_object
+
+    @staticmethod
+    def adjust_scan_page_size(
+        mem_estimate: dict,
+        rss_bytes: int,
+        budget_bytes: int,
+        planned_scan_page_size: int,
+        scan_page_size_min: int,
+        scan_page_size_max: int,
+    ) -> int:
+        """Adjust scan page size to fit within memory headroom.
+
+        Uses predicted_peak_bytes from the estimate and current rss/budget to
+        reduce page size proportionally when over budget. Always clamps to
+        [scan_page_size_min, scan_page_size_max].
+        
+        Args:
+            mem_estimate: Output dict from `estimate()`.
+            rss_bytes: Current process RSS in bytes.
+            budget_bytes: Effective memory budget in bytes.
+            planned_scan_page_size: Current planned page size to consider.
+            scan_page_size_min: Minimum allowed page size.
+            scan_page_size_max: Maximum allowed page size.
+
+        Returns:
+            int: The adjusted page size (possibly unchanged).
+        """
+        page_size = planned_scan_page_size
+        if budget_bytes <= 0:
+            return page_size
+
+        predicted_peak = int(mem_estimate.get("predicted_peak_bytes", 0))
+        if rss_bytes + predicted_peak <= budget_bytes:
+            return page_size
+
+        scan_page_bytes = max(1, int(mem_estimate.get("scan_page_bytes", page_size)))
+        if scan_page_bytes <= 0:
+            return max(scan_page_size_min, min(page_size, scan_page_size_max))
+
+        free = max(1, budget_bytes - rss_bytes)
+        # Upper cap needed to fit within budget if scaling linearly with page size
+        derived_cap = max(
+            scan_page_size_min,
+            int(page_size * (free / float(predicted_peak))),
+        )
+        # Softer reduction to avoid over-shrinking page size
+        scale = (free / float(predicted_peak)) ** 0.5
+        proposed = int(page_size * scale)
+        new_page_size = max(
+            scan_page_size_min,
+            min(proposed, scan_page_size_max, derived_cap),
+        )
+        return new_page_size
 
 
 class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
@@ -231,6 +393,53 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         self.aggregation_index = "stats-community-usage-snapshot"
         self.event_date_field = "period_start"
         self.query_builder = CommunityUsageSnapshotQuery(client=self.client)
+
+        # Planned sizing defaults (used for preflight estimation and loop)
+        cfg = current_app.config
+        self.planned_scan_page_size = int(
+            cfg.get("COMMUNITY_STATS_SCAN_PAGE_SIZE", 200)
+        )
+        # If not explicitly set, default buffer size to scan page size so both
+        # phases are capped by the same batch size by default.
+        self.delta_buffer_defaulted_to_scan = (
+            "COMMUNITY_STATS_DELTA_BUFFER_SIZE" not in cfg
+        )
+        self.planned_delta_buffer_size = int(
+            cfg.get("COMMUNITY_STATS_DELTA_BUFFER_SIZE", self.planned_scan_page_size)
+        )
+        # current_chunk_size already initialized in base; use as planned
+        self.planned_chunk_size = int(self.current_chunk_size)
+
+        # Optional memory headroom controls
+        self.scan_page_size_min = int(cfg.get("COMMUNITY_STATS_SCAN_PAGE_SIZE_MIN", 50))
+        self.scan_page_size_max = int(
+            cfg.get("COMMUNITY_STATS_SCAN_PAGE_SIZE_MAX", 500)
+        )
+        self.scan_scroll = str(cfg.get("COMMUNITY_STATS_SCAN_SCROLL", "2m"))
+        self.mem_budget_bytes = cfg.get("COMMUNITY_STATS_MEM_BUDGET_BYTES")
+        self.mem_high_water_percent = float(
+            cfg.get("COMMUNITY_STATS_MEM_HIGH_WATER_PERCENT", 0.75)
+        )
+        # Cache process handle and total memory once
+        try:
+            self.proc = psutil.Process()
+        except Exception:
+            self.proc = None  # type: ignore[assignment]
+        try:
+            self.total_mem = psutil.virtual_memory().total
+        except Exception:
+            self.total_mem = 0
+        # Track adaptive scan page size across helper calls per run
+        self._last_effective_scan_page_size: int | None = None
+        # Compute effective memory budget once
+        if isinstance(self.mem_budget_bytes, int) and self.mem_budget_bytes > 0:
+            self.mem_budget_effective = int(self.mem_budget_bytes)
+        else:
+            self.mem_budget_effective = (
+                int(self.total_mem * self.mem_high_water_percent)
+                if self.total_mem
+                else 0
+            )
 
     def _check_usage_events_migrated(self) -> None:
         """Override abstract method - checking done in usage delta aggregator."""
@@ -656,39 +865,19 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             # No events exist, return empty generator
             return
 
-        # Preflight memory estimate for planned sizes
+        # Reset adaptive page size tracker for this run
+        self._last_effective_scan_page_size = None  # type: ignore[assignment]
+
+        # Preflight: compute adjusted scan page size once (used for scan and buffer)
+        adjusted_scan_page_size = self.planned_scan_page_size
         try:
-            planned_scan_page_size = current_app.config.get(
-                "COMMUNITY_STATS_SCAN_PAGE_SIZE", 200
-            )
-            planned_delta_buffer_size = current_app.config.get(
-                "COMMUNITY_STATS_DELTA_BUFFER_SIZE", 50
-            )
-            planned_chunk_size = self.current_chunk_size
-
-            # Use previous snapshot (or zero) to size payloads and working sets
-            upper_limit = end_date
-            first_event_date_safe = first_event_date
-
-            mem_estimate = self._estimate_initial_memory(
+            adjusted_scan_page_size = self._estimate_initial_memory(
                 previous_snapshot=previous_snapshot,
-                first_event_date=first_event_date_safe,
-                upper_limit=upper_limit,
-                planned_scan_page_size=planned_scan_page_size,
-                planned_chunk_size=planned_chunk_size,
-                planned_delta_buffer_size=planned_delta_buffer_size,
+                first_event_date=first_event_date,
+                upper_limit=end_date,
             )
-            current_app.logger.debug(
-                "memory preflight | scan=%s bulk=%s delta=%s | peak≈%s bytes",
-                mem_estimate.get("scan_page_bytes"),
-                mem_estimate.get("bulk_buffer_bytes"),
-                mem_estimate.get("delta_buffer_bytes"),
-                mem_estimate.get("predicted_peak_bytes"),
-            )
-        except Exception as e:
-            current_app.logger.warning(
-                f"Memory preflight estimation failed: {e}. Proceeding with defaults."
-            )
+        except Exception:
+            pass
 
         try:
             # Build top-cache from historical deltas BEFORE current period
@@ -698,11 +887,11 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 community_id,
                 first_event_date,
                 current_iteration_date,
+                page_size=adjusted_scan_page_size,
             )
         except Exception as e:
             current_app.logger.error(
-                "Optimized agg_iter: Failed to initialize "
-                "exhaustive_counts_cache: %s",
+                "Optimized agg_iter: Failed to initialize exhaustive_counts_cache: %s",
                 e,
             )
             return
@@ -720,8 +909,13 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         last_processed_date = first_event_date.shift(
             days=-1
         )  # Start from day before first event
-        buffer_size = current_app.config.get(
-            "COMMUNITY_STATS_DELTA_BUFFER_SIZE", 50
+        # Use the same limit for scan pages and the delta buffer
+        # Prefer the final adaptive scan size if available, else fall back
+        last_effective = getattr(self, "_last_effective_scan_page_size", None)
+        buffer_size = (
+            last_effective
+            if isinstance(last_effective, int)
+            else adjusted_scan_page_size
         )
 
         iteration_count = 0
@@ -794,9 +988,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         that can be calculated from just the last snapshot and the next delta document,
         without needing to look at historical delta documents. This includes the overall
         totals and the subcounts that are the "all" type--that is, subcounts where each
-        document includes all items that have ever been seen for that subcount. "Top" 
-        subcounts--where each document includes only the top N items to date--cannot be 
-        calculated without looking at historical delta documents and so are handled 
+        document includes all items that have ever been seen for that subcount. "Top"
+        subcounts--where each document includes only the top N items to date--cannot be
+        calculated without looking at historical delta documents and so are handled
         separately.
 
         Args:
@@ -891,9 +1085,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             if angle in delta_totals and isinstance(delta_totals[angle], dict):
                 for metric, value in delta_totals[angle].items():
                     if isinstance(value, numbers.Number):
-                        working_totals[angle][metric] = working_totals[angle].get(
-                            metric, 0
-                        ) + value
+                        working_totals[angle][metric] = (
+                            working_totals[angle].get(metric, 0) + value
+                        )
 
     def _update_working_all(
         self, working_all: dict[str, dict[str, dict]], delta_doc: UsageDeltaDocument
@@ -962,24 +1156,142 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         previous_snapshot: UsageSnapshotDocument,
         first_event_date: arrow.Arrow,
         upper_limit: arrow.Arrow,
-        planned_scan_page_size: int,
-        planned_chunk_size: int,
-        planned_delta_buffer_size: int,
-    ) -> dict:
-        """Delegate to MemoryEstimator for initial memory estimation."""
+    ) -> int:
+        """Return adjusted scan page size based on a one-shot memory estimate."""
         estimator = MemoryEstimator(
             client=self.client,
             subcount_configs=self.subcount_configs,
             top_limit=self.top_subcount_limit,
         )
-        return estimator.estimate(
+        mem_estimate = estimator.estimate(
             previous_snapshot=previous_snapshot,
             first_event_date=first_event_date,
             upper_limit=upper_limit,
-            planned_scan_page_size=planned_scan_page_size,
-            planned_chunk_size=planned_chunk_size,
-            planned_delta_buffer_size=planned_delta_buffer_size,
+            planned_scan_page_size=self.planned_scan_page_size,
+            planned_chunk_size=self.planned_chunk_size,
+            planned_delta_buffer_size=self.planned_delta_buffer_size,
         )
+
+        # Cache for adaptive runtime checks during historical scan
+        self._last_mem_estimate = mem_estimate
+
+        try:
+            rss = self.proc.memory_info().rss if self.proc else 0  # type: ignore[union-attr]
+        except Exception:
+            rss = 0
+        budget = self.mem_budget_effective
+
+        return MemoryEstimator.adjust_scan_page_size(
+            mem_estimate=mem_estimate,
+            rss_bytes=rss,
+            budget_bytes=budget,
+            planned_scan_page_size=self.planned_scan_page_size,
+            scan_page_size_min=self.scan_page_size_min,
+            scan_page_size_max=self.scan_page_size_max,
+        )
+
+    def _iter_deltas_with_memory_guard(
+        self,
+        community_id: str,
+        earliest_date: arrow.Arrow,
+        end_date: arrow.Arrow,
+        page_size: int,
+        includes: list[str] | None = None,
+    ) -> Generator[dict, None, None]:
+        """Yield delta documents using search_after and adapt page size by RSS.
+
+        Sorts by period_start asc and _id asc, and resumes via search_after.
+        Between pages, checks current RSS against the effective budget and, when
+        necessary, reduces page size using MemoryEstimator.adjust_scan_page_size.
+        """
+        index_name = prefix_index(self.delta_index)
+        base = Search(using=self.client, index=index_name)
+        base = base.query(
+            "bool",
+            must=[
+                {"term": {"community_id": community_id}},
+                {
+                    "range": {
+                        "period_start": {
+                            "gte": earliest_date.format("YYYY-MM-DDTHH:mm:ss"),
+                            "lt": end_date.format("YYYY-MM-DDTHH:mm:ss"),
+                        }
+                    }
+                },
+            ],
+        )
+        base = base.sort({"period_start": {"order": "asc"}}, {"_id": {"order": "asc"}})
+        if includes:
+            base = base.source(includes=includes)
+
+        search_after_date: Any = None
+        current_page_size = int(page_size)
+        # Track latest effective page size for downstream buffer alignment
+        self._last_effective_scan_page_size = current_page_size
+
+        while True:
+            q = base.extra(size=current_page_size)
+            if search_after_date is not None:
+                q = q.extra(search_after=search_after_date)
+
+            try:
+                resp = q.execute()
+                hits = resp.to_dict().get("hits", {}).get("hits", [])
+            except Exception as e:
+                current_app.logger.error(
+                    f"_iter_deltas_with_memory_guard: query failed: {e}"
+                )
+                return
+
+            if not hits:
+                break
+
+            for hit in hits:
+                doc = hit.get("_source", {})
+                yield doc
+
+            # Prepare resume date for next page
+            # NOTE: Assumes only one document per date
+            try:
+                search_after_date = hits[-1]["sort"]
+            except Exception:
+                search_after_date = None
+
+            # Memory guard – shrink page size when necessary
+            try:
+                rss = self.proc.memory_info().rss if self.proc else 0  # type: ignore[union-attr]
+                current_app.logger.info(f"RSS memory usage during delta scan: {rss}")
+            except Exception as e:
+                rss = 0
+                current_app.logger.error(
+                    f"Error getting RSS memory usage during delta scan: {e}"
+                )
+            budget = self.mem_budget_effective
+            mem_estimate = getattr(self, "_last_mem_estimate", None) or {
+                "predicted_peak_bytes": 0,
+                "scan_page_bytes": current_page_size,
+            }
+            new_page = MemoryEstimator.adjust_scan_page_size(
+                mem_estimate=mem_estimate,
+                rss_bytes=rss,
+                budget_bytes=budget,
+                planned_scan_page_size=current_page_size,
+                scan_page_size_min=self.scan_page_size_min,
+                scan_page_size_max=self.scan_page_size_max,
+            )
+            if new_page < current_page_size:
+                current_app.logger.warning(
+                    f"Adaptive delta scan: reducing page size from "
+                    f"{current_page_size} to {new_page} due to RSS memory usage of "
+                    f"{rss} (budget is {budget} bytes)"
+                )
+                current_page_size = new_page
+                self._last_effective_scan_page_size = current_page_size
+            else:
+                current_app.logger.info(
+                    f"RSS memory usage during delta scan: {rss} is within budget of "
+                    f"{budget} bytes, no need to reduce page size"
+                )
 
     def _fetch_daily_deltas_page(
         self,
@@ -1100,6 +1412,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         community_id: str,
         earliest_date: arrow.Arrow,
         end_date: arrow.Arrow,
+        page_size: int,
     ) -> None:
         """Build exhaustive cache using scan query for memory efficiency.
 
@@ -1108,66 +1421,27 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             community_id: The community ID to fetch data for
             earliest_date: The earliest date to fetch
             end_date: The end date to fetch (exclusive)
+            page_size: Initial page size for the adaptive scan
         """
-        index_name = prefix_index(self.delta_index)
-        delta_search = Search(using=self.client, index=index_name)
-        delta_search = delta_search.query(
-            "bool",
-            must=[
-                {"term": {"community_id": community_id}},
-                {
-                    "range": {
-                        "period_start": {
-                            "gte": earliest_date.format("YYYY-MM-DDTHH:mm:ss"),
-                            "lt": end_date.format(
-                                "YYYY-MM-DDTHH:mm:ss"
-                            ),  # Use lt (less than) to exclude end_date
-                        }
-                    }
-                },
-            ],
-        )
-
-        delta_search = delta_search.sort({"period_start": {"order": "asc"}})
-
         try:
             includes: list[str] = []
             for subcount_name, config in self.subcount_configs.items():
                 usage_config = config.get("usage_events", {})
                 if usage_config.get("snapshot_type", "all") == "top":
                     includes.append(f"subcounts.{subcount_name}")
-            if includes:
-                delta_search = delta_search.source(includes=includes)
 
-            scan_page_size = current_app.config.get(
-                "COMMUNITY_STATS_SCAN_PAGE_SIZE", 200
-            )
-            scan_scroll = current_app.config.get(
-                "COMMUNITY_STATS_SCAN_SCROLL", "2m"
-            )
-
-            delta_search = delta_search.extra(size=scan_page_size)
-            delta_search = delta_search.params(scroll=scan_scroll)
-
-            # Debug: log effective scan settings
-            try:
-                current_app.logger.debug(
-                    "usage-snapshot scan settings | size=%s scroll=%s params=%s",
-                    scan_page_size,
-                    scan_scroll,
-                    getattr(delta_search, "_params", {}),
-                )
-            except Exception:
-                pass
-
-            # Use scan (scroll) to stream results page-by-page; hold only one page
-            for hit in delta_search.scan():
-                doc = hit._source
+            for doc in self._iter_deltas_with_memory_guard(
+                community_id=community_id,
+                earliest_date=earliest_date,
+                end_date=end_date,
+                page_size=page_size,
+                includes=includes if includes else None,
+            ):
                 self._update_exhaustive_cache_all_subcounts(exhaustive_cache, doc)
 
         except Exception as e:
             current_app.logger.error(
-                f"_build_exhaustive_cache_from_scan: Scan query failed: {e}"
+                f"_build_exhaustive_cache_from_scan: adaptive scan failed: {e}"
             )
             raise
 
@@ -1198,4 +1472,3 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 self._accumulate_category_in_place(
                     exhaustive_cache[subcount_name], subcounts[subcount_name]
                 )
-
