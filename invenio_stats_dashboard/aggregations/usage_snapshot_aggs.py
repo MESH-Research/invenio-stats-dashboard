@@ -6,6 +6,7 @@
 
 """Community usage snapshot aggregators for tracking cumulative usage statistics."""
 
+import copy
 import numbers
 import time
 from collections.abc import Generator
@@ -14,6 +15,7 @@ from typing import Any
 import arrow
 from flask import current_app
 from invenio_search.utils import prefix_index
+from opensearchpy import AttrDict
 from opensearchpy.helpers.search import Search
 
 from ..queries import (
@@ -26,6 +28,187 @@ from .types import (
     UsageSnapshotTopCategories,
     UsageSubcountItem,
 )
+
+
+class MemoryEstimator:
+    """Estimate initial memory usage components for a community run."""
+
+    def __init__(self, client, subcount_configs: dict, top_limit: int) -> None:
+        """Initialize estimator with client and configuration.
+
+        Args:
+            client: OpenSearch client.
+            subcount_configs: Subcount configuration mapping.
+            top_limit: Configured top-N limit for subcounts.
+        """
+        self.client = client
+        self.subcount_configs = subcount_configs
+        self.top_limit = top_limit
+
+    @staticmethod
+    def _serialize_len(obj: Any) -> int:
+        try:
+            import orjson  # local import to avoid import issues in some envs
+            return len(orjson.dumps(obj))
+        except Exception:
+            return len(str(obj).encode("utf-8"))
+
+    def _partition_keys(self) -> tuple[list[str], list[str]]:
+        all_keys: list[str] = []
+        top_keys: list[str] = []
+        for key, cfg in self.subcount_configs.items():
+            stype = cfg.get("usage_events", {}).get("snapshot_type", "all")
+            if stype == "all":
+                all_keys.append(key)
+            elif stype == "top":
+                top_keys.append(key)
+        return all_keys, top_keys
+
+    def _preflight_delta_info(
+        self,
+        community_id: str,
+        top_keys: list[str],
+        all_keys: list[str],
+    ) -> tuple[int, int, int, int]:
+        """Return (per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all)."""
+        try:
+            index_name = prefix_index("stats-community-usage-delta")
+            s = Search(using=self.client, index=index_name)
+            if community_id != "global":
+                s = s.query("bool", must=[{"term": {"community_id": community_id}}])
+            else:
+                s = s.query("match_all")
+            includes = ["totals"] + [f"subcounts.{k}" for k in (top_keys + all_keys)]
+            s = s.sort({"period_start": {"order": "desc"}}).source(includes=includes).extra(size=1)
+            hits = s.execute().to_dict().get("hits", {}).get("hits", [])
+            if not hits:
+                return 0, 1500, 0, 500
+            src = hits[0].get("_source", {})
+            delta_subcounts = src.get("subcounts", {})
+            per_doc_top_items = 0
+            per_doc_all_items = 0
+            for k in top_keys:
+                items = delta_subcounts.get(k, []) if isinstance(delta_subcounts, dict) else []
+                per_doc_top_items += len(items) if isinstance(items, list) else 0
+            for k in all_keys:
+                items = delta_subcounts.get(k, []) if isinstance(delta_subcounts, dict) else []
+                per_doc_all_items += len(items) if isinstance(items, list) else 0
+            top_only = {k: delta_subcounts.get(k, []) for k in top_keys}
+            all_only = {k: delta_subcounts.get(k, []) for k in all_keys}
+            top_only_bytes = self._serialize_len(top_only)
+            all_only_bytes = self._serialize_len(all_only)
+            refined_avg_top = int(top_only_bytes / per_doc_top_items) if per_doc_top_items else 1500
+            refined_avg_all = int(all_only_bytes / per_doc_all_items) if per_doc_all_items else 500
+            return per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all
+        except Exception:
+            return 0, 1500, 0, 500
+
+    def estimate(
+        self,
+        previous_snapshot: UsageSnapshotDocument,
+        first_event_date: arrow.Arrow,
+        upper_limit: arrow.Arrow,
+        planned_scan_page_size: int,
+        planned_chunk_size: int,
+        planned_delta_buffer_size: int,
+    ) -> dict:
+        """Compute initial memory usage estimates for the run.
+
+        Returns a dict with component sizes and predicted peaks in bytes.
+        """
+        k_ws_overhead = current_app.config.get("COMMUNITY_STATS_WS_OVERHEAD", 1.1)
+        k_scan_overhead = current_app.config.get("COMMUNITY_STATS_SCAN_OVERHEAD", 1.3)
+        k_bulk_overhead = current_app.config.get("COMMUNITY_STATS_BULK_OVERHEAD", 1.3)
+        k_delta_overhead = current_app.config.get("COMMUNITY_STATS_DELTA_OVERHEAD", 1.2)
+        safety_factor = current_app.config.get("COMMUNITY_STATS_MEM_SAFETY_FACTOR", 1.2)
+        growth_factor_top = current_app.config.get("COMMUNITY_STATS_TOP_GROWTH_FACTOR", 3.0)
+        growth_floor_factor = current_app.config.get("COMMUNITY_STATS_TOP_GROWTH_FLOOR_FACTOR", 5.0)
+        hard_cap_per_key = current_app.config.get("COMMUNITY_STATS_TOP_HARD_CAP_PER_KEY", 10000)
+        decay_top = current_app.config.get("COMMUNITY_STATS_TOP_DISCOVERY_DECAY", 0.3)
+        avg_delta_bytes = current_app.config.get("COMMUNITY_STATS_AVG_DELTA_BYTES", 1024)
+
+        payload_bytes = self._serialize_len(previous_snapshot)
+        prev_subcounts = previous_snapshot.get("subcounts", {})  # type: ignore[assignment]
+        all_keys, top_keys = self._partition_keys()
+
+        all_projection = {k: prev_subcounts.get(k, []) for k in all_keys}
+        all_bytes = self._serialize_len(all_projection)
+        working_all_bytes = int(all_bytes * k_ws_overhead)
+
+        top_projection = {k: prev_subcounts.get(k, {"by_view": [], "by_download": []}) for k in top_keys}
+        top_bytes = self._serialize_len(top_projection)
+        total_top_items = 0
+        for k in top_keys:
+            sc = prev_subcounts.get(k, {})
+            byv = sc.get("by_view", []) if isinstance(sc, dict) else []
+            byd = sc.get("by_download", []) if isinstance(sc, dict) else []
+            total_top_items += (len(byv) + len(byd))
+        avg_top_item_bytes = int(top_bytes / total_top_items) if total_top_items > 0 else 1500
+
+        try:
+            prev_date = arrow.get(previous_snapshot.get("snapshot_date", ""))
+        except Exception:
+            prev_date = first_event_date
+        days_elapsed = max(1, (prev_date - first_event_date).days + 1)
+        days_elapsed_for_rate = max(30, days_elapsed)
+        days_remaining = max(0, (upper_limit - prev_date).days)
+
+        est_total_top_ids = 0
+        for k in top_keys:
+            sc = prev_subcounts.get(k, {})
+            ids: set[str] = set()
+            if isinstance(sc, dict):
+                for item in sc.get("by_view", []) or []:
+                    try:
+                        ids.add(item["id"])  # type: ignore[index]
+                    except Exception:
+                        continue
+                for item in sc.get("by_download", []) or []:
+                    try:
+                        ids.add(item["id"])  # type: ignore[index]
+                    except Exception:
+                        continue
+            union_count = len(ids)
+            union_rate = union_count / days_elapsed_for_rate
+            new_ids_est = union_rate * days_remaining * decay_top
+            floor_est = self.top_limit * growth_floor_factor
+            est_ids = int(max(floor_est, (union_count + new_ids_est) * growth_factor_top))
+            est_total_top_ids += min(est_ids, hard_cap_per_key)
+
+        working_top_bytes = est_total_top_ids * avg_top_item_bytes
+
+        scan_page_bytes = int(planned_scan_page_size * avg_top_item_bytes * k_scan_overhead)
+        bulk_buffer_bytes = int(planned_chunk_size * payload_bytes * k_bulk_overhead)
+
+        per_doc_top_items, refined_avg_top, per_doc_all_items, refined_avg_all = self._preflight_delta_info(
+            previous_snapshot.get("community_id", "global"),  # type: ignore[index]
+            top_keys,
+            all_keys,
+        )
+        if per_doc_top_items or per_doc_all_items:
+            scan_page_bytes = int(planned_scan_page_size * refined_avg_top * k_scan_overhead)
+            avg_delta_doc_bytes = per_doc_top_items * refined_avg_top + per_doc_all_items * refined_avg_all
+            delta_buffer_bytes = int(planned_delta_buffer_size * avg_delta_doc_bytes * k_delta_overhead)
+        else:
+            delta_buffer_bytes = int(planned_delta_buffer_size * avg_delta_bytes * k_delta_overhead)
+
+        build_payload_bytes = payload_bytes
+        predicted_scan_peak = int(working_all_bytes + working_top_bytes + scan_page_bytes)
+        predicted_loop_peak = int(bulk_buffer_bytes + working_top_bytes + working_all_bytes + build_payload_bytes + delta_buffer_bytes)
+        predicted_peak = int(max(predicted_scan_peak, predicted_loop_peak) * safety_factor)
+
+        return {
+            "payload_bytes": payload_bytes,
+            "working_all_bytes": working_all_bytes,
+            "working_top_bytes": working_top_bytes,
+            "scan_page_bytes": scan_page_bytes,
+            "bulk_buffer_bytes": bulk_buffer_bytes,
+            "delta_buffer_bytes": delta_buffer_bytes,
+            "build_payload_bytes": build_payload_bytes,
+            "predicted_scan_peak_bytes": predicted_scan_peak,
+            "predicted_loop_peak_bytes": predicted_loop_peak,
+            "predicted_peak_bytes": predicted_peak,
+        }
 
 
 class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
@@ -86,7 +269,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         """
         return {
             "community_id": community_id,
-            "snapshot_date": current_day.ceil("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "snapshot_date": current_day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
             "totals": {
                 "view": {
                     "total_events": 0,
@@ -110,40 +293,66 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
     def create_agg_dict(  # type: ignore[override]
         self,
         current_day: arrow.Arrow,
-        previous_snapshot: UsageSnapshotDocument,
+        community_id: str,
         latest_delta: UsageDeltaDocument,
-        exhaustive_counts_cache: dict | None = None,
+        working_state: dict,
     ) -> UsageSnapshotDocument:
-        """Create the final aggregation document from cumulative totals.
+        """Update working state and build the daily snapshot document.
 
         Args:
-            current_day (arrow.Arrow): The current day for the snapshot
-            previous_snapshot (UsageSnapshotDocument): The previous snapshot document
-            latest_delta (UsageDeltaDocument): The latest delta document
-            exhaustive_counts_cache (dict | None): The exhaustive counts cache
+            current_day (arrow.Arrow): Snapshot date to emit.
+            community_id (str): Target community id.
+            latest_delta (UsageDeltaDocument): Day's delta to accumulate.
+            working_state (dict): Compact per-community state with keys:
+                - totals (dict): cumulative view/download totals
+                - all (dict[str, dict[str, dict]]): "all" subcounts maps
+                - top (dict): exhaustive cache for "top" subcounts
 
         Returns:
-            UsageSnapshotDocument: The final aggregation document.
+            UsageSnapshotDocument: Fresh document assembled from working state.
         """
-        if exhaustive_counts_cache is None:
-            exhaustive_counts_cache = {}
+        ws_totals = working_state.get("totals", {})
+        ws_all = working_state.get("all", {})
+        ws_top = working_state.get("top", {})
 
-        new_dict: UsageSnapshotDocument = self._copy_snapshot_forward(
-            previous_snapshot, current_day
-        )  # type: ignore
+        self._update_working_totals(ws_totals, latest_delta)
+        self._update_working_all(ws_all, latest_delta)
+        self._update_working_top(ws_top, latest_delta)
 
-        totals = latest_delta.get("totals", {})
-        if (
-            totals.get("view", {}).get("total_events", 0) == 0
-            and totals.get("download", {}).get("total_events", 0) == 0
-        ):
-            return new_dict
+        # Build fresh snapshot document from working state
+        out_totals = copy.deepcopy(ws_totals)
 
-        self._update_cumulative_totals(new_dict, latest_delta)
+        out_subcounts: dict[str, Any] = {}
 
-        self._update_top_subcounts(new_dict, exhaustive_counts_cache, latest_delta)
+        # 'all' subcounts: convert map values to lists
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if usage_config.get("snapshot_type", "all") == "all":
+                sub_map = ws_all.get(subcount_key, {})
+                out_subcounts[subcount_key] = list(sub_map.values())
 
-        return new_dict
+        # 'top' subcounts: select top N from exhaustive cache
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if usage_config.get("snapshot_type") == "top":
+                cache = ws_top.get(subcount_key, {})
+                top_by_view = self._select_top_n_from_cache(cache, "view")
+                top_by_download = self._select_top_n_from_cache(cache, "download")
+                out_subcounts[subcount_key] = {
+                    "by_view": top_by_view,
+                    "by_download": top_by_download,
+                }
+
+        doc: UsageSnapshotDocument = {
+            "community_id": community_id,
+            "snapshot_date": current_day.floor("day").format("YYYY-MM-DDTHH:mm:ss"),
+            "totals": out_totals,  # type: ignore[assignment]
+            "subcounts": out_subcounts,  # type: ignore[assignment]
+            "timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+            "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
+        }
+
+        return doc
 
     def _accumulate_category_in_place(
         self, accumulated: dict, category_items: list
@@ -155,12 +364,17 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             category_items: List of items from a category in a delta document
         """
         for item in category_items:
+            # Indexing-only access to support AttrDict without .get
             item_id = item["id"]
 
             if item_id not in accumulated:
+                label_value = ""
+                if "label" in item:
+                    label_value = item["label"]
+
                 accumulated[item_id] = {
                     "id": item_id,
-                    "label": item.get("label", ""),
+                    "label": label_value,
                     "view": {
                         "total_events": 0,
                         "unique_visitors": 0,
@@ -178,8 +392,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 }
 
             for angle in ["view", "download"]:
-                for metric, value in item.get(angle, {}).items():
-                    accumulated[item_id][angle][metric] += value
+                if angle in item:
+                    for metric, value in item[angle].items():
+                        accumulated[item_id][angle][metric] += value
 
     def _select_top_n_from_cache(self, exhaustive_cache: dict, angle: str) -> list:
         """Select top N items from the exhaustive cache.
@@ -441,12 +656,45 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             # No events exist, return empty generator
             return
 
+        # Preflight memory estimate for planned sizes
         try:
-            # Build exhaustive_counts_cache from all historical
-            # deltas BEFORE current period
-            exhaustive_counts_cache: dict[str, Any] = {}
+            planned_scan_page_size = current_app.config.get(
+                "COMMUNITY_STATS_SCAN_PAGE_SIZE", 200
+            )
+            planned_delta_buffer_size = current_app.config.get(
+                "COMMUNITY_STATS_DELTA_BUFFER_SIZE", 50
+            )
+            planned_chunk_size = self.current_chunk_size
+
+            # Use previous snapshot (or zero) to size payloads and working sets
+            upper_limit = end_date
+            first_event_date_safe = first_event_date
+
+            mem_estimate = self._estimate_initial_memory(
+                previous_snapshot=previous_snapshot,
+                first_event_date=first_event_date_safe,
+                upper_limit=upper_limit,
+                planned_scan_page_size=planned_scan_page_size,
+                planned_chunk_size=planned_chunk_size,
+                planned_delta_buffer_size=planned_delta_buffer_size,
+            )
+            current_app.logger.debug(
+                "memory preflight | scan=%s bulk=%s delta=%s | peak≈%s bytes",
+                mem_estimate.get("scan_page_bytes"),
+                mem_estimate.get("bulk_buffer_bytes"),
+                mem_estimate.get("delta_buffer_bytes"),
+                mem_estimate.get("predicted_peak_bytes"),
+            )
+        except Exception as e:
+            current_app.logger.warning(
+                f"Memory preflight estimation failed: {e}. Proceeding with defaults."
+            )
+
+        try:
+            # Build top-cache from historical deltas BEFORE current period
+            top_cache: dict[str, Any] = {}
             self._build_exhaustive_cache_from_scan(
-                exhaustive_counts_cache,
+                top_cache,
                 community_id,
                 first_event_date,
                 current_iteration_date,
@@ -454,17 +702,27 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         except Exception as e:
             current_app.logger.error(
                 "Optimized agg_iter: Failed to initialize "
-                "exhaustive_counts_cache: "
-                f"{e}"
+                "exhaustive_counts_cache: %s",
+                e,
             )
             return
 
-        # Initialize streaming for daily deltas
+        working_totals, working_all = self._init_working_state_from_snapshot(
+            previous_snapshot
+        )
+        working_state: dict[str, Any] = {
+            "totals": working_totals,
+            "all": working_all,
+            "top": top_cache,
+        }
+
         daily_deltas_buffer: list[dict] = []
         last_processed_date = first_event_date.shift(
             days=-1
         )  # Start from day before first event
-        buffer_size = 50  # Small buffer of daily deltas
+        buffer_size = current_app.config.get(
+            "COMMUNITY_STATS_DELTA_BUFFER_SIZE", 50
+        )
 
         iteration_count = 0
         while current_iteration_date <= end_date:
@@ -491,12 +749,12 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                     )
                     break
 
-                # Create the aggregation document using original method
+                # Use original create_agg_dict entry point for clarity
                 source_content = self.create_agg_dict(
                     current_iteration_date,
-                    previous_snapshot,
+                    community_id,
                     daily_delta,
-                    exhaustive_counts_cache,
+                    working_state,
                 )
 
                 index_name = prefix_index(
@@ -516,7 +774,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 iteration_duration = iteration_end_time - iteration_start_time
                 yield (document, iteration_duration)
 
-                previous_snapshot = source_content
                 previous_snapshot_date = current_iteration_date
                 current_iteration_date = current_iteration_date.shift(days=1)
 
@@ -527,6 +784,202 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 )
                 current_iteration_date = current_iteration_date.shift(days=1)
                 continue
+
+    def _init_working_state_from_snapshot(
+        self, previous_snapshot: UsageSnapshotDocument
+    ) -> tuple[dict, dict[str, dict[str, dict]]]:
+        """Create compact working state (totals + 'all' subcounts maps).
+
+        This method initializes the working state for the portions of the aggregation
+        that can be calculated from just the last snapshot and the next delta document,
+        without needing to look at historical delta documents. This includes the overall
+        totals and the subcounts that are the "all" type--that is, subcounts where each
+        document includes all items that have ever been seen for that subcount. "Top" 
+        subcounts--where each document includes only the top N items to date--cannot be 
+        calculated without looking at historical delta documents and so are handled 
+        separately.
+
+        Args:
+            previous_snapshot (UsageSnapshotDocument): Last stored snapshot used to
+                seed cumulative totals and the "all" subcounts maps.
+
+        Returns:
+            tuple[dict, dict[str, dict[str, dict]]]:
+                - working_totals: cumulative totals (view/download)
+                - working_all: "all" subcounts as maps (key → id → metrics)
+        """
+        prev_totals = previous_snapshot.get("totals", {})  # type: ignore[assignment]
+        working_totals: dict = copy.deepcopy(prev_totals)
+
+        # Build maps for 'all' subcounts only
+        working_all: dict[str, dict[str, dict]] = {}
+        prev_subcounts = previous_snapshot.get("subcounts", {})  # type: ignore[assignment]
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if usage_config.get("snapshot_type", "all") != "all":
+                continue
+            working_all[subcount_key] = {}
+            has_list = isinstance(prev_subcounts, dict) and (
+                subcount_key in prev_subcounts
+                and isinstance(prev_subcounts[subcount_key], list)
+            )
+            if has_list:
+                for item in prev_subcounts[subcount_key]:
+                    try:
+                        item_id = item["id"]
+                        working_all[subcount_key][item_id] = {
+                            "id": item_id,
+                            "label": item.get("label", ""),
+                            "view": {
+                                "total_events": item.get("view", {}).get(
+                                    "total_events", 0
+                                ),
+                                "unique_visitors": item.get("view", {}).get(
+                                    "unique_visitors", 0
+                                ),
+                                "unique_records": item.get("view", {}).get(
+                                    "unique_records", 0
+                                ),
+                                "unique_parents": item.get("view", {}).get(
+                                    "unique_parents", 0
+                                ),
+                            },
+                            "download": {
+                                "total_events": item.get("download", {}).get(
+                                    "total_events", 0
+                                ),
+                                "unique_visitors": item.get("download", {}).get(
+                                    "unique_visitors", 0
+                                ),
+                                "unique_records": item.get("download", {}).get(
+                                    "unique_records", 0
+                                ),
+                                "unique_parents": item.get("download", {}).get(
+                                    "unique_parents", 0
+                                ),
+                                "unique_files": item.get("download", {}).get(
+                                    "unique_files", 0
+                                ),
+                                "total_volume": item.get("download", {}).get(
+                                    "total_volume", 0
+                                ),
+                            },
+                        }
+                    except Exception:
+                        continue
+
+        return working_totals, working_all
+
+    def _update_working_state_from_delta(
+        self,
+        working_totals: dict,
+        working_all: dict[str, dict[str, dict]],
+        working_top: dict[str, dict],
+        delta_doc: UsageDeltaDocument,
+    ) -> None:
+        """Legacy wrapper – no longer used (split into focused helpers)."""
+        self._update_working_totals(working_totals, delta_doc)
+        self._update_working_all(working_all, delta_doc)
+        self._update_working_top(working_top, delta_doc)
+
+    def _update_working_totals(
+        self, working_totals: dict, delta_doc: UsageDeltaDocument
+    ) -> None:
+        """Accumulate daily totals into the working totals dict."""
+        delta_totals = delta_doc.get("totals", {})
+        for angle in ("view", "download"):
+            if angle in delta_totals and isinstance(delta_totals[angle], dict):
+                for metric, value in delta_totals[angle].items():
+                    if isinstance(value, numbers.Number):
+                        working_totals[angle][metric] = working_totals[angle].get(
+                            metric, 0
+                        ) + value
+
+    def _update_working_all(
+        self, working_all: dict[str, dict[str, dict]], delta_doc: UsageDeltaDocument
+    ) -> None:
+        """Accumulate daily 'all' subcounts into the working maps."""
+        delta_subcounts = delta_doc.get("subcounts", {})
+        if not isinstance(delta_subcounts, dict):
+            return
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if usage_config.get("snapshot_type", "all") != "all":
+                continue
+            if subcount_key not in delta_subcounts:
+                continue
+            items = delta_subcounts[subcount_key]
+            if not isinstance(items, list):
+                continue
+            sub_map = working_all.setdefault(subcount_key, {})
+            for item in items:
+                try:
+                    item_id = item["id"]
+                except Exception:
+                    continue
+                entry = sub_map.get(
+                    item_id,
+                    {
+                        "id": item_id,
+                        "label": item.get("label", ""),
+                        "view": {
+                            "total_events": 0,
+                            "unique_visitors": 0,
+                            "unique_records": 0,
+                            "unique_parents": 0,
+                        },
+                        "download": {
+                            "total_events": 0,
+                            "unique_visitors": 0,
+                            "unique_records": 0,
+                            "unique_parents": 0,
+                            "unique_files": 0,
+                            "total_volume": 0.0,
+                        },
+                    },
+                )
+                if "label" in item and not entry.get("label"):
+                    entry["label"] = item["label"]
+                for angle in ("view", "download"):
+                    if angle in item and isinstance(item[angle], dict):
+                        for metric, value in item[angle].items():
+                            entry[angle][metric] = entry[angle].get(metric, 0) + value
+                sub_map[item_id] = entry
+
+    def _update_working_top(
+        self, working_top: dict[str, dict], delta_doc: UsageDeltaDocument
+    ) -> None:
+        """Accumulate daily 'top' subcounts into the exhaustive cache maps."""
+        for subcount_key, config in self.subcount_configs.items():
+            usage_config = config.get("usage_events", {})
+            if usage_config.get("snapshot_type") == "top":
+                if subcount_key not in working_top:
+                    working_top[subcount_key] = {}
+                self._update_exhaustive_cache(subcount_key, delta_doc, working_top)
+
+    def _estimate_initial_memory(
+        self,
+        previous_snapshot: UsageSnapshotDocument,
+        first_event_date: arrow.Arrow,
+        upper_limit: arrow.Arrow,
+        planned_scan_page_size: int,
+        planned_chunk_size: int,
+        planned_delta_buffer_size: int,
+    ) -> dict:
+        """Delegate to MemoryEstimator for initial memory estimation."""
+        estimator = MemoryEstimator(
+            client=self.client,
+            subcount_configs=self.subcount_configs,
+            top_limit=self.top_subcount_limit,
+        )
+        return estimator.estimate(
+            previous_snapshot=previous_snapshot,
+            first_event_date=first_event_date,
+            upper_limit=upper_limit,
+            planned_scan_page_size=planned_scan_page_size,
+            planned_chunk_size=planned_chunk_size,
+            planned_delta_buffer_size=planned_delta_buffer_size,
+        )
 
     def _fetch_daily_deltas_page(
         self,
@@ -678,9 +1131,38 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         delta_search = delta_search.sort({"period_start": {"order": "asc"}})
 
         try:
-            # Use scan to process all documents efficiently without loading into memory
+            includes: list[str] = []
+            for subcount_name, config in self.subcount_configs.items():
+                usage_config = config.get("usage_events", {})
+                if usage_config.get("snapshot_type", "all") == "top":
+                    includes.append(f"subcounts.{subcount_name}")
+            if includes:
+                delta_search = delta_search.source(includes=includes)
+
+            scan_page_size = current_app.config.get(
+                "COMMUNITY_STATS_SCAN_PAGE_SIZE", 200
+            )
+            scan_scroll = current_app.config.get(
+                "COMMUNITY_STATS_SCAN_SCROLL", "2m"
+            )
+
+            delta_search = delta_search.extra(size=scan_page_size)
+            delta_search = delta_search.params(scroll=scan_scroll)
+
+            # Debug: log effective scan settings
+            try:
+                current_app.logger.debug(
+                    "usage-snapshot scan settings | size=%s scroll=%s params=%s",
+                    scan_page_size,
+                    scan_scroll,
+                    getattr(delta_search, "_params", {}),
+                )
+            except Exception:
+                pass
+
+            # Use scan (scroll) to stream results page-by-page; hold only one page
             for hit in delta_search.scan():
-                doc = hit.to_dict()
+                doc = hit._source
                 self._update_exhaustive_cache_all_subcounts(exhaustive_cache, doc)
 
         except Exception as e:
@@ -690,7 +1172,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             raise
 
     def _update_exhaustive_cache_all_subcounts(
-        self, exhaustive_cache: dict, delta_doc: dict
+        self, exhaustive_cache: dict, delta_doc: dict | AttrDict
     ) -> None:
         """Update exhaustive cache incrementally with a single delta document.
 
@@ -698,7 +1180,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             exhaustive_cache: The exhaustive counts cache to update
             delta_doc: The delta document to add to the cache
         """
-        subcounts = delta_doc.get("subcounts", {})
+        # Extract subcounts without using .get on AttrDict and without copying
+        subcounts = delta_doc["subcounts"] if "subcounts" in delta_doc else {}
         for subcount_name, config in self.subcount_configs.items():
             usage_config = config.get("usage_events", {})
             if not usage_config:
@@ -715,3 +1198,4 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 self._accumulate_category_in_place(
                     exhaustive_cache[subcount_name], subcounts[subcount_name]
                 )
+

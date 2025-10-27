@@ -38,6 +38,7 @@ dependencies = [
     "halo>=0.0.31",
     "openpyxl>=3.1.0",
     "brotli>=1.0.0",
+    "orjson>=3.11.3",
 ]
 
 [project.optional-dependencies]
