@@ -19,7 +19,7 @@ import pytest
 
 from invenio_stats_dashboard.aggregations.usage_snapshot_aggs import (
     CommunityUsageSnapshotAggregator,
-    MemoryEstimator,
+    UsageSnapshotMemoryEstimator,
 )
 
 
@@ -290,7 +290,7 @@ class TestMemoryEstimator:
         with app.app_context():
             subcfg = app.config.setdefault("COMMUNITY_STATS_SUBCOUNTS", {})
             top_limit = app.config.get("COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT", 20)
-        estimator = MemoryEstimator(
+        estimator = UsageSnapshotMemoryEstimator(
             client=None,
             subcount_configs=subcfg,
             top_limit=top_limit,
@@ -311,12 +311,12 @@ class TestMemoryEstimator:
         # Sanity checks: keys exist and values are non-negative ints
         required_keys = [
             "payload_bytes",
-            "working_all_bytes",
-            "working_top_bytes",
+            "all_subcount_working_state_bytes",
             "scan_page_bytes",
-            "bulk_buffer_bytes",
+            "indexing_buffer_bytes",
             "delta_buffer_bytes",
             "build_payload_bytes",
+            "exhaustive_cache_bytes",
             "predicted_scan_peak_bytes",
             "predicted_loop_peak_bytes",
             "predicted_peak_bytes",
@@ -329,6 +329,11 @@ class TestMemoryEstimator:
         # Peak must be at least as large as each component group
         assert est["predicted_peak_bytes"] >= est["predicted_scan_peak_bytes"]
         assert est["predicted_peak_bytes"] >= est["predicted_loop_peak_bytes"]
+        
+        # Verify exhaustive_cache_bytes is included in peaks
+        assert est["exhaustive_cache_bytes"] >= 0
+        assert est["predicted_scan_peak_bytes"] >= est["exhaustive_cache_bytes"]
+        assert est["predicted_loop_peak_bytes"] >= est["exhaustive_cache_bytes"]
 
         # If we increase planned sizes, peaks should not decrease
         est2 = estimator.estimate(
@@ -379,7 +384,7 @@ class TestMemoryEstimator:
         )
         top_limit = app.config.get("COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT", 20)
         subcfg = app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
-        estimator = MemoryEstimator(
+        estimator = UsageSnapshotMemoryEstimator(
             client=None,
             subcount_configs=subcfg,
             top_limit=top_limit,
@@ -490,7 +495,6 @@ class TestMemoryEstimator:
             k_delta_overhead = app.config["COMMUNITY_STATS_DELTA_OVERHEAD"]
             k_bulk_overhead = app.config["COMMUNITY_STATS_BULK_OVERHEAD"]
             k_ws_overhead = app.config["COMMUNITY_STATS_WS_OVERHEAD"]
-            safety_factor = app.config["COMMUNITY_STATS_MEM_SAFETY_FACTOR"]
 
             expected_per_doc_bytes = (
                 per_doc_top_items * refined_avg_top
@@ -510,60 +514,98 @@ class TestMemoryEstimator:
             }
             working_all_bytes = int(len(orjson.dumps(all_projection)) * k_ws_overhead)
 
-            # avg_top_item_bytes from previous snapshot top lists
-            top_projection_prev = {
-                k: prev_snapshot_small["subcounts"].get(
-                    k, {"by_view": [], "by_download": []}
-                )
-                for k in [
-                    key
-                    for key in subcfg
-                    if subcfg[key]["usage_events"]["snapshot_type"] == "top"
-                ]
-            }
-            total_top_items_prev = 0
-            for k in top_projection_prev:
-                sc = top_projection_prev[k]
-                total_top_items_prev += len(sc.get("by_view", [])) + len(
-                    sc.get("by_download", [])
-                )
-            avg_top_item_bytes = int(
-                len(orjson.dumps(top_projection_prev)) / max(1, total_top_items_prev)
-            )
-            # With growth fixed to floor(top_limit=20), est ids per top key = 20
-            est_total_top_ids = 20 * len([
-                k for k in subcfg if subcfg[k]["usage_events"]["snapshot_type"] == "top"
-            ])  # 5 keys -> 100
-            assert est_total_top_ids == 100
-            working_top_bytes = est_total_top_ids * avg_top_item_bytes
-
-            bulk_buffer_bytes = int(planned_chunk * payload_bytes * k_bulk_overhead)
+            indexing_buffer_bytes = int(planned_chunk * payload_bytes * k_bulk_overhead)
             build_payload_bytes = payload_bytes
-            expected_scan_peak = int(
-                working_all_bytes + working_top_bytes + expected_scan_page_bytes
+            
+            # Compute expected exhaustive cache bytes
+            # Get current unique items from previous snapshot for each top key
+            prev_subcounts = prev_snapshot_small.get("subcounts", {})
+            est_total_unique_items = 0
+            top_limit = app.config.get("COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT", 20)
+            growth_factor = app.config.get(
+                "COMMUNITY_STATS_TOP_GROWTH_FACTOR", 1.0
             )
-            expected_loop_peak = int(
-                bulk_buffer_bytes
-                + working_top_bytes
-                + working_all_bytes
-                + build_payload_bytes
-                + expected_delta_buffer_bytes
+            growth_floor = app.config.get(
+                "COMMUNITY_STATS_TOP_GROWTH_FLOOR_FACTOR", 1.0
             )
-            expected_peak = int(
-                max(expected_scan_peak, expected_loop_peak) * safety_factor
+            decay = app.config.get("COMMUNITY_STATS_TOP_DISCOVERY_DECAY", 0.0)
+            
+            # Get date range info
+            try:
+                prev_date = arrow.get(prev_snapshot_small.get("snapshot_date", ""))
+            except Exception:
+                prev_date = first_event_date
+            days_elapsed = max(1, (prev_date - first_event_date).days + 1)
+            days_remaining = max(0, (upper_limit - prev_date).days)
+            
+            # Compute for each top key
+            # Use the avg size from the preflight data
+            avg_item_bytes = refined_avg_top
+            for k in top_keys:
+                sc = prev_subcounts.get(k, {})
+                unique_ids = set()
+                if isinstance(sc, dict):
+                    for item in sc.get("by_view", []) or []:
+                        try:
+                            unique_ids.add(item["id"])
+                        except Exception:
+                            continue
+                    for item in sc.get("by_download", []) or []:
+                        try:
+                            unique_ids.add(item["id"])
+                        except Exception:
+                            continue
+                union_count = len(unique_ids)
+                union_rate = union_count / max(30, days_elapsed)
+                new_ids_est = union_rate * days_remaining * (decay * 2)
+                floor_est = top_limit * growth_floor * 2
+                est_unique_items = int(
+                    max(
+                        floor_est,
+                        (union_count + new_ids_est) * growth_factor * 2,
+                    )
+                )
+                est_total_unique_items += est_unique_items
+            
+            expected_exhaustive_cache_bytes = int(
+                est_total_unique_items * avg_item_bytes * 1.3
             )
-
-            # Assertions: tight equality
+            
+            # Assertions: tight equality for components we can verify
             assert est_refined["scan_page_bytes"] == expected_scan_page_bytes
             assert est_refined["delta_buffer_bytes"] == expected_delta_buffer_bytes
             assert est_refined["payload_bytes"] == payload_bytes
-            assert est_refined["bulk_buffer_bytes"] == bulk_buffer_bytes
+            assert est_refined["indexing_buffer_bytes"] == indexing_buffer_bytes
             assert est_refined["build_payload_bytes"] == build_payload_bytes
-            assert est_refined["working_all_bytes"] == working_all_bytes
-            assert est_refined["working_top_bytes"] == working_top_bytes
+            assert (
+                est_refined["all_subcount_working_state_bytes"]
+                == working_all_bytes
+            )
+            assert (
+                est_refined["exhaustive_cache_bytes"]
+                == expected_exhaustive_cache_bytes
+            )
+            
+            # Now verify peak calculations
+            expected_scan_peak = (
+                payload_bytes
+                + expected_scan_page_bytes
+                + expected_exhaustive_cache_bytes
+            )
+            expected_loop_peak = (
+                expected_exhaustive_cache_bytes
+                + working_all_bytes
+                + indexing_buffer_bytes
+                + build_payload_bytes
+                + expected_delta_buffer_bytes
+            )
             assert est_refined["predicted_scan_peak_bytes"] == expected_scan_peak
             assert est_refined["predicted_loop_peak_bytes"] == expected_loop_peak
-            assert est_refined["predicted_peak_bytes"] == expected_peak
+            assert est_refined["predicted_peak_bytes"] == int(
+                max(expected_scan_peak, expected_loop_peak)
+                * app.config["COMMUNITY_STATS_MEM_SAFETY_FACTOR"]
+            )
+            
             # And refined path differs from empty-hit baseline for delta buffer
             assert est_refined["delta_buffer_bytes"] != est_empty["delta_buffer_bytes"]
 
@@ -591,7 +633,7 @@ class TestMemoryEstimator:
         )
 
         mock_estimator_cls = mocker.patch(
-            "invenio_stats_dashboard.aggregations.usage_snapshot_aggs.MemoryEstimator"
+            "invenio_stats_dashboard.aggregations.usage_snapshot_aggs.UsageSnapshotMemoryEstimator"
         )
         mock_estimator_cls.adjust_scan_page_size.return_value = 123
 
@@ -632,7 +674,7 @@ class TestMemoryEstimator:
         """Adjusts page size only when over budget; clamps within min/max."""
         # Case 1: enough headroom → unchanged
         mem_est = {"predicted_peak_bytes": 1000, "scan_page_bytes": 500}
-        out = MemoryEstimator.adjust_scan_page_size(
+        out = UsageSnapshotMemoryEstimator.adjust_scan_page_size(
             mem_estimate=mem_est,
             rss_bytes=1_000_000,
             budget_bytes=10_000_000,
@@ -644,7 +686,7 @@ class TestMemoryEstimator:
 
         # Case 2: over budget → reduced but within min/max
         mem_est2 = {"predicted_peak_bytes": 200_000_000, "scan_page_bytes": 50_000_000}
-        out2 = MemoryEstimator.adjust_scan_page_size(
+        out2 = UsageSnapshotMemoryEstimator.adjust_scan_page_size(
             mem_estimate=mem_est2,
             rss_bytes=1_500_000_000,
             budget_bytes=1_600_000_000,

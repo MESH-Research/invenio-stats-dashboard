@@ -88,6 +88,10 @@ class CommunityAggregatorBase(StatAggregator):
         )
         # Current working chunk size (starts at initial, adapts during operation)
         self.current_chunk_size = self.initial_chunk_size
+        # Query timeout in seconds
+        self.query_timeout_seconds = current_app.config.get(
+            "COMMUNITY_STATS_BULK_INDEX_TIMEOUT", 300
+        )
         # Field name for searching community event indices - overridden by subclasses
         self.event_date_field = "created"
         self.first_event_date_field = "created"
@@ -1021,7 +1025,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                     page_search = page_search.extra(search_after=search_after)
                 
                 # Set timeout on the search object
-                timeout_value = '120s'
+                timeout_value = f"{self.query_timeout_seconds}s"
                 page_search = page_search.extra(timeout=timeout_value)
                 results = page_search.execute()
                 hits = results.to_dict()["hits"]["hits"]
