@@ -631,6 +631,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     download_bucket = bucket
                     break
 
+            # Initialize label as string; will be converted to object if needed 
             label: str | dict[str, str] = str(key)
             label_field = get_subcount_field(usage_config, "label_field", index)
 
@@ -649,12 +650,26 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                                 source_dict = source.to_dict()
                             else:
                                 source_dict = dict(source)
-                            label_result = CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
-                                source_dict, label_field, key
+                            label_result = (
+                                CommunityUsageDeltaAggregator._extract_label_from_source(  # noqa: E501
+                                    source_dict, label_field, key
+                                )
                             )
                             if isinstance(label_result, str | dict) and label_result:
                                 label = label_result
                                 break  # Found valid label, stop checking
+                
+                # If label is still a string but field expects object, convert it
+                # This handles cases where events have vocabulary fields with only IDs
+                if isinstance(label, str) and label_field:
+                    fallback_label = (
+                        CommunityUsageDeltaAggregator._create_fallback_label(
+                            key, label_field
+                        )
+                    )
+                    # Only update if fallback creates an object (for object fields)
+                    if isinstance(fallback_label, dict):
+                        label = fallback_label
 
             subcount_item: UsageSubcountItem = {
                 "id": str(key),
@@ -1354,7 +1369,8 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             "periodicals.title",
             "publishers.title",
             "affiliations.title",
-            "countries.title"
+            "countries.title",
+            "languages.title",
         }
 
         if title_field in object_fields:

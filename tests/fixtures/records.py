@@ -109,6 +109,10 @@ def minimal_published_record_factory(
         else:
             identity = system_identity
 
+        # Enable files before creating draft if file_paths are provided
+        if file_paths:
+            input_metadata["files"] = {"enabled": True}
+
         draft = records_service.create(identity, input_metadata)
         current_app.logger.error(
             f"in published record factory, created draft: {pformat(draft.id)}"

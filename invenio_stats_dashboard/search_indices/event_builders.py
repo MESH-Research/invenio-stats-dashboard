@@ -23,6 +23,9 @@ from datetime import datetime
 from typing import Any
 
 from flask import request
+from invenio_records_resources.records.systemfields.relations import (
+    PIDListRelation,
+)
 from invenio_stats.utils import get_user
 
 
@@ -49,6 +52,61 @@ def file_download_event_builder(
         if "." in obj.key
         else None
     )
+    
+    # Access vocabulary fields through relations to ensure they're resolved.
+    # For file downloads, the record comes from get_file_content() which doesn't
+    # go through the same expansion as read(), so relations may not be resolved
+    # when accessing metadata directly. Accessing via relations ensures resolution.
+    def _get_vocabulary_field(
+        relation_name: str, metadata_key: str | None = None
+    ):
+        """Get a vocabulary field with resolved relations.
+        
+        Args:
+            relation_name: Name of the relation field
+                (e.g., "resource_type", "languages")
+            metadata_key: Metadata key to use as fallback
+                (defaults to relation_name)
+        
+        Returns:
+            Resolved vocabulary object(s) or metadata fallback
+        """
+        if metadata_key is None:
+            metadata_key = relation_name
+        
+        if hasattr(record, "relations") and hasattr(
+            record.relations, relation_name
+        ):
+            try:
+                relation = getattr(record.relations, relation_name)
+                resolved = relation()
+                
+                if resolved:
+                    # Check if this is a list relation or single relation
+                    # by checking the relation type, not the resolved value
+                    if isinstance(relation, PIDListRelation):
+                        # List relation (e.g., languages, subjects, rights)
+                        try:
+                            resolved_list = list(resolved)
+                            if resolved_list:
+                                return [
+                                    item.to_dict()
+                                    for item in resolved_list
+                                    if hasattr(item, "to_dict")
+                                ]
+                        except TypeError:
+                            # Not iterable, return None
+                            pass
+                    else:
+                        # Single relation (e.g., resource_type)
+                        if hasattr(resolved, "to_dict"):
+                            return resolved.to_dict()
+            except Exception:
+                pass
+        
+        # Fallback to metadata if relations unavailable
+        return record.metadata.get(metadata_key)
+    
     event.update({
         # When:
         "timestamp": datetime.utcnow().isoformat(),
@@ -62,15 +120,16 @@ def file_download_event_builder(
         # Who:
         "referrer": request.referrer,
         **get_user(),
-        "resource_type": record.metadata["resource_type"],
+        "resource_type": _get_vocabulary_field("resource_type"),
         "access_status": record.access.status.value,
         "publisher": record.metadata.get("publisher", None),
-        "languages": record.metadata.get("languages", None),
-        "subjects": record.metadata.get("subjects", None),
+        "languages": _get_vocabulary_field("languages"),
+        "subjects": _get_vocabulary_field("subjects"),
         "journal_title": (
             record.custom_fields.get("journal:journal", {}).get("title", None)
         ),
-        "rights": record.metadata.get("rights", None),
+        # Note: relation name is "licenses" but it manages metadata["rights"]
+        "rights": _get_vocabulary_field("licenses", "rights"),
         "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
         "affiliations": [
             c.get("affiliations")
