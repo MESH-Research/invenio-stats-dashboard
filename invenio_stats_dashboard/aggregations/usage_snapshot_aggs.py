@@ -7,11 +7,12 @@
 """Community usage snapshot aggregators for tracking cumulative usage statistics."""
 
 import copy
+import gc
 import heapq
 import numbers
 import time
+from collections import deque
 from collections.abc import Generator
-from pprint import pformat
 from typing import Any
 
 import arrow
@@ -51,7 +52,7 @@ class UsageSnapshotMemoryEstimator:
         self.all_keys, self.top_keys = self._partition_keys()
         self.k_ws_overhead = current_app.config.get("COMMUNITY_STATS_WS_OVERHEAD", 1.1)
         self.k_scan_overhead = current_app.config.get(
-            "COMMUNITY_STATS_SCAN_OVERHEAD", 1.3
+            "COMMUNITY_STATS_SCAN_OVERHEAD", 0.85
         )
         self.k_bulk_overhead = current_app.config.get(
             "COMMUNITY_STATS_BULK_OVERHEAD", 1.3
@@ -76,6 +77,11 @@ class UsageSnapshotMemoryEstimator:
         )
         self.avg_delta_bytes = current_app.config.get(
             "COMMUNITY_STATS_AVG_DELTA_BYTES", 10240
+        )
+        # Multiplier to inflate serialized sizes to approximate in-memory footprint
+        # of Python dict/list objects. Tunable via config if real RSS differs.
+        self.inmemory_factor = float(
+            current_app.config.get("COMMUNITY_STATS_INMEMORY_MULTIPLIER", 4.0)
         )
 
     @staticmethod
@@ -403,17 +409,24 @@ class UsageSnapshotMemoryEstimator:
                 - predicted_loop_peak_bytes: Peak memory during loop
                 - predicted_peak_bytes: Overall peak memory estimate
         """
-        one_snapshot_bytes = self._serialize_len(previous_snapshot)
+        one_snapshot_bytes = int(
+            self._serialize_len(previous_snapshot) * self.inmemory_factor
+        )
         prev_subcounts = previous_snapshot.get("subcounts", {})  # type: ignore[assignment]
 
-        all_subcount_working_state_bytes = self._estimate_all_items(prev_subcounts)
+        all_subcount_working_state_bytes = int(
+            self._estimate_all_items(prev_subcounts) * self.inmemory_factor
+        )
 
         community_id = previous_snapshot.get("community_id", "global")
 
         # Sample delta document once for all estimates
         delta_sample_info = self._get_sample_delta_info(community_id)
 
-        per_delta_bytes = self._estimate_per_delta_bytes_from_sample(delta_sample_info)
+        per_delta_bytes = int(
+            self._estimate_per_delta_bytes_from_sample(delta_sample_info)
+            * self.inmemory_factor
+        )
         delta_scan_page_bytes = int(
             planned_scan_page_size * per_delta_bytes * self.k_scan_overhead
         )
@@ -426,8 +439,11 @@ class UsageSnapshotMemoryEstimator:
             planned_chunk_size * one_snapshot_bytes * self.k_bulk_overhead
         )
 
-        exhaustive_cache_bytes = self._estimate_exhaustive_cache(
-            delta_sample_info, first_event_date, upper_limit, previous_snapshot
+        exhaustive_cache_bytes = int(
+            self._estimate_exhaustive_cache(
+                delta_sample_info, first_event_date, upper_limit, previous_snapshot
+            )
+            * self.inmemory_factor
         )
 
         # Note: In agg_iter, working state is initialized BEFORE the scan to allow
@@ -458,9 +474,6 @@ class UsageSnapshotMemoryEstimator:
             "predicted_loop_peak_bytes": predicted_loop_peak,
             "predicted_peak_bytes": predicted_peak,
         }
-        current_app.logger.info(
-            f"UsageSnapshotMemoryEstimator returning {pformat(return_object)}"
-        )
         return return_object
 
     @staticmethod
@@ -1050,20 +1063,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             "top": top_cache,
         }
 
-        # Log scan page size and memory after scan completes
-        scan_page_size_used = getattr(self, "_last_effective_scan_page_size", None)
-        current_app.logger.info(
-            f"Exhaustive cache scan completed. "
-            f"Effective scan page size: {scan_page_size_used}"
-        )
-        try:
-            rss = self.proc.memory_info().rss if self.proc else 0  # type: ignore[union-attr]
-            current_app.logger.info(f"RSS memory after scan: {rss} bytes")
-        except Exception:
-            pass
-
-        daily_deltas_buffer: list[dict] = []
-        last_processed_date = first_event_date.shift(
+        # Scan complete - effective page size tracked for buffer alignment
+        daily_deltas_buffer: deque[dict] = deque()
+        max_fetched_buffer_date = first_event_date.shift(
             days=-1
         )  # Start from day before first event
         # Use the same limit for scan pages and the delta buffer
@@ -1074,10 +1076,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             if isinstance(last_effective, int)
             else adjusted_scan_page_size
         )
-        current_app.logger.info(
-            f"Delta buffer configuration: "
-            f"page size {buffer_size}, scan page size used {scan_page_size_used}"
-        )
 
         iteration_count = 0
         while current_iteration_date <= end_date:
@@ -1086,13 +1084,13 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
             try:
                 # Get the delta document for this specific date
-                daily_delta, daily_deltas_buffer, last_processed_date = (
+                daily_delta, daily_deltas_buffer, max_fetched_buffer_date = (
                     self._get_delta_from_buffer(
                         daily_deltas_buffer,
                         current_iteration_date,
                         community_id,
                         end_date,
-                        last_processed_date,
+                        max_fetched_buffer_date,
                         buffer_size,
                     )
                 )
@@ -1418,15 +1416,16 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 search_after_date = hits[-1]["sort"]
             except Exception:
                 search_after_date = None
-            
+
             # Clear large response objects before memory check to allow GC
             del hits
             del resp
+            # Collect after every page to ensure timely release
+            gc.collect()
 
             # Memory guard – shrink page size when necessary
             try:
                 rss = self.proc.memory_info().rss if self.proc else 0  # type: ignore[union-attr]
-                current_app.logger.info(f"RSS memory usage during delta scan: {rss}")
             except Exception as e:
                 rss = 0
                 current_app.logger.error(
@@ -1453,11 +1452,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 )
                 current_page_size = new_page
                 self._last_effective_scan_page_size = current_page_size
-            else:
-                current_app.logger.info(
-                    f"RSS memory usage during delta scan: {rss} is within budget of "
-                    f"{budget} bytes, no need to reduce page size"
-                )
 
     def _fetch_daily_deltas_page(
         self,
@@ -1477,17 +1471,6 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         Returns:
             List of delta documents
         """
-        # Log memory and query parameters before fetching
-        try:
-            rss = self.proc.memory_info().rss if self.proc else 0  # type: ignore[union-attr]
-            current_app.logger.info(
-                f"Fetching delta buffer: query_size={page_size}, "
-                f"date_range={start_date.format('YYYY-MM-DD')} to "
-                f"{end_date.format('YYYY-MM-DD')}, RSS memory: {rss} bytes"
-            )
-        except Exception:
-            pass
-
         index_name = prefix_index(self.delta_index)
         delta_search = Search(using=self.client, index=index_name)
         delta_search = delta_search.query(
@@ -1514,6 +1497,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         timeout_value = f"{self.query_timeout_seconds}s"
         page_search = page_search.extra(timeout=timeout_value)
 
+        results = None
+        hits = None
         try:
             results = page_search.execute()
             hits = results.to_dict()["hits"]["hits"]
@@ -1526,62 +1511,99 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         except Exception as e:
             current_app.logger.error(f"_fetch_daily_deltas_page: Query failed: {e}")
             return []
+        finally:
+            del hits
+            del results
+            gc.collect()
 
     def _get_delta_from_buffer(
         self,
-        buffer: list,
+        buffer: deque[dict],
         target_date: arrow.Arrow,
         community_id: str,
         end_date: arrow.Arrow,
-        last_processed_date: arrow.Arrow,
+        max_fetched_buffer_date: arrow.Arrow,
         buffer_size: int,
-    ) -> tuple[dict | None, list, arrow.Arrow]:
-        """Get the delta document for a specific date from the buffer.
+    ) -> tuple[dict | None, deque[dict], arrow.Arrow]:
+        """Return the target-date delta from an in-memory page buffer.
+
+        Behavior:
+        - If the buffer is empty, fetch a new page starting at
+          ``max_fetched_buffer_date + 1`` and set ``max_fetched_buffer_date`` to the
+          last date in that page. If no page is returned, return ``None``.
+        - Within the current buffer (sorted ascending by period_start):
+          - Discard earlier items (< target) by popping; do not change
+            ``max_fetched_buffer_date``.
+          - On exact match (== target), pop and return the document; buffer is
+            mutated. ``max_fetched_buffer_date`` is not required to change here.
+          - If the first item is later (> target), return ``None`` with the buffer
+            unchanged.
 
         Args:
-            buffer: List of delta documents (sorted by date)
-            target_date: The target date to find
-            community_id: Community ID for fetching more documents
-            end_date: End date for fetching more documents
-            last_processed_date: Last date we successfully processed
-            buffer_size: Size of buffer to fetch
+            buffer: Deque of delta documents sorted by date.
+            target_date: Date to match (day precision).
+            community_id: Community ID for fetching more documents.
+            end_date: Upper bound for fetching more documents.
+            max_fetched_buffer_date: Furthest date fetched so far (monotonic).
+            buffer_size: Page size for buffer refills.
 
         Returns:
-            Tuple of (delta_document, updated_buffer, updated_last_processed_date)
+            (delta_document | None, mutated_buffer, max_fetched_buffer_date)
         """
         target_date_str = target_date.format("YYYY-MM-DD")
 
         # If buffer is empty, try to fetch more documents from
-        # last_processed_date + 1 day
+        # max_fetched_buffer_date + 1 day
         if not buffer:
-            next_date = last_processed_date.shift(days=1)
-            buffer = self._fetch_daily_deltas_page(
+            # Start refills from the current iteration day or later to page forward
+            next_date = max(
+                max_fetched_buffer_date.shift(days=1),
+                target_date.floor("day"),
+            )
+            page_docs = self._fetch_daily_deltas_page(
                 community_id, next_date, end_date, buffer_size
             )
-            last_processed_date = next_date
-            if not buffer:
-                return None, buffer, last_processed_date
+            if page_docs:
+                buffer = deque(page_docs)
+                try:
+                    last_ps = page_docs[-1]["period_start"]
+                    last_doc_date_str = str(last_ps).split("T", 1)[0]
+                    last_doc_date = arrow.get(last_doc_date_str)
+                    if last_doc_date > max_fetched_buffer_date:
+                        max_fetched_buffer_date = last_doc_date
+                except Exception:
+                    pass
+                # Release the temporary page list reference promptly
+                del page_docs
+            else:
+                return None, buffer, max_fetched_buffer_date
 
-        # Check the first document in the buffer
-        first_doc = buffer[0]
-        first_doc_date_str = arrow.get(first_doc["period_start"]).format("YYYY-MM-DD")
+        while buffer:
+            try:
+                first_doc = buffer[0]
+                ps = first_doc.get("period_start")
+                first_doc_date_str = str(ps).split("T", 1)[0]
+            except Exception as e:
+                doc_id = first_doc.get("_id") if isinstance(first_doc, dict) else None
+                current_app.logger.warning(
+                    f"_get_delta_from_buffer: could not parse period_start for doc "
+                    f"{doc_id}: {e}"
+                )
+                return None, buffer, max_fetched_buffer_date
 
-        if first_doc_date_str == target_date_str:
-            # Found the target date - remove it from buffer and return it
-            return first_doc, buffer[1:], last_processed_date
-        elif first_doc_date_str < target_date_str:
-            # First document is earlier - remove it and recurse
-            return self._get_delta_from_buffer(
-                buffer[1:],
-                target_date,
-                community_id,
-                end_date,
-                last_processed_date,
-                buffer_size,
-            )
-        else:
-            # First document is later - target date doesn't exist
-            return None, buffer, last_processed_date
+            if first_doc_date_str < target_date_str:
+                buffer.popleft()
+                continue
+
+            if first_doc_date_str == target_date_str:
+                doc = buffer.popleft()
+                return doc, buffer, max_fetched_buffer_date
+
+            # first_doc_date_str > target_date_str: target missing
+            return None, buffer, max_fetched_buffer_date
+
+        # Buffer exhausted; caller will trigger next refill
+        return None, buffer, max_fetched_buffer_date
 
     def _build_exhaustive_cache_from_scan(
         self,
@@ -1621,6 +1643,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 f"_build_exhaustive_cache_from_scan: adaptive scan failed: {e}"
             )
             raise
+        finally:
+            gc.collect()
 
     def _update_exhaustive_cache_all_subcounts(
         self, exhaustive_cache: dict, delta_doc: dict | AttrDict
