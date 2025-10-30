@@ -1546,7 +1546,7 @@ class TestCommunityUsageDeltaQuery:
                 )
 
         for agg_name in [
-            "subjects",
+            # "subjects",  # disabled for usage events
             "affiliations_id",
             "affiliations_name",
             "funders_id",
@@ -1566,7 +1566,8 @@ class TestCommunityUsageDeltaQuery:
                 event_type,
             )
 
-        self._check_referrers(actual_aggs, event_type)
+        # referrers disabled for usage events
+        # self._check_referrers(actual_aggs, event_type)
 
         self._check_countries(actual_aggs, event_type)
 

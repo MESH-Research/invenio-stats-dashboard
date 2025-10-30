@@ -169,7 +169,8 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             "subcounts": {
                 subcount_key: []
                 for subcount_key, config in self.subcount_configs.items()
-                if config.get("records", {}).get("source_fields")
+                if config.get("records")
+                and config.get("records", {}).get("source_fields")
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),
         }
@@ -543,7 +544,8 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                         aggs_removed,
                     )
                     for name, config in self.subcount_configs.items()
-                    if config.get("records", {}).get("source_fields")
+                    if config.get("records")
+                    and config.get("records", {}).get("source_fields")
                 },
             },
             "updated_timestamp": arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss"),

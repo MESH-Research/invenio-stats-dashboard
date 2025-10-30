@@ -682,15 +682,15 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         # 'all' subcounts: convert map values to lists
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
-            if usage_config.get("snapshot_type", "all") == "all":
+            usage_config = config.get("usage_events")
+            if usage_config and usage_config.get("snapshot_type", "all") == "all":
                 sub_map = ws_all.get(subcount_key, {})
                 out_subcounts[subcount_key] = list(sub_map.values())
 
         # 'top' subcounts: select top N from exhaustive cache
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
-            if usage_config.get("snapshot_type") == "top":
+            usage_config = config.get("usage_events")
+            if usage_config and usage_config.get("snapshot_type") == "top":
                 cache = ws_top.get(subcount_key, {})
                 top_by_view = self._select_top_n_from_cache(cache, "view")
                 top_by_download = self._select_top_n_from_cache(cache, "download")
@@ -847,7 +847,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
         for subcount_name, subcount_data in delta_subcounts.items():
             config = self.subcount_configs.get(subcount_name, {})
-            usage_config = config.get("usage_events", {})
+            usage_config = config.get("usage_events")
             if usage_config and usage_config.get("snapshot_type", "all") == "all":
                 filtered_subcounts[subcount_name] = subcount_data
 
@@ -884,8 +884,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             latest_delta: The latest delta document
         """
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
-            if usage_config.get("snapshot_type") == "top":
+            usage_config = config.get("usage_events")
+            if usage_config and usage_config.get("snapshot_type") == "top":
                 # Use the subcount key directly
                 top_subcount_name = subcount_key
 
@@ -937,7 +937,9 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             bool: True if the subcount is configured as 'top' type, False otherwise.
         """
         config = self.subcount_configs.get(subcount_name, {})
-        usage_config = config.get("usage_events", {})
+        usage_config = config.get("usage_events")
+        if not usage_config:
+            return False
         snapshot_type = usage_config.get("snapshot_type", "all")
         return str(snapshot_type) == "top"
 
@@ -1168,8 +1170,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         working_all: dict[str, dict[str, dict]] = {}
         prev_subcounts = previous_snapshot.get("subcounts", {})  # type: ignore[assignment]
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
-            if usage_config.get("snapshot_type", "all") != "all":
+            usage_config = config.get("usage_events")
+            if not usage_config or usage_config.get("snapshot_type", "all") != "all":
                 continue
             working_all[subcount_key] = {}
             has_list = isinstance(prev_subcounts, dict) and (
@@ -1256,8 +1258,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         if not isinstance(delta_subcounts, dict):
             return
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
-            if usage_config.get("snapshot_type", "all") != "all":
+            usage_config = config.get("usage_events")
+            if not usage_config or usage_config.get("snapshot_type", "all") != "all":
                 continue
             if subcount_key not in delta_subcounts:
                 continue
@@ -1304,8 +1306,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
     ) -> None:
         """Accumulate daily 'top' subcounts into the exhaustive cache maps."""
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
-            if usage_config.get("snapshot_type") == "top":
+            usage_config = config.get("usage_events")
+            if usage_config and usage_config.get("snapshot_type") == "top":
                 if subcount_key not in working_top:
                     working_top[subcount_key] = {}
                 self._update_exhaustive_cache(subcount_key, delta_doc, working_top)
@@ -1601,8 +1603,8 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         try:
             includes: list[str] = []
             for subcount_name, config in self.subcount_configs.items():
-                usage_config = config.get("usage_events", {})
-                if usage_config.get("snapshot_type", "all") == "top":
+                usage_config = config.get("usage_events")
+                if usage_config and usage_config.get("snapshot_type", "all") == "top":
                     includes.append(f"subcounts.{subcount_name}")
 
             for doc in self._iter_deltas_with_memory_guard(

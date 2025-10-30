@@ -1400,9 +1400,11 @@ class TestAPIRequestUsageDelta:
         assert "rights" in day_data["subcounts"]
         assert "periodicals" in day_data["subcounts"]
         assert "publishers" in day_data["subcounts"]
-        assert "referrers" in day_data["subcounts"]
+        # referrers disabled for usage events
+        # assert "referrers" in day_data["subcounts"]
         assert "resource_types" in day_data["subcounts"]
-        assert "subjects" in day_data["subcounts"]
+        # subjects disabled for usage events
+        # assert "subjects" in day_data["subcounts"]
 
         assert "timestamp" in day_data
 
@@ -1545,9 +1547,11 @@ class TestAPIRequestUsageSnapshot(TestAPIRequestUsageDelta):
         assert "rights" in day_data["subcounts"]
         assert "periodicals" in day_data["subcounts"]
         assert "publishers" in day_data["subcounts"]
-        assert "referrers" in day_data["subcounts"]
+        # referrers disabled for usage events
+        # assert "referrers" in day_data["subcounts"]
         assert "resource_types" in day_data["subcounts"]
-        assert "subjects" in day_data["subcounts"]
+        # subjects disabled for usage events
+        # assert "subjects" in day_data["subcounts"]
 
         assert "timestamp" in day_data
 

@@ -179,7 +179,8 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             str, list[RecordSnapshotSubcountItem] | RecordSnapshotTopSubcounts
         ] = {}
         for subcount_key, config in self.subcount_configs.items():
-            if "records" in config and config["records"].get("source_fields"):
+            records_config = config.get("records")
+            if records_config and records_config.get("source_fields"):
                 subcounts[subcount_key] = []
 
         return {
@@ -232,8 +233,8 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
             latest_delta: The latest delta document
         """
         for subcount_key, config in self.subcount_configs.items():
-            records_config = config.get("records", {})
-            if records_config.get("snapshot_type") == "top":
+            records_config = config.get("records")
+            if records_config and records_config.get("snapshot_type") == "top":
 
                 if subcount_key not in exhaustive_counts_cache:
                     exhaustive_counts_cache[subcount_key] = (
@@ -402,7 +403,7 @@ class CommunityRecordsSnapshotAggregatorBase(CommunitySnapshotAggregatorBase):
 
         # Update "all" subcounts by adding latest delta onto previous snapshot
         for subcount_key, config in self.subcount_configs.items():
-            records_config = config.get("records", {})
+            records_config = config.get("records")
             if records_config and records_config.get("snapshot_type") == "all":
 
                 previous_subcounts = new_dict.get("subcounts", {}).get(subcount_key, [])

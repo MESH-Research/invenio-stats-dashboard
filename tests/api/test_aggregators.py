@@ -1655,7 +1655,7 @@ class TestCommunityUsageAggregators:
                 "resource_types",
                 "access_statuses",
                 "languages",
-                "subjects",
+                # subjects disabled for usage events
                 "rights",
                 "funders",
                 "periodicals",
@@ -1663,7 +1663,7 @@ class TestCommunityUsageAggregators:
                 "affiliations",
                 "countries",
                 "file_types",
-                "referrers",
+                # referrers disabled for usage events
             ]
             for expected_subcount in expected_subcounts:
                 assert expected_subcount in subcounts.keys()
@@ -1875,14 +1875,14 @@ class TestCommunityUsageAggregators:
     def _check_top_subcounts(self, last_day_snap, delta_results) -> None:
         """Check subcounts for top_subcount_type categories."""
         for top_subcount_type in [
-            "subjects",
+            # "subjects",  # disabled for usage events
             "publishers",
             "funders",
             "periodicals",
             "affiliations",
             "languages",
             "countries",
-            "referrers",
+            # "referrers",  # disabled for usage events
             "rights",
         ]:
             for angle in ["by_view", "by_download"]:

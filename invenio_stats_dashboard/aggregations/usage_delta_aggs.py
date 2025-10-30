@@ -233,7 +233,8 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
             "subcounts": {
                 subcount_name: []
                 for subcount_name, config in self.subcount_configs.items()
-                if config.get("usage_events", {}).get("source_fields")
+                if config.get("usage_events")
+                and config.get("usage_events", {}).get("source_fields")
             },
         }
 
@@ -273,7 +274,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         for subcount_name, config in self.subcount_configs.items():
             # Get the usage_events configuration for this subcount
-            usage_config = config.get("usage_events", {})
+            usage_config = config.get("usage_events")
             if not usage_config:
                 continue
 
@@ -363,7 +364,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         for subcount_name, config in self.subcount_configs.items():
             # Get the usage_events configuration for this subcount
-            usage_config = config.get("usage_events", {})
+            usage_config = config.get("usage_events")
             if not usage_config:
                 continue
 
@@ -453,7 +454,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
 
         for subcount_name, config in self.subcount_configs.items():
             # Get the usage_events configuration for this subcount
-            usage_config = config.get("usage_events", {})
+            usage_config = config.get("usage_events")
             if not usage_config:
                 continue
 
@@ -771,7 +772,9 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
         )
 
         for subcount_key, config in self.subcount_configs.items():
-            usage_config = config.get("usage_events", {})
+            usage_config = config.get("usage_events")
+            if not usage_config:
+                continue
             source_fields = usage_config.get("source_fields", [])
             if not source_fields:
                 continue

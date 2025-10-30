@@ -54,14 +54,14 @@ class TestRecordDeltaDataSeriesSet:
             "access_statuses",
             "resource_types",
             "languages",
-            "subjects",
+            # subjects disabled for usage events
             "rights",
             "funders",
             "periodicals",
             "publishers",
             "affiliations",
             "countries",
-            "referrers",
+            # referrers disabled for usage events
             "file_types",
         ]
 
@@ -533,14 +533,14 @@ class TestUsageDeltaDataSeriesSet:
             "access_statuses",
             "resource_types",
             "languages",
-            "subjects",
+            # "subjects",  # disabled for usage events
             "rights",
             "funders",
             "periodicals",
             "publishers",
             "affiliations",
             "countries",
-            "referrers",
+            # "referrers",  # disabled for usage events
             "file_types",
         ]
 
@@ -561,14 +561,14 @@ class TestUsageDeltaDataSeriesSet:
             "access_statuses",
             "resource_types",
             "languages",
-            "subjects",
+            # "subjects",  # disabled for usage events
             "rights",
             "funders",
             "periodicals",
             "publishers",
             "affiliations",
             "countries",
-            "referrers",
+            # "referrers",  # disabled for usage events
             "file_types",
         ]
 
@@ -581,7 +581,7 @@ class TestUsageDeltaDataSeriesSet:
             "resource_types",
             "languages",
             "countries",
-            "referrers",
+            # referrers disabled for usage events
             "file_types",
         ]
 
@@ -596,7 +596,7 @@ class TestUsageDeltaDataSeriesSet:
 
         # Check that empty subcounts have no series
         empty_subcounts = [
-            "subjects",
+            # "subjects",  # disabled for usage events
             "rights",
             "funders",
             "periodicals",

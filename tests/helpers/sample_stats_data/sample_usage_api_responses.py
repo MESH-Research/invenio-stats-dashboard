@@ -22,9 +22,9 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                 "rights": [],
                 "periodicals": [],
                 "publishers": [],
-                "referrers": [],
+                # "referrers": [],  # disabled for usage events
                 "resource_types": [],
-                "subjects": [],
+                # "subjects": [],  # disabled for usage events
             },
             "timestamp": "2025-07-03T19:37:10",
             "totals": {
@@ -58,9 +58,9 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                 "rights": [],
                 "periodicals": [],
                 "publishers": [],
-                "referrers": [],
+                # "referrers": [],  # disabled for usage events
                 "resource_types": [],
-                "subjects": [],
+                # "subjects": [],  # disabled for usage events
             },
             "timestamp": "2025-07-03T19:37:10",
             "totals": {
@@ -268,68 +268,68 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                         },
                     },
                 ],
-                "referrers": [
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/9qsr6-v4k38/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/rhk6r-p5d15/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/t8hjs-dzx03/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                ],
+                # "referrers": [  # disabled for usage events
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/9qsr6-v4k38/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/rhk6r-p5d15/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/t8hjs-dzx03/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                # ],
                 "resource_types": [
                     {
                         "download": {
@@ -386,134 +386,134 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                         },
                     },
                 ],
-                "subjects": [
-                    {
-                        "download": {
-                            "total_events": 2,
-                            "total_volume": 2048.0,
-                            "unique_files": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                        "id": "http://id.worldcat.org/fast/1012163",
-                        "label": "Mathematics",
-                        "view": {
-                            "total_events": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 2,
-                            "total_volume": 2048.0,
-                            "unique_files": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                        "id": "http://id.worldcat.org/fast/958235",
-                        "label": "History",
-                        "view": {
-                            "total_events": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1012213",
-                        "label": "Mathematics--Philosophy",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1108176",
-                        "label": "Science",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1108387",
-                        "label": "Science--Study and teaching",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1145221",
-                        "label": "Technology--Study and teaching",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/902116",
-                        "label": "Economics",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                ],
+                # "subjects": [  # disabled for usage events
+                #     {
+                #         "download": {
+                #             "total_events": 2,
+                #             "total_volume": 2048.0,
+                #             "unique_files": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1012163",
+                #         "label": "Mathematics",
+                #         "view": {
+                #             "total_events": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 2,
+                #             "total_volume": 2048.0,
+                #             "unique_files": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/958235",
+                #         "label": "History",
+                #         "view": {
+                #             "total_events": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1012213",
+                #         "label": "Mathematics--Philosophy",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1108176",
+                #         "label": "Science",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1108387",
+                #         "label": "Science--Study and teaching",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1145221",
+                #         "label": "Technology--Study and teaching",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/902116",
+                #         "label": "Economics",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                # ],
             },
             "timestamp": "2025-07-03T19:37:10",
             "totals": {
@@ -547,9 +547,9 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                 "rights": [],
                 "periodicals": [],
                 "publishers": [],
-                "referrers": [],
+                # "referrers": [],  # disabled for usage events
                 "resource_types": [],
-                "subjects": [],
+                # "subjects": [],  # disabled for usage events
             },
             "timestamp": "2025-07-03T19:37:10",
             "totals": {
@@ -757,68 +757,68 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                         },
                     },
                 ],
-                "referrers": [
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/9qsr6-v4k38/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/rhk6r-p5d15/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/t8hjs-dzx03/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                ],
+                # "referrers": [  # disabled for usage events
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/9qsr6-v4k38/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/rhk6r-p5d15/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/t8hjs-dzx03/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                # ],
                 "resource_types": [
                     {
                         "download": {
@@ -875,134 +875,134 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                         },
                     },
                 ],
-                "subjects": [
-                    {
-                        "download": {
-                            "total_events": 2,
-                            "total_volume": 2048.0,
-                            "unique_files": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                        "id": "http://id.worldcat.org/fast/1012163",
-                        "label": "Mathematics",
-                        "view": {
-                            "total_events": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 2,
-                            "total_volume": 2048.0,
-                            "unique_files": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                        "id": "http://id.worldcat.org/fast/958235",
-                        "label": "History",
-                        "view": {
-                            "total_events": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1012213",
-                        "label": "Mathematics--Philosophy",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1108176",
-                        "label": "Science",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1108387",
-                        "label": "Science--Study and teaching",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1145221",
-                        "label": "Technology--Study and teaching",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/902116",
-                        "label": "Economics",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                ],
+                # "subjects": [  # disabled for usage events
+                #     {
+                #         "download": {
+                #             "total_events": 2,
+                #             "total_volume": 2048.0,
+                #             "unique_files": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1012163",
+                #         "label": "Mathematics",
+                #         "view": {
+                #             "total_events": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 2,
+                #             "total_volume": 2048.0,
+                #             "unique_files": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/958235",
+                #         "label": "History",
+                #         "view": {
+                #             "total_events": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1012213",
+                #         "label": "Mathematics--Philosophy",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1108176",
+                #         "label": "Science",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1108387",
+                #         "label": "Science--Study and teaching",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1145221",
+                #         "label": "Technology--Study and teaching",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/902116",
+                #         "label": "Economics",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                # ],
             },
             "timestamp": "2025-07-03T19:37:10",
             "totals": {
@@ -1036,9 +1036,9 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                 "rights": [],
                 "periodicals": [],
                 "publishers": [],
-                "referrers": [],
+                # "referrers": [],  # disabled for usage events
                 "resource_types": [],
-                "subjects": [],
+                # "subjects": [],  # disabled for usage events
             },
             "timestamp": "2025-07-03T19:37:11",
             "totals": {
@@ -1246,68 +1246,68 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                         },
                     },
                 ],
-                "referrers": [
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/9qsr6-v4k38/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/rhk6r-p5d15/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": (
-                            "https://works.hcommons.org/records/t8hjs-dzx03/preview/test.pdf"
-                        ),
-                        "label": "",
-                        "view": {
-                            "total_events": 0,
-                            "unique_parents": 0,
-                            "unique_records": 0,
-                            "unique_visitors": 0,
-                        },
-                    },
-                ],
+                # "referrers": [  # disabled for usage events
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/9qsr6-v4k38/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/rhk6r-p5d15/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": (
+                #             "https://works.hcommons.org/records/t8hjs-dzx03/preview/test.pdf"
+                #         ),
+                #         "label": "",
+                #         "view": {
+                #             "total_events": 0,
+                #             "unique_parents": 0,
+                #             "unique_records": 0,
+                #             "unique_visitors": 0,
+                #         },
+                #     },
+                # ],
                 "resource_types": [
                     {
                         "download": {
@@ -1364,134 +1364,134 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                         },
                     },
                 ],
-                "subjects": [
-                    {
-                        "download": {
-                            "total_events": 2,
-                            "total_volume": 2048.0,
-                            "unique_files": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                        "id": "http://id.worldcat.org/fast/1012163",
-                        "label": "Mathematics",
-                        "view": {
-                            "total_events": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 2,
-                            "total_volume": 2048.0,
-                            "unique_files": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                        "id": "http://id.worldcat.org/fast/958235",
-                        "label": "History",
-                        "view": {
-                            "total_events": 2,
-                            "unique_parents": 2,
-                            "unique_records": 2,
-                            "unique_visitors": 2,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1012213",
-                        "label": "Mathematics--Philosophy",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1108176",
-                        "label": "Science",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1108387",
-                        "label": "Science--Study and teaching",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/1145221",
-                        "label": "Technology--Study and teaching",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                    {
-                        "download": {
-                            "total_events": 1,
-                            "total_volume": 1024.0,
-                            "unique_files": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                        "id": "http://id.worldcat.org/fast/902116",
-                        "label": "Economics",
-                        "view": {
-                            "total_events": 1,
-                            "unique_parents": 1,
-                            "unique_records": 1,
-                            "unique_visitors": 1,
-                        },
-                    },
-                ],
+                # "subjects": [  # disabled for usage events
+                #     {
+                #         "download": {
+                #             "total_events": 2,
+                #             "total_volume": 2048.0,
+                #             "unique_files": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1012163",
+                #         "label": "Mathematics",
+                #         "view": {
+                #             "total_events": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 2,
+                #             "total_volume": 2048.0,
+                #             "unique_files": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/958235",
+                #         "label": "History",
+                #         "view": {
+                #             "total_events": 2,
+                #             "unique_parents": 2,
+                #             "unique_records": 2,
+                #             "unique_visitors": 2,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1012213",
+                #         "label": "Mathematics--Philosophy",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1108176",
+                #         "label": "Science",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1108387",
+                #         "label": "Science--Study and teaching",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/1145221",
+                #         "label": "Technology--Study and teaching",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                #     {
+                #         "download": {
+                #             "total_events": 1,
+                #             "total_volume": 1024.0,
+                #             "unique_files": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #         "id": "http://id.worldcat.org/fast/902116",
+                #         "label": "Economics",
+                #         "view": {
+                #             "total_events": 1,
+                #             "unique_parents": 1,
+                #             "unique_records": 1,
+                #             "unique_visitors": 1,
+                #         },
+                #     },
+                # ],
             },
             "timestamp": "2025-07-03T19:37:11",
             "totals": {
@@ -1525,9 +1525,9 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                 "rights": [],
                 "periodicals": [],
                 "publishers": [],
-                "referrers": [],
+                # "referrers": [],  # disabled for usage events
                 "resource_types": [],
-                "subjects": [],
+                # "subjects": [],  # disabled for usage events
             },
             "timestamp": "2025-07-03T19:37:11",
             "totals": {
@@ -1561,9 +1561,9 @@ MOCK_USAGE_DELTA_API_RESPONSE = {
                 "rights": [],
                 "periodicals": [],
                 "publishers": [],
-                "referrers": [],
+                # "referrers": [],  # disabled for usage events
                 "resource_types": [],
-                "subjects": [],
+                # "subjects": [],  # disabled for usage events
             },
             "timestamp": "2025-07-03T19:37:11",
             "totals": {

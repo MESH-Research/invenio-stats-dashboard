@@ -815,310 +815,310 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         "view_visitors": [],
         "views": [],
     },
-    "referrers": {
-        "data_volume": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 256.0],
-                        "valueType": "filesize",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_unique_files": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_unique_parents": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_unique_records": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_visitors": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "downloads": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "view_unique_parents": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "view_unique_records": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "view_visitors": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "views": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "google.com",
-                "name": "",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-    },
-    "resource_types": {
-        "data_volume": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2048.0],
-                        "valueType": "filesize",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_unique_files": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_unique_parents": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_unique_records": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "download_visitors": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "downloads": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "view_unique_parents": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "view_unique_records": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "view_visitors": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-        "views": [
-            {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
-                "id": "textDocument-journalArticle",
-                "name": "{'en': 'Journal Article'}",
-                "type": "line",
-                "valueType": "number",
-            }
-        ],
-    },
+    # "referrers": {  # disabled for usage events
+        # "data_volume": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 256.0],
+                        # "valueType": "filesize",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_unique_files": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_unique_parents": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_unique_records": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_visitors": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "downloads": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "view_unique_parents": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "view_unique_records": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "view_visitors": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "views": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 1],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "google.com",
+                # "name": "",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+    # },
+    # "resource_types": {
+        # "data_volume": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2048.0],
+                        # "valueType": "filesize",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_unique_files": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_unique_parents": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_unique_records": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "download_visitors": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "downloads": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "view_unique_parents": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "view_unique_records": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "view_visitors": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+        # "views": [
+            # {
+                # "data": [
+                    # {
+                        # "readableDate": "Jun 1, 2025",
+                        # "value": ["2025-06-01", 2],
+                        # "valueType": "number",
+                    # }
+                # ],
+                # "id": "textDocument-journalArticle",
+                # "name": "{'en': 'Journal Article'}",
+                # "type": "line",
+                # "valueType": "number",
+            # }
+        # ],
+    # },
     "rights": {
         "data_volume": [],
         "download_unique_files": [],

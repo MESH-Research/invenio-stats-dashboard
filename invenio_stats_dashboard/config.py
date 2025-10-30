@@ -93,7 +93,8 @@ STATS_DASHBOARD_UI_SUBCOUNTS: dict[str, dict] = {
     "publishers": {},
     "affiliations": {},
     "countries": {},
-    "referrers": {},
+    # Disabled: referrers (usage events only, now disabled)
+    # "referrers": {},
     "file_types": {},
     "access_statuses": {},
 }
@@ -526,10 +527,12 @@ STATS_DASHBOARD_LAYOUT = {
                                     "maxSeries": 10,
                                     "display_subcounts": {
                                         "countries": {},
-                                        "referrers": {},
+                                        # Disabled: referrers for usage events
+                                        # "referrers": {},
                                         "file_presence": {},
                                         "resource_types": {},
-                                        "subjects": {},
+                                        # Disabled: subjects for usage events
+                                        # "subjects": {},
                                         "languages": {},
                                         "rights": {},
                                         "affiliations": {},
@@ -557,17 +560,18 @@ STATS_DASHBOARD_LAYOUT = {
                                     "hideOtherInCharts": True,
                                 },
                             },
-                            {
-                                "component": "TopReferrersMultiDisplay",
-                                "width": 8,
-                                "props": {
-                                    "title": "Top Referrers by Visits",
-                                    "pageSize": 6,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
+                            # Disabled: referrers for usage events
+                            # {
+                            #     "component": "TopReferrersMultiDisplay",
+                            #     "width": 8,
+                            #     "props": {
+                            #         "title": "Top Referrers by Visits",
+                            #         "pageSize": 6,
+                            #         "available_views": ["pie", "bar", "list"],
+                            #         "default_view": "pie",
+                            #         "hideOtherInCharts": True,
+                            #     },
+                            # },
                         ],
                     },
                     {
@@ -631,10 +635,12 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Usage Rates",
                                     "display_subcounts": {
                                         "countries": {},
-                                        "referrers": {},
+                                        # Disabled: referrers for usage events
+                                        # "referrers": {},
                                         "file_presence": {},
                                         "resource_types": {},
-                                        "subjects": {},
+                                        # Disabled: subjects for usage events
+                                        # "subjects": {},
                                         "languages": {},
                                         "rights": {},
                                         "affiliations": {},
@@ -1009,20 +1015,22 @@ COMMUNITY_STATS_SUBCOUNTS = {
                 },
             ],
         },
-        "usage_events": {
-            "delta_aggregation_name": "subjects",
-            "field_type": list[str] | None,
-            "event_field": "subjects",
-            "extraction_path_for_event": "metadata.subjects",
-            "snapshot_type": "top",
-            "source_fields": [
-                {
-                    "field": "subjects.id",
-                    "label_field": "subjects.subject",
-                    "label_source_includes": ["subjects.subject", "subjects.id"],
-                },
-            ],
-        },
+        # Disabled: usage_events for subjects
+        # "usage_events": {
+        #     "delta_aggregation_name": "subjects",
+        #     "field_type": list[str] | None,
+        #     "event_field": "subjects",
+        #     "extraction_path_for_event": "metadata.subjects",
+        #     "snapshot_type": "top",
+        #     "source_fields": [
+        #         {
+        #             "field": "subjects.id",
+        #             "label_field": "subjects.subject",
+        #             "label_source_includes": ["subjects.subject", "subjects.id"],
+        #         },
+        #     ],
+        # },
+        "usage_events": {},
     },
     "rights": {
         "records": {
@@ -1223,19 +1231,21 @@ COMMUNITY_STATS_SUBCOUNTS = {
     },
     "referrers": {
         "records": {},
-        "usage_events": {
-            "delta_aggregation_name": "referrers",
-            "field_type": str | None,
-            "event_field": None,
-            "snapshot_type": "top",
-            "source_fields": [
-                {
-                    "field": "referrer",
-                    "label_field": None,
-                    "label_source_includes": [],
-                },
-            ],
-        },
+        # Disabled: usage_events for referrers
+        # "usage_events": {
+        #     "delta_aggregation_name": "referrers",
+        #     "field_type": str | None,
+        #     "event_field": None,
+        #     "snapshot_type": "top",
+        #     "source_fields": [
+        #         {
+        #             "field": "referrer",
+        #             "label_field": None,
+        #             "label_source_includes": [],
+        #         },
+        #     ],
+        # },
+        "usage_events": {},
     },
     "file_types": {
         "records": {

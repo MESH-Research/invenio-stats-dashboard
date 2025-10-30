@@ -34,14 +34,14 @@ MOCK_USAGE_DELTA_DOCS = [
             ],
             "resource_types": [],
             "languages": [],
-            "subjects": [],
+            # "subjects": [],  # disabled for usage events
             "rights": [],
             "funders": [],
             "periodicals": [],
             "publishers": [],
             "affiliations": [],
             "countries": [],
-            "referrers": [],
+            # "referrers": [],  # disabled for usage events
             "file_types": [],
         },
         "timestamp": "2025-07-03T19:37:10",
@@ -130,7 +130,7 @@ MOCK_USAGE_DELTA_DOCS_2 = [
                     },
                 }
             ],
-            "subjects": [],
+            # "subjects": [],  # disabled for usage events
             "rights": [],
             "funders": [],
             "periodicals": [],
@@ -156,26 +156,26 @@ MOCK_USAGE_DELTA_DOCS_2 = [
                     },
                 }
             ],
-            "referrers": [
-                {
-                    "download": {
-                        "total_events": 1,
-                        "total_volume": 256.0,
-                        "unique_files": 1,
-                        "unique_parents": 1,
-                        "unique_records": 1,
-                        "unique_visitors": 1,
-                    },
-                    "id": "google.com",
-                    "label": "",
-                    "view": {
-                        "total_events": 1,
-                        "unique_parents": 1,
-                        "unique_records": 1,
-                        "unique_visitors": 1,
-                    },
-                }
-            ],
+            # "referrers": [  # disabled for usage events
+            #     {
+            #         "download": {
+            #             "total_events": 1,
+            #             "total_volume": 256.0,
+            #             "unique_files": 1,
+            #             "unique_parents": 1,
+            #             "unique_records": 1,
+            #             "unique_visitors": 1,
+            #         },
+            #         "id": "google.com",
+            #         "label": "",
+            #         "view": {
+            #             "total_events": 1,
+            #             "unique_parents": 1,
+            #             "unique_records": 1,
+            #             "unique_visitors": 1,
+            #         },
+            #     }
+            # ],
             "file_types": [
                 {
                     "download": {

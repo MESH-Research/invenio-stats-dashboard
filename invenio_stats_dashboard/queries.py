@@ -685,11 +685,8 @@ class CommunityRecordDeltaQuery:
         sub_aggs: dict = {}
 
         for subcount_key, config in self.subcount_configs.items():
-            if (
-                "records" in config.keys()
-                and "source_fields" in config["records"].keys()
-            ):
-                records_config = config["records"]
+            records_config = config.get("records")
+            if records_config and records_config.get("source_fields"):
                 source_fields = records_config.get("source_fields", [])
 
                 for field_index, _source_field in enumerate(source_fields):
