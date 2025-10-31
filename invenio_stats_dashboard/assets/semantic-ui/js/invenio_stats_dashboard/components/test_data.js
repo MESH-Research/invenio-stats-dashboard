@@ -144,13 +144,6 @@ const createSubcountSeries = (categoryName, items, isSnapshot = false, globalMet
           'line',
           'number'
         )),
-        uploaders: items.map(item => createDataSeries(
-          item.id,
-          item.name,
-          dataType(2500, 12, 6, dates),
-          'line',
-          'number'
-        )),
         fileCount: items.map(item => createDataSeries(
           item.id,
           item.name,
@@ -210,17 +203,15 @@ const createSubcountSeries = (categoryName, items, isSnapshot = false, globalMet
     });
   };
 
-  // Get global data points for each metric
+  // Get global data points for each metric (subcounts don't include uploaders)
   const globalRecords = globalMetrics.records[0]?.data || [];
   const globalParents = globalMetrics.parents[0]?.data || [];
-  const globalUploaders = globalMetrics.uploaders[0]?.data || [];
   const globalFileCount = globalMetrics.fileCount[0]?.data || [];
   const globalDataVolume = globalMetrics.dataVolume[0]?.data || [];
 
   // Generate breakdown distributions
   const recordsDistribution = generateBreakdownData(globalRecords, items.length, dates);
   const parentsDistribution = generateBreakdownData(globalParents, items.length, dates);
-  const uploadersDistribution = generateBreakdownData(globalUploaders, items.length, dates);
   const fileCountDistribution = generateBreakdownData(globalFileCount, items.length, dates);
   const dataVolumeDistribution = generateBreakdownData(globalDataVolume, items.length, dates);
 
@@ -235,14 +226,6 @@ const createSubcountSeries = (categoryName, items, isSnapshot = false, globalMet
     }),
     parents: items.map((item, itemIndex) => {
       const dataPoints = parentsDistribution.map((distribution, dateIndex) => {
-        const date = dates[dateIndex];
-        const value = distribution[itemIndex] || 0;
-        return createDataPoint(date, value, 'number');
-      });
-      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number');
-    }),
-    uploaders: items.map((item, itemIndex) => {
-      const dataPoints = uploadersDistribution.map((distribution, dateIndex) => {
         const date = dates[dateIndex];
         const value = distribution[itemIndex] || 0;
         return createDataPoint(date, value, 'number');

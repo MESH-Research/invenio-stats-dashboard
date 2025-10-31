@@ -313,7 +313,12 @@ class TestRecordSnapshotDataSeriesSet:
             assert subcount in result, (
                 f"Expected empty subcount {subcount} to exist in result"
             )
-            assert result[subcount] == {}, (
+            assert result[subcount] == {
+                "data_volume": [],
+                "records": [],
+                "parents": [],
+                "file_count": [],
+            }, (
                 f"Expected empty subcount {subcount} to have empty value, "
                 f"got {result[subcount]}"
             )

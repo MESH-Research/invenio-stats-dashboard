@@ -157,6 +157,52 @@ const mockContextValue = {
   }
 };
 
+// Mock data with empty subcount structure
+const mockDataWithEmptySubcount = [{
+  year: 2024,
+  global: {
+    records: [
+      {
+        id: 'records-1',
+        name: 'Total Records',
+        type: 'line',
+        valueType: 'number',
+        data: [
+          {
+            value: [new Date('2024-01-01'), 10],
+            readableDate: 'January 1, 2024',
+            valueType: 'number'
+          }
+        ]
+      }
+    ]
+  },
+  resourceTypes: {
+    records: [
+      {
+        id: 'article',
+        name: 'Article',
+        type: 'line',
+        valueType: 'number',
+        data: [
+          {
+            value: [new Date('2024-01-01'), 3],
+            readableDate: 'January 1, 2024',
+            valueType: 'number'
+          }
+        ]
+      }
+    ]
+  },
+  // Empty subcount with proper structure (all metric arrays empty)
+  funders: {
+    records: [],
+    parents: [],
+    fileCount: [],
+    dataVolume: []
+  }
+}];
+
 const renderStatsChart = (props = {}) => {
   const defaultProps = {
     data: mockData,
@@ -506,7 +552,11 @@ describe('StatsChart', () => {
       const emptyData = [{
         year: 2024,
         global: {
-          records: []
+          records: [],
+          parents: [],
+          uploaders: [],
+          fileCount: [],
+          dataVolume: []
         }
       }];
 
@@ -519,13 +569,35 @@ describe('StatsChart', () => {
     it('handles missing data gracefully', () => {
       const missingData = [{
         year: 2024,
-        global: {}
+        global: {
+          records: [],
+          parents: [],
+          uploaders: [],
+          fileCount: [],
+          dataVolume: []
+        }
       }];
 
       renderStatsChart({ data: missingData });
 
       // Should show "No Data Available" message instead of chart
       expect(screen.getByText('No Data Available')).toBeInTheDocument();
+    });
+
+    it('handles empty subcounts with proper structure gracefully', () => {
+      renderStatsChart({ data: mockDataWithEmptySubcount });
+
+      // Should still render the chart since global and resourceTypes have data
+      // Empty subcounts with new structure (empty arrays) are filtered out
+      expect(screen.getByText('Test Chart')).toBeInTheDocument();
+      
+      const filterButton = screen.getByLabelText('Stats Chart Filter');
+      fireEvent.click(filterButton);
+
+      // Empty funders subcount should be filtered out and not appear
+      expect(screen.queryByText('Top Funders')).not.toBeInTheDocument();
+      // But resourceTypes with data should still appear
+      expect(screen.getByText('Top Work Types')).toBeInTheDocument();
     });
 
     it('handles null data gracefully', () => {

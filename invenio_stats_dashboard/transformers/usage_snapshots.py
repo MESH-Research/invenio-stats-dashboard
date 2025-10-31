@@ -101,7 +101,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
 
     def _get_default_series_keys(self) -> list[str]:
         """Get the default series keys for usage snapshot data.
-        
+
         Returns:
             list[str]: List of default series keys.
         """
@@ -146,7 +146,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
         """Get the metrics for a special subcount.
-        
+
         Returns:
             list[str]: List of metrics for the special subcount.
         """
@@ -162,7 +162,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         self, subcount: str, metric: str
     ) -> DataSeriesArray:
         """Create a data series array for a special subcount and metric.
-        
+
         Returns:
             DataSeriesArray: The created data series array.
         """
@@ -176,6 +176,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
             value_type="number",
         )
 
+    # FIXME: Deprecated method
     def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
         """Discover metrics from usage snapshot documents.
 
@@ -186,7 +187,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
         - download.unique_visitors → download_visitors
         - download.total_volume → data_volume
         - Plus additional metrics from view/download structures
-        
+
         Returns:
             dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
@@ -226,17 +227,23 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
 
         return {"global": metrics, "subcount": metrics}
 
-    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for usage snapshot data when no documents exist.
-        
+    def _get_default_metrics(self) -> dict[str, list[str]]:
+        """Get default metrics for usage snapshot data.
+
         Returns:
             dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
-        # Standard usage snapshot metrics that should always be available
         metrics = [
-            "data_volume", "download_unique_files", "download_unique_parents",
-            "download_unique_records", "download_visitors", "downloads",
-            "view_unique_parents", "view_unique_records", "view_visitors", "views"
+            "data_volume",
+            "download_unique_files",
+            "download_unique_parents",
+            "download_unique_records",
+            "download_visitors",
+            "downloads",
+            "view_unique_parents",
+            "view_unique_records",
+            "view_visitors",
+            "views",
         ]
         return {
             "global": metrics,
@@ -245,7 +252,7 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
 
     def _create_series_array(self, series_key: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given series key and metric.
-        
+
         Returns:
             DataSeriesArray: The created data series array.
         """

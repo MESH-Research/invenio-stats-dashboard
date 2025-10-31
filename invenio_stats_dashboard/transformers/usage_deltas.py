@@ -91,6 +91,7 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
         """Return the configuration key for usage delta data."""
         return "usage_events"
 
+    # FIXME: Deprecated method
     def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
         """Discover metrics from usage delta documents.
 
@@ -100,7 +101,7 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
         - view.unique_visitors + download.unique_visitors → visitors (max)
         - download.total_volume → data_volume
         - Plus additional metrics from view/download structures
-        
+
         Returns:
             dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
@@ -140,17 +141,23 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
 
         return {"global": metrics, "subcount": metrics}
 
-    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for usage delta data when no documents exist.
-        
+    def _get_default_metrics(self) -> dict[str, list[str]]:
+        """Get default metrics for usage delta data.
+
         Returns:
             dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
-        # Standard usage delta metrics that should always be available
         metrics = [
-            "data_volume", "download_unique_files", "download_unique_parents",
-            "download_unique_records", "download_visitors", "downloads",
-            "view_unique_parents", "view_unique_records", "view_visitors", "views"
+            "data_volume",
+            "download_unique_files",
+            "download_unique_parents",
+            "download_unique_records",
+            "download_visitors",
+            "downloads",
+            "view_unique_parents",
+            "view_unique_records",
+            "view_visitors",
+            "views",
         ]
         return {
             "global": metrics,
@@ -159,7 +166,7 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
 
     def _create_series_array(self, series_key: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given series key and metric.
-        
+
         Returns:
             DataSeriesArray: The created data series array.
         """

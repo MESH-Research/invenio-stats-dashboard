@@ -187,7 +187,7 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
 
     def _get_special_subcount_metrics(self, subcount: str) -> list[str]:
         """Get the metrics for a special subcount.
-        
+
         Returns:
             list[str]: List of metrics for the special subcount.
         """
@@ -198,7 +198,7 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
         self, subcount: str, metric: str
     ) -> DataSeriesArray:
         """Create a data series array for a special subcount and metric.
-        
+
         Returns:
             DataSeriesArray: The created data series array.
         """
@@ -234,12 +234,13 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
             return series_array
         raise NotImplementedError(f"Special subcount {subcount} not implemented")
 
+    # FIXME: Deprecated method
     def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
         """Discover available metrics by examining document structures.
 
         For record deltas, we need to split the 'files' metric into
         'file_count' and 'data_volume' to match dataTransformer.js output.
-        
+
         Returns:
             dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
@@ -266,9 +267,9 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
             "subcount": subcount_metrics,
         }
 
-    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for record delta data when no documents exist.
-        
+    def _get_default_metrics(self) -> dict[str, list[str]]:
+        """Get default metrics for record delta data.
+
         Returns:
             dict[str, list[str]]: Dictionary mapping category to list of metrics.
         """
@@ -288,7 +289,7 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
 
     def _create_series_array(self, subcount: str, metric: str) -> DataSeriesArray:
         """Create a data series array for the given subcount and metric.
-        
+
         Returns:
             DataSeriesArray: The created data series array.
         """

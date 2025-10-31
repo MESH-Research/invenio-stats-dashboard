@@ -46,7 +46,7 @@ class DataPoint:
 
     def to_dict(self) -> DataPointDict:
         """Convert to dictionary format matching JavaScript output.
-        
+
         Returns:
             DataPointDict: Dictionary representation of the data point.
         """
@@ -58,7 +58,7 @@ class DataPoint:
 
     def _format_readable_date(self) -> str:
         """Format date as localized human-readable string matching JavaScript output.
-        
+
         Returns:
             str: Formatted date string.
         """
@@ -131,15 +131,16 @@ class DataSeries(ABC):
 
     def to_dict(self) -> DataSeriesDict:
         """Convert to dictionary format matching JavaScript output.
-        
+
         Returns:
             DataSeriesDict: Dictionary representation of the data series.
         """
         # Handle multilingual labels - preserve as object for JavaScript processing
         name = self.series_name
         if isinstance(name, dict):
+            # Convert AttrDict to plain dict if needed for JSON serialization
             # Keep as object for proper multilingual handling on frontend
-            pass
+            name = dict(name)
         else:
             # Ensure it's a string
             name = str(name)
@@ -154,7 +155,7 @@ class DataSeries(ABC):
 
     def for_json(self) -> DataSeriesDict:
         """Convert to dictionary format for JSON serialization.
-        
+
         Returns:
             DataSeriesDict: Dictionary representation for JSON serialization.
         """
@@ -293,7 +294,7 @@ class DataSeriesArray:
         self, doc: dict[str, Any], data_series: DataSeries
     ) -> dict[str, Any] | None:
         """Get the specific item data for a DataSeries from the document.
-        
+
         Returns:
             dict[str, Any] | None: Item data dictionary, or None if not found.
         """
@@ -346,7 +347,7 @@ class DataSeriesArray:
 
     def to_dict(self) -> list[DataSeriesDict]:
         """Convert to dictionary format.
-        
+
         Returns:
             list[DataSeriesDict]: List of data series dictionaries.
         """
@@ -359,7 +360,7 @@ class DataSeriesArray:
 
     def to_json(self) -> str:
         """Convert to JSON string.
-        
+
         Returns:
             str: JSON string representation.
         """
@@ -392,30 +393,21 @@ class DataSeriesSet(ABC):
                 series for all available subcounts and metrics.
                 Example: ["global", "countries", "institutions"]
         """
-        self.documents = documents
+        self.documents = documents or []
+        self.subcount_configs = current_app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
         self.series_keys = series_keys or self._get_default_series_keys()
         self.series_arrays: dict[str, DataSeriesArray] = {}
         self._built_result: dict[str, dict[str, list[DataSeriesDict]]] | None = None
+        self._initialized = False
 
     def _get_default_series_keys(self) -> list[str]:
         """Get the default series keys for this document category.
-        
+
         Returns:
             list[str]: List of default series keys.
         """
-        from flask import current_app
-
-        # Get subcount configurations from Flask config
-        subcount_configs = current_app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
-
-        # Create series keys - one per subcount, metrics will be generated automatically
-        series_keys = []
-
-        # Add global subcount
-        series_keys.append("global")
-
-        # Add subcount configurations
-        for subcount_name, config in subcount_configs.items():
+        series_keys = ["global"]
+        for subcount_name, config in self.subcount_configs.items():
             if self.config_key in config:
                 series_keys.append(subcount_name)
 
@@ -436,26 +428,14 @@ class DataSeriesSet(ABC):
         """
         return []
 
-    def build(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
-        """Build all data series from the documents.
-
-        Automatically discovers available metrics from document structures and creates
-        series for all discovered metrics in each subcount category.
-
-        Returns:
-            Dictionary with nested structure: {subcount: {metric: [DataSeries]}}
+    def _initialize_series_arrays(self) -> None:
+        """Initialize all series arrays and populate them with existing documents.
+        
+        This creates all DataSeriesArray objects and processes all documents
+        currently in self.documents. Should only be called once.
         """
-        # Return cached result if available
-        if self._built_result is not None:
-            return self._built_result
-
-        # Discover available metrics from document structures
-        discovered_metrics = self._discover_metrics_from_documents()
-
-        # If no documents, generate zero-filled data series for standard metrics
-        if not self.documents:
-            discovered_metrics = self._get_default_metrics_for_empty_data()
-
+        discovered_metrics = self._get_default_metrics()
+        
         # Create ALL DataSeriesArray objects upfront
         for subcount in self.series_keys:
             if subcount in self.special_subcounts:
@@ -472,31 +452,43 @@ class DataSeriesSet(ABC):
                         self.series_arrays[series_key] = (
                             self._create_special_series_array(subcount, metric)
                         )
-
             else:
                 # Get metrics for this subcount
                 if subcount == "global":
                     metrics = discovered_metrics["global"]
                 else:
                     metrics = discovered_metrics["subcount"]
-
+                
                 # Create series array for each metric
                 for metric in metrics:
                     series_key = f"{subcount}_{metric}"
                     self.series_arrays[series_key] = self._create_series_array(
                         subcount, metric
                     )
-
+        
         # Add data to ALL DataSeriesArray objects
         for doc in self.documents:
             for series_array in self.series_arrays.values():
-                series_array.add(dict(doc))
+                series_array.add(doc)
+        
+        # Clear documents from memory after processing
+        # (GC will be triggered by the query pagination loop after processing)
+        self.documents = []
+        
+        self._initialized = True
 
+    def _build_result_dict(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
+        """Build the result dictionary from current series arrays.
+        
+        Returns:
+            Dictionary with nested structure: {subcount: {metric: [DataSeries]}}
+        """
+        discovered_metrics = self._get_default_metrics()
         result: dict[str, dict[str, list[DataSeriesDict]]] = {}
         for subcount in self.series_keys:
             if subcount not in result:
                 result[subcount] = {}
-
+            
             if subcount in self.special_subcounts:
                 special_metrics = self._get_special_subcount_metrics(subcount)
                 if special_metrics:
@@ -509,36 +501,76 @@ class DataSeriesSet(ABC):
                         series_key = f"{subcount}_{metric}"
                         series_array = self.series_arrays[series_key]
                         result[subcount][metric] = series_array.to_dict()
-
             else:
                 if subcount == "global":
                     metrics = discovered_metrics["global"]
                 else:
                     metrics = discovered_metrics["subcount"]
-
+                
                 for metric in metrics:
                     series_key = f"{subcount}_{metric}"
                     series_array = self.series_arrays[series_key]
                     result[subcount][metric] = series_array.to_dict()
+        
+        return result
 
-        # Cache the result
+    def build(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
+        """Build all data series from the documents.
+
+        Automatically discovers available metrics from document structures and creates
+        series for all discovered metrics in each subcount category.
+
+        Returns:
+            Dictionary with nested structure: {subcount: {metric: [DataSeries]}}
+        """
+        # Return cached result if available
+        if self._built_result is not None:
+            return self._built_result
+
+        # Initialize series arrays if not already initialized
+        if not self._initialized:
+            self._initialize_series_arrays()
+
+        # Build and cache the result
+        result = self._build_result_dict()
         self._built_result = result
         return result
 
     def for_json(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
         """Convert to dictionary format for JSON serialization with camelCase keys.
-        
+
         Returns:
             dict[str, dict[str, list[DataSeriesDict]]]: Dictionary with camelCase keys.
         """
         result = self.build()
         return self._convert_to_camelcase(result)
 
+    def add(self, documents: list[AggregationDocumentDict]) -> None:
+        """Add additional documents to a data series set.
+        
+        This method allows incrementally adding documents to the series set.
+        If the series set hasn't been initialized yet (via build() or a previous
+        add() call), it will initialize first by calling build().
+        It will then update all existing series arrays with data from the new documents.
+        
+        Args:
+            documents: List of additional aggregation documents to add
+        """
+        if not self._initialized:
+            self.build()
+        
+        for doc in documents:
+            for series_array in self.series_arrays.values():
+                series_array.add(doc)
+        
+        result = self._build_result_dict()
+        self._built_result = result
+
     def _convert_to_camelcase(
         self, data: dict[str, dict[str, list[DataSeriesDict]]]
     ) -> dict[str, dict[str, list[DataSeriesDict]]]:
         """Convert snake_case keys to camelCase for JSON serialization.
-        
+
         Returns:
             dict[str, dict[str, list[DataSeriesDict]]]: Dictionary with camelCase keys.
         """
@@ -559,13 +591,14 @@ class DataSeriesSet(ABC):
 
     def _to_camelcase(self, snake_str: str) -> str:
         """Convert snake_case string to camelCase.
-        
+
         Returns:
             str: camelCase string.
         """
         components = snake_str.split("_")
         return components[0] + "".join(x.capitalize() for x in components[1:])
 
+    # FIXME: Deprecated method
     def _discover_metrics_from_documents(self) -> dict[str, list[str]]:
         """Discover available metrics by examining document structures.
 
@@ -611,11 +644,8 @@ class DataSeriesSet(ABC):
         }
 
     @abstractmethod
-    def _get_default_metrics_for_empty_data(self) -> dict[str, list[str]]:
-        """Get default metrics for zero-filled data series when no documents exist.
-
-        This ensures that the UI always has consistent data series structure even for
-        years with no data, preventing chart rendering issues.
+    def _get_default_metrics(self) -> dict[str, list[str]]:
+        """Get default metrics for data series.
 
         Returns:
             Dictionary with "global" and "subcount" keys containing standard metrics
@@ -663,7 +693,7 @@ class DataSeriesSet(ABC):
 
     def to_json(self) -> str:
         """Convert all series to JSON string.
-        
+
         Returns:
             str: JSON string representation.
         """

@@ -193,4 +193,84 @@ describe('StatsChart FilterSelector', () => {
       expect(screen.getByText('Top Languages')).toBeInTheDocument(); // languages
     });
   });
+
+  describe('FilterSelector with empty subcounts in data', () => {
+    beforeEach(() => {
+      mockUseStatsDashboard.mockReturnValue({
+        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
+        granularity: 'day',
+        isLoading: false,
+        ui_subcounts: {
+          'by_resource_types': {},
+          'by_subjects': {},
+          'by_funders': {}
+        }
+      });
+    });
+
+    it('should filter out empty subcounts from breakdown options', () => {
+      const dataWithEmptySubcounts = [{
+        year: 2024,
+        global: {
+          records: [
+            {
+              id: 'records',
+              name: 'Records',
+              data: [
+                { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
+                { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+              ]
+            }
+          ]
+        },
+        resourceTypes: {
+          records: [
+            {
+              id: 'article',
+              name: 'Article',
+              data: [
+                { value: [new Date('2024-01-01T00:00:00.000Z'), 5] }
+              ]
+            }
+          ]
+        },
+        subjects: {
+          records: [
+            {
+              id: 'science',
+              name: 'Science',
+              data: [
+                { value: [new Date('2024-01-01T00:00:00.000Z'), 3] }
+              ]
+            }
+          ]
+        },
+        // Empty subcount with empty metric arrays (new structure)
+        funders: {
+          records: [],
+          parents: [],
+          fileCount: [],
+          dataVolume: []
+        }
+      }];
+
+      render(
+        <StatsChart
+          data={dataWithEmptySubcounts}
+          seriesSelectorOptions={mockSeriesSelectorOptions}
+          title="Test Chart"
+        />
+      );
+
+      // Click the filter button to open the popup
+      const filterButton = screen.getByLabelText('Stats Chart Filter');
+      fireEvent.click(filterButton);
+
+      // Check that only subcounts with data are shown
+      expect(screen.getByText('Top Work Types')).toBeInTheDocument(); // resourceTypes has data
+      expect(screen.getByText('Top Subjects')).toBeInTheDocument(); // subjects has data
+      // Empty funders subcount should not appear
+      expect(screen.queryByText('Top Funders')).not.toBeInTheDocument();
+    });
+  });
 });
