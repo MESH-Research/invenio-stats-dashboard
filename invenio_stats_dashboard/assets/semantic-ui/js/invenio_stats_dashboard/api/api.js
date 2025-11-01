@@ -8,6 +8,7 @@ import axios from "axios";
 import { DASHBOARD_TYPES } from "../constants";
 import { generateTestStatsData } from "../components/test_data";
 import { findMissingBlocks, mergeYearlyStats } from "./yearlyBlockManager";
+import { getCachedStats, setCachedStats } from "../utils/statsCacheWorker";
 
 import { kebabToCamel } from "../utils";
 
@@ -96,7 +97,8 @@ const updateState = (
           ...baseState,
           isLoading: false,
           isUpdating: false,
-          lastUpdated: Date.now(),
+          // lastUpdated will be set in the return value if data was actually fetched
+          // Don't set it here - let the caller decide based on whether data was fetched
         });
         break;
       case "error":
@@ -260,40 +262,126 @@ const fetchStatsWithYearlyBlocks = async ({
     const missingBlocks = findMissingBlocks(startDate, endDate, currentStats);
 
     if (missingBlocks.length === 0) {
+      // All data already in memory, nothing fetched - don't update timestamps
       updateState(onStateChange, isMounted, "data_loaded", currentStats);
       return {
         stats: currentStats,
-        lastUpdated: Date.now(),
+        // Don't include lastUpdated or currentYearLastUpdated - we didn't fetch anything,
+        // so UI should preserve existing timestamp values
         error: null,
       };
     }
 
+    // Try to load missing blocks from IndexedDB cache first
+    const blocksToFetch = [];
+    const cachedBlocks = [];
+    let currentYearLastUpdated = null;
+    const currentYear = new Date().getUTCFullYear();
+
+    for (const block of missingBlocks) {
+      const blockStartDate = block.startDate.toISOString().split('T')[0];
+      const blockEndDate = block.endDate.toISOString().split('T')[0];
+
+      // Try to get from IndexedDB cache
+      const cacheStartTime = performance.now();
+      const cacheResult = await getCachedStats(
+        communityId,
+        dashboardType,
+        dateBasis,
+        blockStartDate,
+        blockEndDate,
+      );
+      const cacheDuration = performance.now() - cacheStartTime;
+
+      if (cacheResult && cacheResult.data) {
+        console.log(`Year ${block.year}: Loaded from cache in ${cacheDuration.toFixed(2)}ms (vs ~10-20s from server)`);
+        
+        // Track current year's server fetch time from cache
+        if (block.year === currentYear && cacheResult.serverFetchTimestamp) {
+          if (!currentYearLastUpdated || cacheResult.serverFetchTimestamp > currentYearLastUpdated) {
+            currentYearLastUpdated = cacheResult.serverFetchTimestamp;
+          }
+        }
+        
+        // Add year property to cached data
+        cachedBlocks.push({
+          ...cacheResult.data,
+          year: block.year,
+        });
+      } else {
+        console.log(`Year ${block.year}: Not in cache, will fetch from server`);
+        // Mark for API fetch
+        blocksToFetch.push(block);
+      }
+    }
+
+    // Fetch missing blocks from API
     const newYearlyStats = await Promise.all(
-      missingBlocks.map(async (block) => {
-        return await statsApiClient.getStats(
+      blocksToFetch.map(async (block) => {
+        const blockStartDate = block.startDate.toISOString().split('T')[0];
+        const blockEndDate = block.endDate.toISOString().split('T')[0];
+
+        const fetchStartTime = performance.now();
+        const stats = await statsApiClient.getStats(
           communityId,
           dashboardType,
-          block.startDate,
-          block.endDate,
+          blockStartDate,
+          blockEndDate,
           dateBasis,
           dashboardConfig,
         );
+        const fetchDuration = performance.now() - fetchStartTime;
+        const serverFetchTime = Date.now();
+
+        console.log(`Year ${block.year}: Fetched from server in ${(fetchDuration / 1000).toFixed(2)}s`);
+
+        // Track current year's server fetch time
+        if (block.year === currentYear) {
+          if (!currentYearLastUpdated || serverFetchTime > currentYearLastUpdated) {
+            currentYearLastUpdated = serverFetchTime;
+          }
+        }
+
+        // Cache the fetched data in IndexedDB for future use (async, non-blocking)
+        // Include dateBasis and year for proper identification
+        setCachedStats(
+          communityId,
+          dashboardType,
+          stats,
+          dateBasis,
+          blockStartDate,
+          blockEndDate,
+          block.year,
+        ).catch(err => {
+          console.warn(`Failed to cache year ${block.year}:`, err);
+        });
+
+        return stats;
       }),
     );
 
-    // Add year property to each stats object
-    const yearStatsWithYear = newYearlyStats.map((stats, index) => ({
-      ...stats,
-      year: missingBlocks[index].year,
-    }));
+    // Combine cached and newly fetched blocks
+    const allNewYearlyStats = [
+      ...cachedBlocks,
+      ...newYearlyStats.map((stats, index) => ({
+        ...stats,
+        year: blocksToFetch[index].year,
+      })),
+    ];
 
-    const updatedStats = mergeYearlyStats(currentStats, yearStatsWithYear);
+    const updatedStats = mergeYearlyStats(currentStats, allNewYearlyStats);
 
-    updateState(onStateChange, isMounted, "data_loaded", updatedStats);
+    // We actually fetched/retrieved blocks, so update timestamps
+    const fetchTimestamp = Date.now();
+    updateState(onStateChange, isMounted, "data_loaded", updatedStats, {
+      lastUpdated: fetchTimestamp,
+      currentYearLastUpdated: currentYearLastUpdated,
+    });
 
     return {
       stats: updatedStats,
-      lastUpdated: Date.now(),
+      lastUpdated: fetchTimestamp,
+      currentYearLastUpdated: currentYearLastUpdated, // Last server fetch time for current year
       error: null,
     };
   } catch (error) {
@@ -304,6 +392,7 @@ const fetchStatsWithYearlyBlocks = async ({
     return {
       stats: currentStats,
       lastUpdated: null,
+      currentYearLastUpdated: null,
       error,
     };
   }

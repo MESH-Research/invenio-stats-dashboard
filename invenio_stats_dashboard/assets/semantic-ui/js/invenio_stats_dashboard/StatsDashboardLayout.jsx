@@ -64,6 +64,7 @@ const StatsDashboardLayout = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [currentYearLastUpdated, setCurrentYearLastUpdated] = useState(null);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
@@ -117,6 +118,11 @@ const StatsDashboardLayout = ({
               // Only set lastUpdated if it's provided
               if (state.lastUpdated !== undefined) {
                 setLastUpdated(state.lastUpdated);
+              }
+
+              // Set current year's last updated time (from server fetch)
+              if (state.currentYearLastUpdated !== undefined) {
+                setCurrentYearLastUpdated(state.currentYearLastUpdated);
               }
             }
           },
@@ -237,7 +243,7 @@ const StatsDashboardLayout = ({
             <ReportSelector />
             <UpdateStatusMessage
               isUpdating={isUpdating}
-              lastUpdated={lastUpdated}
+              lastUpdated={currentYearLastUpdated || lastUpdated}
               className="rel-mt-2"
             />
           </Grid.Column>
