@@ -80,7 +80,7 @@ class DataSeriesMemoryEstimator:
         
         # Page size limits
         self.page_size_min = int(cfg.get("STATS_DATA_SERIES_PAGE_SIZE_MIN", 50))
-        self.page_size_max = int(cfg.get("STATS_DATA_SERIES_PAGE_SIZE_MAX", 500))
+        self.page_size_max = int(cfg.get("STATS_DATA_SERIES_PAGE_SIZE_MAX", 365))
         
         # ===== SECTION 2: Set up memory budget =====
         # Calculate how much memory we're allowed to use
@@ -795,261 +795,14 @@ class RecordDeltaDataSeriesQuery(DataSeriesQueryBase):
         return f"{self.index}-{date_basis}"
 
 
-class CategoryDataSeriesQueryBase(Query):
+class CategoryDataSeriesQueryBase(DataSeriesQueryBase):
     """Base class for category-wide data series queries."""
-
-    date_field: str  # Type annotation for child classes
-    transformer_class: type[DataSeriesSet]  # Type annotation for transformer class
-
-    def __init__(
-        self, name: str, index: str, client: OpenSearch | None = None, *args, **kwargs
-    ):
-        """Initialize the query."""
-        super().__init__(name, index, client, *args, **kwargs)
-        
-        # Memory management configuration
-        cfg = current_app.config
-        self.page_size_min = int(cfg.get("STATS_DATA_SERIES_PAGE_SIZE_MIN", 50))
-        self.page_size_max = int(cfg.get("STATS_DATA_SERIES_PAGE_SIZE_MAX", 500))
-        self.mem_budget_bytes = cfg.get("STATS_DATA_SERIES_MEM_BUDGET_BYTES")
-        self.mem_high_water_percent = float(
-            cfg.get("STATS_DATA_SERIES_MEM_HIGH_WATER_PERCENT", 0.75)
-        )
-        
-        # Cache process handle and total memory once
-        try:
-            self.proc = psutil.Process()
-        except Exception:
-            self.proc = None  # type: ignore[assignment]
-        try:
-            self.total_mem = psutil.virtual_memory().total
-        except Exception:
-            self.total_mem = 0
-        
-        # Compute effective memory budget once
-        if isinstance(self.mem_budget_bytes, int) and self.mem_budget_bytes > 0:
-            self.mem_budget_effective = int(self.mem_budget_bytes)
-        else:
-            self.mem_budget_effective = (
-                int(self.total_mem * self.mem_high_water_percent)
-                if self.total_mem
-                else 0
-            )
-        
-        # Memory estimator will be created per query with stable config
     
-    def _get_page_size(self) -> int:
-        """Get the configured page size for paginated queries.
-        
-        Returns:
-            int: Page size for pagination (default: 365)
-        """
-        return int(current_app.config.get("STATS_DATA_SERIES_PAGE_SIZE", 365))
-    
-    def _calculate_series_count(self, series_set: DataSeriesSet) -> int:
-        """Calculate the number of series arrays based on transformer structure.
-        
-        Args:
-            series_set: The DataSeriesSet instance that will be used.
-            
-        Returns:
-            int: Total number of series arrays that will be created.
-        """
-        # Use the already-created transformer instance
-        series_keys = series_set.series_keys
-        discovered_metrics = series_set._get_default_metrics()
-        special_subcounts = series_set.special_subcounts
-        
-        total_count = 0
-        for subcount in series_keys:
-            if subcount in special_subcounts:
-                special_metrics = series_set._get_special_subcount_metrics(subcount)
-                if special_metrics:
-                    total_count += len(special_metrics)
-                else:
-                    total_count += len(discovered_metrics["subcount"])
-            else:
-                if subcount == "global":
-                    total_count += len(discovered_metrics["global"])
-                else:
-                    total_count += len(discovered_metrics["subcount"])
-        
-        return total_count
-
-    def _measure_sample_document_bytes(
-        self,
-        search_index: str,
-        must_clauses: list[dict],
-    ) -> int | None:
-        """Fetch a single sample document and measure its serialized size.
-        
-        This provides a more accurate initial estimate for bytes_per_doc
-        than using a config default.
-        
-        Args:
-            search_index: The index to search
-            must_clauses: Query clauses for the search
-            
-        Returns:
-            Size in bytes of a sample document, or None if unable to fetch.
-        """
-        try:
-            sample_search = (
-                Search(using=self.client, index=search_index)
-                .query(Q("bool", must=must_clauses))
-                .extra(size=1)
-            )
-            response = sample_search.execute()
-            hits = response.hits.hits
-            
-            if not hits:
-                return None
-            
-            # Get the _source document (AttrDict)
-            sample_doc = hits[0]["_source"]
-            
-            # Serialize to measure actual byte size (as orjson would)
-            # Convert AttrDict to dict for serialization
-            doc_dict = dict(sample_doc) if hasattr(sample_doc, "keys") else sample_doc
-            serialized_bytes = orjson.dumps(
-                doc_dict, option=orjson.OPT_NAIVE_UTC
-            )
-            
-            return len(serialized_bytes)
-        except Exception as e:
-            current_app.logger.debug(
-                f"Failed to fetch sample document for size estimation: {e}"
-            )
-            return None
-
-    def _fetch_documents_paginated_and_add(
-        self,
-        search_index: str,
-        must_clauses: list[dict],
-        date_field: str,
-        series_set: DataSeriesSet,
-        total_count: int | None = None,
-    ) -> None:
-        """Fetch documents using pagination and add them incrementally to series_set.
-        
-        This method processes documents page by page, adding each page to the
-        series set and then releasing the page from memory before fetching the next.
-        Includes memory health checks to adaptively adjust page size.
-        
-        Args:
-            search_index: The index to search
-            must_clauses: Query clauses for the search
-            date_field: Field to sort by (also used for search_after)
-            series_set: DataSeriesSet instance to add documents to
-            total_count: Total number of documents in the query (for memory estimation)
-        """
-        initial_page_size = self._get_page_size()
-        series_count = self._calculate_series_count(series_set)
-        
-        # Fetch a sample document to get accurate initial size estimate
-        sample_doc_bytes = self._measure_sample_document_bytes(
-            search_index, must_clauses
-        )
-        
-        estimator = DataSeriesMemoryEstimator(
-            series_count=series_count,
-            initial_page_size=initial_page_size,
-            total_count=total_count,
-            sample_doc_bytes=sample_doc_bytes,
-        )
-        current_page_size = estimator.get_current_page_size()
-        
-        days_processed = 0
-        search_after = None
-        iteration_count = 0
-        max_iterations = 10000  # Safety limit: should never be reached
-        
-        while iteration_count < max_iterations:
-            iteration_count += 1
-            
-            agg_search = (
-                Search(using=self.client, index=search_index)
-                .query(Q("bool", must=must_clauses))
-                .extra(size=current_page_size)
-            )
-            agg_search.sort(date_field, "_id")
-            
-            if search_after:
-                agg_search = agg_search.extra(search_after=search_after)
-            
-            try:
-                response = agg_search.execute()
-                hits = response.hits.hits
-                
-                if not hits:
-                    break
-                
-                # Extract sort value from last hit before processing documents
-                last_hit = hits[-1] if hits else None
-                next_search_after = None
-                if last_hit:
-                    if hasattr(last_hit.meta, "sort") and last_hit.meta.sort:
-                        sort_values = last_hit.meta.sort
-                        if len(sort_values) >= 2:
-                            next_search_after = [sort_values[0], sort_values[1]]
-                
-                # Note: h["_source"] is an AttrDict. We use it directly to avoid 
-                # the memory overhead of .to_dict() conversion. 
-                page_documents = [h["_source"] for h in hits]
-                
-                # Process this page
-                series_set.add(page_documents)
-                page_count = len(page_documents)
-                days_processed += page_count
-                
-                # Capture RSS with page in memory (before cleanup) on first iteration
-                if iteration_count == 1:
-                    estimator.capture_page_rss()
-                
-                # Clear the page from memory immediately
-                del hits
-                del page_documents
-                del response
-                gc.collect()
-                
-                # Update page size (re-estimates if first page, then adjusts)
-                current_page_size = estimator.update_page_size(days_processed)
-                
-                # Break if we got fewer results than page size (end of results)
-                if page_count < current_page_size:
-                    break
-                
-                search_after = next_search_after
-                
-                # If we couldn't get search_after, break (safety check)
-                if not search_after:
-                    current_app.logger.warning(
-                        f"Could not extract search_after from last hit, "
-                        f"stopping pagination at iteration {iteration_count}"
-                    )
-                    break
-                
-                # Log progress every 100 iterations as a sanity check
-                if iteration_count % 100 == 0:
-                    current_app.logger.debug(
-                        f"Pagination progress: iteration {iteration_count}, "
-                        f"page_size: {current_page_size}, "
-                        f"search_after: {search_after}, "
-                        f"days_processed: {days_processed}"
-                    )
-                
-            except Exception as e:
-                current_app.logger.error(
-                    f"Error fetching paginated documents at iteration "
-                    f"{iteration_count}: {e}"
-                )
-                break
-        
-        if iteration_count >= max_iterations:
-            current_app.logger.error(
-                f"Pagination hit maximum iteration limit ({max_iterations}). "
-                f"This should never happen and indicates a bug."
-            )
+    # Inherits all methods from DataSeriesQueryBase:
+    # - _get_page_size()
+    # - _calculate_series_count()
+    # - _measure_sample_document_bytes()
+    # - _fetch_documents_paginated_and_add()
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
         """Get the appropriate index based on date_basis.
@@ -1062,7 +815,7 @@ class CategoryDataSeriesQueryBase(Query):
         """
         return str(self.index)
 
-    def run(
+    def run(  # type: ignore[override]
         self,
         community_id: str = "global",
         start_date: str | None = None,

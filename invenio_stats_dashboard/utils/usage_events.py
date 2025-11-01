@@ -376,7 +376,7 @@ class UsageEventFactory:
                 )
                 events.append((view_event, view_id))
 
-                if record_data["files"]["enabled"]:
+                if record_data.get("files", {}).get("enabled", False):
                     download_event, download_id = UsageEventFactory.make_download_event(
                         record_data, event_date, len(events), enrich_events
                     )
@@ -534,12 +534,13 @@ class UsageEventFactory:
             # Don't set a default here - let _validate_date_range handle it per record
             event_start_arrow = None
         else:
-            event_start_arrow = arrow.get(event_start_date)
+            event_start_arrow = arrow.get(event_start_date + 'T00:00:00+00:00')
 
         if event_end_date == "":
             event_end_arrow = arrow.utcnow()
         else:
-            event_end_arrow = arrow.get(event_end_date)
+            # Set to end of day in UTC
+            event_end_arrow = arrow.get(event_end_date + 'T23:59:59+00:00')
 
         records = UsageEventFactory._get_records_for_date_range(
             start_date, end_date, max_records

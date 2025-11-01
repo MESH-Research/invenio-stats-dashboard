@@ -495,10 +495,17 @@ class TestMemoryEstimator:
             k_delta_overhead = app.config["COMMUNITY_STATS_DELTA_OVERHEAD"]
             k_bulk_overhead = app.config["COMMUNITY_STATS_BULK_OVERHEAD"]
             k_ws_overhead = app.config["COMMUNITY_STATS_WS_OVERHEAD"]
+            inmemory_factor = float(
+                app.config.get("COMMUNITY_STATS_INMEMORY_MULTIPLIER", 4.0)
+            )
 
-            expected_per_doc_bytes = (
+            expected_per_doc_bytes_serialized = (
                 per_doc_top_items * refined_avg_top
                 + per_doc_all_items * refined_avg_all
+            )
+            # Account for inmemory_factor in per_delta_bytes calculation
+            expected_per_doc_bytes = int(
+                expected_per_doc_bytes_serialized * inmemory_factor
             )
             expected_scan_page_bytes = int(
                 planned_scan * expected_per_doc_bytes * k_scan_overhead
@@ -508,11 +515,17 @@ class TestMemoryEstimator:
             )
 
             # Payload and working sets from previous snapshot
-            payload_bytes = len(orjson.dumps(prev_snapshot_small))
+            payload_bytes_serialized = len(orjson.dumps(prev_snapshot_small))
+            # Account for inmemory_factor in payload_bytes
+            payload_bytes = int(payload_bytes_serialized * inmemory_factor)
             all_projection = {
                 k: prev_snapshot_small["subcounts"].get(k, []) for k in all_keys
             }
-            working_all_bytes = int(len(orjson.dumps(all_projection)) * k_ws_overhead)
+            working_all_bytes_serialized = int(
+                len(orjson.dumps(all_projection)) * k_ws_overhead
+            )
+            # Account for inmemory_factor in working_all_bytes
+            working_all_bytes = int(working_all_bytes_serialized * inmemory_factor)
 
             indexing_buffer_bytes = int(planned_chunk * payload_bytes * k_bulk_overhead)
             build_payload_bytes = payload_bytes
@@ -567,8 +580,10 @@ class TestMemoryEstimator:
                 )
                 est_total_unique_items += est_unique_items
             
+            # Account for inmemory_factor in exhaustive_cache_bytes
+            # (implementation multiplies the 1.3 factor result by inmemory_factor)
             expected_exhaustive_cache_bytes = int(
-                est_total_unique_items * avg_item_bytes * 1.3
+                est_total_unique_items * avg_item_bytes * 1.3 * inmemory_factor
             )
             
             # Assertions: tight equality for components we can verify
