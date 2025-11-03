@@ -135,14 +135,14 @@ export const getCachedStats = async (communityId, dashboardType, dateBasis = 'ad
     // Worker returns { success, data, serverFetchTimestamp, year }
     // We return the full object so API can access serverFetchTimestamp
     if (result && result.data) {
-      console.log(`✅ Retrieved cached data for: ${communityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
+      console.log(`Retrieved cached data for: ${communityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
       return {
         data: result.data,
         serverFetchTimestamp: result.serverFetchTimestamp || null,
         year: result.year || null
       };
     } else {
-      console.log(`❌ No cached data found for: ${communityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
+      console.log(`No cached data found for: ${communityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
       return null;
     }
   } catch (error) {

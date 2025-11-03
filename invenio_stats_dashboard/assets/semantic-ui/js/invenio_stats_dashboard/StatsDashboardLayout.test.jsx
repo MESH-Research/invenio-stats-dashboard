@@ -9,15 +9,18 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { StatsDashboardLayout } from './StatsDashboardLayout';
-import { getCachedStats, setCachedStats, clearCachedStats } from './utils/statsCache';
 import { fetchStats } from './api/api';
 import { statsApiClient } from './api/api';
 
-// Mock dependencies
-jest.mock('./utils/statsCache', () => ({
+// Mock dependencies - Note: statsCacheWorker is imported by api.js, so we mock it there
+jest.mock('./utils/statsCacheWorker', () => ({
   getCachedStats: jest.fn(),
   setCachedStats: jest.fn(),
-  clearCachedStats: jest.fn(),
+  formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
+}));
+
+// Also mock statsCache since UpdateStatusMessage imports formatCacheTimestamp from there
+jest.mock('./utils/statsCache', () => ({
   formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
 }));
 
@@ -196,8 +199,8 @@ const mockTransformedStats = [
 describe('StatsDashboardLayout with caching', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    clearCachedStats.mockClear();
-    getCachedStats.mockReturnValue(null);
+    const { getCachedStats, setCachedStats } = require('./utils/statsCacheWorker');
+    getCachedStats.mockResolvedValue(null);
     setCachedStats.mockClear();
     statsApiClient.getStats.mockResolvedValue(mockRawStats);
     fetchStats.mockImplementation(({ onStateChange, isMounted, useTestData }) => {
@@ -365,6 +368,191 @@ describe('StatsDashboardLayout with caching', () => {
     await waitFor(() => {
       expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
     });
+  });
+
+  it('should display currentYearLastUpdated when available', async () => {
+    const currentYearTimestamp = Date.now() - 5000; // 5 seconds ago
+    
+    fetchStats.mockImplementation(({ onStateChange, isMounted }) => {
+      if (onStateChange && isMounted && isMounted()) {
+        onStateChange({
+          type: 'loading_started',
+          stats: null,
+          isLoading: true,
+          isUpdating: false,
+          error: null
+        });
+
+        setTimeout(() => {
+          if (isMounted && isMounted()) {
+            onStateChange({
+              type: 'data_loaded',
+              stats: mockTransformedStats,
+              isLoading: false,
+              isUpdating: false,
+              lastUpdated: Date.now(),
+              currentYearLastUpdated: currentYearTimestamp,
+              error: null
+            });
+          }
+        }, 100);
+      }
+
+      return Promise.resolve({
+        stats: mockTransformedStats,
+        lastUpdated: Date.now(),
+        currentYearLastUpdated: currentYearTimestamp,
+        error: null
+      });
+    });
+
+    render(
+      <StatsDashboardLayout
+        dashboardConfig={mockDashboardConfig}
+        dashboardType="community"
+        community={mockCommunity}
+        containerClassNames=""
+        sidebarClassNames=""
+        bodyClassNames=""
+      />
+    );
+
+    // Should show last updated message with currentYearLastUpdated
+    await waitFor(() => {
+      expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
+    });
+
+    // Verify formatCacheTimestamp was called with currentYearLastUpdated
+    const { formatCacheTimestamp } = require('./utils/statsCache');
+    await waitFor(() => {
+      expect(formatCacheTimestamp).toHaveBeenCalledWith(currentYearTimestamp);
+    });
+  });
+
+  it('should fall back to lastUpdated when currentYearLastUpdated is not available', async () => {
+    const fallbackTimestamp = Date.now() - 10000; // 10 seconds ago
+    
+    fetchStats.mockImplementation(({ onStateChange, isMounted }) => {
+      if (onStateChange && isMounted && isMounted()) {
+        onStateChange({
+          type: 'loading_started',
+          stats: null,
+          isLoading: true,
+          isUpdating: false,
+          error: null
+        });
+
+        setTimeout(() => {
+          if (isMounted && isMounted()) {
+            onStateChange({
+              type: 'data_loaded',
+              stats: mockTransformedStats,
+              isLoading: false,
+              isUpdating: false,
+              lastUpdated: fallbackTimestamp,
+              // No currentYearLastUpdated
+              error: null
+            });
+          }
+        }, 100);
+      }
+
+      return Promise.resolve({
+        stats: mockTransformedStats,
+        lastUpdated: fallbackTimestamp,
+        error: null
+      });
+    });
+
+    render(
+      <StatsDashboardLayout
+        dashboardConfig={mockDashboardConfig}
+        dashboardType="community"
+        community={mockCommunity}
+        containerClassNames=""
+        sidebarClassNames=""
+        bodyClassNames=""
+      />
+    );
+
+    // Should show last updated message with fallback timestamp
+    await waitFor(() => {
+      expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
+    });
+
+    // Verify formatCacheTimestamp was called with lastUpdated as fallback
+    const { formatCacheTimestamp } = require('./utils/statsCache');
+    await waitFor(() => {
+      expect(formatCacheTimestamp).toHaveBeenCalledWith(fallbackTimestamp);
+    });
+  });
+
+  it('should prefer currentYearLastUpdated over lastUpdated when both are available', async () => {
+    const lastUpdatedTimestamp = Date.now() - 20000; // 20 seconds ago
+    const currentYearTimestamp = Date.now() - 5000; // 5 seconds ago
+    
+    fetchStats.mockImplementation(({ onStateChange, isMounted }) => {
+      if (onStateChange && isMounted && isMounted()) {
+        onStateChange({
+          type: 'loading_started',
+          stats: null,
+          isLoading: true,
+          isUpdating: false,
+          error: null
+        });
+
+        setTimeout(() => {
+          if (isMounted && isMounted()) {
+            onStateChange({
+              type: 'data_loaded',
+              stats: mockTransformedStats,
+              isLoading: false,
+              isUpdating: false,
+              lastUpdated: lastUpdatedTimestamp,
+              currentYearLastUpdated: currentYearTimestamp,
+              error: null
+            });
+          }
+        }, 100);
+      }
+
+      return Promise.resolve({
+        stats: mockTransformedStats,
+        lastUpdated: lastUpdatedTimestamp,
+        currentYearLastUpdated: currentYearTimestamp,
+        error: null
+      });
+    });
+
+    render(
+      <StatsDashboardLayout
+        dashboardConfig={mockDashboardConfig}
+        dashboardType="community"
+        community={mockCommunity}
+        containerClassNames=""
+        sidebarClassNames=""
+        bodyClassNames=""
+      />
+    );
+
+    // Should show last updated message
+    await waitFor(() => {
+      expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
+    });
+
+    // Verify formatCacheTimestamp was called with currentYearLastUpdated (preferred)
+    // Note: It may also be called with lastUpdated during initial render, but the final
+    // render should use currentYearLastUpdated
+    const { formatCacheTimestamp } = require('./utils/statsCache');
+    await waitFor(() => {
+      // The component should eventually call formatCacheTimestamp with currentYearLastUpdated
+      expect(formatCacheTimestamp).toHaveBeenCalledWith(currentYearTimestamp);
+    });
+    
+    // Verify the displayed timestamp uses currentYearLastUpdated by checking the final call
+    const calls = formatCacheTimestamp.mock.calls;
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall[0]).toBe(currentYearTimestamp);
   });
 
         it('should handle global dashboard type', async () => {
