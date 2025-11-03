@@ -8,6 +8,10 @@
  * Web Worker for handling IndexedDB cache operations off the main thread
  */
 
+/* eslint-disable no-restricted-globals */
+// In Web Workers, 'self' is the global object (equivalent to 'window' in main thread)
+// This is the standard and correct way to access the worker's global scope
+
 // Import pako for compression/decompression
 // Note: This requires pako to be available as an ES module in your build system
 // If using webpack/vite, ensure pako is bundled for the worker context
