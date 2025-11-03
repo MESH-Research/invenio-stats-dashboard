@@ -19,11 +19,23 @@ const pendingMessages = new Map();
 const getWorker = () => {
   if (!worker) {
     // Create worker from the worker file
-    // Note: In a build system, you may need to adjust this path
-    worker = new Worker(
-      new URL('./statsCache.worker.js', import.meta.url),
-      { type: 'module' }
-    );
+    // Webpack 5 natively supports this syntax and will automatically:
+    // 1. Detect this as a worker entry point
+    // 2. Create a separate chunk for the worker
+    // 3. Resolve the path correctly at runtime, even in complex multi-package builds
+    // The relative path './statsCache.worker.js' resolves correctly because:
+    // - Both files are in the same 'workers/' directory
+    // - Webpack preserves the relative relationship during bundling
+    // - import.meta.url points to the bundled location at runtime
+    try {
+      worker = new Worker(
+        new URL('./statsCache.worker.js', import.meta.url),
+        { type: 'module' }
+      );
+    } catch (error) {
+      console.error('Failed to create stats cache worker:', error);
+      throw error;
+    }
 
     // Handle messages from worker
     worker.addEventListener('message', (event) => {
@@ -33,6 +45,8 @@ const getWorker = () => {
       if (pending) {
         pendingMessages.delete(id);
         if (result.success) {
+          // cache fetching promises will have a `data` property to return, 
+          // but for cache set/clear operations we return the full result object
           pending.resolve(result.data !== undefined ? result.data : result);
         } else {
           pending.reject(new Error(result.error || 'Worker operation failed'));
@@ -192,5 +206,5 @@ export const terminateWorker = () => {
 };
 
 // Export formatCacheTimestamp from the original module (this doesn't need a worker)
-export { formatCacheTimestamp } from './statsCache';
+export { formatCacheTimestamp } from '../utils/statsCache';
 

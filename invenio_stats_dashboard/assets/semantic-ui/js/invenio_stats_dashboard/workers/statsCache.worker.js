@@ -362,30 +362,77 @@ const handleClearAllCachedStats = async () => {
   }
 };
 
-// Listen for messages from the main thread
-self.addEventListener('message', async (event) => {
-  const { type, id, params } = event.data;
+// Message queue with priority (GET operations processed before SET)
+const messageQueue = [];
+let isProcessing = false;
 
-  let result;
+// Priority: Lower number = higher priority
+const MESSAGE_PRIORITY = {
+  'GET_CACHED_STATS': 1,           // Highest priority - users are waiting
+  'CLEAR_CACHED_STATS_FOR_KEY': 2,
+  'CLEAR_ALL_CACHED_STATS': 2,
+  'SET_CACHED_STATS': 10,          // Lowest priority - can wait
+};
 
-  switch (type) {
-    case 'SET_CACHED_STATS':
-      result = await handleSetCachedStats(params);
-      break;
-    case 'GET_CACHED_STATS':
-      result = await handleGetCachedStats(params);
-      break;
-    case 'CLEAR_CACHED_STATS_FOR_KEY':
-      result = await handleClearCachedStatsForKey(params);
-      break;
-    case 'CLEAR_ALL_CACHED_STATS':
-      result = await handleClearAllCachedStats();
-      break;
-    default:
-      result = { success: false, error: `Unknown message type: ${type}` };
+// Process messages from queue (prioritizes GET over SET)
+const processQueue = async () => {
+  if (isProcessing || messageQueue.length === 0) {
+    return;
   }
 
-  // Send result back to main thread
-  self.postMessage({ id, type, result });
+  isProcessing = true;
+
+  while (messageQueue.length > 0) {
+    // Sort queue by priority (GETs first)
+    messageQueue.sort((a, b) => {
+      const priorityA = MESSAGE_PRIORITY[a.type] || 100;
+      const priorityB = MESSAGE_PRIORITY[b.type] || 100;
+      return priorityA - priorityB;
+    });
+
+    const { type, id, params } = messageQueue.shift();
+    let result;
+
+    try {
+      switch (type) {
+        case 'SET_CACHED_STATS':
+          result = await handleSetCachedStats(params);
+          break;
+        case 'GET_CACHED_STATS':
+          result = await handleGetCachedStats(params);
+          break;
+        case 'CLEAR_CACHED_STATS_FOR_KEY':
+          result = await handleClearCachedStatsForKey(params);
+          break;
+        case 'CLEAR_ALL_CACHED_STATS':
+          result = await handleClearAllCachedStats();
+          break;
+        default:
+          result = { success: false, error: `Unknown message type: ${type}` };
+      }
+
+      // Send result back to main thread
+      self.postMessage({ id, type, result });
+    } catch (error) {
+      self.postMessage({ 
+        id, 
+        type, 
+        result: { success: false, error: error.message } 
+      });
+    }
+  }
+
+  isProcessing = false;
+};
+
+// Listen for messages from the main thread
+self.addEventListener('message', (event) => {
+  const { type, id, params } = event.data;
+
+  // Add message to queue
+  messageQueue.push({ type, id, params });
+
+  // Process queue (will handle priority sorting)
+  processQueue();
 });
 

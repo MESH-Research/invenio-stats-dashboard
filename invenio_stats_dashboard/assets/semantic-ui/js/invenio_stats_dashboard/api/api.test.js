@@ -12,7 +12,7 @@ global.performance = global.performance || {
 };
 
 // Mock dependencies first
-jest.mock('../utils/statsCacheWorker', () => ({
+jest.mock('../workers/statsCacheWorker', () => ({
   getCachedStats: jest.fn(),
   setCachedStats: jest.fn(),
 }));
@@ -34,7 +34,7 @@ jest.mock('axios', () => ({
 
 // Import after mocks
 import { fetchStatsWithYearlyBlocks } from './api';
-import { getCachedStats, setCachedStats } from '../utils/statsCacheWorker';
+import { getCachedStats, setCachedStats } from '../workers/statsCacheWorker';
 import { findMissingBlocks, mergeYearlyStats } from './yearlyBlockManager';
 
 // Get statsApiClient from the actual module after import
@@ -61,7 +61,7 @@ describe('API Cache Integration', () => {
     });
     
     // Set up setCachedStats to return a resolved promise (so .catch() works)
-    const { setCachedStats } = require('../utils/statsCacheWorker');
+    const { setCachedStats } = require('../workers/statsCacheWorker');
     setCachedStats.mockResolvedValue({ success: true });
     
     // Mock statsApiClient.getStats for all tests

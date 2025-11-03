@@ -8,7 +8,7 @@ import axios from "axios";
 import { DASHBOARD_TYPES } from "../constants";
 import { generateTestStatsData } from "../components/test_data";
 import { findMissingBlocks, mergeYearlyStats } from "./yearlyBlockManager";
-import { getCachedStats, setCachedStats } from "../utils/statsCacheWorker";
+import { getCachedStats, setCachedStats } from "../workers/statsCacheWorker";
 
 import { kebabToCamel } from "../utils";
 

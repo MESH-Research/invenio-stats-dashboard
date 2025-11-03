@@ -13,7 +13,7 @@ import { fetchStats } from './api/api';
 import { statsApiClient } from './api/api';
 
 // Mock dependencies - Note: statsCacheWorker is imported by api.js, so we mock it there
-jest.mock('./utils/statsCacheWorker', () => ({
+jest.mock('./workers/statsCacheWorker', () => ({
   getCachedStats: jest.fn(),
   setCachedStats: jest.fn(),
   formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
@@ -199,7 +199,7 @@ const mockTransformedStats = [
 describe('StatsDashboardLayout with caching', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const { getCachedStats, setCachedStats } = require('./utils/statsCacheWorker');
+    const { getCachedStats, setCachedStats } = require('./workers/statsCacheWorker');
     getCachedStats.mockResolvedValue(null);
     setCachedStats.mockClear();
     statsApiClient.getStats.mockResolvedValue(mockRawStats);

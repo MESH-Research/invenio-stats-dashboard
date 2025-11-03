@@ -534,5 +534,272 @@ describe('StatsCache Worker', () => {
       expect(toEvict[0].key).toBe('key-0');
     });
   });
+
+  describe('Priority Queue Behavior', () => {
+    // Simulate the priority queue logic from the worker
+    const MESSAGE_PRIORITY = {
+      'GET_CACHED_STATS': 1,
+      'CLEAR_CACHED_STATS_FOR_KEY': 2,
+      'CLEAR_ALL_CACHED_STATS': 2,
+      'SET_CACHED_STATS': 10,
+    };
+
+    const simulatePriorityQueue = (messages) => {
+      // Sort by priority (lower number = higher priority)
+      const sorted = [...messages].sort((a, b) => {
+        const priorityA = MESSAGE_PRIORITY[a.type] || 100;
+        const priorityB = MESSAGE_PRIORITY[b.type] || 100;
+        return priorityA - priorityB;
+      });
+      return sorted;
+    };
+
+    it('should prioritize GET_CACHED_STATS over SET_CACHED_STATS', () => {
+      const messages = [
+        { type: 'SET_CACHED_STATS', id: 1, params: {} },
+        { type: 'GET_CACHED_STATS', id: 2, params: {} },
+      ];
+
+      const processed = simulatePriorityQueue(messages);
+
+      // GET should be processed first
+      expect(processed[0].type).toBe('GET_CACHED_STATS');
+      expect(processed[0].id).toBe(2);
+      expect(processed[1].type).toBe('SET_CACHED_STATS');
+      expect(processed[1].id).toBe(1);
+    });
+
+    it('should process multiple GET messages before SET messages', () => {
+      const messages = [
+        { type: 'SET_CACHED_STATS', id: 1, params: {} },
+        { type: 'GET_CACHED_STATS', id: 2, params: {} },
+        { type: 'SET_CACHED_STATS', id: 3, params: {} },
+        { type: 'GET_CACHED_STATS', id: 4, params: {} },
+        { type: 'SET_CACHED_STATS', id: 5, params: {} },
+      ];
+
+      const processed = simulatePriorityQueue(messages);
+
+      // All GETs should come first
+      expect(processed[0].type).toBe('GET_CACHED_STATS');
+      expect(processed[0].id).toBe(2);
+      expect(processed[1].type).toBe('GET_CACHED_STATS');
+      expect(processed[1].id).toBe(4);
+      
+      // Then SETs
+      expect(processed[2].type).toBe('SET_CACHED_STATS');
+      expect(processed[3].type).toBe('SET_CACHED_STATS');
+      expect(processed[4].type).toBe('SET_CACHED_STATS');
+    });
+
+    it('should prioritize CLEAR operations over SET but after GET', () => {
+      const messages = [
+        { type: 'SET_CACHED_STATS', id: 1, params: {} },
+        { type: 'CLEAR_CACHED_STATS_FOR_KEY', id: 2, params: {} },
+        { type: 'GET_CACHED_STATS', id: 3, params: {} },
+        { type: 'CLEAR_ALL_CACHED_STATS', id: 4, params: {} },
+      ];
+
+      const processed = simulatePriorityQueue(messages);
+
+      // Order should be: GET, CLEAR, CLEAR, SET
+      expect(processed[0].type).toBe('GET_CACHED_STATS');
+      expect(processed[1].type).toBe('CLEAR_CACHED_STATS_FOR_KEY');
+      expect(processed[2].type).toBe('CLEAR_ALL_CACHED_STATS');
+      expect(processed[3].type).toBe('SET_CACHED_STATS');
+    });
+
+    it('should maintain message order for same priority operations', () => {
+      // When priority is the same, FIFO order should be maintained
+      const messages = [
+        { type: 'GET_CACHED_STATS', id: 1, params: { key: 'first' } },
+        { type: 'GET_CACHED_STATS', id: 2, params: { key: 'second' } },
+        { type: 'GET_CACHED_STATS', id: 3, params: { key: 'third' } },
+      ];
+
+      const processed = simulatePriorityQueue(messages);
+
+      // Should maintain original order since all have same priority
+      expect(processed[0].id).toBe(1);
+      expect(processed[1].id).toBe(2);
+      expect(processed[2].id).toBe(3);
+    });
+
+    it('should handle unknown message types with lowest priority', () => {
+      const messages = [
+        { type: 'UNKNOWN_TYPE', id: 1, params: {} },
+        { type: 'GET_CACHED_STATS', id: 2, params: {} },
+        { type: 'SET_CACHED_STATS', id: 3, params: {} },
+      ];
+
+      const processed = simulatePriorityQueue(messages);
+
+      // GET first, then SET, then unknown
+      expect(processed[0].type).toBe('GET_CACHED_STATS');
+      expect(processed[1].type).toBe('SET_CACHED_STATS');
+      expect(processed[2].type).toBe('UNKNOWN_TYPE');
+    });
+
+    it('should simulate queue processing order with async operations', async () => {
+      // Simulate the actual queue processing behavior
+      const messageQueue = [];
+      let isProcessing = false;
+      const processedOrder = [];
+
+      const processQueue = async () => {
+        if (isProcessing || messageQueue.length === 0) {
+          return;
+        }
+
+        isProcessing = true;
+
+        while (messageQueue.length > 0) {
+          // Sort by priority
+          messageQueue.sort((a, b) => {
+            const priorityA = MESSAGE_PRIORITY[a.type] || 100;
+            const priorityB = MESSAGE_PRIORITY[b.type] || 100;
+            return priorityA - priorityB;
+          });
+
+          const message = messageQueue.shift();
+          
+          // Simulate async operation
+          await new Promise(resolve => setTimeout(resolve, 10));
+          
+          processedOrder.push(message.id);
+        }
+
+        isProcessing = false;
+      };
+
+      // Add messages in SET-first order
+      messageQueue.push({ type: 'SET_CACHED_STATS', id: 1, params: {} });
+      messageQueue.push({ type: 'GET_CACHED_STATS', id: 2, params: {} });
+      messageQueue.push({ type: 'SET_CACHED_STATS', id: 3, params: {} });
+      messageQueue.push({ type: 'GET_CACHED_STATS', id: 4, params: {} });
+
+      await processQueue();
+
+      // GETs should be processed first (ids 2 and 4), then SETs (ids 1 and 3)
+      expect(processedOrder[0]).toBe(2); // First GET
+      expect(processedOrder[1]).toBe(4); // Second GET
+      expect(processedOrder[2]).toBe(1); // First SET
+      expect(processedOrder[3]).toBe(3); // Second SET
+    });
+
+    it('should handle concurrent message arrival correctly', async () => {
+      // Simulate messages arriving before processing starts (most common case)
+      const messageQueue = [];
+      let isProcessing = false;
+      const processedOrder = [];
+
+      const processQueue = async () => {
+        if (isProcessing || messageQueue.length === 0) {
+          return;
+        }
+
+        isProcessing = true;
+
+        while (messageQueue.length > 0) {
+          // Sort by priority before each message (like the real implementation)
+          messageQueue.sort((a, b) => {
+            const priorityA = MESSAGE_PRIORITY[a.type] || 100;
+            const priorityB = MESSAGE_PRIORITY[b.type] || 100;
+            return priorityA - priorityB;
+          });
+
+          const message = messageQueue.shift();
+          
+          // Simulate async operation
+          await new Promise(resolve => setTimeout(resolve, 5));
+          
+          processedOrder.push({ type: message.type, id: message.id });
+        }
+
+        isProcessing = false;
+      };
+
+      // Simulate receiving messages (like addEventListener would)
+      const receiveMessage = (message) => {
+        messageQueue.push(message);
+        // Don't start processing immediately - simulate batching
+        // Use setTimeout 0 to defer execution (similar to setImmediate)
+        setTimeout(() => processQueue(), 0);
+      };
+
+      // Send SET first (lower priority)
+      receiveMessage({ type: 'SET_CACHED_STATS', id: 1, params: {} });
+      
+      // Then GET arrives immediately after (higher priority)
+      // Both should be in queue before processing starts
+      receiveMessage({ type: 'GET_CACHED_STATS', id: 2, params: {} });
+
+      // Wait for processing to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Both should be processed, with GET first due to priority
+      expect(processedOrder.length).toBe(2);
+      expect(processedOrder[0].type).toBe('GET_CACHED_STATS');
+      expect(processedOrder[0].id).toBe(2);
+      expect(processedOrder[1].type).toBe('SET_CACHED_STATS');
+      expect(processedOrder[1].id).toBe(1);
+    });
+
+    it('should handle messages arriving during processing', async () => {
+      // Test case where a GET arrives while SET is already processing
+      const messageQueue = [];
+      let isProcessing = false;
+      const processedOrder = [];
+      let processingStartTime = null;
+
+      const processQueue = async () => {
+        if (isProcessing || messageQueue.length === 0) {
+          return;
+        }
+
+        isProcessing = true;
+        processingStartTime = Date.now();
+
+        while (messageQueue.length > 0) {
+          // Sort by priority before each message
+          messageQueue.sort((a, b) => {
+            const priorityA = MESSAGE_PRIORITY[a.type] || 100;
+            const priorityB = MESSAGE_PRIORITY[b.type] || 100;
+            return priorityA - priorityB;
+          });
+
+          const message = messageQueue.shift();
+          
+          // Simulate longer async operation (like compression)
+          await new Promise(resolve => setTimeout(resolve, 20));
+          
+          processedOrder.push({ 
+            type: message.type, 
+            id: message.id,
+            timestamp: Date.now() 
+          });
+        }
+
+        isProcessing = false;
+      };
+
+      // Start SET processing immediately
+      messageQueue.push({ type: 'SET_CACHED_STATS', id: 1, params: {} });
+      processQueue(); // Start processing SET
+
+      // Wait a bit, then GET arrives while SET is processing
+      await new Promise(resolve => setTimeout(resolve, 5));
+      messageQueue.push({ type: 'GET_CACHED_STATS', id: 2, params: {} });
+      
+      // GET will wait for SET to finish, then process
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Both should be processed
+      expect(processedOrder.length).toBe(2);
+      // SET should be first (it started processing first)
+      expect(processedOrder[0].type).toBe('SET_CACHED_STATS');
+      expect(processedOrder[1].type).toBe('GET_CACHED_STATS');
+    });
+  });
 });
 
