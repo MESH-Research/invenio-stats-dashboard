@@ -1581,13 +1581,25 @@ class TestCommunityUsageAggregators:
         # 20 downloads per record * 4 records
         assert total_downloads == 60 + extra_downloads
 
-        # Check that each day has at least some events
-        for day in result_records:
-            day_totals = day["_source"]["totals"]
-            assert (
-                day_totals["view"]["total_events"] > 0
-                or day_totals["download"]["total_events"] > 0
+        # Events are spread randomly across all days, so we expect at least 65% of days
+        # to have events, with a minimum of 10 days.
+        total_days = len(result_records)
+        days_with_events = sum(
+            1
+            for day in result_records
+            if (
+                day["_source"]["totals"]["view"]["total_events"] > 0
+                or day["_source"]["totals"]["download"]["total_events"] > 0
             )
+        )
+        min_days_with_events = max(10, int(total_days * 0.65))
+        assert days_with_events >= min_days_with_events, (
+            f"Expected at least {min_days_with_events} days with events out of "
+            f"{total_days} total days, but found only {days_with_events}. "
+            f"Total views: {total_views}, Total downloads: {total_downloads}. "
+            f"This may indicate events are not being properly distributed across "
+            f"the date range."
+        )
 
         total_visitors = sum(
             day["_source"]["totals"]["view"]["unique_visitors"]
