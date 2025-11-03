@@ -863,3 +863,82 @@ The ninth and tenth queries, `global-stats` and `community-stats`, are composite
 
 - `global-stats`: calls the `CommunityStatsResultsQuery` class with the `global` community ID and passes along optional `start_date` and `end_date` parameters.
 - `community-stats`: calls the `CommunityStatsResultsQuery` class with a required `community_id` parameter (the UUID of the community for which the stats are being retrieved) as well as the optional `start_date` and `end_date` parameters.
+
+#### Client-side caching
+
+The dashboard uses an advanced client-side caching system to improve performance and reduce server load when users navigate between date ranges or revisit previously loaded statistics. This system uses Web Workers to handle caching operations off the main browser thread, ensuring the UI remains responsive even during cache operations.
+
+The client-side cache is transparent to users and React components. Components simply call `fetchStats()` from the API module, and caching happens automatically. Cache operations almost never block the UI or cause errors - if caching fails, the application continues to work normally using server data.
+
+**Architecture Overview:**
+
+The caching system consists of three main components:
+
+1. **Cache API (`api.js`)**: The primary interface used by React components to fetch statistics. It automatically checks the cache before making server requests and stores newly fetched data for future use.
+
+2. **Worker Manager (`statsCacheWorker.js`)**: Manages communication with the Web Worker, providing a Promise-based API that abstracts away the complexity of message passing between the main thread and worker thread.
+
+3. **Cache Worker (`statsCache.worker.js`)**: A Web Worker that handles all IndexedDB operations and data compression/decompression, preventing these CPU-intensive operations from blocking the main UI thread.
+
+**Storage Mechanism:**
+
+- **IndexedDB**: The cache uses the browser's IndexedDB database (`invenio_stats_dashboard`) to persist cached data across browser sessions.
+- **Compression**: All cached data is compressed using gzip (via the `pako` library) before storage, significantly reducing storage requirements (typically 70-90% reduction in size).
+- **Yearly Blocks**: Statistics are cached as yearly blocks, allowing efficient retrieval of data for specific date ranges. Each year's data is stored as a separate cache entry.
+
+**Cache Key Structure:**
+
+Cache keys are generated based on:
+- Community ID (or "global")
+- Dashboard type (global or community)
+- Date basis ("added", "created", or "published")
+- Start date
+- End date
+
+**Priority Queue System:**
+
+The worker implements a priority queue to ensure responsive cache retrieval:
+
+- **GET operations** (cache retrieval) have the highest priority (1), ensuring users get cached data quickly
+- **CLEAR operations** have medium priority (2)
+- **SET operations** (cache storage) have the lowest priority (10), allowing them to complete in the background without blocking retrievals
+
+This means that even if a cache write is in progress when a user requests cached data, the retrieval will be processed first, minimizing delays in display to the user.
+
+**Cache Expiration:**
+
+The cache uses different expiration policies based on data age:
+
+- **Current Year Data**: Expires after 1 hour, reflecting that recent statistics may change as new events are processed
+- **Past Year Data**: Expires after 1 year, since historical data is static and doesn't change
+
+**Cache Eviction:**
+
+The system implements a Least Recently Used (LRU) eviction policy:
+
+- Maximum cache entries: 20 yearly blocks (across all communities and dashboard types)
+- When the limit is reached, the least recently accessed entries are automatically evicted to make room for new data
+- The `lastAccessed` timestamp is updated whenever cached data is retrieved, ensuring frequently used data remains in cache
+
+**Cache Workflow:**
+
+```
+User requests stats for date range
+    ↓
+Check cache via Web Worker (GET_CACHED_STATS)
+    ↓
+If found and valid:
+    ├─ Decompress in worker
+    └─ Return to main thread (fast: ~5-50ms)
+    ↓
+If not found:
+    ├─ Fetch from server (slow: ~10-20s)
+    ├─ Compress in worker (background)
+    └─ Store in IndexedDB (background)
+```
+
+**Technical Details:**
+
+- Message passing uses a request/response pattern with unique IDs to match responses to requests
+- Cache operations are fire-and-forget for writes, ensuring cache failures don't break the application
+- The cache database schema includes indices on `timestamp`, `lastAccessed`, `communityId`, `year`, and `dateBasis` for efficient querying

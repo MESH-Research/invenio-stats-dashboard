@@ -1163,6 +1163,75 @@ This class can create usage events with or without the enriched metadata fields 
 <li><p><code class="docutils literal notranslate"><span class="pre">community-stats</span></code>: calls the <code class="docutils literal notranslate"><span class="pre">CommunityStatsResultsQuery</span></code> class with a required <code class="docutils literal notranslate"><span class="pre">community_id</span></code> parameter (the UUID of the community for which the stats are being retrieved) as well as the optional <code class="docutils literal notranslate"><span class="pre">start_date</span></code> and <code class="docutils literal notranslate"><span class="pre">end_date</span></code> parameters.</p></li>
 </ul>
 </section>
+<section id="client-side-caching">
+<h3>Client-side caching<a class="headerlink" href="#client-side-caching" title="Link to this heading">¶</a></h3>
+<p>The dashboard uses an advanced client-side caching system to improve performance and reduce server load when users navigate between date ranges or revisit previously loaded statistics. This system uses Web Workers to handle caching operations off the main browser thread, ensuring the UI remains responsive even during cache operations.</p>
+<p>The client-side cache is transparent to users and React components. Components simply call <code class="docutils literal notranslate"><span class="pre">fetchStats()</span></code> from the API module, and caching happens automatically. Cache operations almost never block the UI or cause errors - if caching fails, the application continues to work normally using server data.</p>
+<p><strong>Architecture Overview:</strong></p>
+<p>The caching system consists of three main components:</p>
+<ol class="arabic simple">
+<li><p><strong>Cache API (<code class="docutils literal notranslate"><span class="pre">api.js</span></code>)</strong>: The primary interface used by React components to fetch statistics. It automatically checks the cache before making server requests and stores newly fetched data for future use.</p></li>
+<li><p><strong>Worker Manager (<code class="docutils literal notranslate"><span class="pre">statsCacheWorker.js</span></code>)</strong>: Manages communication with the Web Worker, providing a Promise-based API that abstracts away the complexity of message passing between the main thread and worker thread.</p></li>
+<li><p><strong>Cache Worker (<code class="docutils literal notranslate"><span class="pre">statsCache.worker.js</span></code>)</strong>: A Web Worker that handles all IndexedDB operations and data compression/decompression, preventing these CPU-intensive operations from blocking the main UI thread.</p></li>
+</ol>
+<p><strong>Storage Mechanism:</strong></p>
+<ul class="simple">
+<li><p><strong>IndexedDB</strong>: The cache uses the browser’s IndexedDB database (<code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard</span></code>) to persist cached data across browser sessions.</p></li>
+<li><p><strong>Compression</strong>: All cached data is compressed using gzip (via the <code class="docutils literal notranslate"><span class="pre">pako</span></code> library) before storage, significantly reducing storage requirements (typically 70-90% reduction in size).</p></li>
+<li><p><strong>Yearly Blocks</strong>: Statistics are cached as yearly blocks, allowing efficient retrieval of data for specific date ranges. Each year’s data is stored as a separate cache entry.</p></li>
+</ul>
+<p><strong>Cache Key Structure:</strong></p>
+<p>Cache keys are generated based on:</p>
+<ul class="simple">
+<li><p>Community ID (or “global”)</p></li>
+<li><p>Dashboard type (global or community)</p></li>
+<li><p>Date basis (“added”, “created”, or “published”)</p></li>
+<li><p>Start date</p></li>
+<li><p>End date</p></li>
+</ul>
+<p><strong>Priority Queue System:</strong></p>
+<p>The worker implements a priority queue to ensure responsive cache retrieval:</p>
+<ul class="simple">
+<li><p><strong>GET operations</strong> (cache retrieval) have the highest priority (1), ensuring users get cached data quickly</p></li>
+<li><p><strong>CLEAR operations</strong> have medium priority (2)</p></li>
+<li><p><strong>SET operations</strong> (cache storage) have the lowest priority (10), allowing them to complete in the background without blocking retrievals</p></li>
+</ul>
+<p>This means that even if a cache write is in progress when a user requests cached data, the retrieval will be processed first, minimizing delays in display to the user.</p>
+<p><strong>Cache Expiration:</strong></p>
+<p>The cache uses different expiration policies based on data age:</p>
+<ul class="simple">
+<li><p><strong>Current Year Data</strong>: Expires after 1 hour, reflecting that recent statistics may change as new events are processed</p></li>
+<li><p><strong>Past Year Data</strong>: Expires after 1 year, since historical data is static and doesn’t change</p></li>
+</ul>
+<p><strong>Cache Eviction:</strong></p>
+<p>The system implements a Least Recently Used (LRU) eviction policy:</p>
+<ul class="simple">
+<li><p>Maximum cache entries: 20 yearly blocks (across all communities and dashboard types)</p></li>
+<li><p>When the limit is reached, the least recently accessed entries are automatically evicted to make room for new data</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">lastAccessed</span></code> timestamp is updated whenever cached data is retrieved, ensuring frequently used data remains in cache</p></li>
+</ul>
+<p><strong>Cache Workflow:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User requests stats for date range
+    ↓
+Check cache via Web Worker (GET_CACHED_STATS)
+    ↓
+If found and valid:
+    ├─ Decompress in worker
+    └─ Return to main thread (fast: ~5-50ms)
+    ↓
+If not found:
+    ├─ Fetch from server (slow: ~10-20s)
+    ├─ Compress in worker (background)
+    └─ Store in IndexedDB (background)
+</pre></div>
+</div>
+<p><strong>Technical Details:</strong></p>
+<ul class="simple">
+<li><p>Message passing uses a request/response pattern with unique IDs to match responses to requests</p></li>
+<li><p>Cache operations are fire-and-forget for writes, ensuring cache failures don’t break the application</p></li>
+<li><p>The cache database schema includes indices on <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, <code class="docutils literal notranslate"><span class="pre">lastAccessed</span></code>, <code class="docutils literal notranslate"><span class="pre">communityId</span></code>, <code class="docutils literal notranslate"><span class="pre">year</span></code>, and <code class="docutils literal notranslate"><span class="pre">dateBasis</span></code> for efficient querying</p></li>
+</ul>
+</section>
 </section>
 </section>
 
@@ -1257,6 +1326,7 @@ This class can create usage events with or without the enriched metadata fields 
 <li><a class="reference internal" href="#dashboard-templates">Dashboard templates</a></li>
 <li><a class="reference internal" href="#views-and-routes">Views and routes</a></li>
 <li><a class="reference internal" href="#api-queries">API queries</a></li>
+<li><a class="reference internal" href="#client-side-caching">Client-side caching</a></li>
 </ul>
 </li>
 </ul>
