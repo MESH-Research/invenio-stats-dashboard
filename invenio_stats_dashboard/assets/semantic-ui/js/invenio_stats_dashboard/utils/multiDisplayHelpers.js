@@ -91,7 +91,7 @@ const transformMultiDisplayData = (
     globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
   // Transform all items first, then sort and slice
-  const allTransformedData = rawData.map((item, index) => {
+  const allTransformedData = rawData.map((item) => {
     const value = getItemValue(item);
     const percentage =
       totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
@@ -108,9 +108,7 @@ const transformMultiDisplayData = (
       percentage: percentage,
       id: item.id,
       link: searchField ? `/search?q=${searchField}:"${item.id}"` : null,
-      itemStyle: {
-        color: colorPalette[index % colorPalette.length][1],
-      },
+      // Color will be assigned after sorting
     };
   });
 
@@ -118,6 +116,13 @@ const transformMultiDisplayData = (
   const sortedTransformedData = allTransformedData.sort(
     (a, b) => b.value - a.value,
   );
+  
+  // Assign colors based on sorted position to ensure adjacent items have different colors
+  sortedTransformedData.forEach((item, index) => {
+    item.itemStyle = {
+      color: colorPalette[index % colorPalette.length][1],
+    };
+  });
   const transformedData = sortedTransformedData.slice(0, pageSize);
   const otherItems = sortedTransformedData.slice(pageSize);
 
@@ -241,7 +246,7 @@ const transformCountryMultiDisplayData = (
     globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
   // Transform all items first, then filter out zero values, sort and slice
-  const allTransformedData = rawData.map((item, index) => {
+  const allTransformedData = rawData.map((item) => {
     const value = getItemValue(item);
     const percentage =
       totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
@@ -253,9 +258,7 @@ const transformCountryMultiDisplayData = (
       percentage: percentage,
       id: item.id,
       link: searchField ? `/search?q=${searchField}:"${item.id}"` : null,
-      itemStyle: {
-        color: colorPalette[index % colorPalette.length][1],
-      },
+      // Color will be assigned after sorting
     };
   });
 
@@ -266,6 +269,13 @@ const transformCountryMultiDisplayData = (
   const sortedTransformedData = nonZeroTransformedData.sort(
     (a, b) => b.value - a.value,
   );
+  
+  // Assign colors based on sorted position to ensure adjacent items have different colors
+  sortedTransformedData.forEach((item, index) => {
+    item.itemStyle = {
+      color: colorPalette[index % colorPalette.length][1],
+    };
+  });
   const transformedData = sortedTransformedData.slice(0, pageSize);
   const otherItems = sortedTransformedData.slice(pageSize);
 
