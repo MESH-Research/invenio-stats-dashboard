@@ -26,7 +26,7 @@ from ..tasks.cache_tasks import generate_cached_responses_task
 
 def check_scheduled_tasks_enabled(command="cache"):
     """Check if scheduled tasks are enabled.
-    
+
     Raises:
         click.ClickException: If scheduled tasks are disabled.
     """
@@ -73,7 +73,7 @@ def clear_all_cache_command(force, yes_i_know):
     - invenio community-stats cache clear-all
     - invenio community-stats cache clear-all --force
     - invenio community-stats cache clear-all --force --yes-i-know
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -124,7 +124,7 @@ def clear_pattern_cache_command(pattern, force):
     - invenio community-stats cache clear-pattern "*global*"
     - invenio community-stats cache clear-pattern "*2023*" --force
     - invenio community-stats cache clear-pattern "*record_delta*"
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -185,8 +185,8 @@ def clear_pattern_cache_command(pattern, force):
 )
 @with_appcontext
 def clear_item_cache_command(
-      community_id, stat_name, start_date, end_date, date_basis, content_type
-  ):
+    community_id, stat_name, start_date, end_date, date_basis, content_type
+):
     r"""Clear a specific cached statistics item.
 
     This command removes a specific cached statistics entry based on the
@@ -207,7 +207,7 @@ def clear_item_cache_command(
       --start-date 2024-01-01
     - invenio community-stats cache clear-item global record_created \\
       --date-basis created
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -259,7 +259,7 @@ def cache_info_command(detailed):
     Examples:
     - invenio community-stats cache info
     - invenio community-stats cache info --detailed
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -372,7 +372,7 @@ def test_cache_command(community_id, stat_name):
     - invenio community-stats cache test
     - invenio community-stats cache test --community-id my-community \\
       --stat-name test_query
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -492,7 +492,7 @@ def generate_cache_command(
     - community_slug: Community slug(s) to generate cache for
       (can be specified multiple times)
     - year: Single year or year range to generate cache for
-      (can be specified multiple times)
+      (can be specified multiple times if single years are given)
     - async_mode: Run cache generation asynchronously using Celery
     - force: Override config setting for enabling cache settings.
     - overwrite: Overwrite existing cache entries
@@ -509,7 +509,7 @@ def generate_cache_command(
             --years 2020-2023
     - invenio community-stats cache generate --all-years --async
     - invenio community-stats cache generate --community-id global --year 2023 --dry-run
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -541,15 +541,24 @@ def generate_cache_command(
 
     years_param: list[int] | str = "auto"
     if year:
-        if isinstance(year, str):
-            if "-" in year:
-                years_param = parse_year_range(year)
-            else:
-                years_param = [int(year)]
-        elif isinstance(year, list | tuple):
-            years_param = [int(y) for y in year]
-        else:
-            years_param = "auto"
+        parsed_years: list[int] = []
+        for year_value in year:
+            value = year_value.strip()
+            if not value:
+                continue
+            try:
+                if "-" in value:
+                    parsed_years.extend(parse_year_range(value))
+                else:
+                    parsed_years.append(int(value))
+            except ValueError as exc:
+                raise click.BadParameter(
+                    f"Invalid year value '{value}'",
+                    param_hint="--year",
+                ) from exc
+
+        if parsed_years:
+            years_param = sorted(set(parsed_years))
 
     if dry_run:
         try:
@@ -616,10 +625,10 @@ def generate_cache_command(
 
 def resolve_slug_to_id(slug: str) -> str:
     """Resolve community slug to ID using communities service.
-    
+
     Returns:
         str: The community ID corresponding to the slug.
-        
+
     Raises:
         ValueError: If the community slug is not found or if there's an error
             searching for the community.
@@ -640,10 +649,10 @@ def resolve_slug_to_id(slug: str) -> str:
 
 def parse_year_range(year_range: str) -> list[int]:
     """Parse year range string (e.g., '2020-2023') into list.
-    
+
     Returns:
         list[int]: List of years in the range.
-        
+
     Raises:
         ValueError: If the year range format is invalid.
     """
@@ -775,7 +784,7 @@ def report_results(results: dict[str, Any]) -> None:
         else:
             click.echo(f"Success: {results['success']}, Failed: {results['failed']}")
         if results.get("errors"):
-            click.echo("❌ Errors:")
+            click.echo("Errors:")
             for error in results["errors"]:
                 click.echo(
                     f"  {error['community_id']}/{error['year']}/"
