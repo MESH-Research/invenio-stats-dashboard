@@ -253,19 +253,28 @@ const filterNonZeroSeries = (seriesArray) => {
  *
  * @param {Array} seriesArray - Array of series objects to filter
  * @param {number} maxSeries - Maximum number of series to return
+ * @param {boolean} isCumulative - Whether data is cumulative/snapshot (affects ranking calculation)
  * @returns {Array} Array of top N series by total value
  */
-const selectTopSeries = (seriesArray, maxSeries) => {
-  // Calculate total value for each series across all data points for sorting
+const selectTopSeries = (seriesArray, maxSeries, isCumulative = false) => {
   const seriesWithTotals = seriesArray.map(series => {
-    const totalValue = series.data.reduce((sum, point) => sum + (point.value[1] || 0), 0);
+    if (!series.data || series.data.length === 0) {
+      return { ...series, totalValue: 0 };
+    }
+
+    let totalValue;
+    if (isCumulative) {
+      // For cumulative data, use the latest value
+      totalValue = series.data[series.data.length - 1]?.value?.[1] || 0;
+    } else {
+      // For delta data, sum all data points
+      totalValue = series.data.reduce((sum, point) => sum + (point.value[1] || 0), 0);
+    }
     return { ...series, totalValue };
   });
 
-  // Sort series by total value (descending)
   const sortedSeries = seriesWithTotals.sort((a, b) => b.totalValue - a.totalValue);
 
-  // Return only the top N series
   return sortedSeries.slice(0, maxSeries).map(({ totalValue, ...series }) => series);
 };
 
@@ -465,7 +474,8 @@ export class ChartDataProcessor {
     let displaySeries = [...nonZeroSeries];
     if (displaySeparately && originalData) {
       // Select top N series for display
-      const visibleSeries = selectTopSeries(nonZeroSeries, maxSeries);
+      // Pass isCumulative so snapshot data uses latest value instead of summing
+      const visibleSeries = selectTopSeries(nonZeroSeries, maxSeries, isCumulative);
 
       // Use only the visible series for display
       displaySeries = visibleSeries;

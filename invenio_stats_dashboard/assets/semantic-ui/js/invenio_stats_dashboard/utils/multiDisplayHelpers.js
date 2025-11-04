@@ -79,9 +79,9 @@ const transformMultiDisplayData = (
           0,
         );
       } else {
-        // For snapshot data, use latest value
-        globalTotalCount =
-          globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
+        // For snapshot data, use first (and only) data point
+        // (data should already be filtered to single point by extractData)
+        globalTotalCount = globalSeries.data[0]?.value?.[1] || 0;
       }
     }
   }
@@ -229,9 +229,9 @@ const transformCountryMultiDisplayData = (
           0,
         );
       } else {
-        // For snapshot data, use latest value
-        globalTotalCount =
-          globalSeries.data[globalSeries.data.length - 1]?.value?.[1] || 0;
+        // For snapshot data, use first (and only) data point
+        // (data should already be filtered to single point by extractData)
+        globalTotalCount = globalSeries.data[0]?.value?.[1] || 0;
       }
     }
   }

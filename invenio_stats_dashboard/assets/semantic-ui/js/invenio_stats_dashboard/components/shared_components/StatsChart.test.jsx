@@ -473,6 +473,103 @@ describe('StatsChart', () => {
       // 2. position: 'top' for labels (above the series, not inside)
       // 3. color: matches the metric selector button color (CHART_COLORS.primary[seriesColorIndex][1])
     });
+
+    it('ranks cumulative series correctly by latest value when displaySeparately is used', async () => {
+      // Create cumulative data where ranking by sum would differ from ranking by latest value
+      // Series A: starts high, ends low (sum=150, latest=20)
+      // Series B: starts low, ends high (sum=150, latest=100)
+      // Series C: medium throughout (sum=150, latest=50)
+      // For cumulative data, Series B should rank first (latest=100), then C (50), then A (20)
+      const cumulativeData = [{
+        year: 2024,
+        global: {
+          records: [
+            {
+              id: 'global',
+              name: 'Global',
+              data: [
+                { value: [new Date('2024-01-01'), 150] },
+                { value: [new Date('2024-01-02'), 150] },
+                { value: [new Date('2024-01-03'), 150] },
+              ]
+            }
+          ]
+        },
+        resourceTypes: {
+          records: [
+            {
+              id: 'series-a',
+              name: 'Series A',
+              data: [
+                { value: [new Date('2024-01-01'), 100] },
+                { value: [new Date('2024-01-02'), 30] },
+                { value: [new Date('2024-01-03'), 20] },
+              ]
+            },
+            {
+              id: 'series-b',
+              name: 'Series B',
+              data: [
+                { value: [new Date('2024-01-01'), 10] },
+                { value: [new Date('2024-01-02'), 40] },
+                { value: [new Date('2024-01-03'), 100] },
+              ]
+            },
+            {
+              id: 'series-c',
+              name: 'Series C',
+              data: [
+                { value: [new Date('2024-01-01'), 50] },
+                { value: [new Date('2024-01-02'), 50] },
+                { value: [new Date('2024-01-03'), 50] },
+              ]
+            }
+          ]
+        }
+      }];
+
+      render(
+        <StatsDashboardProvider value={mockContextValue}>
+          <StatsChart
+            data={cumulativeData}
+            seriesSelectorOptions={mockSeriesSelectorOptions}
+            title="Cumulative Chart"
+            isCumulative={true}
+          />
+        </StatsDashboardProvider>
+      );
+
+      // Select breakdown filter
+      const filterButton = screen.getByLabelText('Stats Chart Filter');
+      await userEvent.click(filterButton);
+
+      const resourceTypesOption = screen.getByText('Top Work Types');
+      await userEvent.click(resourceTypesOption);
+
+      // Wait for chart to update
+      await waitFor(() => {
+        const chartOption = screen.getByTestId('chart-option');
+        const option = JSON.parse(chartOption.getAttribute('data-option'));
+        
+        // Verify series are ranked by latest value: B (100) > C (50) > A (20)
+        // Note: The "other" series is inserted at the beginning, so we check the ordering
+        // of the actual series (excluding "Other")
+        const seriesNames = option.series.map(s => s.name);
+        
+        // "Other" is inserted first, then the ranked series
+        expect(seriesNames[0]).toBe('Other');
+        
+        // Find indices of the actual series (excluding "Other")
+        const seriesBIndex = seriesNames.indexOf('Series B');
+        const seriesCIndex = seriesNames.indexOf('Series C');
+        const seriesAIndex = seriesNames.indexOf('Series A');
+        
+        // Verify ranking: B (100) should come before C (50) and A (20)
+        expect(seriesBIndex).toBeLessThan(seriesCIndex);
+        expect(seriesBIndex).toBeLessThan(seriesAIndex);
+        expect(seriesCIndex).toBeLessThan(seriesAIndex);
+      });
+    });
   });
 
   describe('Data Aggregation', () => {

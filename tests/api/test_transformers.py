@@ -8,6 +8,7 @@
 
 from pprint import pformat
 
+import pytest
 from flask import current_app
 
 from invenio_stats_dashboard.transformers.record_deltas import RecordDeltaDataSeriesSet
@@ -54,14 +55,12 @@ class TestRecordDeltaDataSeriesSet:
             "access_statuses",
             "resource_types",
             "languages",
-            # subjects disabled for usage events
+            "subjects",
             "rights",
             "funders",
             "periodicals",
             "publishers",
             "affiliations",
-            "countries",
-            # referrers disabled for usage events
             "file_types",
         ]
 
@@ -112,11 +111,12 @@ class TestRecordDeltaDataSeriesSet:
                 f"Expected {series_count} series for {subcount} records"
             )
 
-        # Check that empty subcounts (countries, referrers) have no series
-        for subcount in ["countries", "referrers"]:
-            assert len(result[subcount]["records"]) == 0, (
-                f"Expected 0 series for empty {subcount} records"
-            )
+        # Check that subcounts without "records" configuration (countries, referrers)
+        # are absent from the result
+        with pytest.raises(KeyError):
+            result["countries"]
+        with pytest.raises(KeyError):
+            result["referrers"]
 
         # Check that file_presence special subcount exists
         assert "file_presence" in result
