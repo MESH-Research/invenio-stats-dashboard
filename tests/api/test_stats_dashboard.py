@@ -27,15 +27,9 @@ def test_aggregations_registered(running_app):
         "community-records-snapshot-added-agg"
         in app.config["STATS_AGGREGATIONS"].keys()
     )
-    assert (
-        "community-usage-snapshot-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    )
-    assert (
-        "community-usage-delta-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    )
-    assert (
-        "community-events-agg" in app.config["STATS_AGGREGATIONS"].keys()
-    )
+    assert "community-usage-snapshot-agg" in app.config["STATS_AGGREGATIONS"].keys()
+    assert "community-usage-delta-agg" in app.config["STATS_AGGREGATIONS"].keys()
+    assert "community-events-agg" in app.config["STATS_AGGREGATIONS"].keys()
     # check that the aggregations are registered by invenio-stats
     assert current_stats.aggregations["community-records-snapshot-added-agg"]
     assert current_stats.aggregations["community-records-delta-added-agg"]
@@ -57,15 +51,13 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
     index_name = prefix_index(
         "stats-community-records-snapshot-added-{year}".format(year="2024")
     )
-    doc_iterator = iter(
-        [
-            {
-                "_id": "abcd_key-2024-01-01",
-                "_index": index_name,
-                "_source": MOCK_RECORD_SNAPSHOT_DOCS[0]["_source"],
-            }
-        ]
-    )
+    doc_iterator = iter([
+        {
+            "_id": "abcd_key-2024-01-01",
+            "_index": index_name,
+            "_source": MOCK_RECORD_SNAPSHOT_DOCS[0]["_source"],
+        }
+    ])
 
     results = search.helpers.bulk(
         client,

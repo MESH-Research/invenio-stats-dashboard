@@ -365,7 +365,13 @@ class CachedResponseService:
                 response.save_to_cache()
 
                 results["success"] += 1  # type:ignore
-                results["responses"].append(response)  # type:ignore
+                results["responses"].append(  # type:ignore
+                    {
+                        "community_id": response.community_id,
+                        "year": response.year,
+                        "category": response.category,
+                    }
+                )
             except Exception as e:
                 results["failed"] += 1  # type:ignore
                 results["errors"].append({  # type:ignore
@@ -374,6 +380,8 @@ class CachedResponseService:
                     "category": response.category,
                     "error": str(e),
                 })
+            finally:
+                response.clear_data()
 
         # Call progress callback for completion
         if progress_callback:

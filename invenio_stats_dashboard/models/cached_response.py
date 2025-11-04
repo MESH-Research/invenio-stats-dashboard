@@ -374,6 +374,11 @@ class CachedResponse:
             )
             return False
 
+    def clear_data(self) -> None:
+        """Release in-memory copies of the cached payload."""
+        self._object_data = None
+        self._bytes_data = None
+
     def get_or_generate(self) -> "CachedResponse":
         """Load from cache or generate new data.
 

@@ -408,7 +408,13 @@ class DataSeriesSet(ABC):
         """
         series_keys = ["global"]
         for subcount_name, config in self.subcount_configs.items():
-            if self.config_key in config:
+            # Only add subcount if it has actual configuration (not just empty dict)
+            config_value = config.get(self.config_key)
+            if (
+                config_value
+                and isinstance(config_value, dict)
+                and len(config_value) > 0
+            ):
                 series_keys.append(subcount_name)
 
         # Add special subcounts defined by subclasses
@@ -550,21 +556,25 @@ class DataSeriesSet(ABC):
         
         This method allows incrementally adding documents to the series set.
         If the series set hasn't been initialized yet (via build() or a previous
-        add() call), it will initialize first by calling build().
+        add() call), it will initialize the series arrays before processing the
+        new documents.
         It will then update all existing series arrays with data from the new documents.
         
         Args:
             documents: List of additional aggregation documents to add
         """
         if not self._initialized:
-            self.build()
+            self._initialize_series_arrays()
         
         for doc in documents:
             for series_array in self.series_arrays.values():
                 series_array.add(doc)
         
-        result = self._build_result_dict()
-        self._built_result = result
+        # Invalidate cached result so it will be rebuilt lazily the next time
+        # build()/for_json() is called. This avoids constructing a full
+        # dictionary representation after each page of query results, which
+        # previously doubled memory usage during large backfills.
+        self._built_result = None
 
     def _convert_to_camelcase(
         self, data: dict[str, dict[str, list[DataSeriesDict]]]

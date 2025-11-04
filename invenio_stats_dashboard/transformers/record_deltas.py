@@ -6,6 +6,7 @@
 
 """Record delta data series transformer classes."""
 
+from collections.abc import Mapping
 from typing import Any
 
 from flask import current_app
@@ -33,7 +34,7 @@ class GlobalRecordDeltaDataSeries(DataSeries):
         # Handle split files metrics - these come from the 'files' field
         if self.metric in ["data_volume", "file_count"]:
             files_data = doc.get("files")
-            if files_data is None or not isinstance(files_data, dict):
+            if files_data is None or not isinstance(files_data, Mapping):
                 return
 
             added = files_data.get("added", {})
@@ -55,7 +56,7 @@ class GlobalRecordDeltaDataSeries(DataSeries):
 
         # Check if this metric has added/removed structure (delta metrics)
         if (
-            isinstance(metric_data, dict)
+            isinstance(metric_data, Mapping)
             and "added" in metric_data
             and "removed" in metric_data
         ):
@@ -91,7 +92,7 @@ class SubcountRecordDeltaDataSeries(DataSeries):
         # Handle split files metrics - these come from the 'files' field
         if self.metric in ["data_volume", "file_count"]:
             files_data = doc.get("files")
-            if files_data is None or not isinstance(files_data, dict):
+            if files_data is None or not isinstance(files_data, Mapping):
                 return
 
             added = files_data.get("added", {})
@@ -113,7 +114,7 @@ class SubcountRecordDeltaDataSeries(DataSeries):
 
         # Check if this metric has added/removed structure (delta metrics)
         if (
-            isinstance(metric_data, dict)
+            isinstance(metric_data, Mapping)
             and "added" in metric_data
             and "removed" in metric_data
         ):
@@ -149,7 +150,7 @@ class FilePresenceRecordDeltaDataSeries(DataSeries):
 
         if self.metric in ["parents", "records"]:
             metric_data = doc.get(self.metric, {})
-            if metric_data is None or not isinstance(metric_data, dict):
+            if metric_data is None or not isinstance(metric_data, Mapping):
                 current_app.logger.error(f"No records data in document: {metric_data}")
                 return
             added_value = metric_data.get("added", {}).get(self.series_id, 0)
