@@ -32,6 +32,7 @@ import {
   calculateYAxisMin,
   calculateYAxisMax,
 } from "../../utils/chartHelpers";
+import { getAvailableBreakdowns } from "../../utils/breakdownHelpers";
 
 // Define y-axis labels for different series
 const SERIES_Y_AXIS_LABELS = {
@@ -450,6 +451,7 @@ const FilterSelector = ({
   isStackedLine,
   setIsStackedLine,
   chartType,
+  dateRange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -457,24 +459,9 @@ const FilterSelector = ({
   const clearButtonRef = useRef(null);
 
   // Get available breakdown options from data
-  // Filter out empty subcounts (where all metric arrays are empty)
-  const availableBreakdowns =
-    data && data.length > 0
-      ? Object.keys(data[0])
-          .filter((k) => k !== "global")
-          .filter((key) => {
-            const subcount = data[0][key];
-            return (
-              subcount &&
-              typeof subcount === "object" &&
-              Object.values(subcount).some(
-                (arr) =>
-                  Array.isArray(arr) &&
-                  arr.some((series) => series?.data?.length > 0)
-              )
-            );
-          })
-      : [];
+  // Filter out empty subcounts and only include breakdowns from yearly blocks
+  // that overlap with the selected date range
+  const availableBreakdowns = getAvailableBreakdowns(data, dateRange);
 
   const allowedSubcounts = display_subcounts || global_subcounts || {};
   const allowedSubcountsArray = Object.keys(allowedSubcounts);
@@ -884,6 +871,7 @@ const StatsChart = ({
             isStackedLine={isStackedLine}
             setIsStackedLine={setIsStackedLine}
             chartType={chartType}
+            dateRange={dateRange}
           />
           <Header.Content>{title}</Header.Content>
           {dateRange && !isLoading && (
