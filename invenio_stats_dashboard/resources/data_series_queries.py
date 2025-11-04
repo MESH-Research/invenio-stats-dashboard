@@ -458,19 +458,21 @@ class DataSeriesQueryBase(Query):
         while iteration_count < max_iterations:
             iteration_count += 1
 
+            extra_args = {"size": current_page_size}
+            if search_after:
+                extra_args["search_after"] = search_after
+
             agg_search = (
                 Search(using=self.client, index=search_index)
                 .query(Q("bool", must=must_clauses))
-                .extra(size=current_page_size)
+                .extra(**extra_args)
             )
-            agg_search.sort(date_field, "_id")
-
-            if search_after:
-                agg_search = agg_search.extra(search_after=search_after)
+            agg_search = agg_search.sort(date_field, "_id")
 
             try:
                 response = agg_search.execute()
-                hits = response.hits.hits
+                response_dict = response.to_dict()
+                hits = response_dict.get("hits", {}).get("hits", [])
 
                 if not hits:
                     break
@@ -480,16 +482,10 @@ class DataSeriesQueryBase(Query):
                 next_search_after = None
                 if last_hit:
                     # Extract sort values from the last hit's metadata
-                    if hasattr(last_hit.meta, "sort") and last_hit.meta.sort:
-                        sort_values = last_hit.meta.sort
-                        if len(sort_values) >= 2:
-                            next_search_after = [sort_values[0], sort_values[1]]
+                    if "sort" in last_hit and last_hit["sort"]:
+                        next_search_after = last_hit["sort"]
 
                 # Extract documents for this page
-                # Note: h["_source"] is an AttrDict, which supports dict-like
-                # operations. We use it directly to avoid the memory overhead
-                # of .to_dict() conversion. Transformers use .get() which works
-                # fine with AttrDict.
                 page_documents = [h["_source"] for h in hits]
 
                 # Process this page
@@ -502,6 +498,7 @@ class DataSeriesQueryBase(Query):
                     estimator.capture_page_rss()
 
                 # Clear the page from memory immediately
+                del response_dict
                 del hits
                 del page_documents
                 del response
