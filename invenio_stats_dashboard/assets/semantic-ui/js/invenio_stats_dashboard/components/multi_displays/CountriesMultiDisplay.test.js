@@ -335,6 +335,91 @@ describe('TopCountriesMultiDisplay', () => {
       expect(result.totalCount).toBe(0);
       expect(result.transformedData).toHaveLength(0); // Zero value items are filtered out
     });
+
+    it('should filter out "imported" from country data', () => {
+      const mockData = [
+        {
+          id: 'united-states',
+          name: 'United States',
+          data: [{ value: [new Date('2024-01-01'), 150] }]
+        },
+        {
+          id: 'germany',
+          name: 'Germany',
+          data: [{ value: [new Date('2024-01-01'), 75] }]
+        },
+        {
+          id: 'imported',
+          name: 'Imported',
+          data: [{ value: [new Date('2024-01-01'), 200] }]
+        }
+      ];
+
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
+
+      // "imported" should be filtered out
+      expect(result.transformedData).toHaveLength(2);
+      expect(result.transformedData.map(item => item.id)).not.toContain('imported');
+      expect(result.transformedData.map(item => item.id)).toContain('united-states');
+      expect(result.transformedData.map(item => item.id)).toContain('germany');
+    });
+
+    it('should discard "imported" and not include it in "other" category', () => {
+      const mockData = [
+        {
+          id: 'united-states',
+          name: 'United States',
+          data: [{ value: [new Date('2024-01-01'), 150] }]
+        },
+        {
+          id: 'germany',
+          name: 'Germany',
+          data: [{ value: [new Date('2024-01-01'), 75] }]
+        },
+        {
+          id: 'france',
+          name: 'France',
+          data: [{ value: [new Date('2024-01-01'), 25] }]
+        },
+        {
+          id: 'imported',
+          name: 'Imported',
+          data: [{ value: [new Date('2024-01-01'), 100] }]
+        }
+      ];
+
+      const result = transformCountryMultiDisplayData(mockData, 2, 'metadata.country.id');
+
+      // Should show top 2 countries (US and Germany) and "other" (which includes only France, NOT imported)
+      expect(result.transformedData).toHaveLength(2);
+      expect(result.transformedData.map(item => item.id)).not.toContain('imported');
+      expect(result.transformedData.map(item => item.id)).not.toContain('france');
+      
+      // "other" should include only France (25), NOT imported (100)
+      expect(result.otherData).toBeTruthy();
+      expect(result.otherData.value).toBe(25);
+      expect(result.otherData.percentage).toBe(10); // 25/250 * 100 rounded (total excludes imported)
+      
+      // Total should exclude imported (150 + 75 + 25 = 250, not 350)
+      expect(result.totalCount).toBe(250);
+    });
+
+    it('should handle case where "imported" is the only item', () => {
+      const mockData = [
+        {
+          id: 'imported',
+          name: 'Imported',
+          data: [{ value: [new Date('2024-01-01'), 100] }]
+        }
+      ];
+
+      const result = transformCountryMultiDisplayData(mockData, 10, 'metadata.country.id');
+
+      // "imported" should be filtered out, leaving no countries
+      expect(result.transformedData).toHaveLength(0);
+      expect(result.otherData).toBeNull();
+      expect(result.totalCount).toBe(0); // Total excludes imported value
+    });
   });
 
   describe('assembleMultiDisplayRows (helper function)', () => {

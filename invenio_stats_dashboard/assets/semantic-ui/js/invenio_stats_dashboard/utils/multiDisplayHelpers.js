@@ -216,13 +216,17 @@ const transformCountryMultiDisplayData = (
     }
   };
 
-  // Calculate total count from subcount items (for backward compatibility)
-  const subcountTotalCount = rawData.reduce(
+  // Filter out "imported" from rawData before any calculations (it should be completely discarded)
+  const countriesData = rawData.filter((item) => item.id !== "imported");
+
+  // Calculate total count from subcount items, excluding "imported" (for backward compatibility)
+  const subcountTotalCount = countriesData.reduce(
     (sum, item) => sum + getItemValue(item),
     0,
   );
 
   // Calculate global total count if global data is provided
+  // Note: We assume global data already excludes "imported" or we need to subtract it
   let globalTotalCount = 0;
   if (globalData && Array.isArray(globalData) && globalData.length > 0) {
     const globalSeries = globalData[0]; // Global data is typically a single series
@@ -241,12 +245,12 @@ const transformCountryMultiDisplayData = (
     }
   }
 
-  // Use global total if available, otherwise fall back to subcount total
+  // Use global total if available, otherwise fall back to subcount total (both exclude "imported")
   const totalCount =
     globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
-  // Transform all items first, then filter out zero values, sort and slice
-  const allTransformedData = rawData.map((item) => {
+  // Transform all items (excluding "imported" which was already filtered)
+  const allTransformedData = countriesData.map((item) => {
     const value = getItemValue(item);
     const percentage =
       totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;
@@ -262,10 +266,12 @@ const transformCountryMultiDisplayData = (
     };
   });
 
-  // Filter out items with zero values, then sort by value (descending) and slice
+  // Filter out items with zero values
   const nonZeroTransformedData = allTransformedData.filter(
     (item) => item.value !== 0,
   );
+  
+  // Sort countries
   const sortedTransformedData = nonZeroTransformedData.sort(
     (a, b) => b.value - a.value,
   );
@@ -279,6 +285,7 @@ const transformCountryMultiDisplayData = (
   const transformedData = sortedTransformedData.slice(0, pageSize);
   const otherItems = sortedTransformedData.slice(pageSize);
 
+  // Calculate "other" from non-visible countries only (excluding "imported")
   const otherData =
     otherItems.length > 0
       ? otherItems.reduce(

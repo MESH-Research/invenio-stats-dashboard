@@ -320,7 +320,46 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
     return null;
   }
 
-  const globalDataPoints = filteredGlobalSeries[0].data;
+  let globalDataPoints = filteredGlobalSeries[0].data;
+
+  // For country breakdowns, subtract "imported" from global totals before calculating "other"
+  const isCountryBreakdown = displaySeparately === "countries" 
+    || displaySeparately === "countriesByView" 
+    || displaySeparately === "countriesByDownload";
+  
+  if (isCountryBreakdown) {
+    // Get all country series from breakdown data (including "imported")
+    const allCountrySeries = data
+      .map((yearlyData) => yearlyData?.[displaySeparately]?.[selectedMetric] || [])
+      .flat();
+    
+    const mergedCountrySeries = ChartDataProcessor.mergeSeriesById(allCountrySeries);
+    const importedSeries = mergedCountrySeries.find(series => series.id === "imported");
+    
+    if (importedSeries && importedSeries.data) {
+      // Filter imported series by date range
+      const filteredImportedSeries = filterSeriesArrayByDate([importedSeries], dateRange, false);
+      
+      if (filteredImportedSeries.length > 0 && filteredImportedSeries[0].data) {
+        // Create a map of imported values by date
+        const importedValuesByDate = new Map();
+        filteredImportedSeries[0].data.forEach(point => {
+          const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+          importedValuesByDate.set(dateKey, point.value[1] || 0);
+        });
+        
+        // Subtract imported values from global data points
+        globalDataPoints = globalDataPoints.map(point => {
+          const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+          const importedValue = importedValuesByDate.get(dateKey) || 0;
+          return {
+            ...point,
+            value: [point.value[0], Math.max(0, point.value[1] - importedValue)],
+          };
+        });
+      }
+    }
+  }
 
   // Create a map of visible series values by date for efficient lookup
   const visibleSeriesValuesByDate = new Map();
@@ -334,14 +373,16 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
     }
   });
 
-  // Calculate "other" values by subtracting visible series totals from global totals
+  // Calculate "other" values by subtracting visible series totals from adjusted global totals
+  // For country breakdowns, "imported" has already been subtracted from global
   const otherDataPoints = globalDataPoints.map(point => {
     const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
-    const globalValue = point.value[1] || 0;
+    const adjustedGlobalValue = point.value[1] || 0;
     const visibleSeriesTotal = visibleSeriesValuesByDate.get(dateKey) || 0;
 
-    // "Other" = Global - Visible Series
-    const otherValue = Math.max(0, globalValue - visibleSeriesTotal);
+    // "Other" = Adjusted Global - Visible Series
+    // For countries: Adjusted Global = Global - Imported, so "Other" excludes "imported"
+    const otherValue = Math.max(0, adjustedGlobalValue - visibleSeriesTotal);
 
     return {
       value: [point.value[0], otherValue],
@@ -473,9 +514,17 @@ export class ChartDataProcessor {
     // Prepare series for display (with "other" series if needed)
     let displaySeries = [...nonZeroSeries];
     if (displaySeparately && originalData) {
+      // For country breakdowns, filter out "imported" so it's treated as "other"
+      const isCountryBreakdown = displaySeparately === "countries" 
+        || displaySeparately === "countriesByView" 
+        || displaySeparately === "countriesByDownload";
+      const seriesForSelection = isCountryBreakdown
+        ? nonZeroSeries.filter(series => series.id !== "imported")
+        : nonZeroSeries;
+
       // Select top N series for display
       // Pass isCumulative so snapshot data uses latest value instead of summing
-      const visibleSeries = selectTopSeries(nonZeroSeries, maxSeries, isCumulative);
+      const visibleSeries = selectTopSeries(seriesForSelection, maxSeries, isCumulative);
 
       // Use only the visible series for display
       displaySeries = visibleSeries;
