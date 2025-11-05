@@ -22,8 +22,8 @@ jest.mock('../../../context/StatsDashboardContext', () => ({
 // Remove the StatsMultiDisplay mock to test the real component
 
 // Import the actual functions we want to test
-import { filterSeriesArrayByDate } from '../../utils';
-import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
+import { filterSeriesArrayByDate } from '../../../utils';
+import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
 
 jest.mock('../../../constants', () => ({
   CHART_COLORS: {

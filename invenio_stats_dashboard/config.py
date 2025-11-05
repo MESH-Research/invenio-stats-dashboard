@@ -578,10 +578,26 @@ STATS_DASHBOARD_LAYOUT = {
                         ],
                     },
                     {
+                        "name": "world-map",
+                        "components": [
+                            {
+                                "component": "StatsMap",
+                                "width": 16,
+                                "props": {
+                                    "title": "Top Countries by Visits",
+                                    "height": 400,
+                                    "minHeight": 400,
+                                    "zoom": 1.3,
+                                    "center": [0, 20],
+                                },
+                            },
+                        ],
+                    },
+                    {
                         "name": "tables",
                         "components": [
                             {
-                                "component": "TopCountriesMultiDisplay",
+                                "component": "CountriesMultiDisplayViews",
                                 "width": 8,
                                 "props": {
                                     "title": "Top Countries by Visits",
@@ -603,20 +619,48 @@ STATS_DASHBOARD_LAYOUT = {
                             #         "hideOtherInCharts": True,
                             #     },
                             # },
-                        ],
-                    },
-                    {
-                        "name": "world-map",
-                        "components": [
                             {
-                                "component": "StatsMap",
-                                "width": 16,
+                                "component": "FileTypesMultiDisplayDownloads",
+                                "width": 8,
                                 "props": {
-                                    "title": "Top Countries by Visits",
-                                    "height": 400,
-                                    "minHeight": 400,
-                                    "zoom": 1.3,
-                                    "center": [0, 20],
+                                    "title": "Top File Types by Downloads",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "LanguagesMultiDisplayViews",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Languages by Views",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "ResourceTypesMultiDisplayViews",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Work Types by Views",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "RightsMultiDisplayViews",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Licenses by Views",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                         ],
@@ -725,6 +769,66 @@ STATS_DASHBOARD_LAYOUT = {
                                     "zoom": 1.3,
                                     "center": [0, 20],
                                     "useSnapshot": False,
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        "name": "tables2",
+                        "components": [
+                            {
+                                "component": "CountriesMultiDisplayViewsDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Countries by Visits",
+                                    "pageSize": 6,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "FileTypesMultiDisplayDownloadsDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top File Types by Downloads",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "LanguagesMultiDisplayViewsDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Languages by Views",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "ResourceTypesMultiDisplayViewsDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Work Types by Views",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "RightsMultiDisplayViewsDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Licenses by Views",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
                                 },
                             },
                         ],

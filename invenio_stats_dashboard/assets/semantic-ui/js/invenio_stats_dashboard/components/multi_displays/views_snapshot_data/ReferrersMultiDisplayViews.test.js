@@ -6,9 +6,9 @@
 
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { TopReferrersMultiDisplay } from './ReferrersMultiDisplay';
-import { filterSeriesArrayByDate } from '../../utils';
-import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
+import { ReferrersMultiDisplayViews } from './ReferrersMultiDisplayViews';
+import { filterSeriesArrayByDate } from '../../../utils';
+import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
 
 // Mock only the external dependencies
 jest.mock('@translations/invenio_stats_dashboard/i18next', () => ({
@@ -45,7 +45,7 @@ jest.mock('../../../constants', () => ({
   }
 }));
 
-describe('TopReferrersMultiDisplay', () => {
+describe('ReferrersMultiDisplayViews', () => {
   const mockUseStatsDashboard = require('../../../context/StatsDashboardContext').useStatsDashboard;
 
   beforeEach(() => {
@@ -566,7 +566,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render with list configuration', () => {
-      render(<TopReferrersMultiDisplay default_view="list" />);
+      render(<ReferrersMultiDisplayViews default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -581,7 +581,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', () => {
-      render(<TopReferrersMultiDisplay pageSize={2} default_view="list" />);
+      render(<ReferrersMultiDisplayViews pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -596,7 +596,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render with custom available_views', () => {
-      render(<TopReferrersMultiDisplay available_views={["list"]} default_view="list" />);
+      render(<ReferrersMultiDisplayViews available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -621,7 +621,7 @@ describe('TopReferrersMultiDisplay', () => {
         isLoading: false
       });
 
-      render(<TopReferrersMultiDisplay default_view="list" />);
+      render(<ReferrersMultiDisplayViews default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -631,7 +631,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render with custom title and icon', () => {
-      render(<TopReferrersMultiDisplay title="Custom Title" icon="external alternate" default_view="list" />);
+      render(<ReferrersMultiDisplayViews title="Custom Title" icon="external alternate" default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -639,7 +639,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', () => {
-      render(<TopReferrersMultiDisplay default_view="list" />);
+      render(<ReferrersMultiDisplayViews default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -660,7 +660,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render table rows with proper structure', () => {
-      render(<TopReferrersMultiDisplay default_view="list" />);
+      render(<ReferrersMultiDisplayViews default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -677,7 +677,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should render table cells with proper data', () => {
-      render(<TopReferrersMultiDisplay default_view="list" />);
+      render(<ReferrersMultiDisplayViews default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -691,7 +691,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', () => {
-      render(<TopReferrersMultiDisplay default_view="list" />);
+      render(<ReferrersMultiDisplayViews default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -703,7 +703,7 @@ describe('TopReferrersMultiDisplay', () => {
 
     it('should render with custom headers properly', () => {
       const customHeaders = ['Custom Referrer', 'Custom Count'];
-      render(<TopReferrersMultiDisplay headers={customHeaders} default_view="list" />);
+      render(<ReferrersMultiDisplayViews headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -716,7 +716,7 @@ describe('TopReferrersMultiDisplay', () => {
     });
 
     it('should maintain proper table structure with pagination', () => {
-      render(<TopReferrersMultiDisplay pageSize={2} default_view="list" />);
+      render(<ReferrersMultiDisplayViews pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

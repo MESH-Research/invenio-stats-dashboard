@@ -7,8 +7,8 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { AccessStatusesMultiDisplay } from './AccessStatusesMultiDisplay';
-import { filterSeriesArrayByDate } from '../../utils';
-import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
+import { filterSeriesArrayByDate } from '../../../utils';
+import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
 
 // Mock only the external dependencies
 jest.mock('@translations/invenio_stats_dashboard/i18next', () => ({

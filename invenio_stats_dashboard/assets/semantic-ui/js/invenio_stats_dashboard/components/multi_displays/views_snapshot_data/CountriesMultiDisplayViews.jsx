@@ -18,7 +18,7 @@ import {
   generateMultiDisplayChartOptions
 } from "../../../utils/multiDisplayHelpers";
 
-const CountriesMultiDisplayDelta = ({
+const CountriesMultiDisplayViews = ({
   title = i18next.t("Countries"),
   icon: labelIcon = "globe",
   headers = [i18next.t("Country"), i18next.t("Visits")],
@@ -33,13 +33,13 @@ const CountriesMultiDisplayDelta = ({
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
+      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
     }
   }, [dateRange]);
 
-  // Extract and process countries data using DELTA data (period-restricted)
-  const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, true, true);
-  const globalData = extractData(stats, null, 'global', 'views', dateRange, true, true);
+  // Extract and process countries data
+  const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, false, true);
+  const globalData = extractData(stats, null, 'global', 'views', dateRange, false, true);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformCountryMultiDisplayData(
     rawCountries,
@@ -48,7 +48,7 @@ const CountriesMultiDisplayDelta = ({
     CHART_COLORS.secondary,
     hideOtherInCharts,
     globalData,
-    true // isDelta = true for delta data
+    false // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
@@ -64,7 +64,7 @@ const CountriesMultiDisplayDelta = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
-      isDelta={true}
+      isDelta={false}
       dateRangeEnd={dateRange?.end}
       metricType="views"
       onEvents={{
@@ -79,7 +79,7 @@ const CountriesMultiDisplayDelta = ({
   );
 };
 
-CountriesMultiDisplayDelta.propTypes = {
+CountriesMultiDisplayViews.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
@@ -87,6 +87,7 @@ CountriesMultiDisplayDelta.propTypes = {
   pageSize: PropTypes.number,
   available_views: PropTypes.arrayOf(PropTypes.string),
   hideOtherInCharts: PropTypes.bool,
+  width: PropTypes.number,
 };
 
-export { CountriesMultiDisplayDelta };
+export { CountriesMultiDisplayViews };

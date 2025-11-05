@@ -4,13 +4,13 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { StatsMultiDisplay } from "../../shared_components/StatsMultiDisplay';
-import { useStatsDashboard } from "../../../context/StatsDashboardContext';
-import { CHART_COLORS } from "../../../constants';
-import { formatDate } from "../../../utils';
+import { StatsMultiDisplay } from "../../shared_components/StatsMultiDisplay";
+import { useStatsDashboard } from "../../../context/StatsDashboardContext";
+import { CHART_COLORS } from "../../../constants";
+import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,

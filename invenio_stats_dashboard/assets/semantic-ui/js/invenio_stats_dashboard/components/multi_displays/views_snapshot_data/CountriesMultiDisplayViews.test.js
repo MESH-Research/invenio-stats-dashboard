@@ -6,9 +6,9 @@
 
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { TopCountriesMultiDisplay } from './CountriesMultiDisplay';
-import { filterSeriesArrayByDate } from '../../utils';
-import { transformCountryMultiDisplayData, assembleMultiDisplayRows } from '../../utils/multiDisplayHelpers';
+import { CountriesMultiDisplayViews } from './CountriesMultiDisplayViews';
+import { filterSeriesArrayByDate } from '../../../utils';
+import { transformCountryMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
 
 // Mock only the external dependencies
 jest.mock('@translations/invenio_stats_dashboard/i18next', () => ({
@@ -45,7 +45,7 @@ jest.mock('../../../constants', () => ({
   }
 }));
 
-jest.mock('../../components/maps/data/countries.json', () => ({
+jest.mock('../../../components/maps/data/countries.json', () => ({
   features: [
     {
       properties: {
@@ -68,7 +68,7 @@ jest.mock('../../components/maps/data/countries.json', () => ({
   ]
 }));
 
-describe('TopCountriesMultiDisplay', () => {
+describe('CountriesMultiDisplayViews', () => {
   const mockUseStatsDashboard = require('../../../context/StatsDashboardContext').useStatsDashboard;
 
   beforeEach(() => {
@@ -674,7 +674,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render with list configuration', () => {
-      render(<TopCountriesMultiDisplay default_view="list" />);
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -689,7 +689,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', () => {
-      render(<TopCountriesMultiDisplay pageSize={2} default_view="list" />);
+      render(<CountriesMultiDisplayViews pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -704,7 +704,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render with custom available_views', () => {
-      render(<TopCountriesMultiDisplay available_views={["list"]} default_view="list" />);
+      render(<CountriesMultiDisplayViews available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -729,7 +729,7 @@ describe('TopCountriesMultiDisplay', () => {
         isLoading: false
       });
 
-      render(<TopCountriesMultiDisplay default_view="list" />);
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -739,7 +739,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render with custom title and icon', () => {
-      render(<TopCountriesMultiDisplay title="Custom Title" icon="globe" default_view="list" />);
+      render(<CountriesMultiDisplayViews title="Custom Title" icon="globe" default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -747,7 +747,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', () => {
-      render(<TopCountriesMultiDisplay default_view="list" />);
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -768,7 +768,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render table rows with proper structure', () => {
-      render(<TopCountriesMultiDisplay default_view="list" />);
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -785,7 +785,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should render table cells with proper data', () => {
-      render(<TopCountriesMultiDisplay default_view="list" />);
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -799,7 +799,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', () => {
-      render(<TopCountriesMultiDisplay default_view="list" />);
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -811,7 +811,7 @@ describe('TopCountriesMultiDisplay', () => {
 
     it('should render with custom headers properly', () => {
       const customHeaders = ['Custom Country', 'Custom Count'];
-      render(<TopCountriesMultiDisplay headers={customHeaders} default_view="list" />);
+      render(<CountriesMultiDisplayViews headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -824,7 +824,7 @@ describe('TopCountriesMultiDisplay', () => {
     });
 
     it('should maintain proper table structure with pagination', () => {
-      render(<TopCountriesMultiDisplay pageSize={2} default_view="list" />);
+      render(<CountriesMultiDisplayViews pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

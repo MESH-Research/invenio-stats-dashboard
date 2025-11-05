@@ -11,8 +11,6 @@ export * from "./record_snapshot_data/AccessStatusesMultiDisplay";
 export * from "./record_snapshot_data/RightsMultiDisplay";
 export * from "./record_snapshot_data/AffiliationsMultiDisplay";
 export * from "./record_snapshot_data/FundersMultiDisplay";
-export * from "./record_snapshot_data/CountriesMultiDisplay";
-export * from "./record_snapshot_data/ReferrersMultiDisplay";
 export * from "./record_snapshot_data/MostDownloadedRecordsMultiDisplay";
 export * from "./record_snapshot_data/MostViewedRecordsMultiDisplay";
 export * from "./record_snapshot_data/PeriodicalsMultiDisplay";
@@ -22,8 +20,6 @@ export * from "./record_snapshot_data/FileTypesMultiDisplay";
 
 // Record delta data components
 export * from "./record_delta_data/ResourceTypesMultiDisplayDelta";
-export * from "./record_delta_data/CountriesMultiDisplayDelta";
-export * from "./record_delta_data/ReferrersMultiDisplayDelta";
 export * from "./record_delta_data/RightsMultiDisplayDelta";
 export * from "./record_delta_data/SubjectsMultiDisplayDelta";
 export * from "./record_delta_data/AffiliationsMultiDisplayDelta";
@@ -35,6 +31,8 @@ export * from "./record_delta_data/FileTypesMultiDisplayDelta";
 export * from "./record_delta_data/AccessStatusesMultiDisplayDelta";
 
 // Views snapshot data components
+export * from "./views_snapshot_data/CountriesMultiDisplayViews";
+export * from "./views_snapshot_data/ReferrersMultiDisplayViews";
 export * from "./views_snapshot_data/SubjectsMultiDisplayViews";
 export * from "./views_snapshot_data/ResourceTypesMultiDisplayViews";
 export * from "./views_snapshot_data/AccessStatusesMultiDisplayViews";
@@ -47,6 +45,8 @@ export * from "./views_snapshot_data/LanguagesMultiDisplayViews";
 export * from "./views_snapshot_data/FileTypesMultiDisplayViews";
 
 // Views delta data components
+export * from "./views_delta_data/CountriesMultiDisplayViewsDelta";
+export * from "./views_delta_data/ReferrersMultiDisplayViewsDelta";
 export * from "./views_delta_data/SubjectsMultiDisplayViewsDelta";
 export * from "./views_delta_data/ResourceTypesMultiDisplayViewsDelta";
 export * from "./views_delta_data/AccessStatusesMultiDisplayViewsDelta";

@@ -17,7 +17,7 @@ import {
   generateMultiDisplayChartOptions
 } from "../../../utils/multiDisplayHelpers";
 
-const TopReferrersMultiDisplay = ({
+const ReferrersMultiDisplayViews = ({
   title = i18next.t("Referrers"),
   icon: labelIcon = "external alternate",
   headers = [i18next.t("Referrer"), i18next.t("Visits")],
@@ -68,7 +68,7 @@ const TopReferrersMultiDisplay = ({
   );
 };
 
-TopReferrersMultiDisplay.propTypes = {
+ReferrersMultiDisplayViews.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
@@ -77,4 +77,4 @@ TopReferrersMultiDisplay.propTypes = {
   available_views: PropTypes.arrayOf(PropTypes.string),
 };
 
-export { TopReferrersMultiDisplay };
+export { ReferrersMultiDisplayViews };

@@ -9,7 +9,7 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { StatsMultiDisplay } from "../../shared_components/StatsMultiDisplay";
 import { PropTypes } from "prop-types";
 import { useStatsDashboard } from "../../../context/StatsDashboardContext";
-import { CHART_COLORS } from "../../../constants';
+import { CHART_COLORS } from "../../../constants";
 import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
