@@ -68,6 +68,54 @@ import {
   PublishersMultiDisplayDelta,
   LanguagesMultiDisplayDelta,
   FileTypesMultiDisplayDelta,
+
+  // Multi Displays Views (snapshot)
+  SubjectsMultiDisplayViews,
+  ResourceTypesMultiDisplayViews,
+  AccessStatusesMultiDisplayViews,
+  RightsMultiDisplayViews,
+  AffiliationsMultiDisplayViews,
+  FundersMultiDisplayViews,
+  PeriodicalsMultiDisplayViews,
+  PublishersMultiDisplayViews,
+  LanguagesMultiDisplayViews,
+  FileTypesMultiDisplayViews,
+
+  // Multi Displays Views Delta
+  SubjectsMultiDisplayViewsDelta,
+  ResourceTypesMultiDisplayViewsDelta,
+  AccessStatusesMultiDisplayViewsDelta,
+  RightsMultiDisplayViewsDelta,
+  AffiliationsMultiDisplayViewsDelta,
+  FundersMultiDisplayViewsDelta,
+  PeriodicalsMultiDisplayViewsDelta,
+  PublishersMultiDisplayViewsDelta,
+  LanguagesMultiDisplayViewsDelta,
+  FileTypesMultiDisplayViewsDelta,
+
+  // Multi Displays Downloads (snapshot)
+  SubjectsMultiDisplayDownloads,
+  ResourceTypesMultiDisplayDownloads,
+  AccessStatusesMultiDisplayDownloads,
+  RightsMultiDisplayDownloads,
+  AffiliationsMultiDisplayDownloads,
+  FundersMultiDisplayDownloads,
+  PeriodicalsMultiDisplayDownloads,
+  PublishersMultiDisplayDownloads,
+  LanguagesMultiDisplayDownloads,
+  FileTypesMultiDisplayDownloads,
+
+  // Multi Displays Downloads Delta
+  SubjectsMultiDisplayDownloadsDelta,
+  ResourceTypesMultiDisplayDownloadsDelta,
+  AccessStatusesMultiDisplayDownloadsDelta,
+  RightsMultiDisplayDownloadsDelta,
+  AffiliationsMultiDisplayDownloadsDelta,
+  FundersMultiDisplayDownloadsDelta,
+  PeriodicalsMultiDisplayDownloadsDelta,
+  PublishersMultiDisplayDownloadsDelta,
+  LanguagesMultiDisplayDownloadsDelta,
+  FileTypesMultiDisplayDownloadsDelta,
 } from './index';
 
 export const componentsMap = {
@@ -134,4 +182,52 @@ export const componentsMap = {
   'PublishersMultiDisplayDelta': PublishersMultiDisplayDelta,
   'LanguagesMultiDisplayDelta': LanguagesMultiDisplayDelta,
   'FileTypesMultiDisplayDelta': FileTypesMultiDisplayDelta,
+
+  // Multi Displays Views (snapshot)
+  'SubjectsMultiDisplayViews': SubjectsMultiDisplayViews,
+  'ResourceTypesMultiDisplayViews': ResourceTypesMultiDisplayViews,
+  'AccessStatusesMultiDisplayViews': AccessStatusesMultiDisplayViews,
+  'RightsMultiDisplayViews': RightsMultiDisplayViews,
+  'AffiliationsMultiDisplayViews': AffiliationsMultiDisplayViews,
+  'FundersMultiDisplayViews': FundersMultiDisplayViews,
+  'PeriodicalsMultiDisplayViews': PeriodicalsMultiDisplayViews,
+  'PublishersMultiDisplayViews': PublishersMultiDisplayViews,
+  'LanguagesMultiDisplayViews': LanguagesMultiDisplayViews,
+  'FileTypesMultiDisplayViews': FileTypesMultiDisplayViews,
+
+  // Multi Displays Views Delta
+  'SubjectsMultiDisplayViewsDelta': SubjectsMultiDisplayViewsDelta,
+  'ResourceTypesMultiDisplayViewsDelta': ResourceTypesMultiDisplayViewsDelta,
+  'AccessStatusesMultiDisplayViewsDelta': AccessStatusesMultiDisplayViewsDelta,
+  'RightsMultiDisplayViewsDelta': RightsMultiDisplayViewsDelta,
+  'AffiliationsMultiDisplayViewsDelta': AffiliationsMultiDisplayViewsDelta,
+  'FundersMultiDisplayViewsDelta': FundersMultiDisplayViewsDelta,
+  'PeriodicalsMultiDisplayViewsDelta': PeriodicalsMultiDisplayViewsDelta,
+  'PublishersMultiDisplayViewsDelta': PublishersMultiDisplayViewsDelta,
+  'LanguagesMultiDisplayViewsDelta': LanguagesMultiDisplayViewsDelta,
+  'FileTypesMultiDisplayViewsDelta': FileTypesMultiDisplayViewsDelta,
+
+  // Multi Displays Downloads (snapshot)
+  'SubjectsMultiDisplayDownloads': SubjectsMultiDisplayDownloads,
+  'ResourceTypesMultiDisplayDownloads': ResourceTypesMultiDisplayDownloads,
+  'AccessStatusesMultiDisplayDownloads': AccessStatusesMultiDisplayDownloads,
+  'RightsMultiDisplayDownloads': RightsMultiDisplayDownloads,
+  'AffiliationsMultiDisplayDownloads': AffiliationsMultiDisplayDownloads,
+  'FundersMultiDisplayDownloads': FundersMultiDisplayDownloads,
+  'PeriodicalsMultiDisplayDownloads': PeriodicalsMultiDisplayDownloads,
+  'PublishersMultiDisplayDownloads': PublishersMultiDisplayDownloads,
+  'LanguagesMultiDisplayDownloads': LanguagesMultiDisplayDownloads,
+  'FileTypesMultiDisplayDownloads': FileTypesMultiDisplayDownloads,
+
+  // Multi Displays Downloads Delta
+  'SubjectsMultiDisplayDownloadsDelta': SubjectsMultiDisplayDownloadsDelta,
+  'ResourceTypesMultiDisplayDownloadsDelta': ResourceTypesMultiDisplayDownloadsDelta,
+  'AccessStatusesMultiDisplayDownloadsDelta': AccessStatusesMultiDisplayDownloadsDelta,
+  'RightsMultiDisplayDownloadsDelta': RightsMultiDisplayDownloadsDelta,
+  'AffiliationsMultiDisplayDownloadsDelta': AffiliationsMultiDisplayDownloadsDelta,
+  'FundersMultiDisplayDownloadsDelta': FundersMultiDisplayDownloadsDelta,
+  'PeriodicalsMultiDisplayDownloadsDelta': PeriodicalsMultiDisplayDownloadsDelta,
+  'PublishersMultiDisplayDownloadsDelta': PublishersMultiDisplayDownloadsDelta,
+  'LanguagesMultiDisplayDownloadsDelta': LanguagesMultiDisplayDownloadsDelta,
+  'FileTypesMultiDisplayDownloadsDelta': FileTypesMultiDisplayDownloadsDelta,
 };
