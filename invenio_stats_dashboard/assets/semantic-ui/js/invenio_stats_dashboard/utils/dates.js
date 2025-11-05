@@ -400,6 +400,19 @@ const formatRelativeTimestamp = (timestamp) => {
   }
 };
 
+/**
+ * Format cache timestamp for display
+ * @param {number} timestamp - Timestamp in milliseconds
+ * @returns {string} Formatted timestamp string
+ */
+const formatCacheTimestamp = (timestamp) => {
+  if (!timestamp) {
+    return 'Unknown';
+  }
+
+  return formatRelativeTimestamp(timestamp);
+};
+
 // Exports
 export {
   createUTCDate,
@@ -413,4 +426,5 @@ export {
   formatDate,
   formatDateRange,
   formatRelativeTimestamp,
+  formatCacheTimestamp,
 };

@@ -9,7 +9,7 @@
 import React from "react";
 import { Message, Icon, Loader } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
-import { formatCacheTimestamp } from "../../utils/statsCache";
+import { formatCacheTimestamp } from "../../utils/dates";
 import PropTypes from "prop-types";
 
 /**

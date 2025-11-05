@@ -422,6 +422,219 @@ describe("ChartDataProcessor", () => {
         expect(deltaResult.map(s => s.id)).toContain("series-b");
       });
     });
+
+    describe("country breakdowns filtering 'imported'", () => {
+      it("should filter out 'imported' from countries breakdown", () => {
+        const seriesArray = [
+          {
+            id: "US",
+            name: "United States",
+            data: [
+              { value: [new Date("2024-01-01"), 100] },
+              { value: [new Date("2024-01-02"), 150] },
+            ],
+          },
+          {
+            id: "CA",
+            name: "Canada",
+            data: [
+              { value: [new Date("2024-01-01"), 50] },
+              { value: [new Date("2024-01-02"), 75] },
+            ],
+          },
+          {
+            id: "imported",
+            name: "Imported",
+            data: [
+              { value: [new Date("2024-01-01"), 200] },
+              { value: [new Date("2024-01-02"), 250] },
+            ],
+          },
+        ];
+
+        const dateRange = createDateRange("2024-01-01", "2024-01-02");
+        const result = ChartDataProcessor.prepareDataSeries(
+          seriesArray,
+          "countries",
+          "views",
+          dateRange,
+          10,
+          false,
+          [{ year: 2024, global: { views: [] } }],
+        );
+
+        // "imported" should be filtered out, only real countries should appear
+        const resultIds = result.map(s => s.id);
+        expect(resultIds).not.toContain("imported");
+        expect(resultIds).toContain("US");
+        expect(resultIds).toContain("CA");
+      });
+
+      it("should filter out 'imported' from countriesByView breakdown", () => {
+        const seriesArray = [
+          {
+            id: "US",
+            name: "United States",
+            data: [{ value: [new Date("2024-01-01"), 100] }],
+          },
+          {
+            id: "imported",
+            name: "Imported",
+            data: [{ value: [new Date("2024-01-01"), 200] }],
+          },
+        ];
+
+        const dateRange = createDateRange("2024-01-01", "2024-01-01");
+        const result = ChartDataProcessor.prepareDataSeries(
+          seriesArray,
+          "countriesByView",
+          "views",
+          dateRange,
+          10,
+          false,
+          [{ year: 2024, global: { views: [] } }],
+        );
+
+        expect(result.map(s => s.id)).not.toContain("imported");
+        expect(result.map(s => s.id)).toContain("US");
+      });
+
+      it("should filter out 'imported' from countriesByDownload breakdown", () => {
+        const seriesArray = [
+          {
+            id: "GB",
+            name: "United Kingdom",
+            data: [{ value: [new Date("2024-01-01"), 50] }],
+          },
+          {
+            id: "imported",
+            name: "Imported",
+            data: [{ value: [new Date("2024-01-01"), 150] }],
+          },
+        ];
+
+        const dateRange = createDateRange("2024-01-01", "2024-01-01");
+        const result = ChartDataProcessor.prepareDataSeries(
+          seriesArray,
+          "countriesByDownload",
+          "downloads",
+          dateRange,
+          10,
+          false,
+          [{ year: 2024, global: { downloads: [] } }],
+        );
+
+        expect(result.map(s => s.id)).not.toContain("imported");
+        expect(result.map(s => s.id)).toContain("GB");
+      });
+
+      it("should not filter out 'imported' from non-country breakdowns", () => {
+        const seriesArray = [
+          {
+            id: "type-a",
+            name: "Type A",
+            data: [{ value: [new Date("2024-01-01"), 100] }],
+          },
+          {
+            id: "imported",
+            name: "Imported",
+            data: [{ value: [new Date("2024-01-01"), 200] }],
+          },
+        ];
+
+        const dateRange = createDateRange("2024-01-01", "2024-01-01");
+        const result = ChartDataProcessor.prepareDataSeries(
+          seriesArray,
+          "resourceTypes", // Not a country breakdown
+          "records",
+          dateRange,
+          10,
+          false,
+          [{ year: 2024, global: { records: [] } }],
+        );
+
+        // For non-country breakdowns, "imported" should be included
+        expect(result.map(s => s.id)).toContain("imported");
+        expect(result.map(s => s.id)).toContain("type-a");
+      });
+
+      it("should discard 'imported' and not include it in 'other' category for countries", () => {
+        const seriesArray = [
+          {
+            id: "US",
+            name: "United States",
+            data: [
+              { value: [new Date("2024-01-01"), 100], readableDate: "2024-01-01", valueType: "number" },
+              { value: [new Date("2024-01-02"), 150], readableDate: "2024-01-02", valueType: "number" },
+            ],
+          },
+          {
+            id: "CA",
+            name: "Canada",
+            data: [
+              { value: [new Date("2024-01-01"), 50], readableDate: "2024-01-01", valueType: "number" },
+              { value: [new Date("2024-01-02"), 75], readableDate: "2024-01-02", valueType: "number" },
+            ],
+          },
+          {
+            id: "imported",
+            name: "Imported",
+            data: [
+              { value: [new Date("2024-01-01"), 200], readableDate: "2024-01-01", valueType: "number" },
+              { value: [new Date("2024-01-02"), 250], readableDate: "2024-01-02", valueType: "number" },
+            ],
+          },
+        ];
+
+        // Create mock originalData with global series that includes imported
+        const originalData = [
+          {
+            year: 2024,
+            global: {
+              views: [
+                {
+                  id: "global",
+                  name: "Global",
+                  data: [
+                    { value: [new Date("2024-01-01"), 350], readableDate: "2024-01-01", valueType: "number" }, // US (100) + CA (50) + imported (200)
+                    { value: [new Date("2024-01-02"), 475], readableDate: "2024-01-02", valueType: "number" }, // US (150) + CA (75) + imported (250)
+                  ],
+                },
+              ],
+            },
+            countries: {
+              views: seriesArray,
+            },
+          },
+        ];
+
+        const dateRange = createDateRange("2024-01-01", "2024-01-02");
+        const result = ChartDataProcessor.prepareDataSeries(
+          seriesArray,
+          "countries",
+          "views",
+          dateRange,
+          1, // Only show top 1 (US), so CA should be in "other", imported should be discarded
+          false,
+          originalData,
+        );
+
+        // Should have US (top 1) and "other" (which includes CA, but NOT imported)
+        const resultIds = result.map(s => s.id);
+        expect(resultIds).not.toContain("imported"); // Should not appear as separate series
+        expect(resultIds).toContain("US");
+        
+        // Find the "other" series
+        const otherSeries = result.find(s => s.id === "other");
+        expect(otherSeries).toBeDefined();
+        // The "other" series should include CA values, but NOT imported
+        // Adjusted global = Global - Imported = (350-200, 475-250) = (150, 225)
+        // Visible (US) = (100, 150)
+        // Other = Adjusted Global - Visible = (150-100, 225-150) = (50, 75) = CA values
+        expect(otherSeries.data[0].value[1]).toBe(50); // 150 - 100 (CA value)
+        expect(otherSeries.data[1].value[1]).toBe(75); // 225 - 150 (CA value)
+      });
+    });
   });
 });
 
