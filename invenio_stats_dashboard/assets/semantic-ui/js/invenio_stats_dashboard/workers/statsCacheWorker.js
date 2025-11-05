@@ -205,6 +205,6 @@ export const terminateWorker = () => {
   }
 };
 
-// Export formatCacheTimestamp from the original module (this doesn't need a worker)
-export { formatCacheTimestamp } from '../utils/statsCache';
+// Export formatCacheTimestamp from dates utility (this doesn't need a worker)
+export { formatCacheTimestamp } from '../utils/dates';
 

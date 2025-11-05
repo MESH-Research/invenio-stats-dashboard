@@ -50,14 +50,33 @@ const getDB = () => {
       } else {
         // Upgrade existing store - add new indices if they don't exist
         const store = transaction.objectStore(STORE_NAME);
-        if (!store.indexNames.contains('year')) {
-          store.createIndex('year', 'year', { unique: false });
+        
+        // Check and create indices safely - wrap in try-catch to handle if index already exists
+        try {
+          if (!store.indexNames.contains('year')) {
+            store.createIndex('year', 'year', { unique: false });
+          }
+        } catch (e) {
+          // Index might already exist, ignore
+          console.warn('Index "year" may already exist:', e);
         }
-        if (!store.indexNames.contains('dateBasis')) {
-          store.createIndex('dateBasis', 'dateBasis', { unique: false });
+        
+        try {
+          if (!store.indexNames.contains('dateBasis')) {
+            store.createIndex('dateBasis', 'dateBasis', { unique: false });
+          }
+        } catch (e) {
+          // Index might already exist, ignore
+          console.warn('Index "dateBasis" may already exist:', e);
         }
-        if (!store.indexNames.contains('lastAccessed')) {
-          store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
+        
+        try {
+          if (!store.indexNames.contains('lastAccessed')) {
+            store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
+          }
+        } catch (e) {
+          // Index might already exist, ignore
+          console.warn('Index "lastAccessed" may already exist:', e);
         }
       }
     };
@@ -176,38 +195,37 @@ const evictOldestEntries = async (db, countToEvict) => {
  */
 const handleSetCachedStats = async (params) => {
   try {
-    const { communityId, dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year } = params;
+    const { communityId = 'global', dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year } = params;
     const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
+    console.log('[SET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
     const timestamp = Date.now();
     
-    // Extract year if not provided
     const cacheYear = year || extractYear(startDate);
 
-    // Compress the data (CPU-intensive operation, now off main thread)
     const jsonString = JSON.stringify(transformedData);
     const compressedData = pako.gzip(jsonString);
-    const blob = new Blob([compressedData], { type: 'application/gzip' });
+    const arrayBuffer = compressedData.buffer.slice(
+      compressedData.byteOffset,
+      compressedData.byteOffset + compressedData.byteLength
+    );
 
-    // Store in IndexedDB
     const db = await getDB();
     
-    // Check if this is an update to existing entry or new entry (separate transaction)
     const checkTransaction = db.transaction([STORE_NAME], 'readonly');
     const checkStore = checkTransaction.objectStore(STORE_NAME);
-    const existingRecord = await new Promise((resolve, reject) => {
-      const request = checkStore.get(cacheKey);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-    // Count total entries to check if we need eviction (separate transaction)
-    const countTransaction = db.transaction([STORE_NAME], 'readonly');
-    const countStore = countTransaction.objectStore(STORE_NAME);
-    const totalEntries = await new Promise((resolve, reject) => {
-      const countRequest = countStore.count();
-      countRequest.onsuccess = () => resolve(countRequest.result);
-      countRequest.onerror = () => reject(countRequest.error);
-    });
+    
+    const [existingRecord, totalEntries] = await Promise.all([
+      new Promise((resolve, reject) => {
+        const request = checkStore.get(cacheKey);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      }),
+      new Promise((resolve, reject) => {
+        const countRequest = checkStore.count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+        countRequest.onerror = () => reject(countRequest.error);
+      })
+    ]);
 
     // If adding new entry (not updating existing) and at limit, evict oldest first
     if (!existingRecord && totalEntries >= MAX_CACHE_ENTRIES) {
@@ -222,7 +240,7 @@ const handleSetCachedStats = async (params) => {
     
     const cacheRecord = {
       key: cacheKey,
-      data: blob,
+      data: arrayBuffer,
       timestamp,
       lastAccessed: timestamp, // Update lastAccessed when storing
       communityId,
@@ -241,8 +259,14 @@ const handleSetCachedStats = async (params) => {
 
     await new Promise((resolve, reject) => {
       const request = store.put(cacheRecord);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        console.log('[SET] Successfully stored cache key:', cacheKey);
+        resolve();
+      };
+      request.onerror = () => {
+        console.error('[SET] Failed to store cache key:', cacheKey, 'Error:', request.error);
+        reject(request.error);
+      };
     });
 
     return { success: true, cacheKey, compressedRatio: compressedData.length / jsonString.length };
@@ -252,33 +276,50 @@ const handleSetCachedStats = async (params) => {
 };
 
 /**
- * Handle getCachedStats message
+ * Handle getCachedStats
  */
 const handleGetCachedStats = async (params) => {
   try {
-    const { communityId, dashboardType, dateBasis = 'added', startDate, endDate } = params;
+    const { communityId = 'global', dashboardType, dateBasis = 'added', startDate, endDate } = params;
     const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
+    console.log('[GET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
 
-    // Retrieve from IndexedDB
     const db = await getDB();
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
+    const getTransaction = db.transaction([STORE_NAME], 'readonly');
+    const getStore = getTransaction.objectStore(STORE_NAME);
 
     const record = await new Promise((resolve, reject) => {
-      const request = store.get(cacheKey);
+      const request = getStore.get(cacheKey);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
 
     if (!record) {
+      // Debug: List all keys to see what's actually stored
+      const getAllKeysRequest = getStore.getAllKeys();
+      getAllKeysRequest.onsuccess = () => {
+        console.warn('[GET] No record found for key:', cacheKey);
+        console.warn('[GET] Available keys in store:', getAllKeysRequest.result);
+        // Check if any keys are similar (might indicate a mismatch)
+        const similarKeys = getAllKeysRequest.result.filter(key => 
+          typeof key === 'string' && key.includes(dashboardType) && key.includes(dateBasis)
+        );
+        if (similarKeys.length > 0) {
+          console.warn('[GET] Similar keys found:', similarKeys);
+        }
+      };
       return { success: true, data: null };
     }
 
-    // Check if cache is still valid
+    // Extract metadata before transaction completes (record is still valid after transaction)
+    const serverFetchTimestamp = record.serverFetchTimestamp || null;
+    const year = record.year || null;
+    // data is stored as ArrayBuffer (for Safari compatibility), not Blob
+    const recordData = record.data;
+
     if (!isCacheValid(record)) {
       // Delete expired cache
-      const deleteDb = await getDB();
-      const deleteTransaction = deleteDb.transaction([STORE_NAME], 'readwrite');
+      const deleteTransaction = db.transaction([STORE_NAME], 'readwrite');
       const deleteStore = deleteTransaction.objectStore(STORE_NAME);
       await new Promise((resolve, reject) => {
         const request = deleteStore.delete(cacheKey);
@@ -288,34 +329,67 @@ const handleGetCachedStats = async (params) => {
       return { success: true, data: null };
     }
 
-    // Update lastAccessed timestamp (LRU - mark as recently used)
-    const now = Date.now();
-    const updatedRecord = {
-      ...record,
-      lastAccessed: now
-    };
-    
-    // Update the record with new lastAccessed timestamp
-    const updateDb = await getDB();
-    const updateTransaction = updateDb.transaction([STORE_NAME], 'readwrite');
-    const updateStore = updateTransaction.objectStore(STORE_NAME);
-    await new Promise((resolve, reject) => {
-      const updateRequest = updateStore.put(updatedRecord);
-      updateRequest.onsuccess = () => resolve();
-      updateRequest.onerror = () => reject(updateRequest.error);
-    });
-
-    // Decompress the data (CPU-intensive operation, now off main thread)
-    const arrayBuffer = await record.data.arrayBuffer();
+    // Decompress the data
+    // Handle both ArrayBuffer (new format, Safari-compatible) and Blob (old format, for backward compatibility)
+    // FIXME: Remove legacy Blob handling 
+    let arrayBuffer;
+    if (recordData instanceof ArrayBuffer) {
+      arrayBuffer = recordData;
+    } else if (recordData && typeof recordData.arrayBuffer === 'function') {
+      // Old format: stored as Blob (convert to ArrayBuffer)
+      try {
+        arrayBuffer = await recordData.arrayBuffer();
+      } catch (error) {
+        console.warn('Failed to read Blob data (Safari compatibility issue), cache entry will be re-fetched:', error);
+        return { success: true, data: null };
+      }
+    } else {
+      // Fallback: try to use as-is (shouldn't happen)
+      arrayBuffer = recordData;
+    }
     const compressedData = new Uint8Array(arrayBuffer);
     const decompressedData = JSON.parse(pako.ungzip(compressedData, { to: 'string' }));
 
-    // Return data along with metadata for current year's server fetch time
+    const updateLastAccessed = async () => {
+      try {
+        const updateDb = await getDB();
+        const updateTransaction = updateDb.transaction([STORE_NAME], 'readwrite');
+        const updateStore = updateTransaction.objectStore(STORE_NAME);
+        
+        // Get fresh record to ensure we have all properties including ArrayBuffer
+        const freshRecord = await new Promise((resolve, reject) => {
+          const getRequest = updateStore.get(cacheKey);
+          getRequest.onsuccess = () => resolve(getRequest.result);
+          getRequest.onerror = () => reject(getRequest.error);
+        });
+
+        if (freshRecord) {
+          const updatedRecord = {
+            ...freshRecord,
+            lastAccessed: Date.now()
+          };
+          
+          await new Promise((resolve, reject) => {
+            const updateRequest = updateStore.put(updatedRecord);
+            updateRequest.onsuccess = () => resolve();
+            updateRequest.onerror = () => reject(updateRequest.error);
+          });
+        }
+      } catch (error) {
+        // Silently fail - LRU update is not critical for returning cached data
+        console.warn('Failed to update lastAccessed timestamp:', error);
+      }
+    };
+    
+    // Fire off the update but don't wait for it
+    updateLastAccessed();
+
+    // Return data immediately along with metadata for current year's server fetch time
     return { 
       success: true, 
       data: decompressedData,
-      serverFetchTimestamp: record.serverFetchTimestamp || null,
-      year: record.year || null
+      serverFetchTimestamp: serverFetchTimestamp,
+      year: year
     };
   } catch (error) {
     return { success: false, error: error.message, data: null };

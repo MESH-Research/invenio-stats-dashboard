@@ -19,10 +19,16 @@ jest.mock('./workers/statsCacheWorker', () => ({
   formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
 }));
 
-// Also mock statsCache since UpdateStatusMessage imports formatCacheTimestamp from there
-jest.mock('./utils/statsCache', () => ({
-  formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
-}));
+// Also mock dates utility since UpdateStatusMessage imports formatCacheTimestamp from there
+// and DateRangeSelector imports getCurrentUTCDate and other date functions
+jest.mock('./utils/dates', () => {
+  const actualDates = jest.requireActual('./utils/dates');
+  return {
+    ...actualDates,
+    formatCacheTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown'),
+    formatRelativeTimestamp: jest.fn((timestamp) => timestamp ? new Date(timestamp).toLocaleString() : 'Unknown')
+  };
+});
 
 jest.mock('./api/api', () => ({
   fetchStats: jest.fn(),
@@ -423,7 +429,7 @@ describe('StatsDashboardLayout with caching', () => {
     });
 
     // Verify formatCacheTimestamp was called with currentYearLastUpdated
-    const { formatCacheTimestamp } = require('./utils/statsCache');
+    const { formatCacheTimestamp } = require('./utils/dates');
     await waitFor(() => {
       expect(formatCacheTimestamp).toHaveBeenCalledWith(currentYearTimestamp);
     });
@@ -481,7 +487,7 @@ describe('StatsDashboardLayout with caching', () => {
     });
 
     // Verify formatCacheTimestamp was called with lastUpdated as fallback
-    const { formatCacheTimestamp } = require('./utils/statsCache');
+    const { formatCacheTimestamp } = require('./utils/dates');
     await waitFor(() => {
       expect(formatCacheTimestamp).toHaveBeenCalledWith(fallbackTimestamp);
     });
@@ -543,7 +549,7 @@ describe('StatsDashboardLayout with caching', () => {
     // Verify formatCacheTimestamp was called with currentYearLastUpdated (preferred)
     // Note: It may also be called with lastUpdated during initial render, but the final
     // render should use currentYearLastUpdated
-    const { formatCacheTimestamp } = require('./utils/statsCache');
+    const { formatCacheTimestamp } = require('./utils/dates');
     await waitFor(() => {
       // The component should eventually call formatCacheTimestamp with currentYearLastUpdated
       expect(formatCacheTimestamp).toHaveBeenCalledWith(currentYearTimestamp);
