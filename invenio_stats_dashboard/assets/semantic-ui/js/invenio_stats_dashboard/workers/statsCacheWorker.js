@@ -5,8 +5,7 @@
  * Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
  * it under the terms of the MIT License; see LICENSE file for more details.
  *
- * Worker manager for stats cache operations
- * Provides async API that communicates with Web Worker to avoid blocking main thread
+ * Worker manager for async, non-blocking stats cache operations
  */
 
 let worker = null;
@@ -19,14 +18,7 @@ const pendingMessages = new Map();
 const getWorker = () => {
   if (!worker) {
     // Create worker from the worker file
-    // Webpack 5 natively supports this syntax and will automatically:
-    // 1. Detect this as a worker entry point
-    // 2. Create a separate chunk for the worker
-    // 3. Resolve the path correctly at runtime, even in complex multi-package builds
-    // The relative path './statsCache.worker.js' resolves correctly because:
-    // - Both files are in the same 'workers/' directory
-    // - Webpack preserves the relative relationship during bundling
-    // - import.meta.url points to the bundled location at runtime
+    // import.meta.url points to the bundled location at runtime
     try {
       worker = new Worker(
         new URL('./statsCache.worker.js', import.meta.url),
@@ -37,7 +29,6 @@ const getWorker = () => {
       throw error;
     }
 
-    // Handle messages from worker
     worker.addEventListener('message', (event) => {
       const { id, result } = event.data;
 
@@ -45,16 +36,16 @@ const getWorker = () => {
       if (pending) {
         pendingMessages.delete(id);
         if (result.success) {
-          // cache fetching promises will have a `data` property to return, 
-          // but for cache set/clear operations we return the full result object
-          pending.resolve(result.data !== undefined ? result.data : result);
+          // GET_CACHED_STATS needs: data, serverFetchTimestamp, year
+          // SET_CACHED_STATS needs: cacheKey, compressedRatio
+          // CLEAR operations return: success
+          pending.resolve(result);
         } else {
           pending.reject(new Error(result.error || 'Worker operation failed'));
         }
       }
     });
 
-    // Handle worker errors
     worker.addEventListener('error', (error) => {
       console.error('Stats cache worker error:', error);
       // Reject all pending messages
@@ -97,12 +88,13 @@ const sendMessage = (type, params = {}) => {
  */
 export const setCachedStats = async (communityId, dashboardType, transformedData, dateBasis = 'added', startDate = null, endDate = null, year = null) => {
   try {
+    const normalizedCommunityId = communityId || 'global';
     const startTime = performance.now();
-    console.log('setCachedStats (worker) called with:', { communityId, dashboardType, dateBasis, startDate, endDate, year });
-    
+    console.log('setCachedStats (worker) called with:', { communityId: normalizedCommunityId, dashboardType, dateBasis, startDate, endDate, year });
+
     // Transfer the data to the worker - it will compress and cache it
     const result = await sendMessage('SET_CACHED_STATS', {
-      communityId,
+      communityId: normalizedCommunityId,
       dashboardType,
       transformedData,
       dateBasis,
@@ -133,11 +125,13 @@ export const setCachedStats = async (communityId, dashboardType, transformedData
  */
 export const getCachedStats = async (communityId, dashboardType, dateBasis = 'added', startDate = null, endDate = null) => {
   try {
+    // Normalize undefined/null communityId to 'global' for consistency
+    const normalizedCommunityId = communityId || 'global';
     const startTime = performance.now();
-    console.log('getCachedStats (worker) called with:', { communityId, dashboardType, dateBasis, startDate, endDate });
-    
+    console.log('getCachedStats (worker) called with:', { communityId: normalizedCommunityId, dashboardType, dateBasis, startDate, endDate });
+
     const result = await sendMessage('GET_CACHED_STATS', {
-      communityId,
+      communityId: normalizedCommunityId,
       dashboardType,
       dateBasis,
       startDate,
@@ -149,14 +143,14 @@ export const getCachedStats = async (communityId, dashboardType, dateBasis = 'ad
     // Worker returns { success, data, serverFetchTimestamp, year }
     // We return the full object so API can access serverFetchTimestamp
     if (result && result.data) {
-      console.log(`Retrieved cached data for: ${communityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
+      console.log(`Retrieved cached data for: ${normalizedCommunityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
       return {
         data: result.data,
         serverFetchTimestamp: result.serverFetchTimestamp || null,
         year: result.year || null
       };
     } else {
-      console.log(`No cached data found for: ${communityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
+      console.log(`No cached data found for: ${normalizedCommunityId} ${dashboardType} ${dateBasis} ${startDate}-${endDate} (${duration.toFixed(2)}ms)`);
       return null;
     }
   } catch (error) {

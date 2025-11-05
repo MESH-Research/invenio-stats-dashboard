@@ -38,7 +38,7 @@ const getDB = () => {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
       const transaction = event.target.transaction;
-      
+
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         // Create new store
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
@@ -50,32 +50,29 @@ const getDB = () => {
       } else {
         // Upgrade existing store - add new indices if they don't exist
         const store = transaction.objectStore(STORE_NAME);
-        
+
         // Check and create indices safely - wrap in try-catch to handle if index already exists
         try {
           if (!store.indexNames.contains('year')) {
             store.createIndex('year', 'year', { unique: false });
           }
         } catch (e) {
-          // Index might already exist, ignore
           console.warn('Index "year" may already exist:', e);
         }
-        
+
         try {
           if (!store.indexNames.contains('dateBasis')) {
             store.createIndex('dateBasis', 'dateBasis', { unique: false });
           }
         } catch (e) {
-          // Index might already exist, ignore
           console.warn('Index "dateBasis" may already exist:', e);
         }
-        
+
         try {
           if (!store.indexNames.contains('lastAccessed')) {
             store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
           }
         } catch (e) {
-          // Index might already exist, ignore
           console.warn('Index "lastAccessed" may already exist:', e);
         }
       }
@@ -124,11 +121,11 @@ const isCacheValid = (cachedData) => {
 
   const now = Date.now();
   const cacheAge = now - cachedData.timestamp;
-  
+
   // Determine TTL based on whether it's current year or past year
   const year = cachedData.year;
   const isCurrent = isCurrentYear(year);
-  
+
   const maxAge = isCurrent
     ? CACHE_EXPIRY_HOURS_CURRENT_YEAR * 60 * 60 * 1000 // 1 hour in milliseconds
     : CACHE_EXPIRY_YEARS_PAST * 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
@@ -144,14 +141,14 @@ const evictOldestEntries = async (db, countToEvict) => {
   return new Promise((resolve, reject) => {
     const evictTransaction = db.transaction([STORE_NAME], 'readwrite');
     const evictStore = evictTransaction.objectStore(STORE_NAME);
-    
+
     // Get all entries - we'll sort by lastAccessed in memory
     const getAllRequest = evictStore.getAll();
     const entriesToDelete = [];
 
     getAllRequest.onsuccess = async () => {
       const allEntries = getAllRequest.result;
-      
+
       // Sort by lastAccessed (oldest first), fallback to timestamp if lastAccessed missing
       allEntries.sort((a, b) => {
         const aTime = a.lastAccessed || a.timestamp || 0;
@@ -199,7 +196,7 @@ const handleSetCachedStats = async (params) => {
     const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
     console.log('[SET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
     const timestamp = Date.now();
-    
+
     const cacheYear = year || extractYear(startDate);
 
     const jsonString = JSON.stringify(transformedData);
@@ -210,10 +207,10 @@ const handleSetCachedStats = async (params) => {
     );
 
     const db = await getDB();
-    
+
     const checkTransaction = db.transaction([STORE_NAME], 'readonly');
     const checkStore = checkTransaction.objectStore(STORE_NAME);
-    
+
     const [existingRecord, totalEntries] = await Promise.all([
       new Promise((resolve, reject) => {
         const request = checkStore.get(cacheKey);
@@ -237,7 +234,7 @@ const handleSetCachedStats = async (params) => {
     const storeTransaction = db.transaction([STORE_NAME], 'readwrite');
     const store = storeTransaction.objectStore(STORE_NAME);
     const isCurrent = isCurrentYear(cacheYear);
-    
+
     const cacheRecord = {
       key: cacheKey,
       data: arrayBuffer,
@@ -276,13 +273,29 @@ const handleSetCachedStats = async (params) => {
 };
 
 /**
+ * Helper function to delete a cache entry by key
+ * @param {string} cacheKey - The cache key to delete
+ * @returns {Promise<void>}
+ */
+const deleteCacheEntry = async (cacheKey) => {
+  const db = await getDB();
+  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(STORE_NAME);
+  await new Promise((resolve, reject) => {
+    const request = store.delete(cacheKey);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
  * Handle getCachedStats
  */
 const handleGetCachedStats = async (params) => {
   try {
     const { communityId = 'global', dashboardType, dateBasis = 'added', startDate, endDate } = params;
     const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
-    console.log('[GET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
+    // console.log('[GET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
 
     const db = await getDB();
     const getTransaction = db.transaction([STORE_NAME], 'readonly');
@@ -295,21 +308,51 @@ const handleGetCachedStats = async (params) => {
     });
 
     if (!record) {
-      // Debug: List all keys to see what's actually stored
-      const getAllKeysRequest = getStore.getAllKeys();
-      getAllKeysRequest.onsuccess = () => {
-        console.warn('[GET] No record found for key:', cacheKey);
-        console.warn('[GET] Available keys in store:', getAllKeysRequest.result);
-        // Check if any keys are similar (might indicate a mismatch)
-        const similarKeys = getAllKeysRequest.result.filter(key => 
-          typeof key === 'string' && key.includes(dashboardType) && key.includes(dateBasis)
-        );
-        if (similarKeys.length > 0) {
-          console.warn('[GET] Similar keys found:', similarKeys);
+      // This includes listing all keys, which can be expensive
+      /*
+      const allKeys = await new Promise((resolve, reject) => {
+        const getAllKeysRequest = getStore.getAllKeys();
+        getAllKeysRequest.onsuccess = () => resolve(getAllKeysRequest.result);
+        getAllKeysRequest.onerror = () => reject(getAllKeysRequest.error);
+      });
+      console.warn('[GET] No record found for key:', cacheKey);
+      console.warn('[GET] Available keys in store:', allKeys);
+      console.warn('[GET] Number of keys in store:', allKeys.length);
+      console.warn('[GET] Cache key length:', cacheKey.length, 'Cache key bytes:', new TextEncoder().encode(cacheKey));
+
+      // Check if any keys are similar (might indicate a mismatch)
+      const similarKeys = allKeys.filter(key =>
+        typeof key === 'string' && key.includes(dashboardType) && key.includes(dateBasis)
+      );
+      if (similarKeys.length > 0) {
+        console.warn('[GET] Similar keys found:', similarKeys);
+        console.warn('[GET] Looking for exact match of:', cacheKey);
+        const exactMatch = allKeys.find(key => key === cacheKey);
+        console.warn('[GET] Exact match found?', exactMatch !== undefined, exactMatch);
+        if (exactMatch) {
+          console.warn('[GET] Exact match key:', exactMatch, 'length:', exactMatch.length);
         }
-      };
+        // Check for near-matches (character-by-character comparison)
+        similarKeys.forEach(key => {
+          if (key.length === cacheKey.length) {
+            const differences = [];
+            for (let i = 0; i < key.length; i++) {
+              if (key[i] !== cacheKey[i]) {
+                differences.push({ pos: i, expected: cacheKey[i], actual: key[i], expectedCode: cacheKey.charCodeAt(i), actualCode: key.charCodeAt(i) });
+              }
+            }
+            if (differences.length > 0) {
+              console.warn('[GET] Key differences found:', key, differences);
+            }
+          }
+        });
+      }
+      */
+
       return { success: true, data: null };
     }
+
+    // console.log('[GET] Record found! Key:', cacheKey, 'Record keys:', Object.keys(record));
 
     // Extract metadata before transaction completes (record is still valid after transaction)
     const serverFetchTimestamp = record.serverFetchTimestamp || null;
@@ -317,45 +360,60 @@ const handleGetCachedStats = async (params) => {
     // data is stored as ArrayBuffer (for Safari compatibility), not Blob
     const recordData = record.data;
 
+    // console.log('[GET] Cache validation check:', {
+    //   hasTimestamp: !!record.timestamp,
+    //   timestamp: record.timestamp,
+    //   year: record.year,
+    //   isCurrentYear: isCurrentYear(record.year),
+    //   cacheAge: record.timestamp ? Date.now() - record.timestamp : 'N/A'
+    // });
+
     if (!isCacheValid(record)) {
+      // console.warn('[GET] Cache expired, deleting key:', cacheKey);
       // Delete expired cache
-      const deleteTransaction = db.transaction([STORE_NAME], 'readwrite');
-      const deleteStore = deleteTransaction.objectStore(STORE_NAME);
-      await new Promise((resolve, reject) => {
-        const request = deleteStore.delete(cacheKey);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
+      await deleteCacheEntry(cacheKey);
       return { success: true, data: null };
     }
 
+    // console.log('[GET] Cache is valid, proceeding to decompress');
+    // console.log('[GET] Record data type:', typeof recordData, 'instanceof ArrayBuffer:', recordData instanceof ArrayBuffer);
+
     // Decompress the data
-    // Handle both ArrayBuffer (new format, Safari-compatible) and Blob (old format, for backward compatibility)
-    // FIXME: Remove legacy Blob handling 
+    let decompressedData;
     let arrayBuffer;
-    if (recordData instanceof ArrayBuffer) {
-      arrayBuffer = recordData;
-    } else if (recordData && typeof recordData.arrayBuffer === 'function') {
-      // Old format: stored as Blob (convert to ArrayBuffer)
-      try {
-        arrayBuffer = await recordData.arrayBuffer();
-      } catch (error) {
-        console.warn('Failed to read Blob data (Safari compatibility issue), cache entry will be re-fetched:', error);
+    try {
+      if (recordData instanceof ArrayBuffer) {
+        arrayBuffer = recordData;
+        // console.log('[GET] Using ArrayBuffer, size:', arrayBuffer.byteLength);
+      } else {
+        const errorMsg = `Unexpected recordData type: ${typeof recordData}. Expected ArrayBuffer.`;
+        console.error('[GET]', errorMsg, 'Invalidating cache entry:', cacheKey);
+        await deleteCacheEntry(cacheKey);
+        return { success: false, error: errorMsg, data: null };
+      }
+
+      // console.log('[GET] Decompressing data, arrayBuffer size:', arrayBuffer.byteLength);
+      const compressedData = new Uint8Array(arrayBuffer);
+      decompressedData = JSON.parse(pako.ungzip(compressedData, { to: 'string' }));
+      // console.log('[GET] Decompression successful, data type:', typeof decompressedData, 'keys:', Object.keys(decompressedData || {}));
+
+      if (!decompressedData) {
+        console.error('[GET] Decompressed data is null/undefined! Invalidating cache entry:', cacheKey);
+        await deleteCacheEntry(cacheKey);
         return { success: true, data: null };
       }
-    } else {
-      // Fallback: try to use as-is (shouldn't happen)
-      arrayBuffer = recordData;
+    } catch (error) {
+      console.error('[GET] Error during decompression. Invalidating cache entry:', cacheKey, error);
+      await deleteCacheEntry(cacheKey);
+      return { success: false, error: error.message, data: null };
     }
-    const compressedData = new Uint8Array(arrayBuffer);
-    const decompressedData = JSON.parse(pako.ungzip(compressedData, { to: 'string' }));
 
     const updateLastAccessed = async () => {
       try {
         const updateDb = await getDB();
         const updateTransaction = updateDb.transaction([STORE_NAME], 'readwrite');
         const updateStore = updateTransaction.objectStore(STORE_NAME);
-        
+
         // Get fresh record to ensure we have all properties including ArrayBuffer
         const freshRecord = await new Promise((resolve, reject) => {
           const getRequest = updateStore.get(cacheKey);
@@ -368,7 +426,7 @@ const handleGetCachedStats = async (params) => {
             ...freshRecord,
             lastAccessed: Date.now()
           };
-          
+
           await new Promise((resolve, reject) => {
             const updateRequest = updateStore.put(updatedRecord);
             updateRequest.onsuccess = () => resolve();
@@ -380,17 +438,25 @@ const handleGetCachedStats = async (params) => {
         console.warn('Failed to update lastAccessed timestamp:', error);
       }
     };
-    
+
     // Fire off the update but don't wait for it
     updateLastAccessed();
 
     // Return data immediately along with metadata for current year's server fetch time
-    return { 
-      success: true, 
+    const result = {
+      success: true,
       data: decompressedData,
       serverFetchTimestamp: serverFetchTimestamp,
       year: year
     };
+    // console.log('[GET] Returning result:', {
+    //   success: result.success,
+    //   hasData: !!result.data,
+    //   dataKeys: result.data ? Object.keys(result.data) : null,
+    //   serverFetchTimestamp: result.serverFetchTimestamp,
+    //   year: result.year
+    // });
+    return result;
   } catch (error) {
     return { success: false, error: error.message, data: null };
   }
@@ -402,17 +468,7 @@ const handleGetCachedStats = async (params) => {
 const handleClearCachedStatsForKey = async (params) => {
   try {
     const { cacheKey } = params;
-
-    const db = await getDB();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-
-    await new Promise((resolve, reject) => {
-      const request = store.delete(cacheKey);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-
+    await deleteCacheEntry(cacheKey);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -492,10 +548,10 @@ const processQueue = async () => {
       // Send result back to main thread
       self.postMessage({ id, type, result });
     } catch (error) {
-      self.postMessage({ 
-        id, 
-        type, 
-        result: { success: false, error: error.message } 
+      self.postMessage({
+        id,
+        type,
+        result: { success: false, error: error.message }
       });
     }
   }
