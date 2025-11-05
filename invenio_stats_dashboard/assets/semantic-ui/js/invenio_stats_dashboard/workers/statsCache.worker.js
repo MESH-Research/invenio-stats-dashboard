@@ -387,7 +387,7 @@ const handleGetCachedStats = async (params) => {
         // console.log('[GET] Using ArrayBuffer, size:', arrayBuffer.byteLength);
       } else {
         const errorMsg = `Unexpected recordData type: ${typeof recordData}. Expected ArrayBuffer.`;
-        console.error('[GET]', errorMsg, 'Invalidating cache entry:', cacheKey);
+        console.error('handleGetCachedStats:', errorMsg, 'Invalidating cache entry:', cacheKey);
         await deleteCacheEntry(cacheKey);
         return { success: false, error: errorMsg, data: null };
       }
@@ -398,12 +398,12 @@ const handleGetCachedStats = async (params) => {
       // console.log('[GET] Decompression successful, data type:', typeof decompressedData, 'keys:', Object.keys(decompressedData || {}));
 
       if (!decompressedData) {
-        console.error('[GET] Decompressed data is null/undefined! Invalidating cache entry:', cacheKey);
+        console.error('handleGetCachedStats: Decompressed data is null/undefined! Invalidating cache entry:', cacheKey);
         await deleteCacheEntry(cacheKey);
         return { success: true, data: null };
       }
     } catch (error) {
-      console.error('[GET] Error during decompression. Invalidating cache entry:', cacheKey, error);
+      console.error('handleGetCachedStats: Error during decompression. Invalidating cache entry:', cacheKey, error);
       await deleteCacheEntry(cacheKey);
       return { success: false, error: error.message, data: null };
     }
