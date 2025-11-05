@@ -14,7 +14,7 @@ import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  extractUsageData,
+  extractData,
   generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
@@ -34,27 +34,29 @@ const FileTypesMultiDisplayViews = ({
   useEffect(() => {
     if (dateRange) {
       setSubtitle(
-        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true)
+        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
       );
     }
   }, [dateRange]);
 
   // Extract usage snapshot data for views
-  const rawData = extractUsageData(
+  const rawData = extractData(
     stats,
+    null,
     "fileTypes",
-    "views",
-    "records",
+    "viewUniqueRecords",
     dateRange,
     false,
+    true, // isUsageData = true
   );
-  const globalData = extractUsageData(
+  const globalData = extractData(
     stats,
+    null,
     "global",
-    "views",
-    "records",
+    "viewUniqueRecords",
     dateRange,
     false,
+    true, // isUsageData = true
   );
 
   const {

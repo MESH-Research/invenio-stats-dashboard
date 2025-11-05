@@ -14,7 +14,7 @@ import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  extractUsageData,
+  extractData,
   generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
@@ -34,27 +34,30 @@ const FileTypesMultiDisplayDownloads = ({
   useEffect(() => {
     if (dateRange) {
       setSubtitle(
-        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true)
+        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
       );
     }
   }, [dateRange]);
 
+  console.log("FileTypesMultiDisplayDownloads: stats: ", stats);
   // Extract usage snapshot data for downloads
-  const rawData = extractUsageData(
+  const rawData = extractData(
     stats,
+    null,
     "fileTypes",
-    "downloads",
-    "file_count",
+    "downloadUniqueFiles",
     dateRange,
     false,
+    true, // isUsageData = true
   );
-  const globalData = extractUsageData(
+  const globalData = extractData(
     stats,
+    null,
     "global",
-    "downloads",
-    "file_count",
+    "downloadUniqueFiles",
     dateRange,
     false,
+    true, // isUsageData = true
   );
 
   const {

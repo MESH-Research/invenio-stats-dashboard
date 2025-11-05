@@ -14,7 +14,7 @@ import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  extractUsageData,
+  extractData,
   generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
@@ -40,21 +40,23 @@ const PublishersMultiDisplayViewsDelta = ({
   }, [dateRange]);
 
   // Extract usage delta data for views
-  const rawData = extractUsageData(
+  const rawData = extractData(
     stats,
+    null,
     "publishers",
-    "views",
-    "records",
+    "viewUniqueRecords",
     dateRange,
     true,
+    true, // isUsageData = true
   );
-  const globalData = extractUsageData(
+  const globalData = extractData(
     stats,
+    null,
     "global",
-    "views",
-    "records",
+    "viewUniqueRecords",
     dateRange,
     true,
+    true, // isUsageData = true
   );
 
   const {

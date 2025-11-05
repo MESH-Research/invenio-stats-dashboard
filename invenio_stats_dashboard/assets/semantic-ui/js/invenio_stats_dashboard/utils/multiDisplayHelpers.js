@@ -6,9 +6,9 @@
 
 import React from "react";
 import { formatNumber } from "./numbers";
-import { CHART_COLORS, RECORD_START_BASES } from '../constants';
-import { extractLocalizedLabel } from './i18n';
-import { filterSeriesArrayByDate } from './filters';
+import { CHART_COLORS, RECORD_START_BASES } from "../constants";
+import { extractLocalizedLabel } from "./i18n";
+import { filterSeriesArrayByDate } from "./filters";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getCountryNames } from "./mapHelpers";
 import { transformItemForChart } from "./nameTransformHelpers";
@@ -98,7 +98,12 @@ const transformMultiDisplayData = (
     const currentLanguage = i18next.language || "en";
 
     // Transform item for chart display with appropriate name forms
-    const transformedItem = transformItemForChart(item, searchField, currentLanguage, extractLocalizedLabel);
+    const transformedItem = transformItemForChart(
+      item,
+      searchField,
+      currentLanguage,
+      extractLocalizedLabel,
+    );
 
     return {
       name: transformedItem.name,
@@ -116,7 +121,7 @@ const transformMultiDisplayData = (
   const sortedTransformedData = allTransformedData.sort(
     (a, b) => b.value - a.value,
   );
-  
+
   // Assign colors based on sorted position to ensure adjacent items have different colors
   sortedTransformedData.forEach((item, index) => {
     item.itemStyle = {
@@ -270,12 +275,12 @@ const transformCountryMultiDisplayData = (
   const nonZeroTransformedData = allTransformedData.filter(
     (item) => item.value !== 0,
   );
-  
+
   // Sort countries
   const sortedTransformedData = nonZeroTransformedData.sort(
     (a, b) => b.value - a.value,
   );
-  
+
   // Assign colors based on sorted position to ensure adjacent items have different colors
   sortedTransformedData.forEach((item, index) => {
     item.itemStyle = {
@@ -430,41 +435,6 @@ const extractData = (
   const processedItems = Object.values(combinedItems);
 
   return filterSeriesArrayByDate(processedItems, dateRange, !isDelta);
-};
-
-/**
- * Extract usage data for views or downloads from yearly stats array
- * Uses the same pattern as CountriesMultiDisplay - categories like 'resourceTypesByView' or 'resourceTypesByDownload'
- *
- * @param {Array} stats - Array of yearly stats objects
- * @param {string} baseCategory - Base category name ('resourceTypes', 'subjects', etc.)
- * @param {string} usageType - 'views' or 'downloads'
- * @param {string} metric - Metric name ('records' for views, 'file_count' for downloads)
- * @param {Object} dateRange - Date range object
- * @param {boolean} isDelta - Whether to use delta data (sum across period) or snapshot data (latest only)
- * @returns {Array} Filtered array of series data
- */
-const extractUsageData = (
-  stats,
-  baseCategory,
-  usageType,
-  metric,
-  dateRange,
-  isDelta = false,
-) => {
-  // Create category name like 'resourceTypesByView' or 'resourceTypesByDownload'
-  const category = `${baseCategory}By${usageType.charAt(0).toUpperCase() + usageType.slice(1)}`;
-  
-  // Use the existing extractData function with isUsageData=true
-  return extractData(
-    stats,
-    null, // recordStartBasis not needed for usage data
-    category,
-    metric,
-    dateRange,
-    isDelta,
-    true // isUsageData = true
-  );
 };
 
 /**
@@ -680,7 +650,5 @@ export {
   transformCountryMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  extractUsageData,
   generateMultiDisplayChartOptions,
 };
-

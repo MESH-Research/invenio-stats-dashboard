@@ -14,7 +14,7 @@ import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  extractUsageData,
+  extractData,
   generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
@@ -40,21 +40,23 @@ const LanguagesMultiDisplayViews = ({
   }, [dateRange]);
 
   // Extract usage snapshot data for views
-  const rawData = extractUsageData(
+  const rawData = extractData(
     stats,
-    "languages",
-    "views",
-    "records",
+    null,
+    "languagesByView",
+    "viewUniqueRecords",
     dateRange,
     false,
+    true, // isUsageData = true
   );
-  const globalData = extractUsageData(
+  const globalData = extractData(
     stats,
+    null,
     "global",
-    "views",
-    "records",
+    "viewUniqueRecords",
     dateRange,
     false,
+    true, // isUsageData = true
   );
 
   const {

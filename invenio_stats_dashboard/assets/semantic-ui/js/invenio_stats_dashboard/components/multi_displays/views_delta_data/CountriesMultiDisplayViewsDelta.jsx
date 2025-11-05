@@ -15,7 +15,7 @@ import {
   transformCountryMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
 const CountriesMultiDisplayViewsDelta = ({
@@ -33,26 +33,59 @@ const CountriesMultiDisplayViewsDelta = ({
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
+      setSubtitle(
+        i18next.t("during") +
+          " " +
+          formatDate(dateRange.start, "day", true, dateRange.end),
+      );
     }
   }, [dateRange]);
 
   // Extract and process countries data using DELTA data (period-restricted)
-  const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, true, true);
-  const globalData = extractData(stats, null, 'global', 'views', dateRange, true, true);
+  const rawCountries = extractData(
+    stats,
+    null,
+    "countries",
+    "views",
+    dateRange,
+    true,
+    true,
+  );
+  const globalData = extractData(
+    stats,
+    null,
+    "global",
+    "views",
+    dateRange,
+    true,
+    true,
+  );
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformCountryMultiDisplayData(
+  const {
+    transformedData,
+    otherData,
+    originalOtherData,
+    totalCount,
+    otherPercentage,
+  } = transformCountryMultiDisplayData(
     rawCountries,
     pageSize,
     "metadata.country.id",
     CHART_COLORS.secondary,
     hideOtherInCharts,
     globalData,
-    true // isDelta = true for delta data
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+  const chartOptions = generateMultiDisplayChartOptions(
+    transformedData,
+    otherData,
+    available_views,
+    otherPercentage,
+    originalOtherData,
+    hideOtherInCharts,
+  );
 
   return (
     <StatsMultiDisplay
@@ -62,7 +95,7 @@ const CountriesMultiDisplayViewsDelta = ({
       label={"countries"}
       headers={headers}
       rows={rowsWithLinks}
-        chartOptions={chartOptions}
+      chartOptions={chartOptions}
       defaultViewMode={default_view}
       isDelta={true}
       dateRangeEnd={dateRange?.end}

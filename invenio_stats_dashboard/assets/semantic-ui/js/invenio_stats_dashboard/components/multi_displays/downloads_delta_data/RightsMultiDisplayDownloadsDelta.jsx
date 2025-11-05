@@ -14,7 +14,7 @@ import { formatDate } from "../../../utils";
 import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
-  extractUsageData,
+  extractData,
   generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
@@ -40,21 +40,23 @@ const RightsMultiDisplayDownloadsDelta = ({
   }, [dateRange]);
 
   // Extract usage delta data for downloads
-  const rawData = extractUsageData(
+  const rawData = extractData(
     stats,
+    null,
     "rights",
-    "downloads",
-    "file_count",
+    "downloadUniqueFiles",
     dateRange,
     true,
+    true, // isUsageData = true
   );
-  const globalData = extractUsageData(
+  const globalData = extractData(
     stats,
+    null,
     "global",
-    "downloads",
-    "file_count",
+    "downloadUniqueFiles",
     dateRange,
     true,
+    true, // isUsageData = true
   );
 
   const {

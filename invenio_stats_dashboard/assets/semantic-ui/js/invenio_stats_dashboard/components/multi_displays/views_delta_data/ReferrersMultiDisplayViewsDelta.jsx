@@ -29,7 +29,7 @@ const ReferrersMultiDisplayViewsDelta = ({
   const { stats, dateRange } = useStatsDashboard();
 
   // Extract and process referrers data using DELTA data (period-restricted)
-  const rawReferrers = extractData(stats, null, 'referrersByView', 'views', dateRange, true, true);
+  const rawReferrers = extractData(stats, null, 'referrers', 'views', dateRange, true, true);
   const globalData = extractData(stats, null, 'global', 'views', dateRange, true, true);
 
   const { transformedData, otherData, totalCount } = transformMultiDisplayData(
