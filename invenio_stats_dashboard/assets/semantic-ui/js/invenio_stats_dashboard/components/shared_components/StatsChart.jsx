@@ -114,6 +114,7 @@ const CHART_CONFIG = {
     },
     axisLabel: {
       fontSize: 14,
+      margin: 12,
     },
   },
   series: {
