@@ -95,13 +95,13 @@ def test_synthetic_usage_event_creation(
         "2024-11",
         "2024-12",
     ]
-    
+
     # Retry mechanism to ensure all events are visible
     # In CI environments, refresh propagation can be delayed
     max_retries = 5
     retry_delay = 0.2
     total_events = 0
-    
+
     for attempt in range(max_retries):
         total_events = 0
         for month in expected_months:
@@ -122,36 +122,38 @@ def test_synthetic_usage_event_creation(
                 for hit in view_results[:5]:
                     event_data = hit.to_dict()
 
-                    assert isinstance(
-                        event_data["timestamp"], str
-                    ), "timestamp should be string"
-                    assert isinstance(event_data["recid"], str), "recid should be string"
-                    assert isinstance(
-                        event_data["unique_id"], str
-                    ), "unique_id should be string"
-                    assert isinstance(
-                        event_data["visitor_id"], str
-                    ), "visitor_id should be string"
-                    assert isinstance(
-                        event_data["unique_session_id"], str
-                    ), "unique_session_id should be string"
-                    assert isinstance(
-                        event_data["referrer"], str
-                    ), "referrer should be string"
+                    assert isinstance(event_data["timestamp"], str), (
+                        "timestamp should be string"
+                    )
+                    assert isinstance(event_data["recid"], str), (
+                        "recid should be string"
+                    )
+                    assert isinstance(event_data["unique_id"], str), (
+                        "unique_id should be string"
+                    )
+                    assert isinstance(event_data["visitor_id"], str), (
+                        "visitor_id should be string"
+                    )
+                    assert isinstance(event_data["unique_session_id"], str), (
+                        "unique_session_id should be string"
+                    )
+                    assert isinstance(event_data["referrer"], str), (
+                        "referrer should be string"
+                    )
 
                     if "country" in event_data:
-                        assert isinstance(
-                            event_data["country"], str
-                        ), "country should be string"
-                        assert (
-                            len(event_data["country"]) == 2
-                        ), "country should be 2 characters"
-                    assert isinstance(
-                        event_data["via_api"], bool
-                    ), "via_api should be boolean"
-                    assert isinstance(
-                        event_data["is_robot"], bool
-                    ), "is_robot should be boolean"
+                        assert isinstance(event_data["country"], str), (
+                            "country should be string"
+                        )
+                        assert len(event_data["country"]) == 2, (
+                            "country should be 2 characters"
+                        )
+                    assert isinstance(event_data["via_api"], bool), (
+                        "via_api should be boolean"
+                    )
+                    assert isinstance(event_data["is_robot"], bool), (
+                        "is_robot should be boolean"
+                    )
 
                     event_timestamp = arrow.get(event_data["timestamp"])
 
@@ -164,13 +166,15 @@ def test_synthetic_usage_event_creation(
                     )
 
                     # Verify it's a view event (no download-specific fields)
-                    assert (
-                        "bucket_id" not in event_data
-                    ), "View event should not have bucket_id"
-                    assert "file_id" not in event_data, "View event should not have file_id"
-                    assert (
-                        "file_key" not in event_data
-                    ), "View event should not have file_key"
+                    assert "bucket_id" not in event_data, (
+                        "View event should not have bucket_id"
+                    )
+                    assert "file_id" not in event_data, (
+                        "View event should not have file_id"
+                    )
+                    assert "file_key" not in event_data, (
+                        "View event should not have file_key"
+                    )
                     assert "size" not in event_data, "View event should not have size"
 
             if download_exists:
@@ -184,51 +188,53 @@ def test_synthetic_usage_event_creation(
                 for hit in download_results[:5]:
                     event_data = hit.to_dict()
 
-                    assert isinstance(
-                        event_data["timestamp"], str
-                    ), "timestamp should be string"
-                    assert isinstance(event_data["recid"], str), "recid should be string"
-                    assert isinstance(
-                        event_data["unique_id"], str
-                    ), "unique_id should be string"
-                    assert isinstance(
-                        event_data["visitor_id"], str
-                    ), "visitor_id should be string"
-                    assert isinstance(
-                        event_data["unique_session_id"], str
-                    ), "unique_session_id should be string"
-                    assert isinstance(
-                        event_data["referrer"], str
-                    ), "referrer should be string"
+                    assert isinstance(event_data["timestamp"], str), (
+                        "timestamp should be string"
+                    )
+                    assert isinstance(event_data["recid"], str), (
+                        "recid should be string"
+                    )
+                    assert isinstance(event_data["unique_id"], str), (
+                        "unique_id should be string"
+                    )
+                    assert isinstance(event_data["visitor_id"], str), (
+                        "visitor_id should be string"
+                    )
+                    assert isinstance(event_data["unique_session_id"], str), (
+                        "unique_session_id should be string"
+                    )
+                    assert isinstance(event_data["referrer"], str), (
+                        "referrer should be string"
+                    )
 
                     if "country" in event_data:
-                        assert isinstance(
-                            event_data["country"], str
-                        ), "country should be string"
-                        assert (
-                            len(event_data["country"]) == 2
-                        ), "country should be 2 characters"
+                        assert isinstance(event_data["country"], str), (
+                            "country should be string"
+                        )
+                        assert len(event_data["country"]) == 2, (
+                            "country should be 2 characters"
+                        )
 
-                    assert isinstance(
-                        event_data["via_api"], bool
-                    ), "via_api should be boolean"
-                    assert isinstance(
-                        event_data["is_robot"], bool
-                    ), "is_robot should be boolean"
+                    assert isinstance(event_data["via_api"], bool), (
+                        "via_api should be boolean"
+                    )
+                    assert isinstance(event_data["is_robot"], bool), (
+                        "is_robot should be boolean"
+                    )
 
                     # Verify download-specific fields have correct types
-                    assert isinstance(
-                        event_data["bucket_id"], str
-                    ), "bucket_id should be string"
-                    assert isinstance(
-                        event_data["file_id"], str
-                    ), "file_id should be string"
-                    assert isinstance(
-                        event_data["file_key"], str
-                    ), "file_key should be string"
-                    assert isinstance(
-                        event_data["size"], int | float
-                    ), "size should be numeric"
+                    assert isinstance(event_data["bucket_id"], str), (
+                        "bucket_id should be string"
+                    )
+                    assert isinstance(event_data["file_id"], str), (
+                        "file_id should be string"
+                    )
+                    assert isinstance(event_data["file_key"], str), (
+                        "file_key should be string"
+                    )
+                    assert isinstance(event_data["size"], int | float), (
+                        "size should be numeric"
+                    )
 
                     event_timestamp = arrow.get(event_data["timestamp"])
 
@@ -239,11 +245,11 @@ def test_synthetic_usage_event_creation(
                         f"Download event timestamp {event_timestamp} should be between "
                         f"{start_datetime} and {end_datetime}"
                     )
-        
+
         # If we found all expected events, break out of retry loop
         if total_events == 200:
             break
-        
+
         # Otherwise, wait and retry
         if attempt < max_retries - 1:
             time.sleep(retry_delay)
