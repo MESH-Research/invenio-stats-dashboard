@@ -28,7 +28,7 @@ const PeriodicalsMultiDisplay = ({
   hideOtherInCharts = false,
   ...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange } = useStatsDashboard();
+  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
 
   useEffect(() => {
@@ -64,6 +64,7 @@ const PeriodicalsMultiDisplay = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isLoading={isLoading}
       isDelta={false}
       dateRangeEnd={dateRange?.end}
       onEvents={{

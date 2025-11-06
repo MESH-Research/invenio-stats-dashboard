@@ -26,7 +26,7 @@ const ReferrersMultiDisplayViewsDelta = ({
   available_views = ["pie", "bar", "list"],
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, isLoading } = useStatsDashboard();
 
   // Extract and process referrers data using DELTA data (period-restricted)
   const rawReferrers = extractData(stats, null, 'referrers', 'views', dateRange, true, true);
@@ -54,6 +54,7 @@ const ReferrersMultiDisplayViewsDelta = ({
       rows={rowsWithLinks}
         chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isLoading={isLoading}
       isDelta={true}
       dateRangeEnd={dateRange?.end}
       metricType="views"

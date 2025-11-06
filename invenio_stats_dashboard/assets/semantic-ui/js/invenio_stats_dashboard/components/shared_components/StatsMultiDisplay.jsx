@@ -153,7 +153,10 @@ const StatsMultiDisplay = ({
           {subtitle && <Header.Subheader>{subtitle}</Header.Subheader>}
         </Header>
       )}
-      <Segment attached className="stats-multi-display-segment pr-0 pl-0 pb-0">
+      <Segment
+        attached
+        className="stats-multi-display-segment pr-0 pl-0 pb-0 pt-0"
+      >
         {isLoading ? (
           <div className="stats-loading-container">
             <Loader active size="large" />
@@ -184,7 +187,7 @@ const StatsMultiDisplay = ({
           <ReactECharts
             option={enhancedChartOptions[viewMode]}
             notMerge={true}
-            style={{ height: "300px" }}
+            style={{ height: "338px" }}  // 340px - 2px for border
             className={`${tableLabel}-${viewMode}-chart`}
             onEvents={onEvents}
           />

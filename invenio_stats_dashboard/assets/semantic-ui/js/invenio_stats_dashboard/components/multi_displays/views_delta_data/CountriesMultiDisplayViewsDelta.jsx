@@ -28,7 +28,7 @@ const CountriesMultiDisplayViewsDelta = ({
   hideOtherInCharts = false,
   ...otherProps
 }) => {
-  const { stats, dateRange } = useStatsDashboard();
+  const { stats, dateRange, isLoading } = useStatsDashboard();
   const [subtitle, setSubtitle] = useState(null);
 
   useEffect(() => {
@@ -97,6 +97,7 @@ const CountriesMultiDisplayViewsDelta = ({
       rows={rowsWithLinks}
       chartOptions={chartOptions}
       defaultViewMode={default_view}
+      isLoading={isLoading}
       isDelta={true}
       dateRangeEnd={dateRange?.end}
       metricType="views"

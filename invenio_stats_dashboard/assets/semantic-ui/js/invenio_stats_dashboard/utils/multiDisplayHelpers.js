@@ -568,9 +568,9 @@ const generateMultiDisplayChartOptions = (
     },
     bar: {
       grid: {
-        top: hideOtherInCharts && otherPercentage > 30 ? "2%" : "7%",
+        top: hideOtherInCharts && otherPercentage > 30 ? "2%" : "2%",
         right: "5%",
-        bottom: hideOtherInCharts && otherPercentage > 30 ? "15%" : "5%",
+        bottom: hideOtherInCharts && otherPercentage > 30 ? "15%" : "2%",
         left: "2%",
         containLabel: true,
       },

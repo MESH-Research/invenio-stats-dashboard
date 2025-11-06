@@ -257,6 +257,17 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top File Types",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "LanguagesMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top Languages",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
                                     "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
@@ -268,7 +279,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Subjects",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
+                                    "default_view": "list",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -317,35 +328,13 @@ STATS_DASHBOARD_LAYOUT = {
                             #     },
                             # },
                             {
-                                "component": "LanguagesMultiDisplay",
-                                "width": 8,
-                                "props": {
-                                    "title": "Top Languages",
-                                    "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                            {
-                                "component": "PeriodicalsMultiDisplay",
-                                "width": 8,
-                                "props": {
-                                    "title": "Top Periodicals",
-                                    "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                            {
                                 "component": "PublishersMultiDisplay",
                                 "width": 8,
                                 "props": {
                                     "title": "Top Publishers",
-                                    "pageSize": 10,
+                                    "pageSize": 8,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
+                                    "default_view": "bar",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -434,6 +423,17 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
+                                "component": "LanguagesMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "Languages Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "pie",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
                                 "component": "SubjectsMultiDisplayDelta",
                                 "width": 8,
                                 "props": {
@@ -488,22 +488,11 @@ STATS_DASHBOARD_LAYOUT = {
                             #         "hideOtherInCharts": True,
                             #     },
                             # },
-                            # {
-                            #     "component": "PeriodicalsMultiDisplayDelta",
-                            #     "width": 8,
-                            #     "props": {
-                            #         "title": "Periodicals Added",
-                            #         "pageSize": 10,
-                            #         "available_views": ["pie", "bar", "list"],
-                            #         "default_view": "list",
-                            #         "hideOtherInCharts": True,
-                            #     },
-                            # },
                             {
-                                "component": "PublishersMultiDisplayDelta",
+                                "component": "PeriodicalsMultiDisplayDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Publishers Added",
+                                    "title": "Periodicals Added",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "list",
@@ -511,13 +500,13 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
-                                "component": "LanguagesMultiDisplayDelta",
+                                "component": "PublishersMultiDisplayDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Languages Added",
-                                    "pageSize": 10,
+                                    "title": "Publishers Added",
+                                    "pageSize": 8,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
+                                    "default_view": "list",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -589,6 +578,33 @@ STATS_DASHBOARD_LAYOUT = {
                         ],
                     },
                     {
+                        "name": "tables",
+                        "components": [
+                            {
+                                "component": "MostDownloadedRecordsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Most Downloaded Works",
+                                    "pageSize": 6,
+                                    "available_views": ["list"],
+                                    "maxHeight": "300px",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "MostViewedRecordsMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Most Viewed Works",
+                                    "pageSize": 6,
+                                    "available_views": ["list"],
+                                    "maxHeight": "300px",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                        ],
+                    },
+                    {
                         "name": "world-map",
                         "components": [
                             {
@@ -612,9 +628,9 @@ STATS_DASHBOARD_LAYOUT = {
                                 "width": 8,
                                 "props": {
                                     "title": "Top Countries by Visits",
-                                    "pageSize": 6,
+                                    "pageSize": 8,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -670,7 +686,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Licenses by Visits",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -741,33 +757,6 @@ STATS_DASHBOARD_LAYOUT = {
                         ],
                     },
                     {
-                        "name": "tables",
-                        "components": [
-                            {
-                                "component": "MostDownloadedRecordsMultiDisplay",
-                                "width": 8,
-                                "props": {
-                                    "title": "Most Downloaded Works",
-                                    "pageSize": 6,
-                                    "available_views": ["list"],
-                                    "maxHeight": "300px",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                            {
-                                "component": "MostViewedRecordsMultiDisplay",
-                                "width": 8,
-                                "props": {
-                                    "title": "Most Viewed Works",
-                                    "pageSize": 6,
-                                    "available_views": ["list"],
-                                    "maxHeight": "300px",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                        ],
-                    },
-                    {
                         "name": "world-map-delta",
                         "components": [
                             {
@@ -792,17 +781,6 @@ STATS_DASHBOARD_LAYOUT = {
                                 "width": 8,
                                 "props": {
                                     "title": "Top Countries by Visits",
-                                    "pageSize": 6,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                            {
-                                "component": "FileTypesMultiDisplayDownloadsDelta",
-                                "width": 8,
-                                "props": {
-                                    "title": "Top File Types Downloaded",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "pie",
@@ -810,10 +788,21 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
+                                "component": "FileTypesMultiDisplayDownloadsDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "File Types Downloaded",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
                                 "component": "LanguagesMultiDisplayViewsDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Languages by Visits",
+                                    "title": "Top Languages Visited",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -827,7 +816,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Work Types Visited",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
+                                    "default_view": "bar",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -838,7 +827,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Licenses by Visits",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },

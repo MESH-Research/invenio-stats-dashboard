@@ -16,18 +16,28 @@ import { i18next } from "@translations/invenio_stats_dashboard/i18next";
  * @param {string} dateRangeEnd - The end date for snapshot data
  * @returns {React.ReactElement} - Header element with info popup
  */
-const createPercentageHeader = (headerText, isDelta = false, dateRangeEnd = null, metricType = 'records') => {
+const createPercentageHeader = (
+  headerText,
+  isDelta = false,
+  dateRangeEnd = null,
+  metricType = "records",
+) => {
   // If isDelta is undefined, don't show popup (for API-based components)
   if (isDelta === undefined) {
     return headerText;
   }
 
-  const explanationText = isDelta 
-    ? i18next.t("Percentage of {{metric}} added during this period", { metric: metricType })
-    : i18next.t("Percentage of total {{metric}} as of {{date}}", { metric: metricType, date: dateRangeEnd || i18next.t("the end date") });
+  const explanationText = isDelta
+    ? i18next.t("Percentage of {{metric}} added during this period", {
+        metric: metricType,
+      })
+    : i18next.t("Percentage of total {{metric}} as of {{date}}", {
+        metric: metricType,
+        date: dateRangeEnd || i18next.t("the end date"),
+      });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
       <span>{headerText}</span>
       <Popup
         trigger={<Icon name="info circle" size="small" color="grey" />}
@@ -54,12 +64,23 @@ const createPercentageHeader = (headerText, isDelta = false, dateRangeEnd = null
  * @param {string} metricType - The type of metric being displayed ('records', 'views', 'downloads', etc.)
  * @returns {React.ReactElement} - The StatsTable component.
  */
-const StatsTable = ({ headers = [], rows = [], title, label, maxHeight = null, isDelta = false, dateRangeEnd = null, metricType = 'records' }) => {
-  const tableStyle = maxHeight ? {
-    maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
-    overflowY: 'auto',
-    display: 'block'
-  } : {};
+const StatsTable = ({
+  headers = [],
+  rows = [],
+  title,
+  label,
+  maxHeight = null,
+  isDelta = false,
+  dateRangeEnd = null,
+  metricType = "records",
+}) => {
+  const tableStyle = maxHeight
+    ? {
+        maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
+        overflowY: "auto",
+        display: "block",
+      }
+    : {};
 
   return (
     <div style={tableStyle}>
@@ -69,56 +90,72 @@ const StatsTable = ({ headers = [], rows = [], title, label, maxHeight = null, i
         basic="very"
         compact
         unstackable
+        className="mt-5"
       >
-      <Table.Header>
-        <Table.Row>
-          {/* Icon column */}
-          <Table.HeaderCell
-            scope="col"
-            className="stats-table-header-cell collapsing pr-0"
-          />
-          {headers.map((header, index) => {
-            // Check if this is a percentage column (contains "Works", "Records", "Files", etc.)
-            const isPercentageColumn = typeof header === 'string' && 
-              (header.includes('Works') || header.includes('Records') || header.includes('Files') || 
-               header.includes('Views') || header.includes('Downloads') || header.includes('Volume'));
-            
-            const headerContent = isPercentageColumn 
-              ? createPercentageHeader(header, isDelta, dateRangeEnd, metricType)
-              : header;
+        <Table.Header>
+          <Table.Row>
+            {/* Icon column */}
+            <Table.HeaderCell
+              scope="col"
+              className="stats-table-header-cell collapsing pr-0"
+            />
+            {headers.map((header, index) => {
+              // Check if this is a percentage column (contains "Works", "Records", "Files", etc.)
+              const isPercentageColumn =
+                typeof header === "string" &&
+                (header.includes("Works") ||
+                  header.includes("Records") ||
+                  header.includes("Files") ||
+                  header.includes("Views") ||
+                  header.includes("Downloads") ||
+                  header.includes("Volume"));
 
-            return (
-              <Table.HeaderCell
-                key={index}
-                scope="col"
-                className="stats-table-header-cell"
-              >
-                {headerContent}
-              </Table.HeaderCell>
-            );
-          })}
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {rows.map(([iconName, ...values], rowIndex) => (
-          <Table.Row key={rowIndex} data-testid={`row-${rowIndex}`}>
-            <Table.Cell collapsing className="stats-table-icon-cell pr-0">
-              {iconName && (
-                <Icon
-                  name={iconName}
-                  className="stats-table-icon"
-                  aria-hidden="true"
-                  size="small"
-                />
-              )}
-            </Table.Cell>
-            {values.map((value, cellIndex) => (
-              <Table.Cell key={cellIndex} data-testid={`cell-${rowIndex}-${cellIndex + 1}`}>{value}</Table.Cell>
-            ))}
+              const headerContent = isPercentageColumn
+                ? createPercentageHeader(
+                    header,
+                    isDelta,
+                    dateRangeEnd,
+                    metricType,
+                  )
+                : header;
+
+              return (
+                <Table.HeaderCell
+                  key={index}
+                  scope="col"
+                  className="stats-table-header-cell"
+                >
+                  {headerContent}
+                </Table.HeaderCell>
+              );
+            })}
           </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
+        </Table.Header>
+        <Table.Body>
+          {rows.map(([iconName, ...values], rowIndex) => (
+            <Table.Row key={rowIndex} data-testid={`row-${rowIndex}`}>
+              <Table.Cell collapsing className="stats-table-icon-cell pr-0">
+                {iconName && (
+                  <Icon
+                    name={iconName}
+                    className="stats-table-icon"
+                    aria-hidden="true"
+                    size="small"
+                  />
+                )}
+              </Table.Cell>
+              {values.map((value, cellIndex) => (
+                <Table.Cell
+                  key={cellIndex}
+                  data-testid={`cell-${rowIndex}-${cellIndex + 1}`}
+                >
+                  {value}
+                </Table.Cell>
+              ))}
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table>
     </div>
   );
 };
