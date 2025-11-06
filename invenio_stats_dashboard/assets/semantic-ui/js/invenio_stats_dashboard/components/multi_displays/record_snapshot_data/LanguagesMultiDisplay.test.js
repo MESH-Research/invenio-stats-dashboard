@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { TopLanguagesMultiDisplay } from './LanguagesMultiDisplay';
+import { LanguagesMultiDisplay } from './LanguagesMultiDisplay';
 import { filterSeriesArrayByDate } from '../../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
 
@@ -45,7 +45,7 @@ jest.mock('../../../constants', () => ({
   }
 }));
 
-describe('TopLanguagesMultiDisplay', () => {
+describe('LanguagesMultiDisplay', () => {
   const mockUseStatsDashboard = require('../../../context/StatsDashboardContext').useStatsDashboard;
 
   beforeEach(() => {
@@ -568,7 +568,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render with list configuration', () => {
-      render(<TopLanguagesMultiDisplay default_view="list" />);
+      render(<LanguagesMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -583,7 +583,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', () => {
-      render(<TopLanguagesMultiDisplay pageSize={2} default_view="list" />);
+      render(<LanguagesMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -598,7 +598,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render with custom available_views', () => {
-      render(<TopLanguagesMultiDisplay available_views={["list"]} default_view="list" />);
+      render(<LanguagesMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -624,7 +624,7 @@ describe('TopLanguagesMultiDisplay', () => {
         isLoading: false
       });
 
-      render(<TopLanguagesMultiDisplay default_view="list" />);
+      render(<LanguagesMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -634,7 +634,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render with custom title and icon', () => {
-      render(<TopLanguagesMultiDisplay title="Custom Title" icon="language" default_view="list" />);
+      render(<LanguagesMultiDisplay title="Custom Title" icon="language" default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -642,7 +642,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', () => {
-      render(<TopLanguagesMultiDisplay default_view="list" />);
+      render(<LanguagesMultiDisplay default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -663,7 +663,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render table rows with proper structure', () => {
-      render(<TopLanguagesMultiDisplay default_view="list" />);
+      render(<LanguagesMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -680,7 +680,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should render table cells with proper data', () => {
-      render(<TopLanguagesMultiDisplay default_view="list" />);
+      render(<LanguagesMultiDisplay default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -694,7 +694,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', () => {
-      render(<TopLanguagesMultiDisplay default_view="list" />);
+      render(<LanguagesMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -706,7 +706,7 @@ describe('TopLanguagesMultiDisplay', () => {
 
     it('should render with custom headers properly', () => {
       const customHeaders = ['Custom Language', 'Custom Count'];
-      render(<TopLanguagesMultiDisplay headers={customHeaders} default_view="list" />);
+      render(<LanguagesMultiDisplay headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -719,7 +719,7 @@ describe('TopLanguagesMultiDisplay', () => {
     });
 
     it('should maintain proper table structure with pagination', () => {
-      render(<TopLanguagesMultiDisplay pageSize={2} default_view="list" />);
+      render(<LanguagesMultiDisplay pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

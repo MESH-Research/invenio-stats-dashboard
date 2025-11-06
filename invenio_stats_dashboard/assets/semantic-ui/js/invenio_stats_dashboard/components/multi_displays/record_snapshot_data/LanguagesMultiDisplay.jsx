@@ -15,10 +15,10 @@ import {
   transformMultiDisplayData,
   assembleMultiDisplayRows,
   extractData,
-  generateMultiDisplayChartOptions
+  generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
-const TopLanguagesMultiDisplay = ({
+const LanguagesMultiDisplay = ({
   title = i18next.t("Languages"),
   icon: labelIcon = "language",
   headers = [i18next.t("Language"), i18next.t("Works")],
@@ -33,26 +33,57 @@ const TopLanguagesMultiDisplay = ({
 
   useEffect(() => {
     if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
+      setSubtitle(
+        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
+      );
     }
   }, [dateRange]);
 
   // Extract and process languages data
-  const rawLanguages = extractData(stats, recordStartBasis, 'languages', 'records', dateRange, false, false);
-  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
+  const rawLanguages = extractData(
+    stats,
+    recordStartBasis,
+    "languages",
+    "records",
+    dateRange,
+    false,
+    false,
+  );
+  const globalData = extractData(
+    stats,
+    recordStartBasis,
+    "global",
+    "records",
+    dateRange,
+    false,
+    false,
+  );
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
+  const {
+    transformedData,
+    otherData,
+    originalOtherData,
+    totalCount,
+    otherPercentage,
+  } = transformMultiDisplayData(
     rawLanguages,
     pageSize,
-    'metadata.language.id',
+    "metadata.language.id",
     CHART_COLORS.secondary,
     hideOtherInCharts,
     globalData,
-    false // isDelta = false for snapshot data
+    false, // isDelta = false for snapshot data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+  const chartOptions = generateMultiDisplayChartOptions(
+    transformedData,
+    otherData,
+    available_views,
+    otherPercentage,
+    originalOtherData,
+    hideOtherInCharts,
+  );
 
   return (
     <StatsMultiDisplay
@@ -70,16 +101,16 @@ const TopLanguagesMultiDisplay = ({
       onEvents={{
         click: (params) => {
           if (params.data && params.data.id) {
-            window.open(params.data.link, '_blank');
+            window.open(params.data.link, "_blank");
           }
-        }
+        },
       }}
       {...otherProps}
     />
   );
 };
 
-TopLanguagesMultiDisplay.propTypes = {
+LanguagesMultiDisplay.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   headers: PropTypes.array,
@@ -89,4 +120,5 @@ TopLanguagesMultiDisplay.propTypes = {
   hideOtherInCharts: PropTypes.bool,
 };
 
-export { TopLanguagesMultiDisplay };
+export { LanguagesMultiDisplay };
+

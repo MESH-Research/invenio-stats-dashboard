@@ -53,7 +53,7 @@ import {
   MostViewedRecordsMultiDisplay,
   PeriodicalsMultiDisplay,
   PublishersMultiDisplay,
-  TopLanguagesMultiDisplay,
+  LanguagesMultiDisplay,
   FileTypesMultiDisplay,
 
   // Multi Displays Delta
@@ -168,7 +168,7 @@ export const componentsMap = {
   'MostViewedRecordsMultiDisplay': MostViewedRecordsMultiDisplay,
   'PeriodicalsMultiDisplay': PeriodicalsMultiDisplay,
   'PublishersMultiDisplay': PublishersMultiDisplay,
-  'TopLanguagesMultiDisplay': TopLanguagesMultiDisplay,
+  'LanguagesMultiDisplay': LanguagesMultiDisplay,
   'FileTypesMultiDisplay': FileTypesMultiDisplay,
 
   // Multi Displays Delta
