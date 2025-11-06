@@ -10,17 +10,18 @@ import { getLicenseLabelForms } from "./nameTransformHelpers";
 export class ChartDataAggregator {
   /**
    * Creates a date object for readable labels from an aggregation key
+   * Uses UTC to avoid timezone issues
    */
   static createDateForReadable(key, granularity) {
     if (granularity === "quarter") {
       const [year, quarter] = key.split("-");
       const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
-      return new Date(parseInt(year), month, 1);
+      return new Date(Date.UTC(parseInt(year), month, 1));
     } else if (granularity === "year") {
-      return new Date(parseInt(key), 0, 1);
+      return new Date(Date.UTC(parseInt(key), 0, 1));
     } else if (granularity === "month") {
       const [year, month] = key.split("-");
-      return new Date(parseInt(year), parseInt(month) - 1, 1);
+      return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1));
     } else {
       // For day and week, key is already a proper date string
       return key;
@@ -29,17 +30,18 @@ export class ChartDataAggregator {
 
   /**
    * Creates a chart date object from an aggregation key
+   * Uses UTC to avoid timezone issues
    */
   static createChartDate(key, granularity) {
     if (granularity === "quarter") {
       const [year, quarter] = key.split("-");
       const month = (parseInt(quarter) - 1) * 3; // Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
-      return new Date(parseInt(year), month, 1);
+      return new Date(Date.UTC(parseInt(year), month, 1));
     } else if (granularity === "month") {
       const [year, month] = key.split("-");
-      return new Date(parseInt(year), parseInt(month) - 1, 1);
+      return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1));
     } else if (granularity === "year") {
-      return new Date(parseInt(key), 0, 1);
+      return new Date(Date.UTC(parseInt(key), 0, 1));
     } else {
       // week and day use ISO date strings
       return new Date(key);
@@ -48,21 +50,24 @@ export class ChartDataAggregator {
 
   /**
    * Creates an aggregation key from a date based on granularity
+   * Uses UTC methods to avoid timezone issues
    */
   static createAggregationKey(date, granularity) {
     const d = new Date(date);
     switch (granularity) {
       case "year":
-        return d.getFullYear().toString();
+        return d.getUTCFullYear().toString();
       case "quarter":
-        const quarter = Math.floor(d.getMonth() / 3) + 1;
-        return `${d.getFullYear()}-${quarter}`;
+        const quarter = Math.floor(d.getUTCMonth() / 3) + 1;
+        return `${d.getUTCFullYear()}-${quarter}`;
       case "month":
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       case "week":
-        // Get the Monday of the week
+        // Get the Monday of the week in UTC
         const monday = new Date(d);
-        monday.setDate(d.getDate() - d.getDay() + 1);
+        const dayOfWeek = monday.getUTCDay();
+        const daysFromMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        monday.setUTCDate(monday.getUTCDate() + daysFromMonday);
         return monday.toISOString().split("T")[0];
       case "day":
       default:
@@ -323,23 +328,23 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   let globalDataPoints = filteredGlobalSeries[0].data;
 
   // For country breakdowns, subtract "imported" from global totals before calculating "other"
-  const isCountryBreakdown = displaySeparately === "countries" 
-    || displaySeparately === "countriesByView" 
+  const isCountryBreakdown = displaySeparately === "countries"
+    || displaySeparately === "countriesByView"
     || displaySeparately === "countriesByDownload";
-  
+
   if (isCountryBreakdown) {
     // Get all country series from breakdown data (including "imported")
     const allCountrySeries = data
       .map((yearlyData) => yearlyData?.[displaySeparately]?.[selectedMetric] || [])
       .flat();
-    
+
     const mergedCountrySeries = ChartDataProcessor.mergeSeriesById(allCountrySeries);
     const importedSeries = mergedCountrySeries.find(series => series.id === "imported");
-    
+
     if (importedSeries && importedSeries.data) {
       // Filter imported series by date range
       const filteredImportedSeries = filterSeriesArrayByDate([importedSeries], dateRange, false);
-      
+
       if (filteredImportedSeries.length > 0 && filteredImportedSeries[0].data) {
         // Create a map of imported values by date
         const importedValuesByDate = new Map();
@@ -347,7 +352,7 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
           const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
           importedValuesByDate.set(dateKey, point.value[1] || 0);
         });
-        
+
         // Subtract imported values from global data points
         globalDataPoints = globalDataPoints.map(point => {
           const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
@@ -515,8 +520,8 @@ export class ChartDataProcessor {
     let displaySeries = [...nonZeroSeries];
     if (displaySeparately && originalData) {
       // For country breakdowns, filter out "imported" so it's treated as "other"
-      const isCountryBreakdown = displaySeparately === "countries" 
-        || displaySeparately === "countriesByView" 
+      const isCountryBreakdown = displaySeparately === "countries"
+        || displaySeparately === "countriesByView"
         || displaySeparately === "countriesByDownload";
       const seriesForSelection = isCountryBreakdown
         ? nonZeroSeries.filter(series => series.id !== "imported")

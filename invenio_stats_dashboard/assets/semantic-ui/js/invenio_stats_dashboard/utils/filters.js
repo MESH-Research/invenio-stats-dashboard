@@ -54,14 +54,35 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
     }
   }
 
+  // Use UTC methods to avoid timezone issues
   const endDayBeginning = dateRange.end
-    ? new Date(dateRange.end).setHours(0, 0, 0, 0)
+    ? new Date(Date.UTC(
+        dateRange.end.getUTCFullYear(),
+        dateRange.end.getUTCMonth(),
+        dateRange.end.getUTCDate(),
+        0, 0, 0, 0
+      )).getTime()
     : null;
   const endDayEnd = dateRange.end
-    ? new Date(dateRange.end).setHours(23, 59, 59, 999)
-    : new Date().setHours(23, 59, 59, 999); // Use end of current day if no end date
+    ? new Date(Date.UTC(
+        dateRange.end.getUTCFullYear(),
+        dateRange.end.getUTCMonth(),
+        dateRange.end.getUTCDate(),
+        23, 59, 59, 999
+      )).getTime()
+    : new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate(),
+        23, 59, 59, 999
+      )).getTime(); // Use end of current day if no end date
   const startDayBeginning = dateRange.start
-    ? new Date(dateRange.start).setHours(0, 0, 0, 0)
+    ? new Date(Date.UTC(
+        dateRange.start.getUTCFullYear(),
+        dateRange.start.getUTCMonth(),
+        dateRange.start.getUTCDate(),
+        0, 0, 0, 0
+      )).getTime()
     : null;
 
   const filteredSeriesArray = seriesArray.map((series) => {

@@ -253,7 +253,7 @@ class ChartConfigBuilder {
           // Find the selected metric's valueType from seriesSelectorOptions
           const selectedOption = seriesSelectorOptions?.find(option => option.value === selectedMetric);
           const valueType = selectedOption?.valueType || 'number';
-          
+
           return formatNumber(
             value,
             valueType === "filesize" ? "filesize" : "compact",

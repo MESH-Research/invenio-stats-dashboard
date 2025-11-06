@@ -79,25 +79,29 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
       break;
 
     // Month periods
+    // Count current partial month as one period, then add previous complete months
     case "currentMonth":
       startDate = setDateParts(todayDate, { day: 1 });
       break;
     case "1month":
-      startDate = addMonths(todayDate, -1);
+      // Current partial month only (from start of current month to today)
+      startDate = setDateParts(todayDate, { day: 1 });
       break;
     case "3months":
-      startDate = addMonths(todayDate, -3);
+      // Current partial month + 2 previous complete months
+      startDate = addMonths(setDateParts(todayDate, { day: 1 }), -2);
       break;
     case "6months":
-      startDate = addMonths(todayDate, -6);
+      // Current partial month + 5 previous complete months
+      startDate = addMonths(setDateParts(todayDate, { day: 1 }), -5);
       break;
     case "12months":
-      startDate = addMonths(todayDate, -12);
+      // Current partial month + 11 previous complete months
+      startDate = addMonths(setDateParts(todayDate, { day: 1 }), -11);
       break;
 
     // Quarter periods
-    // The periods for 2 quarters, 3 quarters and 4 quarters include the current quarter
-    // up to the current day.
+    // Count current partial quarter as one period, then add previous complete quarters
     case "currentQuarter":
       startDate = setDateParts(todayDate, { month: quarterStartMonth, day: 1 });
       // Set end date to the last day of the current quarter
@@ -129,26 +133,35 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
       );
       break;
     case "2quarters":
+      // Current partial quarter + 1 previous complete quarter
+      // Go back 3 months from current quarter start to get previous quarter start
+      startDate = addMonths(
+        setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
+        -3,
+      );
+      break;
+    case "3quarters":
+      // Current partial quarter + 2 previous complete quarters
+      // Go back 6 months from current quarter start
       startDate = addMonths(
         setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
         -6,
       );
       break;
-    case "3quarters":
+    case "4quarters":
+      // Current partial quarter + 3 previous complete quarters
+      // Go back 9 months from current quarter start
       startDate = addMonths(
         setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
         -9,
       );
       break;
-    case "4quarters":
-      startDate = addMonths(
-        setDateParts(todayDate, { month: quarterStartMonth, day: 1 }),
-        -12,
-      );
-      break;
 
     // Year periods
     // Multi year periods treat the current year up to the current day as one year.
+    case "yearToDate":
+      startDate = setDateParts(todayDate, { month: 1, day: 1 });
+      break;
     case "currentYear":
       startDate = setDateParts(todayDate, { month: 1, day: 1 });
       break;
@@ -200,6 +213,16 @@ const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
   // Check if the date range spans the maximum history
   if (startDay === 1 && startMonth === 1 && diffYears >= maxHistoryYears) {
     return "allTime";
+  }
+
+  // Check for yearToDate (Jan 1 to today) - valid for all granularities
+  if (
+    startDay === 1 &&
+    startMonth === 1 &&
+    endMonth === todayDate.getUTCMonth() + 1 &&
+    endDay === todayDate.getUTCDate()
+  ) {
+    return "yearToDate";
   }
 
   switch (granularity) {
@@ -256,12 +279,7 @@ const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
 
     case "year":
       if (startDay === 1 && startMonth === 1) {
-        if (
-          endMonth === todayDate.getUTCMonth() + 1 &&
-          endDay === todayDate.getUTCDate()
-        ) {
-          return "currentYear";
-        }
+        // yearToDate is already checked above for all granularities
         if (endDay === 31 && endMonth === 12) {
           if (diffYears === 1) return "previousYear";
           if (diffYears === 2) return "2years";
@@ -280,17 +298,18 @@ const getCurrentPeriod = (dateRange, granularity, maxHistoryYears) => {
     case "week":
       return "12weeks";
     case "month":
-      return "12months";
+      return "yearToDate";
     case "quarter":
-      return "4quarters";
+      return "yearToDate";
     case "year":
-      return "5years";
+      return "2years";
     default:
       return "allTime";
   }
 };
 
 const dayPeriodOptions = [
+  { key: "yearToDate", text: i18next.t("Year to date"), value: "yearToDate" },
   { key: "7days", text: i18next.t("Past 7 days"), value: "7days" },
   { key: "30days", text: i18next.t("Past 30 days"), value: "30days" },
   { key: "90days", text: i18next.t("Past 90 days"), value: "90days" },
@@ -301,6 +320,7 @@ const dayPeriodOptions = [
 ];
 
 const weekPeriodOptions = [
+  { key: "yearToDate", text: i18next.t("Year to date"), value: "yearToDate" },
   { key: "1week", text: i18next.t("Past 1 week"), value: "1week" },
   { key: "2weeks", text: i18next.t("Past 2 weeks"), value: "2weeks" },
   { key: "4weeks", text: i18next.t("Past 4 weeks"), value: "4weeks" },
@@ -312,6 +332,7 @@ const weekPeriodOptions = [
 ];
 
 const monthPeriodOptions = [
+  { key: "yearToDate", text: i18next.t("Year to date"), value: "yearToDate" },
   { key: "1month", text: i18next.t("Past 1 month"), value: "1month" },
   { key: "3months", text: i18next.t("Past 3 months"), value: "3months" },
   { key: "6months", text: i18next.t("Past 6 months"), value: "6months" },
@@ -321,6 +342,11 @@ const monthPeriodOptions = [
 ];
 
 const quarterPeriodOptions = [
+  {
+    key: "yearToDate",
+    text: i18next.t("Year to date"),
+    value: "yearToDate",
+  },
   {
     key: "currentQuarter",
     text: i18next.t("Current quarter"),
@@ -528,19 +554,26 @@ const expandDateRangeToGranularity = (dateRange, granularity) => {
       break;
 
     case "month":
-      // Expand to complete months (1st to last day)
+      // Expand to complete months: start to beginning of start month, end to end of end month
+      const originalStartYearMonth = expandedStart.getUTCFullYear();
+      const originalStartMonth = expandedStart.getUTCMonth();
       expandedStart.setUTCDate(1);
+      expandedStart.setUTCMonth(originalStartMonth);
+      expandedStart.setUTCFullYear(originalStartYearMonth);
+
       expandedEnd.setUTCDate(1);
       expandedEnd.setUTCMonth(expandedEnd.getUTCMonth() + 1);
       expandedEnd.setUTCDate(expandedEnd.getUTCDate() - 1);
       break;
 
     case "quarter":
-      // Expand to complete quarters
+      // Expand to complete quarters: start to beginning of start quarter, end to end of end quarter
+      const originalStartYearQuarter = expandedStart.getUTCFullYear();
       const startQuarter = Math.floor(expandedStart.getUTCMonth() / 3);
       const startQuarterStartMonth = startQuarter * 3;
       expandedStart.setUTCMonth(startQuarterStartMonth);
       expandedStart.setUTCDate(1);
+      expandedStart.setUTCFullYear(originalStartYearQuarter);
 
       const endQuarter = Math.floor(expandedEnd.getUTCMonth() / 3);
       const endQuarterEndMonth = endQuarter * 3 + 2;
@@ -944,7 +977,7 @@ const DateRangeSelector = ({
 
   useEffect(() => {
     if (!dateRange) {
-      const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
+      const defaultPeriod = defaultRangeOptions?.[granularity] || "yearToDate";
       console.log("defaultPeriod", defaultPeriod);
       const initialDateRange = getDateRange(
         todayDate,
@@ -1033,7 +1066,7 @@ const DateRangeSelector = ({
   };
 
   const handleClearCustomRange = () => {
-    const defaultPeriod = defaultRangeOptions?.[granularity] || "30days";
+    const defaultPeriod = defaultRangeOptions?.[granularity] || "yearToDate";
     const newDateRange = getDateRange(todayDate, defaultPeriod, maxHistoryYears);
     setDateRange(newDateRange);
     setCurrentSelectedOption(defaultPeriod);
