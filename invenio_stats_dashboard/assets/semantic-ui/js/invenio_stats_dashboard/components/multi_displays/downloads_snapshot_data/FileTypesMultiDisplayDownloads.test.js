@@ -67,7 +67,7 @@ describe('FileTypesMultiDisplayDownloads', () => {
           }
         }
       }],
-      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
       isLoading: false
     });
   });
@@ -96,7 +96,7 @@ describe('FileTypesMultiDisplayDownloads', () => {
           year: 2024,
           usageSnapshotData: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<FileTypesMultiDisplayDownloads default_view="list" />);
@@ -110,7 +110,7 @@ describe('FileTypesMultiDisplayDownloads', () => {
           year: 2024,
           usageSnapshotData: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<FileTypesMultiDisplayDownloads default_view="list" />);

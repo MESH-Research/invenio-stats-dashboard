@@ -51,7 +51,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       }],
       recordStartBasis: 'added',
-      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
       isLoading: false
     });
   });
@@ -306,7 +306,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const filteredData = filterSeriesArrayByDate(mockData, { start: '2024-01-10', end: '2024-01-20' }, true);
+      const filteredData = filterSeriesArrayByDate(mockData, { start: new Date('2024-01-10'), end: new Date('2024-01-20') }, true);
 
       expect(filteredData).toHaveLength(1);
       expect(filteredData[0].data).toHaveLength(1);
@@ -341,7 +341,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const filteredData = filterSeriesArrayByDate(mockData, { start: '2024-02-01', end: '2024-02-28' }, true);
+      const filteredData = filterSeriesArrayByDate(mockData, { start: new Date('2024-02-01'), end: new Date('2024-02-28') }, true);
 
       expect(filteredData).toHaveLength(1);
       expect(filteredData[0].data).toHaveLength(0);
@@ -356,7 +356,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const filteredData = filterSeriesArrayByDate(mockData, { start: '2024-01-01', end: '2024-01-31' }, true);
+      const filteredData = filterSeriesArrayByDate(mockData, { start: new Date('2024-01-01'), end: new Date('2024-01-31') }, true);
       const result = transformMultiDisplayData(filteredData, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(100);
@@ -411,7 +411,7 @@ describe('PeriodicalsMultiDisplay', () => {
           }
         }],
         recordStartBasis: 'added',
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
 

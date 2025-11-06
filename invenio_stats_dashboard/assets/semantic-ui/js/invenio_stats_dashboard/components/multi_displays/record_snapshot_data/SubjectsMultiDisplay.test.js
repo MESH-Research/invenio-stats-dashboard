@@ -72,7 +72,7 @@ describe('SubjectsMultiDisplay', () => {
           }
         }
       }],
-      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
       isLoading: false
     });
   });
@@ -113,7 +113,7 @@ describe('SubjectsMultiDisplay', () => {
             }
           }
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);
@@ -130,7 +130,7 @@ describe('SubjectsMultiDisplay', () => {
           year: 2024,
           recordSnapshotDataAdded: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);
@@ -245,7 +245,7 @@ describe('SubjectsMultiDisplay', () => {
             }
           }
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<SubjectsMultiDisplay default_view="list" />);

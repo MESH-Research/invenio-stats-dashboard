@@ -74,7 +74,7 @@ describe('ReferrersMultiDisplayViews', () => {
           }
         }
       }],
-      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
       isLoading: false
     });
   });
@@ -560,7 +560,7 @@ describe('ReferrersMultiDisplayViews', () => {
             }
           }
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
     });
@@ -617,7 +617,7 @@ describe('ReferrersMultiDisplayViews', () => {
             }
           }
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
 

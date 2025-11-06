@@ -67,7 +67,7 @@ describe('AccessStatusesMultiDisplayViews', () => {
           }
         }
       }],
-      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
       isLoading: false
     });
   });
@@ -96,7 +96,7 @@ describe('AccessStatusesMultiDisplayViews', () => {
           year: 2024,
           usageSnapshotData: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<AccessStatusesMultiDisplayViews default_view="list" />);
@@ -110,7 +110,7 @@ describe('AccessStatusesMultiDisplayViews', () => {
           year: 2024,
           usageSnapshotData: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<AccessStatusesMultiDisplayViews default_view="list" />);

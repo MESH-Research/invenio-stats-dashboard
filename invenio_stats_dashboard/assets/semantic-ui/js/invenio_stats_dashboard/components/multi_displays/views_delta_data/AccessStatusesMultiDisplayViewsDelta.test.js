@@ -69,7 +69,7 @@ describe('AccessStatusesMultiDisplayViewsDelta', () => {
           ]
         }
       }],
-      dateRange: { start: '2024-01-01', end: '2024-01-31' },
+      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
       isLoading: false
     });
   });
@@ -98,7 +98,7 @@ describe('AccessStatusesMultiDisplayViewsDelta', () => {
           year: 2024,
           usageDeltaData: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<AccessStatusesMultiDisplayViewsDelta default_view="list" />);
@@ -112,7 +112,7 @@ describe('AccessStatusesMultiDisplayViewsDelta', () => {
           year: 2024,
           usageDeltaData: {}
         }],
-        dateRange: { start: '2024-01-01', end: '2024-01-31' },
+        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
         isLoading: false
       });
       render(<AccessStatusesMultiDisplayViewsDelta default_view="list" />);
