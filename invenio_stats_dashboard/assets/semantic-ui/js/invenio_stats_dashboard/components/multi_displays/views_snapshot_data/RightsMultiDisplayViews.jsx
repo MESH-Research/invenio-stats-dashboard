@@ -34,7 +34,7 @@ const RightsMultiDisplayViews = ({
   useEffect(() => {
     if (dateRange) {
       setSubtitle(
-        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true)
+        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
       );
     }
   }, [dateRange]);
@@ -53,7 +53,7 @@ const RightsMultiDisplayViews = ({
     stats,
     null,
     "global",
-    "viewUniqueRecords",
+    "views", // FIXME: Why does this series lack metrics like viewsUniqueRecords?
     dateRange,
     false,
     true, // isUsageData = true
