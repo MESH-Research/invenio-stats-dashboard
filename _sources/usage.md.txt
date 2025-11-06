@@ -169,7 +169,7 @@ Several of the built-in multi-display components are offer record counts broken 
 - `FundersMultiDisplay` - Record counts by funder
 - `PeriodicalsMultiDisplay` - Record counts by periodical
 - `PublishersMultiDisplay` - Record counts by publisher
-- `TopLanguagesMultiDisplay` - Record counts by language
+- `LanguagesMultiDisplay` - Record counts by language
 - `FileTypesMultiDisplay` - Record counts by file type
 
 Other built-in multi-display components offer top lists of values broken down by view or download event data:
