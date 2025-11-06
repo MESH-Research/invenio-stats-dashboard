@@ -155,9 +155,9 @@ STATS_DASHBOARD_UI_CONFIG = {
 STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
     "day": "30days",
     "week": "12weeks",
-    "month": "12months",
-    "quarter": "4quarters",
-    "year": "5years",
+    "month": "yearToDate",
+    "quarter": "yearToDate",
+    "year": "2years",
 }
 
 # Menu configuration
@@ -247,6 +247,17 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Top Work Types",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
+                                "component": "FileTypesMultiDisplay",
+                                "width": 8,
+                                "props": {
+                                    "title": "Top File Types",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -412,13 +423,24 @@ STATS_DASHBOARD_LAYOUT = {
                                 },
                             },
                             {
+                                "component": "FileTypesMultiDisplayDelta",
+                                "width": 8,
+                                "props": {
+                                    "title": "File Types Added",
+                                    "pageSize": 10,
+                                    "available_views": ["pie", "bar", "list"],
+                                    "default_view": "bar",
+                                    "hideOtherInCharts": True,
+                                },
+                            },
+                            {
                                 "component": "SubjectsMultiDisplayDelta",
                                 "width": 8,
                                 "props": {
                                     "title": "Subjects Added",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
+                                    "default_view": "list",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -429,7 +451,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Access Statuses Added",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -455,28 +477,28 @@ STATS_DASHBOARD_LAYOUT = {
                                     "hideOtherInCharts": True,
                                 },
                             },
-                            {
-                                "component": "FundersMultiDisplayDelta",
-                                "width": 8,
-                                "props": {
-                                    "title": "Funders Added",
-                                    "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "list",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                            {
-                                "component": "PeriodicalsMultiDisplayDelta",
-                                "width": 8,
-                                "props": {
-                                    "title": "Periodicals Added",
-                                    "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "list",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
+                            # {
+                            #     "component": "FundersMultiDisplayDelta",
+                            #     "width": 8,
+                            #     "props": {
+                            #         "title": "Funders Added",
+                            #         "pageSize": 10,
+                            #         "available_views": ["pie", "bar", "list"],
+                            #         "default_view": "list",
+                            #         "hideOtherInCharts": True,
+                            #     },
+                            # },
+                            # {
+                            #     "component": "PeriodicalsMultiDisplayDelta",
+                            #     "width": 8,
+                            #     "props": {
+                            #         "title": "Periodicals Added",
+                            #         "pageSize": 10,
+                            #         "available_views": ["pie", "bar", "list"],
+                            #         "default_view": "list",
+                            #         "hideOtherInCharts": True,
+                            #     },
+                            # },
                             {
                                 "component": "PublishersMultiDisplayDelta",
                                 "width": 8,
@@ -495,18 +517,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "title": "Languages Added",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "list",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
-                            {
-                                "component": "FileTypesMultiDisplayDelta",
-                                "width": 8,
-                                "props": {
-                                    "title": "File Types Added",
-                                    "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "list",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -623,7 +634,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "FileTypesMultiDisplayDownloads",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top File Types by Downloads",
+                                    "title": "File Types Downloaded",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -634,7 +645,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "LanguagesMultiDisplayViews",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Languages by Views",
+                                    "title": "Top Languages Visited",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -645,7 +656,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "ResourceTypesMultiDisplayViews",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Work Types by Views",
+                                    "title": "Top Work Types Visited",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -656,7 +667,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "RightsMultiDisplayViews",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Licenses by Views",
+                                    "title": "Top Licenses by Visits",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -791,10 +802,10 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "FileTypesMultiDisplayDownloadsDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top File Types by Downloads",
+                                    "title": "Top File Types Downloaded",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -802,7 +813,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "LanguagesMultiDisplayViewsDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Languages by Views",
+                                    "title": "Top Languages by Visits",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
@@ -813,10 +824,10 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "ResourceTypesMultiDisplayViewsDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Work Types by Views",
+                                    "title": "Top Work Types Visited",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
-                                    "default_view": "bar",
+                                    "default_view": "pie",
                                     "hideOtherInCharts": True,
                                 },
                             },
@@ -824,7 +835,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "RightsMultiDisplayViewsDelta",
                                 "width": 8,
                                 "props": {
-                                    "title": "Top Licenses by Views",
+                                    "title": "Top Licenses by Visits",
                                     "pageSize": 10,
                                     "available_views": ["pie", "bar", "list"],
                                     "default_view": "bar",
