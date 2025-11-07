@@ -190,7 +190,7 @@ class TestCommunityRecordCreatedDeltaQuery:
 
     def _setup_community(self, minimal_community_factory, user_id):
         """Setup test community.
-        
+
         Returns:
             str: The community ID.
         """
@@ -1373,12 +1373,12 @@ class TestCommunityUsageDeltaQuery:
 
     def _compare_aggregation_ignoring_ids(self, actual_agg, expected_agg, event_type):
         """Compare aggregations while ignoring dynamic _id fields in label.hits.hits.
-        
+
         Args:
             actual_agg: The actual aggregation result.
             expected_agg: The expected aggregation result.
             event_type: The type of event being compared.
-            
+
         Raises:
             AssertionError: If the aggregations do not match.
         """

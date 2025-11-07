@@ -632,7 +632,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                     download_bucket = bucket
                     break
 
-            # Initialize label as string; will be converted to object if needed 
+            # Initialize label as string; will be converted to object if needed
             label: str | dict[str, str] = str(key)
             label_field = get_subcount_field(usage_config, "label_field", index)
 
@@ -659,7 +659,7 @@ class CommunityUsageDeltaAggregator(CommunityAggregatorBase):
                             if isinstance(label_result, str | dict) and label_result:
                                 label = label_result
                                 break  # Found valid label, stop checking
-                
+
                 # If label is still a string but field expects object, convert it
                 # This handles cases where events have vocabulary fields with only IDs
                 if isinstance(label, str) and label_field:
