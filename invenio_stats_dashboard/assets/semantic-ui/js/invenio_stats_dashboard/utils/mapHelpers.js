@@ -116,10 +116,34 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
     return [];
   }
 
+  // Merge series by ID to combine data from multiple yearly blocks
+  // This ensures that if the same country appears in multiple years,
+  // all their data points are combined into a single series
+  const mergedSeriesById = new Map();
+  allCountriesData.forEach((series) => {
+    if (!series.id) return;
+
+    if (mergedSeriesById.has(series.id)) {
+      // Merge data from duplicate series (same country in different years)
+      const existing = mergedSeriesById.get(series.id);
+      if (series.data && existing.data) {
+        existing.data.push(...series.data);
+      }
+    } else {
+      // First occurrence of this country ID
+      mergedSeriesById.set(series.id, {
+        ...series,
+        data: series.data ? [...series.data] : [],
+      });
+    }
+  });
+
+  const mergedData = Array.from(mergedSeriesById.values());
+
   // Filter data by date range if provided
   // For snapshot data, we want the latest value (latestOnly=true)
   // For delta data, we want all values to sum (latestOnly=false)
-  const filteredData = filterSeriesArrayByDate(allCountriesData, dateRange, useSnapshot);
+  const filteredData = filterSeriesArrayByDate(mergedData, dateRange, useSnapshot);
 
   const countryCodesWithData = new Set();
   filteredData.forEach(series => {
