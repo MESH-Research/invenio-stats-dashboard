@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
   Header,
@@ -87,6 +87,7 @@ const StatsMultiDisplay = ({
   metricType = "records",
 }) => {
   const [viewMode, setViewMode] = useState(defaultViewMode);
+  const chartRef = useRef(null);
   const availableViewModes = Object.keys(chartOptions);
   const tableLabel = label
     ? label
@@ -99,6 +100,50 @@ const StatsMultiDisplay = ({
   };
 
   const effectiveHasData = !isLoading && rows && rows.length > 0;
+
+  // Resize chart after mount and when viewMode changes to fix initial zoom/overflow issue
+  const resizeChart = () => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    // Use requestAnimationFrame to ensure the DOM has settled and container has final size
+    requestAnimationFrame(() => {
+      try {
+        const chartInstance = chartRef.current.getEchartsInstance();
+        if (chartInstance) {
+          chartInstance.resize();
+        }
+      } catch (error) {
+        // Silently handle errors if chart instance is not ready
+        console.debug("Chart resize error:", error);
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (viewMode === "list" || !effectiveHasData || isLoading) {
+      return;
+    }
+
+    // Resize immediately and after a short delay to handle any async layout
+    resizeChart();
+    const timeoutId = setTimeout(resizeChart, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [viewMode, effectiveHasData, isLoading]);
+
+  // Handle chart ready callback to resize when chart is first initialized
+  const handleChartReady = (chart) => {
+    // Resize after chart is ready to ensure correct dimensions
+    setTimeout(() => {
+      if (chart) {
+        chart.resize();
+      }
+    }, 0);
+  };
 
   // Add aria.enabled to all chart options
   const enhancedChartOptions = Object.fromEntries(
@@ -185,11 +230,13 @@ const StatsMultiDisplay = ({
           />
         ) : (
           <ReactECharts
+            ref={chartRef}
             option={enhancedChartOptions[viewMode]}
             notMerge={true}
             style={{ height: "338px" }}  // 340px - 2px for border
             className={`${tableLabel}-${viewMode}-chart`}
             onEvents={onEvents}
+            onChartReady={handleChartReady}
           />
         )}
       </Segment>
