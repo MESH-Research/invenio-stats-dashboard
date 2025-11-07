@@ -45,7 +45,9 @@ const PublishersMultiDisplayDelta = ({
     pageSize,
     'metadata.publisher',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    null,
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 

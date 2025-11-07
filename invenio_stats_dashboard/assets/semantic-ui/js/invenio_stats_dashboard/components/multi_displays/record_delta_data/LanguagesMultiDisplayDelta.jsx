@@ -64,6 +64,8 @@ const LanguagesMultiDisplayDelta = ({
     "metadata.languages.id",
     CHART_COLORS.secondary,
     hideOtherInCharts,
+    null,
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 

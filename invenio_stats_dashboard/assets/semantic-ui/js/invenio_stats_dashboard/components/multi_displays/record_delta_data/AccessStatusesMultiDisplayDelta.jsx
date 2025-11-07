@@ -45,7 +45,9 @@ const AccessStatusesMultiDisplayDelta = ({
     pageSize,
     'access.record',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    null,
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 

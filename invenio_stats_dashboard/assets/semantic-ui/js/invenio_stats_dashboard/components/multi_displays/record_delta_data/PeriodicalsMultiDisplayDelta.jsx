@@ -45,7 +45,9 @@ const PeriodicalsMultiDisplayDelta = ({
     pageSize,
     'custom_fields.journal\\:journal.title',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    null,
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 

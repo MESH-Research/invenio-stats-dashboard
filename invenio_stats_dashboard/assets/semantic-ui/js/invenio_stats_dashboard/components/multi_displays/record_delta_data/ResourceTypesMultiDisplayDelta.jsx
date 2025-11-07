@@ -45,7 +45,9 @@ const ResourceTypesMultiDisplayDelta = ({
     pageSize,
     'metadata.resource_type.id',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    null,
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 

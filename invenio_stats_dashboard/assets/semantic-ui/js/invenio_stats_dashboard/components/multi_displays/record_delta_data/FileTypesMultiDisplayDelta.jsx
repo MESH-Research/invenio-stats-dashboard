@@ -45,7 +45,9 @@ const FileTypesMultiDisplayDelta = ({
     pageSize,
     'files.types',
     CHART_COLORS.secondary,
-    hideOtherInCharts
+    hideOtherInCharts,
+    null,
+    true, // isDelta = true for delta data
   );
   const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
