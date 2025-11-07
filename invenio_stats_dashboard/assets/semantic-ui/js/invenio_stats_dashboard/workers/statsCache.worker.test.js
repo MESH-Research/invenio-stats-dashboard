@@ -19,7 +19,7 @@ global.TextDecoder = global.TextDecoder || class TextDecoder {
   }
 };
 
-// Mock pako for compression
+// Mock pako for compression (only used when compression is enabled)
 jest.mock('pako', () => ({
   gzip: jest.fn((data) => {
     // Simple mock: return compressed data as Uint8Array
@@ -371,10 +371,10 @@ describe('StatsCache Worker', () => {
     // the worker file in Jest. In a real environment, you might use worker-loader or
     // a similar tool to test workers.
 
-    it('should handle SET_CACHED_STATS message type', async () => {
+    it('should handle SET_CACHED_STATS message type without compression', async () => {
       // Simulate the handleSetCachedStats function
       const handleSetCachedStats = async (params) => {
-        const { communityId, dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year } = params;
+        const { communityId, dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year, compressionEnabled = false } = params;
         const generateCacheKey = (communityId, dashboardType, dateBasis, startDate, endDate) => {
           const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
           const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
@@ -386,16 +386,14 @@ describe('StatsCache Worker', () => {
         const timestamp = Date.now();
         const cacheYear = year || (startDate ? parseInt(startDate.substring(0, 4), 10) : null);
 
-        // Mock compression
-        const jsonString = JSON.stringify(transformedData);
-        const compressedData = new TextEncoder().encode(jsonString);
-        const blob = new Blob([compressedData], { type: 'application/gzip' });
+        // When compression is disabled: store object directly
+        const dataToStore = compressionEnabled ? null : transformedData;
 
         // Store would happen here - mocked for test
         return {
           success: true,
           cacheKey,
-          compressedRatio: compressedData.length / jsonString.length,
+          compressed: compressionEnabled,
         };
       };
 
@@ -407,24 +405,75 @@ describe('StatsCache Worker', () => {
         startDate: '2024-01-01',
         endDate: '2024-01-31',
         year: 2024,
+        compressionEnabled: false,
       });
 
       expect(result.success).toBe(true);
       expect(result.cacheKey).toContain('test-com');
       expect(result.cacheKey).toContain('community');
-      expect(result.compressedRatio).toBeGreaterThan(0);
+      expect(result.compressed).toBe(false);
     });
 
-    it('should handle GET_CACHED_STATS message type', async () => {
-      // Create a proper mock Blob with arrayBuffer method
-      const mockBlobData = new TextEncoder().encode(JSON.stringify({ test: 'data' }));
-      const mockBlob = {
-        arrayBuffer: jest.fn().mockResolvedValue(mockBlobData.buffer),
+    it('should handle SET_CACHED_STATS message type with compression', async () => {
+      // Simulate the handleSetCachedStats function
+      const handleSetCachedStats = async (params) => {
+        const { communityId, dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year, compressionEnabled = false } = params;
+        const generateCacheKey = (communityId, dashboardType, dateBasis, startDate, endDate) => {
+          const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
+          const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
+          const endDateShort = endDate ? endDate.substring(0, 10) : 'default';
+          return `isd_${communityIdShort}_${dashboardType}_${dateBasis}_${startDateShort}_${endDateShort}`;
+        };
+
+        const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
+        const timestamp = Date.now();
+        const cacheYear = year || (startDate ? parseInt(startDate.substring(0, 4), 10) : null);
+
+        // When compression is enabled: stringify, compress, store as ArrayBuffer
+        if (compressionEnabled) {
+          const jsonString = JSON.stringify(transformedData);
+          const compressedData = new TextEncoder().encode(jsonString); // Mock compression
+          const arrayBuffer = compressedData.buffer;
+          return {
+            success: true,
+            cacheKey,
+            compressed: true,
+            compressedRatio: compressedData.length / jsonString.length,
+          };
+        }
+
+        return {
+          success: true,
+          cacheKey,
+          compressed: false,
+        };
       };
-      
+
+      const result = await handleSetCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        transformedData: { test: 'data' },
+        dateBasis: 'added',
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+        year: 2024,
+        compressionEnabled: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.cacheKey).toContain('test-com');
+      expect(result.cacheKey).toContain('community');
+      expect(result.compressed).toBe(true);
+      expect(result.compressedRatio).toBeGreaterThan(0);
+      expect(result.compressedRatio).toBeLessThanOrEqual(1);
+    });
+
+    it('should handle GET_CACHED_STATS message type with uncompressed object', async () => {
+      // Data is stored as object directly (no compression)
       const mockCachedData = {
         key: 'isd_test-com_community_added_2024-01-01_2024-01-31',
-        data: mockBlob,
+        data: { test: 'data' }, // Stored as object directly
+        compressed: false,
         timestamp: Date.now() - 1000,
         lastAccessed: Date.now() - 1000,
         year: 2024,
@@ -442,7 +491,7 @@ describe('StatsCache Worker', () => {
         };
 
         const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
-        
+
         // Simulate finding cached data
         if (cacheKey === mockCachedData.key) {
           // Check validity
@@ -460,13 +509,171 @@ describe('StatsCache Worker', () => {
             return { success: true, data: null };
           }
 
-          // Decompress
-          const arrayBuffer = await mockCachedData.data.arrayBuffer();
-          const decompressedData = JSON.parse(new TextDecoder().decode(arrayBuffer));
+          // Use object directly (no parsing needed)
+          const isCompressed = mockCachedData.compressed === true;
+          const parsedData = isCompressed ? null : mockCachedData.data;
 
           return {
             success: true,
-            data: decompressedData,
+            data: parsedData,
+            serverFetchTimestamp: mockCachedData.serverFetchTimestamp,
+            year: mockCachedData.year,
+          };
+        }
+
+        return { success: true, data: null };
+      };
+
+      const result = await handleGetCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        dateBasis: 'added',
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ test: 'data' });
+      expect(result.serverFetchTimestamp).toBeDefined();
+      expect(result.year).toBe(2024);
+    });
+
+    it('should handle GET_CACHED_STATS message type with compressed data', async () => {
+      // Data is stored as compressed ArrayBuffer
+      const mockCompressedData = new TextEncoder().encode(JSON.stringify({ test: 'data' }));
+      const mockCachedData = {
+        key: 'isd_test-com_community_added_2024-01-01_2024-01-31',
+        data: mockCompressedData.buffer, // Stored as ArrayBuffer
+        compressed: true,
+        timestamp: Date.now() - 1000,
+        lastAccessed: Date.now() - 1000,
+        year: 2024,
+        serverFetchTimestamp: Date.now() - 1000,
+      };
+
+      // Simulate handleGetCachedStats
+      const handleGetCachedStats = async (params) => {
+        const { communityId, dashboardType, dateBasis = 'added', startDate, endDate } = params;
+        const generateCacheKey = (communityId, dashboardType, dateBasis, startDate, endDate) => {
+          const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
+          const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
+          const endDateShort = endDate ? endDate.substring(0, 10) : 'default';
+          return `isd_${communityIdShort}_${dashboardType}_${dateBasis}_${startDateShort}_${endDateShort}`;
+        };
+
+        const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
+
+        // Simulate finding cached data
+        if (cacheKey === mockCachedData.key) {
+          // Check validity
+          const isCacheValid = (cachedData) => {
+            if (!cachedData || !cachedData.timestamp) return false;
+            const now = Date.now();
+            const cacheAge = now - cachedData.timestamp;
+            const year = cachedData.year;
+            const isCurrent = year === new Date().getUTCFullYear();
+            const maxAge = isCurrent ? 1 * 60 * 60 * 1000 : 1 * 365 * 24 * 60 * 60 * 1000;
+            return cacheAge < maxAge;
+          };
+
+          if (!isCacheValid(mockCachedData)) {
+            return { success: true, data: null };
+          }
+
+          // Decompress and parse
+          const isCompressed = mockCachedData.compressed === true;
+          let parsedData;
+          if (isCompressed) {
+            const compressedData = new Uint8Array(mockCachedData.data);
+            const decompressedString = new TextDecoder().decode(compressedData); // Mock decompression
+            parsedData = JSON.parse(decompressedString);
+          } else {
+            parsedData = mockCachedData.data;
+          }
+
+          return {
+            success: true,
+            data: parsedData,
+            serverFetchTimestamp: mockCachedData.serverFetchTimestamp,
+            year: mockCachedData.year,
+          };
+        }
+
+        return { success: true, data: null };
+      };
+
+      const result = await handleGetCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        dateBasis: 'added',
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ test: 'data' });
+      expect(result.serverFetchTimestamp).toBeDefined();
+      expect(result.year).toBe(2024);
+    });
+
+    it('should handle GET_CACHED_STATS message type with legacy JSON string (backward compatibility)', async () => {
+      // Legacy data stored as JSON string (for backward compatibility)
+      const mockCachedData = {
+        key: 'isd_test-com_community_added_2024-01-01_2024-01-31',
+        data: JSON.stringify({ test: 'data' }), // Legacy: stored as JSON string
+        compressed: false, // or undefined for old entries
+        timestamp: Date.now() - 1000,
+        lastAccessed: Date.now() - 1000,
+        year: 2024,
+        serverFetchTimestamp: Date.now() - 1000,
+      };
+
+      // Simulate handleGetCachedStats
+      const handleGetCachedStats = async (params) => {
+        const { communityId, dashboardType, dateBasis = 'added', startDate, endDate } = params;
+        const generateCacheKey = (communityId, dashboardType, dateBasis, startDate, endDate) => {
+          const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
+          const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
+          const endDateShort = endDate ? endDate.substring(0, 10) : 'default';
+          return `isd_${communityIdShort}_${dashboardType}_${dateBasis}_${startDateShort}_${endDateShort}`;
+        };
+
+        const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
+
+        // Simulate finding cached data
+        if (cacheKey === mockCachedData.key) {
+          // Check validity
+          const isCacheValid = (cachedData) => {
+            if (!cachedData || !cachedData.timestamp) return false;
+            const now = Date.now();
+            const cacheAge = now - cachedData.timestamp;
+            const year = cachedData.year;
+            const isCurrent = year === new Date().getUTCFullYear();
+            const maxAge = isCurrent ? 1 * 60 * 60 * 1000 : 1 * 365 * 24 * 60 * 60 * 1000;
+            return cacheAge < maxAge;
+          };
+
+          if (!isCacheValid(mockCachedData)) {
+            return { success: true, data: null };
+          }
+
+          // Handle backward compatibility: parse JSON string
+          const isCompressed = mockCachedData.compressed === true;
+          let parsedData;
+          if (isCompressed) {
+            // Shouldn't happen in this test, but handle it
+            parsedData = null;
+          } else if (typeof mockCachedData.data === 'string') {
+            // Legacy: parse JSON string
+            parsedData = JSON.parse(mockCachedData.data);
+          } else {
+            // New format: use object directly
+            parsedData = mockCachedData.data;
+          }
+
+          return {
+            success: true,
+            data: parsedData,
             serverFetchTimestamp: mockCachedData.serverFetchTimestamp,
             year: mockCachedData.year,
           };
@@ -585,7 +792,7 @@ describe('StatsCache Worker', () => {
       expect(processed[0].id).toBe(2);
       expect(processed[1].type).toBe('GET_CACHED_STATS');
       expect(processed[1].id).toBe(4);
-      
+
       // Then SETs
       expect(processed[2].type).toBe('SET_CACHED_STATS');
       expect(processed[3].type).toBe('SET_CACHED_STATS');
@@ -662,10 +869,10 @@ describe('StatsCache Worker', () => {
           });
 
           const message = messageQueue.shift();
-          
+
           // Simulate async operation
           await new Promise(resolve => setTimeout(resolve, 10));
-          
+
           processedOrder.push(message.id);
         }
 
@@ -709,10 +916,10 @@ describe('StatsCache Worker', () => {
           });
 
           const message = messageQueue.shift();
-          
+
           // Simulate async operation
           await new Promise(resolve => setTimeout(resolve, 5));
-          
+
           processedOrder.push({ type: message.type, id: message.id });
         }
 
@@ -729,7 +936,7 @@ describe('StatsCache Worker', () => {
 
       // Send SET first (lower priority)
       receiveMessage({ type: 'SET_CACHED_STATS', id: 1, params: {} });
-      
+
       // Then GET arrives immediately after (higher priority)
       // Both should be in queue before processing starts
       receiveMessage({ type: 'GET_CACHED_STATS', id: 2, params: {} });
@@ -769,14 +976,14 @@ describe('StatsCache Worker', () => {
           });
 
           const message = messageQueue.shift();
-          
+
           // Simulate longer async operation (like compression)
           await new Promise(resolve => setTimeout(resolve, 20));
-          
-          processedOrder.push({ 
-            type: message.type, 
+
+          processedOrder.push({
+            type: message.type,
             id: message.id,
-            timestamp: Date.now() 
+            timestamp: Date.now()
           });
         }
 
@@ -790,7 +997,7 @@ describe('StatsCache Worker', () => {
       // Wait a bit, then GET arrives while SET is processing
       await new Promise(resolve => setTimeout(resolve, 5));
       messageQueue.push({ type: 'GET_CACHED_STATS', id: 2, params: {} });
-      
+
       // GET will wait for SET to finish, then process
       await new Promise(resolve => setTimeout(resolve, 100));
 

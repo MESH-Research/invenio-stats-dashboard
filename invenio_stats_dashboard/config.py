@@ -1451,6 +1451,14 @@ COMMUNITY_STATS_SUBCOUNTS = {
 #   double compression
 STATS_DASHBOARD_COMPRESS_JSON = False
 
+# Client-side IndexedDB cache compression configuration
+# When True: Cached data in IndexedDB is compressed using gzip (via pako library)
+#   before storage, reducing storage requirements (typically 70-90% reduction)
+# When False: Cached data is stored as JavaScript objects directly (no compression)
+#   providing faster read/write operations without serialization or compression
+#   overhead
+STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED = False
+
 # Content negotiation configuration for community stats API requests
 COMMUNITY_STATS_SERIALIZERS = {
     "application/json": json_serializer_func,

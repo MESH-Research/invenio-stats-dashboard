@@ -295,14 +295,14 @@ const fetchStatsWithYearlyBlocks = async ({
 
       if (cacheResult && cacheResult.data) {
         console.log(`Year ${block.year}: Loaded from cache in ${cacheDuration.toFixed(2)}ms (vs ~10-20s from server)`);
-        
+
         // Track current year's server fetch time from cache
         if (block.year === currentYear && cacheResult.serverFetchTimestamp) {
           if (!currentYearLastUpdated || cacheResult.serverFetchTimestamp > currentYearLastUpdated) {
             currentYearLastUpdated = cacheResult.serverFetchTimestamp;
           }
         }
-        
+
         // Add year property to cached data
         cachedBlocks.push({
           ...cacheResult.data,
@@ -344,6 +344,8 @@ const fetchStatsWithYearlyBlocks = async ({
 
         // Cache the fetched data in IndexedDB for future use (async, non-blocking)
         // Include dateBasis and year for proper identification
+        // Pass compression config from dashboardConfig
+        const compressionEnabled = dashboardConfig?.client_cache_compression_enabled === true;
         setCachedStats(
           communityId,
           dashboardType,
@@ -352,6 +354,7 @@ const fetchStatsWithYearlyBlocks = async ({
           blockStartDate,
           blockEndDate,
           block.year,
+          compressionEnabled,
         ).catch(err => {
           console.warn(`Failed to cache year ${block.year}:`, err);
         });

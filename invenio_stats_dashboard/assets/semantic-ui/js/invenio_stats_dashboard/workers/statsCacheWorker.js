@@ -37,7 +37,7 @@ const getWorker = () => {
         pendingMessages.delete(id);
         if (result.success) {
           // GET_CACHED_STATS needs: data, serverFetchTimestamp, year
-          // SET_CACHED_STATS needs: cacheKey, compressedRatio
+          // SET_CACHED_STATS needs: cacheKey, compressed (optional), compressedRatio (optional)
           // CLEAR operations return: success
           pending.resolve(result);
         } else {
@@ -84,15 +84,16 @@ const sendMessage = (type, params = {}) => {
  * @param {string} startDate - Start date (optional)
  * @param {string} endDate - End date (optional)
  * @param {number} year - Year for this cache entry (optional, extracted from startDate if not provided)
+ * @param {boolean} compressionEnabled - Whether to compress data before caching (optional, default: false)
  * @returns {Promise<void>}
  */
-export const setCachedStats = async (communityId, dashboardType, transformedData, dateBasis = 'added', startDate = null, endDate = null, year = null) => {
+export const setCachedStats = async (communityId, dashboardType, transformedData, dateBasis = 'added', startDate = null, endDate = null, year = null, compressionEnabled = false) => {
   try {
     const normalizedCommunityId = communityId || 'global';
     const startTime = performance.now();
-    console.log('setCachedStats (worker) called with:', { communityId: normalizedCommunityId, dashboardType, dateBasis, startDate, endDate, year });
+    console.log('setCachedStats (worker) called with:', { communityId: normalizedCommunityId, dashboardType, dateBasis, startDate, endDate, year, compressionEnabled });
 
-    // Transfer the data to the worker - it will compress and cache it
+    // Transfer the data to the worker - it will cache it (with optional compression)
     const result = await sendMessage('SET_CACHED_STATS', {
       communityId: normalizedCommunityId,
       dashboardType,
@@ -101,9 +102,10 @@ export const setCachedStats = async (communityId, dashboardType, transformedData
       startDate,
       endDate,
       year,
+      compressionEnabled,
     });
 
-    if (result.compressedRatio) {
+    if (result.compressed && result.compressedRatio) {
       console.log(`Successfully cached stats data: ${result.cacheKey} (compression: ${(result.compressedRatio * 100).toFixed(1)}%)`);
     } else {
       console.log(`Successfully cached stats data: ${result.cacheKey}`);

@@ -50,7 +50,7 @@ describe('API Cache Integration', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Set up mergeYearlyStats mock implementation
     const { mergeYearlyStats } = require('./yearlyBlockManager');
     mergeYearlyStats.mockImplementation((currentStats, newYearlyStats) => {
@@ -59,11 +59,11 @@ describe('API Cache Integration', () => {
       const flattened = newStats.flat();
       return [...current, ...flattened];
     });
-    
+
     // Set up setCachedStats to return a resolved promise (so .catch() works)
     const { setCachedStats } = require('../workers/statsCacheWorker');
     setCachedStats.mockResolvedValue({ success: true });
-    
+
     // Mock statsApiClient.getStats for all tests
     // Use a fresh mock implementation each time to avoid conflicts
     if (statsApiClient.getStats.mockRestore) {
@@ -179,10 +179,10 @@ describe('API Cache Integration', () => {
 
       // Should return cached data
       expect(result).toBeDefined();
-      
-      
+
+
       expect(result).toHaveProperty('stats');
-      
+
       // When cached blocks are found, they are merged with currentStats
       // The cached data is spread with year property: {...mockCachedData, year: pastYear}
       // mergeYearlyStats should merge this into the stats array
@@ -247,6 +247,7 @@ describe('API Cache Integration', () => {
         `${currentYear}-01-01`,
         `${currentYear}-12-31`,
         currentYear,
+        false, // compressionEnabled (default from empty dashboardConfig)
       );
     });
 
@@ -292,6 +293,7 @@ describe('API Cache Integration', () => {
         `${pastYear}-01-01`,
         `${pastYear}-12-31`,
         pastYear,
+        false, // compressionEnabled (default from empty dashboardConfig)
       );
     });
 
@@ -356,7 +358,7 @@ describe('API Cache Integration', () => {
         usageDeltaData: {},
         usageSnapshotData: {},
       };
-      
+
       // Restore the spy and set up a fresh mock for this test
       if (statsApiClient.getStats.mockRestore) {
         statsApiClient.getStats.mockRestore();
@@ -373,7 +375,7 @@ describe('API Cache Integration', () => {
         currentStats: [],
       });
       const afterFetch = Date.now();
-      
+
       // Verify API was called
       expect(statsApiClient.getStats).toHaveBeenCalled();
 
@@ -454,6 +456,7 @@ describe('API Cache Integration', () => {
         expect.anything(),
         expect.anything(),
         currentYear, // Should cache with current year
+        false, // compressionEnabled (default from empty dashboardConfig)
       );
     });
 

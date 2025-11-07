@@ -31,14 +31,14 @@ from ..services.cached_response_service import CachedResponseService
 def get_community_dashboard_layout(community: CommunityItem, dashboard_type: str
                                    ) -> dict[str, Any]:
     """Get dashboard layout configuration for a community.
-    
+
     Checks the community's custom field for dashboard layout configuration
     and falls back to the global configuration if not available.
-    
+
     Args:
         community: Community record object
         dashboard_type: Type of dashboard (Currently should only be "community")
-        
+
     Returns:
         dict: Dashboard layout configuration
     """
@@ -51,29 +51,29 @@ def get_community_dashboard_layout(community: CommunityItem, dashboard_type: str
         "global_layout", {}
     )
     default_layout: dict[str, Any] = community_default_layout or global_default_layout
-    
+
     # Access custom fields through the serialized data (preferred) or underlying record
     custom_fields = community.data.get('custom_fields', {})
     if not custom_fields:
         # Fallback to underlying record if not in serialized data
         custom_fields = getattr(community._record, 'custom_fields', {})
-    
+
     bespoke_layout: dict[str, Any] = custom_fields.get('stats:dashboard_layout', {}
                                                        ).get(layout_key, {})
-    
+
     if not bespoke_layout:
         current_app.logger.debug(
             f"No bespoke layout found for community {community.id}, "
             "using default layout."
         )
         return default_layout
-    
+
     return bespoke_layout
 
 
 def global_stats_dashboard():
     """Global stats dashboard view.
-    
+
     Returns:
         str: Rendered HTML template for the global stats dashboard.
     """
@@ -97,6 +97,9 @@ def global_stats_dashboard():
             "compress_json": current_app.config.get(
                 "STATS_DASHBOARD_COMPRESS_JSON", True
             ),
+            "client_cache_compression_enabled": current_app.config.get(
+                "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
+            ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -114,10 +117,10 @@ def community_stats_dashboard(
         pid_value: The community PID value (UUID or slug).
         community: The community item (CommunityItem).
         community_ui: The community UI data (dict).
-    
+
     Returns:
         str: Rendered HTML template for the community stats dashboard.
-        
+
     Raises:
         PermissionDeniedError: If user lacks read permission for the community.
     """
@@ -144,6 +147,9 @@ def community_stats_dashboard(
             ),
             "compress_json": current_app.config.get(
                 "STATS_DASHBOARD_COMPRESS_JSON", True
+            ),
+            "client_cache_compression_enabled": current_app.config.get(
+                "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
             ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
         },
@@ -195,7 +201,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
     def post(self, **kwargs):
         """Handle stats dashboard API requests with cache checking.
-        
+
         Returns:
             Response: JSON response with stats data or error message.
         """
@@ -251,7 +257,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                 bytes_results: dict[str, bytes] = results  # type: ignore
                 final_json = self._build_json_response(bytes_results)
                 return Response(final_json, mimetype=accept_header)
-            
+
             # For all other cases, return the data and let the parent class's
             # dispatch_request method handle content negotiation and serialization
             return results
@@ -263,7 +269,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
 
 def create_blueprint(app: Flask) -> Blueprint:
     """Create the Invenio-Stats-Dashboard blueprint.
-    
+
     Returns:
         Blueprint: The configured stats dashboard blueprint.
     """
@@ -295,7 +301,7 @@ def create_api_blueprint(app: Flask) -> Blueprint:
 
     This supplements the regular stats api endpoint to allow
     for content negotiation and serialized responses.
-    
+
     Returns:
         Blueprint: The configured stats dashboard API blueprint.
     """

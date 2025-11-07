@@ -12,7 +12,7 @@
 // In Web Workers, 'self' is the global object (equivalent to 'window' in main thread)
 // This is the standard and correct way to access the worker's global scope
 
-// Import pako for compression/decompression
+// Import pako for compression/decompression (conditional based on config)
 // Note: This requires pako to be available as an ES module in your build system
 // If using webpack/vite, ensure pako is bundled for the worker context
 import pako from 'pako';
@@ -192,19 +192,36 @@ const evictOldestEntries = async (db, countToEvict) => {
  */
 const handleSetCachedStats = async (params) => {
   try {
-    const { communityId = 'global', dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year } = params;
+    const { communityId = 'global', dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year, compressionEnabled = false } = params;
     const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
-    console.log('[SET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
+    console.log('[SET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate, compressionEnabled });
     const timestamp = Date.now();
 
     const cacheYear = year || extractYear(startDate);
 
-    const jsonString = JSON.stringify(transformedData);
-    const compressedData = pako.gzip(jsonString);
-    const arrayBuffer = compressedData.buffer.slice(
-      compressedData.byteOffset,
-      compressedData.byteOffset + compressedData.byteLength
-    );
+    // Conditionally compress based on config
+    let dataToStore;
+    let compressed = false;
+    let originalSize = null;
+    let compressedSize = null;
+
+    if (compressionEnabled) {
+      // When compression is enabled: stringify, compress, store as ArrayBuffer
+      const jsonString = JSON.stringify(transformedData);
+      const compressedData = pako.gzip(jsonString);
+      const arrayBuffer = compressedData.buffer.slice(
+        compressedData.byteOffset,
+        compressedData.byteOffset + compressedData.byteLength
+      );
+      dataToStore = arrayBuffer;
+      compressed = true;
+      originalSize = jsonString.length;
+      compressedSize = compressedData.length;
+    } else {
+      // When compression is disabled: store object directly (IndexedDB handles it natively)
+      dataToStore = transformedData;
+      compressed = false;
+    }
 
     const db = await getDB();
 
@@ -237,7 +254,7 @@ const handleSetCachedStats = async (params) => {
 
     const cacheRecord = {
       key: cacheKey,
-      data: arrayBuffer,
+      data: dataToStore, // Store as object (when uncompressed) or compressed ArrayBuffer (when compressed)
       timestamp,
       lastAccessed: timestamp, // Update lastAccessed when storing
       communityId,
@@ -246,9 +263,9 @@ const handleSetCachedStats = async (params) => {
       startDate,
       endDate,
       year: cacheYear,
-      compressed: true,
-      originalSize: jsonString.length,
-      compressedSize: compressedData.length,
+      compressed: compressed, // Flag to indicate if data is compressed
+      originalSize: originalSize, // Only set when compressed
+      compressedSize: compressedSize, // Only set when compressed
       version: '2.0',
       // Store server fetch time for current year (used for "last updated" display)
       serverFetchTimestamp: isCurrent ? timestamp : null
@@ -266,7 +283,12 @@ const handleSetCachedStats = async (params) => {
       };
     });
 
-    return { success: true, cacheKey, compressedRatio: compressedData.length / jsonString.length };
+    return {
+      success: true,
+      cacheKey,
+      compressed: compressed,
+      compressedRatio: compressed && originalSize ? compressedSize / originalSize : 1.0
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -357,15 +379,16 @@ const handleGetCachedStats = async (params) => {
     // Extract metadata before transaction completes (record is still valid after transaction)
     const serverFetchTimestamp = record.serverFetchTimestamp || null;
     const year = record.year || null;
-    // data is stored as ArrayBuffer (for Safari compatibility), not Blob
     const recordData = record.data;
+    const isCompressed = record.compressed === true; // Check compression flag (backward compatible with old records)
 
     // console.log('[GET] Cache validation check:', {
     //   hasTimestamp: !!record.timestamp,
     //   timestamp: record.timestamp,
     //   year: record.year,
     //   isCurrentYear: isCurrentYear(record.year),
-    //   cacheAge: record.timestamp ? Date.now() - record.timestamp : 'N/A'
+    //   cacheAge: record.timestamp ? Date.now() - record.timestamp : 'N/A',
+    //   isCompressed: isCompressed
     // });
 
     if (!isCacheValid(record)) {
@@ -375,35 +398,50 @@ const handleGetCachedStats = async (params) => {
       return { success: true, data: null };
     }
 
-    // console.log('[GET] Cache is valid, proceeding to decompress');
-    // console.log('[GET] Record data type:', typeof recordData, 'instanceof ArrayBuffer:', recordData instanceof ArrayBuffer);
+    // console.log('[GET] Cache is valid, proceeding to parse/decompress');
+    // console.log('[GET] Record data type:', typeof recordData, 'isCompressed:', isCompressed);
 
-    // Decompress the data
-    let decompressedData;
-    let arrayBuffer;
+    // Parse or decompress data based on compression flag
+    let parsedData;
     try {
-      if (recordData instanceof ArrayBuffer) {
-        arrayBuffer = recordData;
-        // console.log('[GET] Using ArrayBuffer, size:', arrayBuffer.byteLength);
+      if (isCompressed) {
+        // Handle compressed data (ArrayBuffer)
+        if (recordData instanceof ArrayBuffer) {
+          const compressedData = new Uint8Array(recordData);
+          const decompressedString = pako.ungzip(compressedData, { to: 'string' });
+          parsedData = JSON.parse(decompressedString);
+          // console.log('[GET] Decompression successful, data type:', typeof parsedData, 'keys:', Object.keys(parsedData || {}));
+        } else {
+          const errorMsg = `Unexpected recordData type for compressed data: ${typeof recordData}. Expected ArrayBuffer.`;
+          console.error('handleGetCachedStats:', errorMsg, 'Invalidating cache entry:', cacheKey);
+          await deleteCacheEntry(cacheKey);
+          return { success: false, error: errorMsg, data: null };
+        }
       } else {
-        const errorMsg = `Unexpected recordData type: ${typeof recordData}. Expected ArrayBuffer.`;
-        console.error('handleGetCachedStats:', errorMsg, 'Invalidating cache entry:', cacheKey);
-        await deleteCacheEntry(cacheKey);
-        return { success: false, error: errorMsg, data: null };
+        // Handle uncompressed data
+        if (typeof recordData === 'object' && recordData !== null && !(recordData instanceof ArrayBuffer)) {
+          // Stored as object directly - use it as-is (no parsing needed)
+          parsedData = recordData;
+          // console.log('[GET] Using object directly, data type:', typeof parsedData, 'keys:', Object.keys(parsedData || {}));
+        } else if (typeof recordData === 'string') {
+          // Backward compatibility: old cache entries stored as JSON string
+          parsedData = JSON.parse(recordData);
+          // console.log('[GET] JSON parsing successful (backward compatibility), data type:', typeof parsedData, 'keys:', Object.keys(parsedData || {}));
+        } else {
+          const errorMsg = `Unexpected recordData type for uncompressed data: ${typeof recordData}. Expected object or string.`;
+          console.error('handleGetCachedStats:', errorMsg, 'Invalidating cache entry:', cacheKey);
+          await deleteCacheEntry(cacheKey);
+          return { success: false, error: errorMsg, data: null };
+        }
       }
 
-      // console.log('[GET] Decompressing data, arrayBuffer size:', arrayBuffer.byteLength);
-      const compressedData = new Uint8Array(arrayBuffer);
-      decompressedData = JSON.parse(pako.ungzip(compressedData, { to: 'string' }));
-      // console.log('[GET] Decompression successful, data type:', typeof decompressedData, 'keys:', Object.keys(decompressedData || {}));
-
-      if (!decompressedData) {
-        console.error('handleGetCachedStats: Decompressed data is null/undefined! Invalidating cache entry:', cacheKey);
+      if (!parsedData) {
+        console.error('handleGetCachedStats: Parsed data is null/undefined! Invalidating cache entry:', cacheKey);
         await deleteCacheEntry(cacheKey);
         return { success: true, data: null };
       }
     } catch (error) {
-      console.error('handleGetCachedStats: Error during decompression. Invalidating cache entry:', cacheKey, error);
+      console.error('handleGetCachedStats: Error during parsing/decompression. Invalidating cache entry:', cacheKey, error);
       await deleteCacheEntry(cacheKey);
       return { success: false, error: error.message, data: null };
     }
@@ -414,7 +452,7 @@ const handleGetCachedStats = async (params) => {
         const updateTransaction = updateDb.transaction([STORE_NAME], 'readwrite');
         const updateStore = updateTransaction.objectStore(STORE_NAME);
 
-        // Get fresh record to ensure we have all properties including ArrayBuffer
+        // Get fresh record to ensure we have all properties
         const freshRecord = await new Promise((resolve, reject) => {
           const getRequest = updateStore.get(cacheKey);
           getRequest.onsuccess = () => resolve(getRequest.result);
@@ -445,7 +483,7 @@ const handleGetCachedStats = async (params) => {
     // Return data immediately along with metadata for current year's server fetch time
     const result = {
       success: true,
-      data: decompressedData,
+      data: parsedData,
       serverFetchTimestamp: serverFetchTimestamp,
       year: year
     };
