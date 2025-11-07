@@ -40,6 +40,14 @@ jest.mock('../../../constants', () => ({
     ADDED: "added",
     CREATED: "created",
     PUBLISHED: "published"
+  },
+  OTHER_IDS_BY_CATEGORY: {
+    publishers: ["unknown"],
+    publishersByView: ["unknown"],
+    publishersByDownload: ["unknown"],
+    countries: ["imported"],
+    countriesByView: ["imported"],
+    countriesByDownload: ["imported"],
   }
 }));
 
