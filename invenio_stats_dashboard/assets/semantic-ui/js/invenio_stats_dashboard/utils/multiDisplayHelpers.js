@@ -12,6 +12,7 @@ import { filterSeriesArrayByDate } from "./filters";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getCountryNames } from "./mapHelpers";
 import { transformItemForChart } from "./nameTransformHelpers";
+import { getOtherIdsForCategory } from "./chartHelpers";
 
 /**
  * Transform multi-display data into chart-ready format
@@ -23,6 +24,7 @@ import { transformItemForChart } from "./nameTransformHelpers";
  * @param {boolean} hideOtherInCharts - If true and "other" is >30% of total, exclude it from charts
  * @param {Array} globalData - Optional global data series for accurate percentage calculations
  * @param {boolean} isDelta - Whether the data is delta (sum all points) or snapshot (take latest point)
+ * @param {string} categoryName - Optional category name (e.g., 'publishers', 'languages') to determine which IDs should be treated as "other"
  * @returns {Object} Object containing transformedData, otherData, originalOtherData, totalCount, and otherPercentage
  */
 
@@ -34,6 +36,7 @@ const transformMultiDisplayData = (
   hideOtherInCharts = false,
   globalData = null,
   isDelta = false,
+  categoryName = null,
 ) => {
   if (!rawData || !Array.isArray(rawData)) {
     return {
@@ -44,6 +47,16 @@ const transformMultiDisplayData = (
       otherPercentage: 0,
     };
   }
+
+  // Get IDs that should be treated as "other" for this category
+  // If categoryName is not provided, try to infer it from searchField for backward compatibility
+  const inferredCategoryName = categoryName || (searchField && searchField.includes("publisher") ? "publishers" : null);
+  const otherIds = getOtherIdsForCategory(inferredCategoryName);
+
+  // Filter out items with IDs that should be treated as "other"
+  const filteredRawData = otherIds.length > 0
+    ? rawData.filter((item) => !otherIds.includes(item.id))
+    : rawData;
 
   // Calculate value for each item based on data type
   const getItemValue = (item) => {
@@ -62,7 +75,8 @@ const transformMultiDisplayData = (
   };
 
   // Calculate total count from subcount items (for backward compatibility)
-  const subcountTotalCount = rawData.reduce(
+  // Note: IDs configured as "other" are excluded from this count
+  const subcountTotalCount = filteredRawData.reduce(
     (sum, item) => sum + getItemValue(item),
     0,
   );
@@ -91,7 +105,8 @@ const transformMultiDisplayData = (
     globalTotalCount > 0 ? globalTotalCount : subcountTotalCount;
 
   // Transform all items first, then sort and slice
-  const allTransformedData = rawData.map((item) => {
+  // Use filteredRawData (which excludes "unknown" for publisher data)
+  const allTransformedData = filteredRawData.map((item) => {
     const value = getItemValue(item);
     const percentage =
       totalCount > 0 ? Math.round((value / totalCount) * 100) : 0;

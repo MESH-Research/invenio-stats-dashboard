@@ -3,6 +3,30 @@ import { readableGranularDate } from "./dates";
 import { extractLocalizedLabel } from "./i18n";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getLicenseLabelForms } from "./nameTransformHelpers";
+import { OTHER_IDS_BY_CATEGORY } from "../constants";
+
+/**
+ * Get the array of IDs that should be treated as "other" for a given category.
+ *
+ * @param {string} categoryName - The category name (e.g., "publishers", "countries")
+ * @returns {string[]} Array of IDs to exclude and treat as "other"
+ */
+export const getOtherIdsForCategory = (categoryName) => {
+  if (!categoryName) return [];
+  return OTHER_IDS_BY_CATEGORY[categoryName] || [];
+};
+
+/**
+ * Check if a given ID should be treated as "other" for a category.
+ *
+ * @param {string} categoryName - The category name
+ * @param {string} id - The ID to check
+ * @returns {boolean} True if the ID should be treated as "other"
+ */
+export const isIdTreatedAsOther = (categoryName, id) => {
+  const otherIds = getOtherIdsForCategory(categoryName);
+  return otherIds.includes(id);
+};
 
 /**
  * ChartDataAggregator class handles all data aggregation and processing for charts
@@ -327,42 +351,50 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
 
   let globalDataPoints = filteredGlobalSeries[0].data;
 
-  // For country breakdowns, subtract "imported" from global totals before calculating "other"
-  const isCountryBreakdown = displaySeparately === "countries"
-    || displaySeparately === "countriesByView"
-    || displaySeparately === "countriesByDownload";
+  // Get IDs that should be treated as "other" for this category
+  const otherIds = getOtherIdsForCategory(displaySeparately);
 
-  if (isCountryBreakdown) {
-    // Get all country series from breakdown data (including "imported")
-    const allCountrySeries = data
+  // Subtract values for IDs that should be treated as "other" from global totals
+  if (otherIds.length > 0) {
+    // Get all series from breakdown data (including those that should be treated as "other")
+    const allBreakdownSeries = data
       .map((yearlyData) => yearlyData?.[displaySeparately]?.[selectedMetric] || [])
       .flat();
 
-    const mergedCountrySeries = ChartDataProcessor.mergeSeriesById(allCountrySeries);
-    const importedSeries = mergedCountrySeries.find(series => series.id === "imported");
+    const mergedBreakdownSeries = ChartDataProcessor.mergeSeriesById(allBreakdownSeries);
 
-    if (importedSeries && importedSeries.data) {
-      // Filter imported series by date range
-      const filteredImportedSeries = filterSeriesArrayByDate([importedSeries], dateRange, false);
+    // Create a combined map of all "other" ID values by date
+    const otherValuesByDate = new Map();
 
-      if (filteredImportedSeries.length > 0 && filteredImportedSeries[0].data) {
-        // Create a map of imported values by date
-        const importedValuesByDate = new Map();
-        filteredImportedSeries[0].data.forEach(point => {
-          const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
-          importedValuesByDate.set(dateKey, point.value[1] || 0);
-        });
+    // Process each ID that should be treated as "other"
+    otherIds.forEach(otherId => {
+      const otherSeries = mergedBreakdownSeries.find(series => series.id === otherId);
 
-        // Subtract imported values from global data points
-        globalDataPoints = globalDataPoints.map(point => {
-          const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
-          const importedValue = importedValuesByDate.get(dateKey) || 0;
-          return {
-            ...point,
-            value: [point.value[0], Math.max(0, point.value[1] - importedValue)],
-          };
-        });
+      if (otherSeries && otherSeries.data) {
+        // Filter series by date range
+        const filteredOtherSeries = filterSeriesArrayByDate([otherSeries], dateRange, false);
+
+        if (filteredOtherSeries.length > 0 && filteredOtherSeries[0].data) {
+          // Add values to the combined map
+          filteredOtherSeries[0].data.forEach(point => {
+            const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+            const currentValue = otherValuesByDate.get(dateKey) || 0;
+            otherValuesByDate.set(dateKey, currentValue + (point.value[1] || 0));
+          });
+        }
       }
+    });
+
+    // Subtract combined "other" values from global data points
+    if (otherValuesByDate.size > 0) {
+      globalDataPoints = globalDataPoints.map(point => {
+        const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+        const otherValue = otherValuesByDate.get(dateKey) || 0;
+        return {
+          ...point,
+          value: [point.value[0], Math.max(0, point.value[1] - otherValue)],
+        };
+      });
     }
   }
 
@@ -379,14 +411,14 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   });
 
   // Calculate "other" values by subtracting visible series totals from adjusted global totals
-  // For country breakdowns, "imported" has already been subtracted from global
+  // IDs configured as "other" have already been subtracted from global
   const otherDataPoints = globalDataPoints.map(point => {
     const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
     const adjustedGlobalValue = point.value[1] || 0;
     const visibleSeriesTotal = visibleSeriesValuesByDate.get(dateKey) || 0;
 
     // "Other" = Adjusted Global - Visible Series
-    // For countries: Adjusted Global = Global - Imported, so "Other" excludes "imported"
+    // Adjusted Global = Global - (sum of all IDs configured as "other"), so "Other" excludes those IDs
     const otherValue = Math.max(0, adjustedGlobalValue - visibleSeriesTotal);
 
     return {
@@ -519,12 +551,12 @@ export class ChartDataProcessor {
     // Prepare series for display (with "other" series if needed)
     let displaySeries = [...nonZeroSeries];
     if (displaySeparately && originalData) {
-      // For country breakdowns, filter out "imported" so it's treated as "other"
-      const isCountryBreakdown = displaySeparately === "countries"
-        || displaySeparately === "countriesByView"
-        || displaySeparately === "countriesByDownload";
-      const seriesForSelection = isCountryBreakdown
-        ? nonZeroSeries.filter(series => series.id !== "imported")
+      // Get IDs that should be treated as "other" for this category
+      const otherIds = getOtherIdsForCategory(displaySeparately);
+
+      // Filter out series with IDs that should be treated as "other"
+      const seriesForSelection = otherIds.length > 0
+        ? nonZeroSeries.filter(series => !otherIds.includes(series.id))
         : nonZeroSeries;
 
       // Select top N series for display

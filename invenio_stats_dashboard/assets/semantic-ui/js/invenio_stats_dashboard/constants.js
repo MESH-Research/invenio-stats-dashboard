@@ -131,11 +131,27 @@ export const clearSubcountKeyMappingCache = () => {
   _subcountKeyMapping = {};
 };
 
+/**
+ * Configuration map of data category names to arrays of IDs that should be treated as "other".
+ * These IDs will be excluded from individual series display and merged into the "other" category.
+ *
+ * @type {Object<string, string[]>}
+ */
+export const OTHER_IDS_BY_CATEGORY = {
+  publishers: ["unknown"],
+  publishersByView: ["unknown"],
+  publishersByDownload: ["unknown"],
+  countries: ["imported"],
+  countriesByView: ["imported"],
+  countriesByDownload: ["imported"],
+};
+
 // Export all constants as a single object
 export default {
   CHART_COLORS,
   UI_COLORS,
   CHART_CONFIG,
   DATE_RANGE,
+  OTHER_IDS_BY_CATEGORY,
   getSubcountKeyMapping,
 };
