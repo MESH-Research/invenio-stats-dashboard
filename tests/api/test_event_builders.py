@@ -125,12 +125,12 @@ def test_file_download_vocabulary_fields_from_relations(
     assert result["languages"] is not None
     assert isinstance(result["languages"], list)
     assert len(result["languages"]) == 2
-    
+
     # Check both languages are present
     lang_ids = [lang["id"] for lang in result["languages"]]
     assert "eng" in lang_ids
     assert "fra" in lang_ids
-    
+
     # Check specific language values
     eng_lang = next(lang for lang in result["languages"] if lang["id"] == "eng")
     assert eng_lang["title"] == {"en": "English"}
@@ -350,13 +350,13 @@ def test_record_view_vocabulary_fields_in_event(
     assert isinstance(result["languages"], list)
     assert len(result["languages"]) == 1
     assert result["languages"][0]["id"] == "eng"
-    
+
     # Subjects should be list
     assert result["subjects"] is not None
     assert isinstance(result["subjects"], list)
     assert len(result["subjects"]) == 1
     assert result["subjects"][0]["id"] == "http://id.worldcat.org/fast/813346"
-    
+
     # Rights should be list
     assert result["rights"] is not None
     assert isinstance(result["rights"], list)
@@ -446,3 +446,212 @@ def test_record_view_missing_communities(
     # Should handle missing communities gracefully
     assert "community_ids" in result
     assert isinstance(result["community_ids"], list)
+
+
+def test_record_view_affiliations_flattened(
+    running_app,
+    db,
+    minimal_published_record_factory,
+    record_metadata,
+):
+    """Test that affiliations are flattened from nested structure in record view."""
+    app = running_app.app
+
+    # Create metadata with multiple creators and contributors, each with affiliations
+    test_metadata = record_metadata()
+    test_metadata.update_metadata({
+        "metadata|creators": [
+            {
+                "person_or_org": {
+                    "family_name": "One",
+                    "given_name": "Creator",
+                    "name": "Creator One",
+                    "type": "personal",
+                },
+                "affiliations": [
+                    {"id": "cern", "name": "CERN"},
+                    {"id": "03rmrcq20", "name": "University of British Columbia"},
+                ],
+            },
+            {
+                "person_or_org": {
+                    "family_name": "Two",
+                    "given_name": "Creator",
+                    "name": "Creator Two",
+                    "type": "personal",
+                },
+                "affiliations": [
+                    {"id": "013v4ng57", "name": "San Francisco Public Library"},
+                ],
+            },
+        ],
+        "metadata|contributors": [
+            {
+                "person_or_org": {
+                    "family_name": "One",
+                    "given_name": "Contributor",
+                    "name": "Contributor One",
+                    "type": "personal",
+                },
+                "role": {"id": "other"},
+                "affiliations": [
+                    {"id": "cern", "name": "CERN"},
+                ],
+            },
+        ],
+    })
+
+    record_item = minimal_published_record_factory(metadata=test_metadata.metadata_in)
+    record_item_with_relations = current_rdm_records_service.read(
+        system_identity, id_=record_item.id
+    )
+    record = record_item_with_relations._record
+
+    event: dict = {}
+
+    with app.test_request_context():
+        result = record_view_event_builder(event, app, record=record)
+
+    # Affiliations should be a flat list, not nested arrays
+    assert "affiliations" in result
+    assert isinstance(result["affiliations"], list)
+
+    # Should be a flat array of affiliation objects, not array of arrays
+    assert len(result["affiliations"]) > 0
+    for affiliation in result["affiliations"]:
+        # Each item should be a dict (affiliation object), not a list
+        assert isinstance(affiliation, dict), (
+            f"Expected affiliation to be a dict, got {type(affiliation)}: {affiliation}"
+        )
+        # Should have id or name
+        assert "id" in affiliation or "name" in affiliation
+
+    # Should have all affiliations from creators and contributors
+    # We expect: CERN (twice), University of British Columbia, SFPL
+    affiliation_ids = [
+        aff.get("id") for aff in result["affiliations"] if aff.get("id")
+    ]
+    affiliation_names = [
+        aff.get("name") for aff in result["affiliations"] if aff.get("name")
+    ]
+
+    # CERN should appear (from creator 1 and contributor 1)
+    assert "cern" in affiliation_ids or "CERN" in affiliation_names
+    # University of British Columbia should appear
+    ubc_in_ids = "03rmrcq20" in affiliation_ids
+    ubc_in_names = "University of British Columbia" in affiliation_names
+    assert ubc_in_ids or ubc_in_names
+    # San Francisco Public Library should appear
+    sfpl_in_ids = "013v4ng57" in affiliation_ids
+    sfpl_in_names = "San Francisco Public Library" in affiliation_names
+    assert sfpl_in_ids or sfpl_in_names
+
+
+def test_file_download_affiliations_flattened(
+    running_app,
+    db,
+    minimal_published_record_factory,
+    record_metadata,
+    test_sample_files_folder,
+):
+    """Test that affiliations are flattened from nested structure in file download."""
+    app = running_app.app
+
+    # Create metadata with multiple creators and contributors, each with affiliations
+    test_metadata = record_metadata()
+    test_metadata.update_metadata({
+        "metadata|creators": [
+            {
+                "person_or_org": {
+                    "family_name": "One",
+                    "given_name": "Creator",
+                    "name": "Creator One",
+                    "type": "personal",
+                },
+                "affiliations": [
+                    {"id": "cern", "name": "CERN"},
+                    {"id": "03rmrcq20", "name": "University of British Columbia"},
+                ],
+            },
+            {
+                "person_or_org": {
+                    "family_name": "Two",
+                    "given_name": "Creator",
+                    "name": "Creator Two",
+                    "type": "personal",
+                },
+                "affiliations": [
+                    {"id": "013v4ng57", "name": "San Francisco Public Library"},
+                ],
+            },
+        ],
+        "metadata|contributors": [
+            {
+                "person_or_org": {
+                    "family_name": "One",
+                    "given_name": "Contributor",
+                    "name": "Contributor One",
+                    "type": "personal",
+                },
+                "role": {"id": "other"},
+                "affiliations": [
+                    {"id": "cern", "name": "CERN"},
+                ],
+            },
+        ],
+        "files|enabled": True,
+    })
+
+    record_item = minimal_published_record_factory(
+        metadata=test_metadata.metadata_in,
+        file_paths=[str(test_sample_files_folder / "sample.pdf")],
+    )
+    record = record_item._record
+
+    file_service = current_rdm_records_service.files
+    assert len(record.files.entries) > 0
+    file_key = list(record.files.entries.keys())[0]
+    file_item = file_service.get_file_content(system_identity, record["id"], file_key)
+    obj = file_item._file.object_version
+    assert obj is not None
+
+    event: dict = {}
+
+    with app.test_request_context(headers={"Referer": "https://example.com"}):
+        result = file_download_event_builder(
+            event, app, record=record, obj=obj, via_api=True
+        )
+
+    # Affiliations should be a flat list, not nested arrays
+    assert "affiliations" in result
+    assert isinstance(result["affiliations"], list)
+
+    # Should be a flat array of affiliation objects, not array of arrays
+    assert len(result["affiliations"]) > 0
+    for affiliation in result["affiliations"]:
+        # Each item should be a dict (affiliation object), not a list
+        assert isinstance(affiliation, dict), (
+            f"Expected affiliation to be a dict, got {type(affiliation)}: {affiliation}"
+        )
+        # Should have id or name
+        assert "id" in affiliation or "name" in affiliation
+
+    # Should have all affiliations from creators and contributors
+    # We expect: CERN (twice), University of British Columbia, SFPL
+    affiliation_ids = [
+        aff.get("id") for aff in result["affiliations"] if aff.get("id")
+    ]
+    affiliation_names = [
+        aff.get("name") for aff in result["affiliations"] if aff.get("name")
+    ]
+
+    # CERN should appear (from creator 1 and contributor 1)
+    assert "cern" in affiliation_ids or "CERN" in affiliation_names
+    # University of British Columbia should appear
+    ubc_in_ids = "03rmrcq20" in affiliation_ids
+    ubc_in_names = "University of British Columbia" in affiliation_names
+    assert ubc_in_ids or ubc_in_names
+    # San Francisco Public Library should appear
+    sfpl_in_ids = "013v4ng57" in affiliation_ids
+    sfpl_in_names = "San Francisco Public Library" in affiliation_names
+    assert sfpl_in_ids or sfpl_in_names

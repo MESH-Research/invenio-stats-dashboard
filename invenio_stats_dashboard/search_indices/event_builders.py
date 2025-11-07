@@ -29,6 +29,26 @@ from invenio_records_resources.records.systemfields.relations import (
 from invenio_stats.utils import get_user
 
 
+def _flatten_affiliations(creators_and_contributors: list) -> list:
+    """Flatten affiliations from creators and contributors into a single list.
+
+    Each creator/contributor has a list of affiliations, so we get a list of lists.
+    This function flattens: [[aff1, aff2], [aff3]] -> [aff1, aff2, aff3]
+
+    Args:
+        creators_and_contributors: List of creator/contributor dicts
+
+    Returns:
+        Flat list of affiliation dicts
+    """
+    affiliations = []
+    for person in creators_and_contributors:
+        person_affiliations = person.get("affiliations", [])
+        if person_affiliations:
+            affiliations.extend(person_affiliations)
+    return affiliations
+
+
 def file_download_event_builder(
     event: dict[str, Any], sender_app: str, **kwargs: Any
 ) -> dict[str, Any] | None:
@@ -52,7 +72,7 @@ def file_download_event_builder(
         if "." in obj.key
         else None
     )
-    
+
     # Access vocabulary fields through relations to ensure they're resolved.
     # For file downloads, the record comes from get_file_content() which doesn't
     # go through the same expansion as read(), so relations may not be resolved
@@ -61,26 +81,26 @@ def file_download_event_builder(
         relation_name: str, metadata_key: str | None = None
     ):
         """Get a vocabulary field with resolved relations.
-        
+
         Args:
             relation_name: Name of the relation field
                 (e.g., "resource_type", "languages")
             metadata_key: Metadata key to use as fallback
                 (defaults to relation_name)
-        
+
         Returns:
             Resolved vocabulary object(s) or metadata fallback
         """
         if metadata_key is None:
             metadata_key = relation_name
-        
+
         if hasattr(record, "relations") and hasattr(
             record.relations, relation_name
         ):
             try:
                 relation = getattr(record.relations, relation_name)
                 resolved = relation()
-                
+
                 if resolved:
                     # Check if this is a list relation or single relation
                     # by checking the relation type, not the resolved value
@@ -103,10 +123,10 @@ def file_download_event_builder(
                             return resolved.to_dict()
             except Exception:
                 pass
-        
+
         # Fallback to metadata if relations unavailable
         return record.metadata.get(metadata_key)
-    
+
     event.update({
         # When:
         "timestamp": datetime.utcnow().isoformat(),
@@ -131,11 +151,10 @@ def file_download_event_builder(
         # Note: relation name is "licenses" but it manages metadata["rights"]
         "rights": _get_vocabulary_field("licenses", "rights"),
         "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
-        "affiliations": [
-            c.get("affiliations")
-            for c in record.metadata.get("contributors", [])
+        "affiliations": _flatten_affiliations(
+            record.metadata.get("contributors", [])
             + record.metadata.get("creators", [])
-        ],
+        ),
         "file_types": [file_type] if file_type else None,
     })
     return event
@@ -190,11 +209,10 @@ def record_view_event_builder(
             ),
             "rights": record.metadata.get("rights", None),
             "funders": [f.get("funder") for f in record.metadata.get("funding", [])],
-            "affiliations": [
-                c.get("affiliations")
-                for c in record.metadata.get("contributors", [])
+            "affiliations": _flatten_affiliations(
+                record.metadata.get("contributors", [])
                 + record.metadata.get("creators", [])
-            ],
+            ),
             "file_types": file_types,
         })
         return event

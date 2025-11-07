@@ -1351,10 +1351,11 @@ COMMUNITY_STATS_SUBCOUNTS = {
             "field_type": list[str] | None,
             "event_field": "affiliations",
             "extraction_path_for_event": lambda metadata: [
-                item["affiliations"]
+                affiliation
                 for item in metadata.get("creators", [])
                 + metadata.get("contributors", [])
                 if "affiliations" in item
+                for affiliation in item["affiliations"]
             ],
             "snapshot_type": "top",
             "source_fields": [

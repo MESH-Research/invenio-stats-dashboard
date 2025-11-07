@@ -2713,7 +2713,8 @@ class TestGetNestedValue:
                 "id",
                 {"en": "Funder"},
             ),
-            # Usage Pattern 13: Affiliations field - list of lists structure
+            # Usage Pattern 13: Affiliations field - list of lists (fallback case)
+            # Tests the aggregator's ability to handle nested arrays as a fallback
             (
                 AttrDict({
                     "affiliations": [
@@ -2741,6 +2742,33 @@ class TestGetNestedValue:
                         }
                     ],
                     [{"name": "San Francisco Public Library"}],
+                ],
+            ),
+            # Usage Pattern 13b: Affiliations field - correct flat structure
+            # This tests the expected flat array structure from event builders
+            (
+                AttrDict({
+                    "affiliations": [
+                        {"name": "San Francisco Public Library"},
+                        {"name": "CERN", "id": "cern"},
+                        {
+                            "name": "University of British Columbia",
+                            "id": "03rmrcq20",
+                        },
+                        {"name": "San Francisco Public Library", "id": "013v4ng57"},
+                    ]
+                }),
+                ["affiliations"],
+                "013v4ng57",
+                "id",
+                [
+                    {"name": "San Francisco Public Library"},
+                    {"name": "CERN", "id": "cern"},
+                    {
+                        "name": "University of British Columbia",
+                        "id": "03rmrcq20",
+                    },
+                    {"name": "San Francisco Public Library", "id": "013v4ng57"},
                 ],
             ),
             # Usage Pattern 14: Subjects field - list of objects with id and subject

@@ -85,6 +85,26 @@ PUBLIC_IP_ADDRESSES = [
 ]
 
 
+def _flatten_affiliations_from_metadata(creators_and_contributors: list) -> list:
+    """Flatten affiliations from creators and contributors into a single list.
+
+    Each creator/contributor has a list of affiliations, so we get a list of lists.
+    This function flattens: [[aff1, aff2], [aff3]] -> [aff1, aff2, aff3]
+
+    Args:
+        creators_and_contributors: List of creator/contributor dicts
+
+    Returns:
+        Flat list of affiliation dicts
+    """
+    affiliations = []
+    for person in creators_and_contributors:
+        person_affiliations = person.get("affiliations", [])
+        if person_affiliations:
+            affiliations.extend(person_affiliations)
+    return affiliations
+
+
 class UsageEventFactory:
     """Factory for generating synthetic usage events."""
 
@@ -93,7 +113,7 @@ class UsageEventFactory:
         record: dict, event_date: arrow.Arrow, ident: int
     ) -> dict:
         """Create base event data common to all event types.
-        
+
         Returns:
             dict: Base event data dictionary.
         """
@@ -144,7 +164,7 @@ class UsageEventFactory:
     @staticmethod
     def _enrich_event(event: dict, event_type: str) -> dict:
         """Enrich the event with additional data.
-        
+
         Returns:
             dict: Enriched event data dictionary.
         """
@@ -179,11 +199,10 @@ class UsageEventFactory:
                     f.get("funder")
                     for f in record_metadata["metadata"].get("funding", [])
                 ],
-                "affiliations": [
-                    a.get("affiliations")
-                    for a in record_metadata["metadata"].get("contributors", [])
+                "affiliations": _flatten_affiliations_from_metadata(
+                    record_metadata["metadata"].get("contributors", [])
                     + record_metadata["metadata"].get("creators", [])
-                ],
+                ),
                 "file_types": file_types or None,
             }
         )
@@ -266,7 +285,7 @@ class UsageEventFactory:
         start_date: str, end_date: str, max_records: int | None = None
     ) -> list:
         """Get records within a date range.
-        
+
         Returns:
             list: List of record dictionaries.
         """
@@ -296,7 +315,7 @@ class UsageEventFactory:
         """Ensure date range doesn't start before record creation.
 
         If start_date is None or invalid, defaults to record creation date.
-        
+
         Returns:
             tuple[arrow.Arrow, arrow.Arrow]: Adjusted start and end dates.
         """
@@ -320,7 +339,7 @@ class UsageEventFactory:
         enrich_events: bool = False,
     ) -> list:
         """Generate events for a list of records.
-        
+
         Returns:
             list: List of (event, event_id) tuples.
         """
@@ -387,7 +406,7 @@ class UsageEventFactory:
     @staticmethod
     def _check_migrated_index_exists(index_pattern: str, month: str) -> bool:
         """Check if a migrated index with -v2.0.0 suffix exists.
-        
+
         Returns:
             bool: True if migrated index exists, False otherwise.
         """
@@ -406,7 +425,7 @@ class UsageEventFactory:
             events: List of (event, event_id) tuples to index
             use_migrated_indices: If True, use migrated indices with -v2.0.0 suffix
                 when they exist
-                
+
         Returns:
             dict: Dictionary with 'indexed' and 'errors' counts.
         """
@@ -502,7 +521,7 @@ class UsageEventFactory:
 
         Returns:
             List of (event, event_id) tuples.
-            
+
         Raises:
             IndexError: If no records are found in the specified date range.
         """
