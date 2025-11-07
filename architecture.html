@@ -1172,12 +1172,18 @@ This class can create usage events with or without the enriched metadata fields 
 <ol class="arabic simple">
 <li><p><strong>Cache API (<code class="docutils literal notranslate"><span class="pre">api.js</span></code>)</strong>: The primary interface used by React components to fetch statistics. It automatically checks the cache before making server requests and stores newly fetched data for future use.</p></li>
 <li><p><strong>Worker Manager (<code class="docutils literal notranslate"><span class="pre">statsCacheWorker.js</span></code>)</strong>: Manages communication with the Web Worker, providing a Promise-based API that abstracts away the complexity of message passing between the main thread and worker thread.</p></li>
-<li><p><strong>Cache Worker (<code class="docutils literal notranslate"><span class="pre">statsCache.worker.js</span></code>)</strong>: A Web Worker that handles all IndexedDB operations and data compression/decompression, preventing these CPU-intensive operations from blocking the main UI thread.</p></li>
+<li><p><strong>Cache Worker (<code class="docutils literal notranslate"><span class="pre">statsCache.worker.js</span></code>)</strong>: A Web Worker that handles all IndexedDB operations off the main thread, preventing these operations from blocking the main UI thread.</p></li>
 </ol>
 <p><strong>Storage Mechanism:</strong></p>
 <ul class="simple">
 <li><p><strong>IndexedDB</strong>: The cache uses the browser’s IndexedDB database (<code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard</span></code>) to persist cached data across browser sessions.</p></li>
-<li><p><strong>Compression</strong>: All cached data is compressed using gzip (via the <code class="docutils literal notranslate"><span class="pre">pako</span></code> library) before storage, significantly reducing storage requirements (typically 70-90% reduction in size).</p></li>
+<li><p><strong>Storage Format</strong>: Cached data storage format is configurable via <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED</span></code>:</p>
+<ul>
+<li><p><strong>When <code class="docutils literal notranslate"><span class="pre">False</span></code> (default)</strong>: Data is stored as JavaScript objects directly (IndexedDB’s structured clone), providing the fastest read/write operations with no serialization or compression overhead.</p></li>
+<li><p><strong>When <code class="docutils literal notranslate"><span class="pre">True</span></code></strong>: Data is serialized to JSON, compressed using gzip (via the <code class="docutils literal notranslate"><span class="pre">pako</span></code> library), and stored as ArrayBuffer, significantly reducing storage requirements (typically 70-90% reduction in size) at the cost of compression/decompression overhead.</p></li>
+</ul>
+</li>
+<li><p><strong>Backward Compatibility</strong>: The cache automatically handles compressed (ArrayBuffer), uncompressed objects, and legacy JSON strings when reading, ensuring compatibility with existing cache entries.</p></li>
 <li><p><strong>Yearly Blocks</strong>: Statistics are cached as yearly blocks, allowing efficient retrieval of data for specific date ranges. Each year’s data is stored as a separate cache entry.</p></li>
 </ul>
 <p><strong>Cache Key Structure:</strong></p>
@@ -1216,12 +1222,13 @@ This class can create usage events with or without the enriched metadata fields 
 Check cache via Web Worker (GET_CACHED_STATS)
     ↓
 If found and valid:
-    ├─ Decompress in worker
+    ├─ Use object directly or parse/decompress (based on compression flag)
     └─ Return to main thread (fast: ~5-50ms)
     ↓
 If not found:
     ├─ Fetch from server (slow: ~10-20s)
-    ├─ Compress in worker (background)
+    ├─ Store object directly in worker (if compression disabled)
+    ├─ Or serialize to JSON and compress in worker (if compression enabled)
     └─ Store in IndexedDB (background)
 </pre></div>
 </div>

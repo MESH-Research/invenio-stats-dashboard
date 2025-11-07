@@ -878,12 +878,15 @@ The caching system consists of three main components:
 
 2. **Worker Manager (`statsCacheWorker.js`)**: Manages communication with the Web Worker, providing a Promise-based API that abstracts away the complexity of message passing between the main thread and worker thread.
 
-3. **Cache Worker (`statsCache.worker.js`)**: A Web Worker that handles all IndexedDB operations and data compression/decompression, preventing these CPU-intensive operations from blocking the main UI thread.
+3. **Cache Worker (`statsCache.worker.js`)**: A Web Worker that handles all IndexedDB operations off the main thread, preventing these operations from blocking the main UI thread.
 
 **Storage Mechanism:**
 
 - **IndexedDB**: The cache uses the browser's IndexedDB database (`invenio_stats_dashboard`) to persist cached data across browser sessions.
-- **Compression**: All cached data is compressed using gzip (via the `pako` library) before storage, significantly reducing storage requirements (typically 70-90% reduction in size).
+- **Storage Format**: Cached data storage format is configurable via `STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED`:
+  - **When `False` (default)**: Data is stored as JavaScript objects directly (IndexedDB's structured clone), providing the fastest read/write operations with no serialization or compression overhead.
+  - **When `True`**: Data is serialized to JSON, compressed using gzip (via the `pako` library), and stored as ArrayBuffer, significantly reducing storage requirements (typically 70-90% reduction in size) at the cost of compression/decompression overhead.
+- **Backward Compatibility**: The cache automatically handles compressed (ArrayBuffer), uncompressed objects, and legacy JSON strings when reading, ensuring compatibility with existing cache entries.
 - **Yearly Blocks**: Statistics are cached as yearly blocks, allowing efficient retrieval of data for specific date ranges. Each year's data is stored as a separate cache entry.
 
 **Cache Key Structure:**
@@ -928,12 +931,13 @@ User requests stats for date range
 Check cache via Web Worker (GET_CACHED_STATS)
     ↓
 If found and valid:
-    ├─ Decompress in worker
+    ├─ Use object directly or parse/decompress (based on compression flag)
     └─ Return to main thread (fast: ~5-50ms)
     ↓
 If not found:
     ├─ Fetch from server (slow: ~10-20s)
-    ├─ Compress in worker (background)
+    ├─ Store object directly in worker (if compression disabled)
+    ├─ Or serialize to JSON and compress in worker (if compression enabled)
     └─ Store in IndexedDB (background)
 ```
 
