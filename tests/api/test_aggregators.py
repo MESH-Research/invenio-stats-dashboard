@@ -66,9 +66,18 @@ from tests.helpers.sample_stats_data.sample_record_snapshot_docs import (
 )
 
 
-@pytest.mark.skip(reason="Created aggregators deactivated.")
-class TestCommunityRecordDeltaCreatedAggregator:
-    """Test the CommunityRecordsDeltaCreatedAggregator."""
+class CommunityRecordDeltaAggregatorTestBase:
+    """Base test class for CommunityRecordDelta aggregators."""
+
+    @property
+    def aggregator_instance(self):
+        """Get the aggregator instance. Must be overridden by subclasses."""
+        raise NotImplementedError("Subclasses must implement aggregator_instance")
+
+    @property
+    def index_name(self) -> str:
+        """Get the index name. Must be overridden by subclasses."""
+        raise NotImplementedError("Subclasses must implement index_name")
 
     @property
     def creation_dates(self) -> list[arrow.Arrow]:
@@ -146,26 +155,6 @@ class TestCommunityRecordDeltaCreatedAggregator:
         # Also refresh the stats-community-events index to ensure deletion is reflected
         self.client.indices.refresh(index="*stats-community-events*")
 
-    @property
-    def aggregator_instance(self) -> CommunityRecordsDeltaCreatedAggregator:
-        """Get the aggregator class.
-
-        Returns:
-            CommunityRecordsDeltaCreatedAggregator: The aggregator instance.
-        """
-        return CommunityRecordsDeltaCreatedAggregator(
-            name="community-records-delta-created-agg",
-        )
-
-    @property
-    def index_name(self) -> str:
-        """Get the index name.
-
-        Returns:
-            str: The index name.
-        """
-        return "stats-community-records-delta-created"
-
     def _check_empty_day(self, day, day_idx, set_idx, community_id) -> None:
         """Check that the day is empty but has the correct structure."""
         assert day["_source"]["records"]["added"]["metadata_only"] == 0
@@ -219,6 +208,116 @@ class TestCommunityRecordDeltaCreatedAggregator:
                 )
                 assert matching_doc is not None
                 assert subcount_item == matching_doc
+
+    def _check_agg_documents(
+        self, global_agg_docs, community_agg_docs, community_id
+    ) -> None:
+        """Check the aggregation documents. Must be overridden by subclasses."""
+        raise NotImplementedError("Subclasses must implement _check_agg_documents")
+
+    def test_community_records_delta_agg(
+        self,
+        running_app,
+        db,
+        minimal_community_factory,
+        minimal_published_record_factory,
+        user_factory,
+        create_stats_indices,
+        celery_worker,
+        requests_mock,
+        search_clear,
+        test_sample_files_folder,
+    ) -> None:
+        """Test CommunityRecordsDeltaCreatedAggregator's run method.
+
+        This should produce daily deltas for the records created and removed/
+        deleted both for each community and the global repository. Removal
+        from a community will only be reflected in that community's delta
+        for the day. Deletion from the global repository will be reflected
+        in all deltas for the day.
+        """
+        requests_mock.real_http = True
+        self.app = running_app.app
+        self.client = current_search_client
+        community = minimal_community_factory(slug="knowledge-commons")
+        community_id = community.id
+        u = user_factory(email="test@example.com")
+        user_email = u.user.email
+
+        self._setup_records(
+            user_email,
+            community_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
+        )
+
+        aggregator = self.aggregator_instance
+        aggregator.run(
+            start_date=min(self.creation_dates),
+            end_date=arrow.utcnow().isoformat(),
+            update_bookmark=True,
+            ignore_bookmark=False,
+        )
+
+        current_search_client.indices.refresh(
+            index=f"*{prefix_index(self.index_name)}*"
+        )
+
+        agg_documents = current_search_client.search(
+            index=prefix_index(self.index_name),
+            body={
+                "query": {
+                    "match_all": {},
+                },
+            },
+            size=1000,
+        )
+        self.app.logger.error(f"Agg documents: {pformat(agg_documents)}")
+        expected_days = (
+            arrow.utcnow().floor("day") - min(self.creation_dates).floor("day")
+        ).days + 1
+        assert (
+            agg_documents["hits"]["total"]["value"]
+            == expected_days * 2  # both community and global records
+        )
+
+        global_agg_docs, community_agg_docs = [], []
+        for doc in agg_documents["hits"]["hits"]:
+            if doc["_source"]["community_id"] == "global":
+                global_agg_docs.append(doc)
+            else:
+                community_agg_docs.append(doc)
+        community_agg_docs.sort(key=lambda x: x["_source"]["period_start"])
+        global_agg_docs.sort(key=lambda x: x["_source"]["period_start"])
+
+        self._check_agg_documents(global_agg_docs, community_agg_docs, community_id)
+
+
+@pytest.mark.skip(reason="Created aggregators deactivated.")
+class TestCommunityRecordDeltaCreatedAggregator(
+    CommunityRecordDeltaAggregatorTestBase
+):
+    """Test the CommunityRecordsDeltaCreatedAggregator."""
+
+    @property
+    def aggregator_instance(self) -> CommunityRecordsDeltaCreatedAggregator:
+        """Get the aggregator class.
+
+        Returns:
+            CommunityRecordsDeltaCreatedAggregator: The aggregator instance.
+        """
+        return CommunityRecordsDeltaCreatedAggregator(
+            name="community-records-delta-created-agg",
+        )
+
+    @property
+    def index_name(self) -> str:
+        """Get the index name.
+
+        Returns:
+            str: The index name.
+        """
+        return "stats-community-records-delta-created"
 
     def _check_agg_documents(
         self, global_agg_docs, community_agg_docs, community_id
@@ -331,86 +430,9 @@ class TestCommunityRecordDeltaCreatedAggregator:
                             assert matching_doc is not None
                             assert subcount_item == matching_doc
 
-    def test_community_records_delta_agg(
-        self,
-        running_app,
-        db,
-        minimal_community_factory,
-        minimal_published_record_factory,
-        user_factory,
-        create_stats_indices,
-        celery_worker,
-        requests_mock,
-        search_clear,
-        test_sample_files_folder,
-    ) -> None:
-        """Test CommunityRecordsDeltaCreatedAggregator's run method.
-
-        This should produce daily deltas for the records created and removed/
-        deleted both for each community and the global repository. Removal
-        from a community will only be reflected in that community's delta
-        for the day. Deletion from the global repository will be reflected
-        in all deltas for the day.
-        """
-        requests_mock.real_http = True
-        self.app = running_app.app
-        self.client = current_search_client
-        community = minimal_community_factory(slug="knowledge-commons")
-        community_id = community.id
-        u = user_factory(email="test@example.com")
-        user_email = u.user.email
-
-        self._setup_records(
-            user_email,
-            community_id,
-            minimal_published_record_factory,
-            test_sample_files_folder,
-        )
-
-        aggregator = self.aggregator_instance
-        aggregator.run(
-            start_date=min(self.creation_dates),
-            end_date=arrow.utcnow().isoformat(),
-            update_bookmark=True,
-            ignore_bookmark=False,
-        )
-
-        current_search_client.indices.refresh(
-            index=f"*{prefix_index(self.index_name)}*"
-        )
-
-        agg_documents = current_search_client.search(
-            index=prefix_index(self.index_name),
-            body={
-                "query": {
-                    "match_all": {},
-                },
-            },
-            size=1000,
-        )
-        self.app.logger.error(f"Agg documents: {pformat(agg_documents)}")
-        expected_days = (
-            arrow.utcnow().floor("day") - min(self.creation_dates).floor("day")
-        ).days + 1
-        assert (
-            agg_documents["hits"]["total"]["value"]
-            == expected_days * 2  # both community and global records
-        )
-
-        global_agg_docs, community_agg_docs = [], []
-        for doc in agg_documents["hits"]["hits"]:
-            if doc["_source"]["community_id"] == "global":
-                global_agg_docs.append(doc)
-            else:
-                community_agg_docs.append(doc)
-        community_agg_docs.sort(key=lambda x: x["_source"]["period_start"])
-        global_agg_docs.sort(key=lambda x: x["_source"]["period_start"])
-
-        self._check_agg_documents(global_agg_docs, community_agg_docs, community_id)
-
 
 class TestCommunityRecordDeltaAddedAggregator(
-    TestCommunityRecordDeltaCreatedAggregator
+    CommunityRecordDeltaAggregatorTestBase
 ):
     """Test the CommunityRecordsDeltaAddedAggregator.
 
@@ -555,8 +577,9 @@ class TestCommunityRecordDeltaAddedAggregator(
                         assert f["records"]["removed"]["metadata_only"] == 0
 
 
+@pytest.mark.skip(reason="Published aggregators deactivated.")
 class TestCommunityRecordDeltaPublishedAggregator(
-    TestCommunityRecordDeltaCreatedAggregator
+    CommunityRecordDeltaAggregatorTestBase
 ):
     """Test the CommunityRecordsDeltaPublishedAggregator.
 

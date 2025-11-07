@@ -180,7 +180,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         added: dict, removed: dict, path_strings: list[str], key: str
     ) -> str | dict[str, str]:
         """Find the label for a given item.
-        
+
         Returns:
             str | dict[str, str]: The label for the item, or empty string if not found.
         """
@@ -212,23 +212,117 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             label = ""
         return label
 
-    def _deduplicate_and_merge_buckets(self, buckets):
-        """Remove keyword buckets that duplicate ID-based buckets.
-        
+    def _deduplicate_and_merge_buckets(
+        self, buckets, config=None, field_index=0
+    ):
+        """Merge buckets by id, combining id and name buckets for the same entity.
+
         Returns:
-            list: List of buckets with duplicates removed.
+            list: List of merged buckets, one per unique id.
         """
-        if not buckets:
-            return []
+        if not buckets or not config:
+            return buckets
 
-        id_buckets = [b for b in buckets if not b["key"].endswith(".keyword")]
-        label_values = [b.get("label", "") for b in id_buckets if b.get("label")]
+        combine_subfields = get_subcount_combine_subfields(config, field_index)
+        if not combine_subfields or len(combine_subfields) < 2:
+            return buckets
 
-        return [b for b in buckets if b["key"] not in label_values]
+        id_field = get_subcount_field(config, "field", field_index)
+        if not id_field:
+            return buckets
+        label_field = get_subcount_field(config, "label_field", field_index)
+        path_strings: list[str] = [id_field]
+        if label_field:
+            path_strings.append(label_field)
+
+        merged_by_id = {}
+        for bucket in buckets:
+            bucket_key = bucket["key"]
+            source_path = ["label", "hits", "hits", 0, "_source"]
+
+            id_path = source_path + id_field.split(".")
+            extracted_id = CommunityAggregatorBase._get_nested_value(
+                bucket, id_path, bucket_key, "id"
+            )
+            if not extracted_id or isinstance(extracted_id, (dict, list)):
+                extracted_id = None
+
+            extracted_name = self._find_item_label(
+                bucket, {}, path_strings, bucket_key
+            )
+            # If no name extracted or no id, assume bucket_key is the name
+            if not extracted_name or not extracted_id:
+                extracted_name = bucket_key
+            if not extracted_id:
+                extracted_id = None
+
+            matching_id = None
+            if extracted_id:
+                if extracted_id in merged_by_id:
+                    matching_id = extracted_id
+            else:
+                # Only have name - check if any existing item's id matches this name
+                for existing_id, existing_bucket in merged_by_id.items():
+                    existing_name = existing_bucket.get("label") or existing_id
+                    if extracted_name == existing_name or extracted_name == existing_id:
+                        matching_id = existing_id
+                        break
+
+            if matching_id:
+                existing = merged_by_id[matching_id]
+                existing["key"] = matching_id
+                # Merge name if needed (null values count as match)
+                if not existing.get("label") and extracted_name:
+                    existing["label"] = extracted_name
+                # Remove nested label aggregation from bucket before merging
+                # (we've already extracted the label as a simple string)
+                if "label" in bucket and isinstance(bucket["label"], dict):
+                    del bucket["label"]
+                self._merge_bucket_contents(existing, bucket)
+            else:
+                # If we only have name (no id), use name as id
+                item_id = extracted_id if extracted_id else extracted_name
+                bucket["key"] = item_id
+                # Replace nested label aggregation with simple string label
+                if extracted_name:
+                    bucket["label"] = extracted_name
+                elif "label" in bucket and isinstance(bucket["label"], dict):
+                    del bucket["label"]
+                merged_by_id[item_id] = bucket
+
+        return list(merged_by_id.values())
+
+    def _merge_bucket_contents(self, existing: dict, new_bucket: dict) -> None:
+        """Merge bucket contents recursively, summing numbers and merging dicts.
+
+        Args:
+            existing: Existing bucket/item to merge into (modified in place)
+            new_bucket: New bucket/item to merge from
+        """
+        for key, value in new_bucket.items():
+            if key == "id":
+                continue
+
+            if key == "label":
+                if not existing.get("label") and value:
+                    existing["label"] = value
+                continue
+
+            if key == "key":
+                continue
+
+            if key not in existing:
+                existing[key] = value
+            elif isinstance(value, dict) and isinstance(existing[key], dict):
+                self._merge_bucket_contents(existing[key], value)
+            elif isinstance(value, (int, float)) and isinstance(
+                existing[key], (int, float)
+            ):
+                existing[key] += value
 
     def _make_subcount_list(self, subcount_name, aggs_added, aggs_removed):
         """Make a subcount list for a given subcount type.
-        
+
         Returns:
             list: List of subcount items for the given subcount type.
         """
@@ -255,7 +349,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         self, subcount_name, aggs_added, aggs_removed, config, field_index
     ):
         """Process subcount with single source field.
-        
+
         Returns:
             list: List of processed subcount items.
         """
@@ -276,8 +370,12 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 all_removed_buckets.extend(removed_buckets)
 
             # Deduplicate by key and merge data
-            added_items = self._deduplicate_and_merge_buckets(all_added_buckets)
-            removed_items = self._deduplicate_and_merge_buckets(all_removed_buckets)
+            added_items = self._deduplicate_and_merge_buckets(
+                all_added_buckets, config, field_index
+            )
+            removed_items = self._deduplicate_and_merge_buckets(
+                all_removed_buckets, config, field_index
+            )
         else:
             added_items = aggs_added.get(subcount_name, {}).get("buckets", [])
             removed_items = aggs_removed.get(subcount_name, {}).get("buckets", [])
@@ -290,38 +388,30 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         self, subcount_type: str, aggs_added: dict, aggs_removed: dict, config: dict
     ) -> list[RecordDeltaSubcountItem]:
         """Process subcount with multiple source fields.
-        
+
         Returns:
             list[RecordDeltaSubcountItem]: List of processed subcount items.
         """
         source_fields = config.get("source_fields", [])
         agg_results = []
 
-        agg_names = []
+        # Process each source field using _process_single_field_subcount
+        # which properly handles combine_subfields logic
         for field_index, _source_field in enumerate(source_fields):
             field = get_subcount_field(config, "field", field_index)
             if not field:
                 continue
-            if field_index > 0:
-                agg_names.append(f"{subcount_type}_{field_index}")
-            else:
-                agg_names.append(subcount_type)
 
-        for agg_name in agg_names:
-            field_added = aggs_added.get(agg_name, {}).get("buckets", [])
-            field_removed = aggs_removed.get(agg_name, {}).get("buckets", [])
-
-            agg_results.append(
-                self._process_single_field_results(
-                    field_added, field_removed, config, field_index
-                )
+            field_results = self._process_single_field_subcount(
+                subcount_type, aggs_added, aggs_removed, config, field_index
             )
+            agg_results.append(field_results)
 
         combined_results = self._merge_field_results([
             cast(list[dict[str, Any]], result_list) for result_list in agg_results
         ])
 
-        return cast(list[RecordDeltaSubcountItem], list(combined_results.values()))
+        return cast(list[RecordDeltaSubcountItem], combined_results)
 
     def _process_single_field_results(
         self,
@@ -331,7 +421,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         field_index: int,
     ) -> list[RecordDeltaSubcountItem]:
         """Process results for a single field.
-        
+
         Returns:
             list[RecordDeltaSubcountItem]: List of processed subcount items.
         """
@@ -432,37 +522,33 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
 
     def _merge_field_results(
         self, result_lists: list[list[dict[str, Any]]]
-    ) -> dict[str, Any]:
-        """Merge results from multiple fields.
-        
+    ) -> list[dict[str, Any]]:
+        """Merge results from multiple fields by id.
+
+        Groups subcount items by id and uses recursive merge to combine their contents.
+
         Returns:
-            dict[str, Any]: Merged results from multiple fields.
+            list[dict[str, Any]]: List of merged subcount items.
         """
         all_result_items = [
             item for result_list in result_lists for item in result_list
         ]
 
         if not all_result_items:
-            return {}
+            return []
 
         merged_results: dict[str, Any] = {}
         for item in all_result_items:
-            for key, value in item.items():
-                if key not in merged_results:
-                    merged_results[key] = value
-                elif isinstance(value, dict):
-                    if isinstance(merged_results[key], dict) and not merged_results[
-                        key
-                    ].get("label"):
-                        merged_results[key]["label"] = value.get("label")
-                    merged_results[key] = self._merge_field_results([
-                        [merged_results[key]],
-                        [value],
-                    ])
-                elif isinstance(value, int | float):
-                    merged_results[key] += value
+            item_id = item.get("id")
+            if not item_id:
+                continue
 
-        return merged_results
+            if item_id not in merged_results:
+                merged_results[item_id] = item.copy()
+            else:
+                self._merge_bucket_contents(merged_results[item_id], item)
+
+        return list(merged_results.values())
 
     def create_agg_dict(
         self,
@@ -472,7 +558,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         aggs_removed: dict,
     ) -> RecordDeltaDocument:
         """Create a dictionary representing the aggregation result for indexing.
-        
+
         Returns:
             RecordDeltaDocument: Dictionary representing the aggregation result.
         """
