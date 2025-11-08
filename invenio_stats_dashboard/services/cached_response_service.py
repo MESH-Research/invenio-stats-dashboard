@@ -17,8 +17,10 @@ from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 
+from ..config.component_metrics import extract_component_names_from_layout
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
+from ..views.views import get_community_dashboard_layout
 
 
 class CachedResponseService:
@@ -38,7 +40,7 @@ class CachedResponseService:
 
     def _get_available_categories(self) -> list[str]:
         """Get available category queries from STATS_QUERIES configuration.
-        
+
         Returns:
             list[str]: List of available category names.
         """
@@ -65,6 +67,7 @@ class CachedResponseService:
         force: bool = False,
         async_mode: bool = False,
         progress_callback: Callable | None = None,
+        optimize: bool | None = None,
     ) -> dict[str, Any]:
         """Create cached responses for sets of communities, years, and categories.
 
@@ -75,15 +78,22 @@ class CachedResponseService:
             async_mode: bool - Whether to use async Celery tasks (not implemented yet)
             progress_callback: Callable - Optional callback function for progress
                 updates. Called with (current, total, message) parameters
+            optimize: If True, only include metrics used by UI components.
+                     If None, uses STATS_DASHBOARD_OPTIMIZE_DATA_SERIES config value.
 
         Returns:
             dict - Results summary
         """
+        if optimize is None:
+            optimize = current_app.config.get(
+                "STATS_DASHBOARD_OPTIMIZE_DATA_SERIES", True
+            )
+
         community_ids = self._normalize_community_ids(community_ids)
         years_per_community = self._normalize_years(years, community_ids)
 
         all_responses = self._generate_all_response_objects(
-            community_ids, years_per_community
+            community_ids, years_per_community, optimize=optimize
         )
         if not force:
             skipped_count = 0
@@ -122,7 +132,7 @@ class CachedResponseService:
 
     def read_all(self, community_id: str, year: int) -> list[CachedResponse]:
         """Read all cached responses for a community/year combination.
-        
+
         Returns:
             list[CachedResponse]: List of cached response objects.
         """
@@ -174,7 +184,7 @@ class CachedResponseService:
         self, community_ids: str | list[str] | None
     ) -> list[str]:
         """Convert various inputs to list of community IDs.
-        
+
         Returns:
             list[str]: List of community IDs.
         """
@@ -191,7 +201,7 @@ class CachedResponseService:
         self, years: int | list[int] | str | None, community_ids: list[str]
     ) -> dict[str, list[int]]:
         """Convert various inputs to years per community.
-        
+
         Returns:
             dict[str, list[int]]: Dictionary mapping community IDs to year lists.
         """
@@ -217,7 +227,7 @@ class CachedResponseService:
 
     def _get_years_for_community(self, community_id: str) -> list[int]:
         """Get valid years for a specific community based on its creation date.
-        
+
         Returns:
             list[int]: List of valid years for the community.
         """
@@ -234,7 +244,7 @@ class CachedResponseService:
 
     def _get_all_community_ids(self) -> list[str]:
         """Get all community IDs from communities service.
-        
+
         Returns:
             list[str]: List of all community IDs.
         """
@@ -250,7 +260,7 @@ class CachedResponseService:
 
     def _get_first_record_creation_year(self) -> int:
         """Get the creation year for the first record.
-        
+
         Returns:
             int: Year of first record creation.
         """
@@ -297,10 +307,18 @@ class CachedResponseService:
         return None
 
     def _generate_all_response_objects(
-        self, community_ids: list[str], years: list[int] | dict[str, list[int]]
+        self,
+        community_ids: list[str],
+        years: list[int] | dict[str, list[int]],
+        optimize: bool = False,
     ) -> list[CachedResponse]:
         """Generate CachedResponse objects for all combinations.
-        
+
+        Args:
+            community_ids: List of community IDs
+            years: Years per community or single list
+            optimize: If True, extract layout and component names for each community
+
         Returns:
             list[CachedResponse]: List of generated cached response objects.
         """
@@ -314,9 +332,39 @@ class CachedResponseService:
                 # Fallback to original logic for backwards compatibility
                 community_years = years
 
+            # Extract component names if optimization is enabled
+            component_names: set[str] | None = None
+            if optimize:
+                dashboard_type = "community" if community_id != "global" else "global"
+
+                if community_id != "global":
+                    try:
+                        community = current_communities.service.read(
+                            system_identity, community_id
+                        )
+                        layout = get_community_dashboard_layout(
+                            community, dashboard_type
+                        )
+                    except Exception:
+                        layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
+                            "global_layout", {}
+                        )
+                else:
+                    layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
+                        "global_layout", {}
+                    )
+
+                component_names = extract_component_names_from_layout(layout)
+
             for year in community_years:
                 for category in self.categories:
-                    response = CachedResponse(community_id, year, category)
+                    response = CachedResponse(
+                        community_id,
+                        year,
+                        category,
+                        optimize=optimize,
+                        component_names=component_names,
+                    )
                     responses.append(response)
 
         return responses
@@ -343,7 +391,7 @@ class CachedResponseService:
         self, responses: list[CachedResponse], progress_callback: Callable | None = None
     ) -> dict[str, Any]:
         """Create responses synchronously.
-        
+
         Returns:
             dict[str, Any]: Results dictionary with success/failed counts and errors.
         """

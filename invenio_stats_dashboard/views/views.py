@@ -19,12 +19,15 @@ from flask import (
     render_template,
     request,
 )
+from invenio_access.permissions import system_identity
 from invenio_communities.communities.services.results import CommunityItem
+from invenio_communities.proxies import current_communities
 from invenio_communities.views.communities import HEADER_PERMISSIONS
 from invenio_communities.views.decorators import pass_community
 from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
+from ..config.component_metrics import extract_component_names_from_layout
 from ..services.cached_response_service import CachedResponseService
 
 
@@ -42,7 +45,6 @@ def get_community_dashboard_layout(community: CommunityItem, dashboard_type: str
     Returns:
         dict: Dashboard layout configuration
     """
-    # Map dashboard_type to the new field names
     layout_key = f"{dashboard_type}_layout"
     community_default_layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
         layout_key, {}
@@ -218,9 +220,18 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                 "category",
                 "metric",
                 "date_basis",
+                "optimize",
             ]
 
-            # Validate request parameters
+            # Determine if we're requesting JSON (for special raw byte handling)
+            accept_header = request.headers.get('Accept', 'application/json')
+            is_json_request = 'application/json' in accept_header
+
+            # Extract layout and component names if optimize is enabled
+            component_names: set[str] | None = None
+            optimize_enabled = False
+            community_id = "global"
+
             for query_name, query_data in request_data.items():
                 if query_name not in configured_queries:
                     return {"error": f"Unknown query: {query_name}"}, 400
@@ -234,15 +245,47 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                         )
                     }, 400
 
-            # Determine if we're requesting JSON (for special raw byte handling)
-            accept_header = request.headers.get('Accept', 'application/json')
-            is_json_request = 'application/json' in accept_header
+                # Check if optimize is enabled and get community_id
+                if query_params.get("optimize"):
+                    optimize_enabled = True
+                    community_id = query_params.get("community_id", "global")
+
+            # Extract component names once if optimization is enabled
+            if optimize_enabled:
+                dashboard_type = "community" if community_id != "global" else "global"
+
+                if community_id != "global":
+                    try:
+                        community = current_communities.service.read(
+                            system_identity, community_id
+                        )
+                        layout = get_community_dashboard_layout(
+                            community, dashboard_type
+                        )
+                    except Exception:
+                        layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
+                            "global_layout", {}
+                        )
+                else:
+                    layout = current_app.config["STATS_DASHBOARD_LAYOUT"].get(
+                        "global_layout", {}
+                    )
+
+                component_names = extract_component_names_from_layout(layout)
 
             cache_service = CachedResponseService()
-
             results = {}
 
             for query_name, query_data in request_data.items():
+                if optimize_enabled and component_names:
+                    query_data = {
+                        **query_data,
+                        "params": {
+                            **query_data.get("params", {}),
+                            "component_names": list(component_names),
+                        },
+                    }
+
                 individual_request = {query_name: query_data}
                 result = cache_service.get_or_create(
                     individual_request, as_json_bytes=is_json_request

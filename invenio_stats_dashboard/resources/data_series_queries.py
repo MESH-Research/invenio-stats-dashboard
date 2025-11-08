@@ -789,6 +789,8 @@ class CategoryDataSeriesQueryBase(DataSeriesQueryBase):
         start_date: str | None = None,
         end_date: str | None = None,
         date_basis: str = "added",
+        optimize: bool = False,
+        component_names: set[str] | None = None,
     ) -> Response | dict[str, dict[str, list[DataSeriesDict]]] | dict | list:
         """Run the query to generate all data series for a category.
 
@@ -801,6 +803,10 @@ class CategoryDataSeriesQueryBase(DataSeriesQueryBase):
                 arrow.get() or a datetime object.
             date_basis: The date basis for the query ("added", "created",
                 "published"). Default is "added".
+            optimize: If True, only include metrics used by UI components.
+            component_names: Optional set of component names to filter metrics by.
+                            If provided, only metrics used by these components will
+                            be included.
 
         Raises:
             ValueError: if the community can't be found.
@@ -869,12 +875,18 @@ class CategoryDataSeriesQueryBase(DataSeriesQueryBase):
                 series_set = self.transformer_class(
                     documents=[],
                     series_keys=None,  # None means use all available
+                    optimize=optimize,
+                    category=getattr(self, "category", None),
+                    component_names=component_names,
                 )
             else:
                 # Create data series set with empty initial list
                 series_set = self.transformer_class(
                     documents=[],
                     series_keys=None,  # None means use all available
+                    optimize=optimize,
+                    category=getattr(self, "category", None),
+                    component_names=component_names,
                 )
 
                 # Fetch and add documents incrementally using pagination
@@ -892,6 +904,9 @@ class CategoryDataSeriesQueryBase(DataSeriesQueryBase):
             series_set = self.transformer_class(
                 documents=[],
                 series_keys=None,  # None means use all available
+                optimize=optimize,
+                category=getattr(self, "category", None),
+                component_names=component_names,
             )
 
         # Get the complete data series set with camelCase conversion
@@ -911,6 +926,7 @@ class UsageSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
         self.transformer_class = UsageSnapshotDataSeriesSet
+        self.category = "usage_snapshots"
 
 
 class UsageDeltaCategoryQuery(CategoryDataSeriesQueryBase):
@@ -923,6 +939,7 @@ class UsageDeltaCategoryQuery(CategoryDataSeriesQueryBase):
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
         self.transformer_class = UsageDeltaDataSeriesSet
+        self.category = "usage_deltas"
 
 
 class RecordSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
@@ -935,6 +952,7 @@ class RecordSnapshotCategoryQuery(CategoryDataSeriesQueryBase):
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "snapshot_date"
         self.transformer_class = RecordSnapshotDataSeriesSet
+        self.category = "record_snapshots"
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
         """Get the appropriate index based on date_basis.
@@ -955,6 +973,7 @@ class RecordDeltaCategoryQuery(CategoryDataSeriesQueryBase):
         super().__init__(name, index, client, *args, **kwargs)
         self.date_field = "period_start"
         self.transformer_class = RecordDeltaDataSeriesSet
+        self.category = "record_deltas"
 
     def _get_index_for_date_basis(self, date_basis: str) -> str:
         """Get the appropriate index based on date_basis.

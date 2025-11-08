@@ -155,6 +155,11 @@ class UsageSnapshotDataSeriesSet(DataSeriesSet):
             "downloads",
             "view_visitors",
             "download_visitors",
+            "view_unique_records",
+            "view_unique_parents",
+            "download_unique_files",
+            "download_unique_parents",
+            "download_unique_records",
             "data_volume",
         ]
 

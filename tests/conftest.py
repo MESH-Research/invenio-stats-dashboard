@@ -94,6 +94,9 @@ test_config = {
     "COMMUNITY_STATS_ENABLED": True,
     "COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED": True,
     "COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED": True,
+    # Disable optimization by default in tests so all metrics are included
+    # Individual tests can enable optimization explicitly if needed
+    "STATS_DASHBOARD_OPTIMIZE_DATA_SERIES": False,
 }
 
 parent_path = Path(__file__).parent

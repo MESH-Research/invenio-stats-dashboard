@@ -21,6 +21,7 @@ from invenio_stats.processors import (
 )
 
 from .aggregations import register_aggregations
+from .config.component_metrics import COMPONENT_METRICS_REGISTRY
 from .permissions import CommunityStatsPermissionFactory
 from .resources.api_queries import (
     CommunityRecordDeltaResultsQuery,
@@ -53,6 +54,17 @@ from .tasks.cache_tasks import CachedResponsesGenerationTask
 COMMUNITY_STATS_ENABLED = True
 COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
 COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
+
+STATS_DASHBOARD_OPTIMIZE_DATA_SERIES = True
+"""Whether to optimize data series by default.
+
+When True, only metrics used by components in the current dashboard layout
+will be included in data series responses. This reduces payload size by
+excluding unused metrics.
+
+Can be overridden per-request via the 'optimize' parameter in API requests,
+or per-call in service methods and CLI commands.
+"""
 
 COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE = {
     "stats-aggregate-community-record-stats": {
@@ -1477,3 +1489,12 @@ STATS_CACHE_REDIS_DB = 7
 STATS_CACHE_PREFIX = "stats_dashboard"
 STATS_CACHE_DEFAULT_TIMEOUT = None
 STATS_CACHE_COMPRESSION_METHOD = "gzip"
+
+STATS_DASHBOARD_COMPONENT_METRICS_REGISTRY = COMPONENT_METRICS_REGISTRY
+"""Registry mapping UI components to their required metrics per subcount.
+
+This registry serves as the single source of truth for which metrics
+each component needs. When optimization is enabled, data series transformers
+will only generate series for metrics used by the components listed in the
+registry for the components in the current configured dashboard layout.
+"""

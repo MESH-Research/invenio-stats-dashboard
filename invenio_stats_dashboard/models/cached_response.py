@@ -39,6 +39,8 @@ class CachedResponse:
         year: int,
         category: str,
         cache_type: str = "community",
+        optimize: bool = False,
+        component_names: list[str] | set[str] | None = None,
     ):
         """Initialize a cached response.
 
@@ -47,6 +49,8 @@ class CachedResponse:
             year: Year for the cached response
             category: Data series category (e.g., 'record_delta', 'usage_delta')
             cache_type: 'community' or 'global'
+            optimize: If True, only include metrics used by UI components
+            component_names: Optional list or set of component names to filter by
         """
         self.community_id = self._resolve_community_id(community_id)
         self.year = year
@@ -69,6 +73,15 @@ class CachedResponse:
                 "date_basis": "added",  # Match API resource default
             }
         }
+
+        if optimize:
+            self.request_data["params"]["optimize"] = True
+            if component_names:
+                self.request_data["params"]["component_names"] = (
+                    list(component_names)
+                    if isinstance(component_names, set)
+                    else component_names
+                )
 
     @staticmethod
     def from_request_data(
@@ -143,7 +156,7 @@ class CachedResponse:
 
         Returns:
             JSON bytes
-            
+
         Raises:
             ValueError: If data cannot be serialized to JSON.
         """
@@ -164,7 +177,7 @@ class CachedResponse:
 
         Returns:
             Python dict or list
-            
+
         Raises:
             ValueError: If bytes data cannot be deserialized from JSON.
         """
@@ -276,7 +289,7 @@ class CachedResponse:
 
         Returns:
             Self (for method chaining)
-            
+
         Raises:
             ValueError: If query type is not configured or parameters are invalid.
         """
@@ -288,6 +301,8 @@ class CachedResponse:
             "category",
             "metric",
             "date_basis",
+            "optimize",
+            "component_names",
         }
 
         query_name = self.request_data["stat"]
@@ -306,9 +321,14 @@ class CachedResponse:
         query_index = query_config["params"]["index"]
 
         query_instance = query_class(name=query_name, index=query_index)
-        query_result = query_instance.run(**{
-            k: v for k, v in query_params.items() if k in allowed_params
-        })
+
+        run_params = {k: v for k, v in query_params.items() if k in allowed_params}
+        if "component_names" in run_params and isinstance(
+            run_params["component_names"], list
+        ):
+            run_params["component_names"] = set(run_params["component_names"])
+
+        query_result = query_instance.run(**run_params)
 
         self._object_data = query_result
         self._bytes_data = None  # Clear bytes cache

@@ -14,6 +14,7 @@ from typing import Any
 from babel.dates import format_date
 from flask import current_app
 
+from ..config.component_metrics import get_required_metrics_for_category
 from .types import (
     AggregationDocumentDict,
     DataPointDict,
@@ -384,6 +385,9 @@ class DataSeriesSet(ABC):
         self,
         documents: list[AggregationDocumentDict],
         series_keys: list[str] | None = None,
+        optimize: bool = False,
+        category: str | None = None,
+        component_names: set[str] | None = None,
     ):
         """Initialize the data series set.
 
@@ -392,6 +396,13 @@ class DataSeriesSet(ABC):
             series_keys: Optional list of subcount names. If None, automatically creates
                 series for all available subcounts and metrics.
                 Example: ["global", "countries", "institutions"]
+            optimize: If True, only include metrics used by UI components.
+            category: Category name for registry lookup (e.g., "record_deltas").
+                      Required if optimize=True.
+            component_names: Optional set of component names to filter metrics by.
+                            If provided, only metrics used by these components will
+                            be included. If None and optimize=True, includes metrics
+                            for all components in the registry.
         """
         self.documents = documents or []
         self.subcount_configs = current_app.config.get("COMMUNITY_STATS_SUBCOUNTS", {})
@@ -399,6 +410,32 @@ class DataSeriesSet(ABC):
         self.series_arrays: dict[str, DataSeriesArray] = {}
         self._built_result: dict[str, dict[str, list[DataSeriesDict]]] | None = None
         self._initialized = False
+
+        # Optimization support
+        self.optimize = optimize
+        self.category = category
+        self._required_metrics: dict[str, set[str]] | None = None
+
+        if optimize:
+            if not category:
+                current_app.logger.warning(
+                    "optimize=True but category not provided. "
+                    "Falling back to all metrics."
+                )
+                self.optimize = False
+            else:
+                self._required_metrics = get_required_metrics_for_category(
+                    category,
+                    optimize=True,
+                    subcounts=list(series_keys) if series_keys is not None else None,
+                    component_names=component_names,
+                )
+                if self._required_metrics is None:
+                    current_app.logger.warning(
+                        f"Failed to get required metrics for category {category}. "
+                        "Falling back to all metrics."
+                    )
+                    self.optimize = False
 
     def _get_default_series_keys(self) -> list[str]:
         """Get the default series keys for this document category.
@@ -434,90 +471,95 @@ class DataSeriesSet(ABC):
         """
         return []
 
+    def _should_include_metric(self, subcount: str, metric: str) -> bool:
+        """Determine if a metric should be included based on optimization settings.
+
+        Args:
+            subcount: Subcount name (e.g., "publishers", "global")
+            metric: Metric name (e.g., "records", "views")
+
+        Returns:
+            True if metric should be included, False otherwise.
+        """
+        if not (self.optimize and self._required_metrics) \
+                or subcount not in self._required_metrics:
+            return True
+
+        required = self._required_metrics.get(subcount, set())
+        return metric in required
+
     def _initialize_series_arrays(self) -> None:
         """Initialize all series arrays and populate them with existing documents.
-        
+
         This creates all DataSeriesArray objects and processes all documents
         currently in self.documents. Should only be called once.
+
+        When optimization is enabled, only creates series for metrics that are
+        required by UI components according to the registry and the current
+        configured dashboard layout.
         """
-        discovered_metrics = self._get_default_metrics()
-        
-        # Create ALL DataSeriesArray objects upfront
+        default_metrics = self._get_default_metrics()
+
         for subcount in self.series_keys:
             if subcount in self.special_subcounts:
                 special_metrics = self._get_special_subcount_metrics(subcount)
-                if special_metrics:
-                    for metric in special_metrics:
-                        series_key = f"{subcount}_{metric}"
-                        self.series_arrays[series_key] = (
-                            self._create_special_series_array(subcount, metric)
-                        )
-                else:
-                    for metric in discovered_metrics["subcount"]:
-                        series_key = f"{subcount}_{metric}"
-                        self.series_arrays[series_key] = (
-                            self._create_special_series_array(subcount, metric)
-                        )
+                metrics_to_use = special_metrics or default_metrics["subcount"]
+
+                for metric in metrics_to_use:
+                    if not self._should_include_metric(subcount, metric):
+                        continue  # Skip this metric
+
+                    series_key = f"{subcount}_{metric}"
+                    self.series_arrays[series_key] = (
+                        self._create_special_series_array(subcount, metric)
+                    )
             else:
-                # Get metrics for this subcount
                 if subcount == "global":
-                    metrics = discovered_metrics["global"]
+                    available_metrics = default_metrics["global"]
                 else:
-                    metrics = discovered_metrics["subcount"]
-                
-                # Create series array for each metric
-                for metric in metrics:
+                    available_metrics = default_metrics["subcount"]
+
+                for metric in available_metrics:
+                    if not self._should_include_metric(subcount, metric):
+                        continue  # Skip this metric
+
                     series_key = f"{subcount}_{metric}"
                     self.series_arrays[series_key] = self._create_series_array(
                         subcount, metric
                     )
-        
-        # Add data to ALL DataSeriesArray objects
+
+        # Add data to all created DataSeriesArray objects
         for doc in self.documents:
             for series_array in self.series_arrays.values():
                 series_array.add(doc)
-        
+
         # Clear documents from memory after processing
         # (GC will be triggered by the query pagination loop after processing)
         self.documents = []
-        
+
         self._initialized = True
 
     def _build_result_dict(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
         """Build the result dictionary from current series arrays.
-        
+
         Returns:
             Dictionary with nested structure: {subcount: {metric: [DataSeries]}}
+
+        Note: Only includes series arrays that were actually created (which may
+            be filtered by optimization).
         """
-        discovered_metrics = self._get_default_metrics()
         result: dict[str, dict[str, list[DataSeriesDict]]] = {}
         for subcount in self.series_keys:
             if subcount not in result:
                 result[subcount] = {}
-            
-            if subcount in self.special_subcounts:
-                special_metrics = self._get_special_subcount_metrics(subcount)
-                if special_metrics:
-                    for metric in special_metrics:
-                        series_key = f"{subcount}_{metric}"
-                        series_array = self.series_arrays[series_key]
-                        result[subcount][metric] = series_array.to_dict()
-                else:
-                    for metric in discovered_metrics["subcount"]:
-                        series_key = f"{subcount}_{metric}"
-                        series_array = self.series_arrays[series_key]
-                        result[subcount][metric] = series_array.to_dict()
-            else:
-                if subcount == "global":
-                    metrics = discovered_metrics["global"]
-                else:
-                    metrics = discovered_metrics["subcount"]
-                
-                for metric in metrics:
-                    series_key = f"{subcount}_{metric}"
-                    series_array = self.series_arrays[series_key]
+
+            prefix = f"{subcount}_"
+            for series_key, series_array in self.series_arrays.items():
+                if series_key.startswith(prefix):
+                    # Extract metric name (everything after "{subcount}_")
+                    metric = series_key[len(prefix):]
                     result[subcount][metric] = series_array.to_dict()
-        
+
         return result
 
     def build(self) -> dict[str, dict[str, list[DataSeriesDict]]]:
@@ -553,23 +595,23 @@ class DataSeriesSet(ABC):
 
     def add(self, documents: list[AggregationDocumentDict]) -> None:
         """Add additional documents to a data series set.
-        
+
         This method allows incrementally adding documents to the series set.
         If the series set hasn't been initialized yet (via build() or a previous
         add() call), it will initialize the series arrays before processing the
         new documents.
         It will then update all existing series arrays with data from the new documents.
-        
+
         Args:
             documents: List of additional aggregation documents to add
         """
         if not self._initialized:
             self._initialize_series_arrays()
-        
+
         for doc in documents:
             for series_array in self.series_arrays.values():
                 series_array.add(doc)
-        
+
         # Invalidate cached result so it will be rebuilt lazily the next time
         # build()/for_json() is called. This avoids constructing a full
         # dictionary representation after each page of query results, which
