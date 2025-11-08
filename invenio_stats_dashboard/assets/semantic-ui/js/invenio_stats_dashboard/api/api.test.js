@@ -118,6 +118,8 @@ describe('API Cache Integration', () => {
         mockDateBasis,
         `${currentYear}-01-01`,
         `${currentYear}-12-31`,
+        false, // requestCompressedJson
+        false, // cacheCompressedJson
       );
 
       // Should fetch from API when cache miss
@@ -235,7 +237,7 @@ describe('API Cache Integration', () => {
         `${currentYear}-01-01`,
         `${currentYear}-12-31`,
         mockDateBasis,
-        {},
+        false, // requestCompressedJson
       );
 
       // Should cache the result with year information
@@ -531,6 +533,8 @@ describe('API Cache Integration', () => {
         mockDateBasis,
         `${currentYear}-01-01`,
         `${currentYear}-12-31`,
+        false, // requestCompressedJson
+        false, // cacheCompressedJson
       );
     });
 

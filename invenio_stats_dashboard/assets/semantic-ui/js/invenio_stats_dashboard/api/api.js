@@ -68,7 +68,10 @@ export const fetchRecords = async (
 };
 
 /**
- * Helper function to update component state with clear state names
+ * Helper function to update component state
+ *
+ * Possible state names are:
+ *  "loading_started", "data_loaded", "stale_and_updating", "error"
  */
 const updateState = (
   onStateChange,
@@ -101,6 +104,12 @@ const updateState = (
           // Don't set it here - let the caller decide based on whether data was fetched
         });
         break;
+      case "stale_and_updating":
+        onStateChange({
+          ...baseState,
+          isLoading: false,
+          isUpdating: true,
+        });
       case "error":
         onStateChange({
           ...baseState,
@@ -147,6 +156,7 @@ const convertCategoryKey = (str, dateBasis) => {
  * @param {string} startDate - The start date of the stats. If not provided, the stats will begin at the earliest date in the data.
  * @param {string} endDate - The end date of the stats. If not provided, the stats will end at the current date or latest date in the data.
  * @param {string} dateBasis - The date basis for the query ("added", "created", "published"). Defaults to "added".
+ * @param {bool} requestCompressedJson - Whether to request server-side compression of the response data.
  *
  * @returns {Promise<Object>} - The stats data.
  */
@@ -157,7 +167,7 @@ const statsApiClient = {
     startDate = null,
     endDate = null,
     dateBasis = "added",
-    dashboardConfig = {},
+    requestCompressedJson = false,
   ) => {
     if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
       communityId = "global";
@@ -192,13 +202,10 @@ const statsApiClient = {
         requestBody[`${category}`].params.end_date = endDate;
       }
 
-      // Determine Accept header based on compression setting
-      const compressJson = dashboardConfig.compress_json === true; // Default to false
-      const acceptHeader = compressJson
+      const acceptHeader = requestCompressedJson
         ? "application/json+gzip"
         : "application/json";
 
-      // Request with appropriate JSON headers and CSRF token
       const response = await axiosWithCSRF.post(
         `/api/stats-dashboard`,
         requestBody,
@@ -260,6 +267,7 @@ const fetchStatsWithYearlyBlocks = async ({
     });
 
     const missingBlocks = findMissingBlocks(startDate, endDate, currentStats);
+    const blocksAreStale = false;
 
     if (missingBlocks.length === 0) {
       // All data already in memory, nothing fetched - don't update timestamps
@@ -277,12 +285,14 @@ const fetchStatsWithYearlyBlocks = async ({
     const cachedBlocks = [];
     let currentYearLastUpdated = null;
     const currentYear = new Date().getUTCFullYear();
+    const requestCompressedJson = dashboardConfig?.compress_json === true;
+    const cacheCompressedJson =
+      dashboardConfig?.client_cache_compression_enabled === true;
 
     for (const block of missingBlocks) {
-      const blockStartDate = block.startDate.toISOString().split('T')[0];
-      const blockEndDate = block.endDate.toISOString().split('T')[0];
+      const blockStartDate = block.startDate.toISOString().split("T")[0];
+      const blockEndDate = block.endDate.toISOString().split("T")[0];
 
-      // Try to get from IndexedDB cache
       const cacheStartTime = performance.now();
       const cacheResult = await getCachedStats(
         communityId,
@@ -290,15 +300,34 @@ const fetchStatsWithYearlyBlocks = async ({
         dateBasis,
         blockStartDate,
         blockEndDate,
+        requestCompressedJson,
+        cacheCompressedJson,
       );
       const cacheDuration = performance.now() - cacheStartTime;
 
       if (cacheResult && cacheResult.data) {
-        console.log(`Year ${block.year}: Loaded from cache in ${cacheDuration.toFixed(2)}ms (vs ~10-20s from server)`);
+        const expiredNote = cacheResult.isExpired
+          ? " (expired - background update queued)"
+          : "";
+        console.log(
+          `Year ${block.year}: Loaded from cache in ${cacheDuration.toFixed(2)}ms (vs ~10-20s from server)${expiredNote}`,
+        );
+
+        if (cacheResult.isExpired) {
+          blocksAreStale = true;
+        }
 
         // Track current year's server fetch time from cache
-        if (block.year === currentYear && cacheResult.serverFetchTimestamp) {
-          if (!currentYearLastUpdated || cacheResult.serverFetchTimestamp > currentYearLastUpdated) {
+        // Only use serverFetchTimestamp if data is not expired (for accurate "last updated" display)
+        if (
+          block.year === currentYear &&
+          cacheResult.serverFetchTimestamp &&
+          !cacheResult.isExpired
+        ) {
+          if (
+            !currentYearLastUpdated ||
+            cacheResult.serverFetchTimestamp > currentYearLastUpdated
+          ) {
             currentYearLastUpdated = cacheResult.serverFetchTimestamp;
           }
         }
@@ -318,8 +347,8 @@ const fetchStatsWithYearlyBlocks = async ({
     // Fetch missing blocks from API
     const newYearlyStats = await Promise.all(
       blocksToFetch.map(async (block) => {
-        const blockStartDate = block.startDate.toISOString().split('T')[0];
-        const blockEndDate = block.endDate.toISOString().split('T')[0];
+        const blockStartDate = block.startDate.toISOString().split("T")[0];
+        const blockEndDate = block.endDate.toISOString().split("T")[0];
 
         const fetchStartTime = performance.now();
         const stats = await statsApiClient.getStats(
@@ -328,16 +357,21 @@ const fetchStatsWithYearlyBlocks = async ({
           blockStartDate,
           blockEndDate,
           dateBasis,
-          dashboardConfig,
+          requestCompressedJson,
         );
         const fetchDuration = performance.now() - fetchStartTime;
         const serverFetchTime = Date.now();
 
-        console.log(`Year ${block.year}: Fetched from server in ${(fetchDuration / 1000).toFixed(2)}s`);
+        console.log(
+          `Year ${block.year}: Fetched from server in ${(fetchDuration / 1000).toFixed(2)}s`,
+        );
 
         // Track current year's server fetch time
         if (block.year === currentYear) {
-          if (!currentYearLastUpdated || serverFetchTime > currentYearLastUpdated) {
+          if (
+            !currentYearLastUpdated ||
+            serverFetchTime > currentYearLastUpdated
+          ) {
             currentYearLastUpdated = serverFetchTime;
           }
         }
@@ -345,7 +379,6 @@ const fetchStatsWithYearlyBlocks = async ({
         // Cache the fetched data in IndexedDB for future use (async, non-blocking)
         // Include dateBasis and year for proper identification
         // Pass compression config from dashboardConfig
-        const compressionEnabled = dashboardConfig?.client_cache_compression_enabled === true;
         setCachedStats(
           communityId,
           dashboardType,
@@ -354,8 +387,8 @@ const fetchStatsWithYearlyBlocks = async ({
           blockStartDate,
           blockEndDate,
           block.year,
-          compressionEnabled,
-        ).catch(err => {
+          cacheCompressedJson,
+        ).catch((err) => {
           console.warn(`Failed to cache year ${block.year}:`, err);
         });
 
@@ -376,7 +409,8 @@ const fetchStatsWithYearlyBlocks = async ({
 
     // We actually fetched/retrieved blocks, so update timestamps
     const fetchTimestamp = Date.now();
-    updateState(onStateChange, isMounted, "data_loaded", updatedStats, {
+    const resultState = !!blocksAreStale ? "stale_and_updating" : "data_loaded";
+    updateState(onStateChange, isMounted, resultState, updatedStats, {
       lastUpdated: fetchTimestamp,
       currentYearLastUpdated: currentYearLastUpdated,
     });
@@ -674,6 +708,32 @@ const getFormatExtension = (format) => {
   }
 };
 
+/**
+ * Update stats data when a background cache update completes
+ * This merges the updated data into the current stats array
+ *
+ * @param {Array} currentStats - Current stats array
+ * @param {Object} updatedData - Updated stats data from cache
+ * @param {number} year - Year of the updated data
+ * @returns {Array} Updated stats array with merged data
+ */
+const updateStatsFromCache = (currentStats, updatedData, year) => {
+  if (!updatedData || !year) {
+    return currentStats;
+  }
+
+  // Add year property to the updated data
+  const updatedYearlyStats = [
+    {
+      ...updatedData,
+      year,
+    },
+  ];
+
+  // Merge the updated data into current stats
+  return mergeYearlyStats(currentStats, updatedYearlyStats);
+};
+
 export {
   statsApiClient,
   fetchStats,
@@ -682,4 +742,6 @@ export {
   downloadStatsSeriesWithFilename,
   SERIALIZATION_FORMATS,
   getFormatExtension,
+  updateStatsFromCache,
+  updateState,
 };

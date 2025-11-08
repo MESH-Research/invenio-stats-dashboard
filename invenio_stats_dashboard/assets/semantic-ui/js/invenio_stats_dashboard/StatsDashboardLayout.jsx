@@ -6,7 +6,7 @@
  * it under the terms of the MIT License; see LICENSE file for more details.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Container, Grid, Icon, Menu, Transition } from "semantic-ui-react";
 import { StatsDashboardPage } from "./StatsDashboardPage";
@@ -14,7 +14,7 @@ import { DateRangeSelector } from "./components/controls/DateRangeSelector";
 import { GranularitySelector } from "./components/controls/GranularitySelector";
 import { ReportSelector } from "./components/controls/ReportSelector";
 import { StatsDashboardProvider } from "./context/StatsDashboardContext";
-import { fetchStats } from "./api/api";
+import { fetchStats, updateStatsFromCache, updateState } from "./api/api";
 import { DASHBOARD_TYPES } from "./constants";
 import { UpdateStatusMessage } from "./components/shared_components/UpdateStatusMessage";
 import PropTypes from "prop-types";
@@ -65,22 +65,31 @@ const StatsDashboardLayout = ({
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [currentYearLastUpdated, setCurrentYearLastUpdated] = useState(null);
+  const isMountedRef = useRef(true);
 
   const handleTabChange = (e, { name }) => {
     setSelectedTab(name);
   };
 
-  useEffect(() => {
-    console.log("StatsDashboardLayout useEffect triggered by:", {
-      dataFetchRange:
-        dataFetchRange?.start?.toISOString?.() +
-        " to " +
-        dataFetchRange?.end?.toISOString?.(),
-      community: community?.id,
-      dashboardType,
-      getStatsParams: !!getStatsParams,
-    });
+  const onStateChange = (state) => {
+    if (isMountedRef.current) {
+      console.log("State change received:", state);
+      setStats(state.stats);
+      setIsLoading(state.isLoading);
+      setIsUpdating(state.isUpdating);
+      setError(state.error);
 
+      if (state.lastUpdated !== undefined) {
+        setLastUpdated(state.lastUpdated);
+      }
+
+      if (state.currentYearLastUpdated !== undefined) {
+        setCurrentYearLastUpdated(state.currentYearLastUpdated);
+      }
+    }
+  };
+
+  useEffect(() => {
     // Don't fetch data if we don't have valid dates
     if (!dataFetchRange?.start || !dataFetchRange?.end) {
       console.log("Skipping data fetch - no valid dates");
@@ -89,7 +98,7 @@ const StatsDashboardLayout = ({
     console.log("dataFetchRange", dataFetchRange);
     console.log("dateRange", dateRange);
 
-    let isMounted = true;
+    isMountedRef.current = true;
 
     const useTestData = dashboardConfig?.use_test_data !== false;
 
@@ -104,31 +113,13 @@ const StatsDashboardLayout = ({
           currentStats: stats, // Pass current stats for yearly block system
           getStatsParams,
           community,
-          isMounted: () => isMounted,
+          isMounted: () => isMountedRef.current,
           useTestData,
           dashboardConfig,
-          onStateChange: (state) => {
-            if (isMounted) {
-              console.log("State change received:", state);
-              setStats(state.stats);
-              setIsLoading(state.isLoading);
-              setIsUpdating(state.isUpdating);
-              setError(state.error);
-
-              // Only set lastUpdated if it's provided
-              if (state.lastUpdated !== undefined) {
-                setLastUpdated(state.lastUpdated);
-              }
-
-              // Set current year's last updated time (from server fetch)
-              if (state.currentYearLastUpdated !== undefined) {
-                setCurrentYearLastUpdated(state.currentYearLastUpdated);
-              }
-            }
-          },
+          onStateChange,
         });
       } catch (error) {
-        if (isMounted) {
+        if (isMountedRef.current) {
           console.error("Error in loadStats:", error);
           setError(error);
           setIsLoading(false);
@@ -141,9 +132,39 @@ const StatsDashboardLayout = ({
 
     // Cleanup function to prevent state updates on unmounted component
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
   }, [dataFetchRange, community, dashboardType, getStatsParams]);
+
+  // Listen for background cache updates
+  useEffect(() => {
+    const handleCacheUpdate = (event) => {
+      const { cacheKey, data, year, success, error } = event.detail;
+
+      if (!success || !data || !year) {
+        return;
+      }
+
+      const updatedStats = updateStatsFromCache(stats, data, year);
+
+      const fetchTimestamp = Date.now();
+      const currentYear = new Date().getUTCFullYear();
+
+      const newCurrentYearLastUpdated =
+        year === currentYear ? fetchTimestamp : currentYearLastUpdated;
+
+      updateState(onStateChange, () => true, "data_loaded", updatedStats, {
+        lastUpdated: fetchTimestamp,
+        currentYearLastUpdated: newCurrentYearLastUpdated,
+      });
+    };
+
+    window.addEventListener("statsCacheUpdated", handleCacheUpdate);
+
+    return () => {
+      window.removeEventListener("statsCacheUpdated", handleCacheUpdate);
+    };
+  }, [stats, currentYearLastUpdated]);
 
   const contextValue = {
     binary_sizes,
@@ -243,6 +264,7 @@ const StatsDashboardLayout = ({
             <ReportSelector />
             <UpdateStatusMessage
               isUpdating={isUpdating}
+              isLoading={isLoading}
               lastUpdated={currentYearLastUpdated || lastUpdated}
               className="rel-mt-2"
             />

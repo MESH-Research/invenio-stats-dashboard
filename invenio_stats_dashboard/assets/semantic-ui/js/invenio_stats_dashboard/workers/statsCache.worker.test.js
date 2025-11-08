@@ -505,19 +505,17 @@ describe('StatsCache Worker', () => {
             return cacheAge < maxAge;
           };
 
-          if (!isCacheValid(mockCachedData)) {
-            return { success: true, data: null };
-          }
-
           // Use object directly (no parsing needed)
           const isCompressed = mockCachedData.compressed === true;
           const parsedData = isCompressed ? null : mockCachedData.data;
+          const isValid = isCacheValid(mockCachedData);
 
           return {
             success: true,
             data: parsedData,
             serverFetchTimestamp: mockCachedData.serverFetchTimestamp,
             year: mockCachedData.year,
+            isExpired: !isValid,
           };
         }
 
@@ -536,6 +534,7 @@ describe('StatsCache Worker', () => {
       expect(result.data).toEqual({ test: 'data' });
       expect(result.serverFetchTimestamp).toBeDefined();
       expect(result.year).toBe(2024);
+      expect(result.isExpired).toBe(false); // Valid cache should have isExpired: false
     });
 
     it('should handle GET_CACHED_STATS message type with compressed data', async () => {
@@ -576,10 +575,6 @@ describe('StatsCache Worker', () => {
             return cacheAge < maxAge;
           };
 
-          if (!isCacheValid(mockCachedData)) {
-            return { success: true, data: null };
-          }
-
           // Decompress and parse
           const isCompressed = mockCachedData.compressed === true;
           let parsedData;
@@ -590,12 +585,14 @@ describe('StatsCache Worker', () => {
           } else {
             parsedData = mockCachedData.data;
           }
+          const isValid = isCacheValid(mockCachedData);
 
           return {
             success: true,
             data: parsedData,
             serverFetchTimestamp: mockCachedData.serverFetchTimestamp,
             year: mockCachedData.year,
+            isExpired: !isValid,
           };
         }
 
@@ -614,6 +611,7 @@ describe('StatsCache Worker', () => {
       expect(result.data).toEqual({ test: 'data' });
       expect(result.serverFetchTimestamp).toBeDefined();
       expect(result.year).toBe(2024);
+      expect(result.isExpired).toBe(false); // Valid cache should have isExpired: false
     });
 
     it('should handle GET_CACHED_STATS message type with legacy JSON string (backward compatibility)', async () => {
@@ -653,10 +651,6 @@ describe('StatsCache Worker', () => {
             return cacheAge < maxAge;
           };
 
-          if (!isCacheValid(mockCachedData)) {
-            return { success: true, data: null };
-          }
-
           // Handle backward compatibility: parse JSON string
           const isCompressed = mockCachedData.compressed === true;
           let parsedData;
@@ -670,12 +664,14 @@ describe('StatsCache Worker', () => {
             // New format: use object directly
             parsedData = mockCachedData.data;
           }
+          const isValid = isCacheValid(mockCachedData);
 
           return {
             success: true,
             data: parsedData,
             serverFetchTimestamp: mockCachedData.serverFetchTimestamp,
             year: mockCachedData.year,
+            isExpired: !isValid,
           };
         }
 
@@ -694,6 +690,7 @@ describe('StatsCache Worker', () => {
       expect(result.data).toEqual({ test: 'data' });
       expect(result.serverFetchTimestamp).toBeDefined();
       expect(result.year).toBe(2024);
+      expect(result.isExpired).toBe(false); // Valid cache should have isExpired: false
     });
 
     it('should return null for missing cache', async () => {
@@ -711,6 +708,253 @@ describe('StatsCache Worker', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBeNull();
+    });
+
+    it('should return expired data with isExpired flag when cache is expired', async () => {
+      const currentYear = new Date().getUTCFullYear();
+      const mockExpiredData = {
+        key: 'isd_test-com_community_added_2024-01-01_2024-01-31',
+        data: { test: 'expired data' },
+        compressed: false,
+        timestamp: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago (expired for current year)
+        lastAccessed: Date.now() - 2 * 60 * 60 * 1000,
+        year: currentYear,
+        serverFetchTimestamp: Date.now() - 2 * 60 * 60 * 1000,
+      };
+
+      const messageQueue = [];
+      const updateInProgress = (cacheKey) => {
+        return messageQueue.some(
+          (message) =>
+            message.type === 'UPDATE_CACHED_STATS' &&
+            message.params.cacheKey === cacheKey,
+        );
+      };
+
+      const handleGetCachedStats = async (params) => {
+        const { communityId, dashboardType, dateBasis = 'added', startDate, endDate } = params;
+        const generateCacheKey = (communityId, dashboardType, dateBasis, startDate, endDate) => {
+          const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
+          const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
+          const endDateShort = endDate ? endDate.substring(0, 10) : 'default';
+          return `isd_${communityIdShort}_${dashboardType}_${dateBasis}_${startDateShort}_${endDateShort}`;
+        };
+
+        const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
+
+        if (cacheKey === mockExpiredData.key) {
+          const isCacheValid = (cachedData) => {
+            if (!cachedData || !cachedData.timestamp) return false;
+            const now = Date.now();
+            const cacheAge = now - cachedData.timestamp;
+            const year = cachedData.year;
+            const isCurrent = year === new Date().getUTCFullYear();
+            const maxAge = isCurrent ? 1 * 60 * 60 * 1000 : 1 * 365 * 24 * 60 * 60 * 1000;
+            return cacheAge < maxAge;
+          };
+
+          const isValid = isCacheValid(mockExpiredData);
+
+          // Simulate queuing background update if expired and not already in progress
+          if (!isValid && !updateInProgress(cacheKey)) {
+            messageQueue.push({
+              type: 'UPDATE_CACHED_STATS',
+              id: -1,
+              params: {
+                ...params,
+                cacheKey,
+              },
+            });
+          }
+
+          // Return expired data with isExpired flag
+          return {
+            success: true,
+            data: mockExpiredData.data,
+            serverFetchTimestamp: mockExpiredData.serverFetchTimestamp,
+            year: mockExpiredData.year,
+            isExpired: !isValid,
+          };
+        }
+
+        return { success: true, data: null };
+      };
+
+      const result = await handleGetCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        dateBasis: 'added',
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ test: 'expired data' });
+      expect(result.isExpired).toBe(true);
+      expect(messageQueue.length).toBe(1);
+      expect(messageQueue[0].type).toBe('UPDATE_CACHED_STATS');
+      expect(messageQueue[0].params.cacheKey).toBe('isd_test-com_community_added_2024-01-01_2024-01-31');
+    });
+
+    it('should not queue duplicate background updates for expired cache', async () => {
+      const currentYear = new Date().getUTCFullYear();
+      const mockExpiredData = {
+        key: 'isd_test-com_community_added_2024-01-01_2024-01-31',
+        data: { test: 'expired data' },
+        compressed: false,
+        timestamp: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago (expired)
+        year: currentYear,
+      };
+
+      const messageQueue = [
+        {
+          type: 'UPDATE_CACHED_STATS',
+          id: -1,
+          params: {
+            communityId: 'test-community',
+            dashboardType: 'community',
+            dateBasis: 'added',
+            blockStartDate: '2024-01-01',
+            blockEndDate: '2024-01-31',
+            cacheKey: 'isd_test-com_community_added_2024-01-01_2024-01-31',
+          },
+        },
+      ];
+
+      const updateInProgress = (cacheKey) => {
+        return messageQueue.some(
+          (message) =>
+            message.type === 'UPDATE_CACHED_STATS' &&
+            message.params.cacheKey === cacheKey,
+        );
+      };
+
+      const handleGetCachedStats = async (params) => {
+        const generateCacheKey = (communityId, dashboardType, dateBasis, startDate, endDate) => {
+          return `isd_test-com_community_added_2024-01-01_2024-01-31`;
+        };
+
+        const cacheKey = generateCacheKey();
+        const isCacheValid = () => false; // Expired
+
+        // Should not queue another update since one is already in progress
+        if (!isCacheValid() && !updateInProgress(cacheKey)) {
+          messageQueue.push({
+            type: 'UPDATE_CACHED_STATS',
+            id: -2,
+            params: { ...params, cacheKey },
+          });
+        }
+
+        return {
+          success: true,
+          data: mockExpiredData.data,
+          isExpired: true,
+        };
+      };
+
+      await handleGetCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        dateBasis: 'added',
+        blockStartDate: '2024-01-01',
+        blockEndDate: '2024-01-31',
+      });
+
+      // Should still only have one update in queue
+      expect(messageQueue.length).toBe(1);
+    });
+
+    it('should return isExpired: false for valid cache', async () => {
+      const currentYear = new Date().getUTCFullYear();
+      const mockValidData = {
+        key: 'isd_test-com_community_added_2024-01-01_2024-01-31',
+        data: { test: 'valid data' },
+        compressed: false,
+        timestamp: Date.now() - 30 * 60 * 1000, // 30 minutes ago (still valid)
+        year: currentYear,
+        serverFetchTimestamp: Date.now() - 30 * 60 * 1000,
+      };
+
+      const handleGetCachedStats = async (params) => {
+        const isCacheValid = (cachedData) => {
+          if (!cachedData || !cachedData.timestamp) return false;
+          const now = Date.now();
+          const cacheAge = now - cachedData.timestamp;
+          const year = cachedData.year;
+          const isCurrent = year === new Date().getUTCFullYear();
+          const maxAge = isCurrent ? 1 * 60 * 60 * 1000 : 1 * 365 * 24 * 60 * 60 * 1000;
+          return cacheAge < maxAge;
+        };
+
+        const isValid = isCacheValid(mockValidData);
+
+        return {
+          success: true,
+          data: mockValidData.data,
+          serverFetchTimestamp: mockValidData.serverFetchTimestamp,
+          year: mockValidData.year,
+          isExpired: !isValid,
+        };
+      };
+
+      const result = await handleGetCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        dateBasis: 'added',
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ test: 'valid data' });
+      expect(result.isExpired).toBe(false);
+    });
+
+    it('should send CACHE_UPDATED message when background update completes', async () => {
+      const mockUpdatedData = { test: 'updated data' };
+      const cacheKey = 'isd_test-com_community_added_2024-01-01_2024-01-31';
+
+      // Mock statsApiClient.getStats to return updated data
+      const mockGetStats = jest.fn().mockResolvedValue(mockUpdatedData);
+
+      // Simulate handleUpdateCachedStats
+      const handleUpdateCachedStats = async (params) => {
+        const transformedData = await mockGetStats(
+          params.communityId,
+          params.dashboardType,
+          params.blockStartDate,
+          params.blockEndDate,
+          params.dateBasis,
+          params.requestCompressedJson,
+        );
+        const year = parseInt(params.blockStartDate.substring(0, 4));
+
+        return {
+          success: true,
+          cacheKey: params.cacheKey,
+          data: transformedData,
+          year,
+        };
+      };
+
+      const result = await handleUpdateCachedStats({
+        communityId: 'test-community',
+        dashboardType: 'community',
+        dateBasis: 'added',
+        blockStartDate: '2024-01-01',
+        blockEndDate: '2024-01-31',
+        cacheKey,
+        requestCompressedJson: false,
+        cacheCompressedJson: false,
+      });
+
+      // Verify result contains expected data for CACHE_UPDATED message
+      expect(result.success).toBe(true);
+      expect(result.cacheKey).toBe(cacheKey);
+      expect(result.data).toEqual(mockUpdatedData);
+      expect(result.year).toBe(2024);
+      // This result structure should be sent as CACHE_UPDATED message
     });
   });
 

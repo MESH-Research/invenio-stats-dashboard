@@ -15,11 +15,13 @@
 // Import pako for compression/decompression (conditional based on config)
 // Note: This requires pako to be available as an ES module in your build system
 // If using webpack/vite, ensure pako is bundled for the worker context
-import pako from 'pako';
+import pako from "pako";
 
-const DB_NAME = 'invenio_stats_dashboard';
+import { statsApiClient } from "../api/api";
+
+const DB_NAME = "invenio_stats_dashboard";
 const DB_VERSION = 2; // Increment version to add new indices
-const STORE_NAME = 'stats_cache';
+const STORE_NAME = "stats_cache";
 const CACHE_EXPIRY_HOURS_CURRENT_YEAR = 1; // 1 hour TTL for current year (data changes hourly)
 const CACHE_EXPIRY_YEARS_PAST = 1; // 1 year TTL for past years (historical data is static)
 const MAX_CACHE_ENTRIES = 20; // Maximum number of cached year blocks across all communities/dashboards
@@ -41,36 +43,38 @@ const getDB = () => {
 
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         // Create new store
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-        store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
-        store.createIndex('communityId', 'communityId', { unique: false });
-        store.createIndex('year', 'year', { unique: false });
-        store.createIndex('dateBasis', 'dateBasis', { unique: false });
+        const store = db.createObjectStore(STORE_NAME, { keyPath: "key" });
+        store.createIndex("timestamp", "timestamp", { unique: false });
+        store.createIndex("lastAccessed", "lastAccessed", { unique: false });
+        store.createIndex("communityId", "communityId", { unique: false });
+        store.createIndex("year", "year", { unique: false });
+        store.createIndex("dateBasis", "dateBasis", { unique: false });
       } else {
         // Upgrade existing store - add new indices if they don't exist
         const store = transaction.objectStore(STORE_NAME);
 
         // Check and create indices safely - wrap in try-catch to handle if index already exists
         try {
-          if (!store.indexNames.contains('year')) {
-            store.createIndex('year', 'year', { unique: false });
+          if (!store.indexNames.contains("year")) {
+            store.createIndex("year", "year", { unique: false });
           }
         } catch (e) {
           console.warn('Index "year" may already exist:', e);
         }
 
         try {
-          if (!store.indexNames.contains('dateBasis')) {
-            store.createIndex('dateBasis', 'dateBasis', { unique: false });
+          if (!store.indexNames.contains("dateBasis")) {
+            store.createIndex("dateBasis", "dateBasis", { unique: false });
           }
         } catch (e) {
           console.warn('Index "dateBasis" may already exist:', e);
         }
 
         try {
-          if (!store.indexNames.contains('lastAccessed')) {
-            store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
+          if (!store.indexNames.contains("lastAccessed")) {
+            store.createIndex("lastAccessed", "lastAccessed", {
+              unique: false,
+            });
           }
         } catch (e) {
           console.warn('Index "lastAccessed" may already exist:', e);
@@ -82,12 +86,20 @@ const getDB = () => {
 
 /**
  * Generate cache key for stats data
- * Includes: communityId, dashboardType, dateBasis, startDate, endDate
+ * Includes: communityId, dashboardType, dateBasis, blockStartDate, blockEndDate
  */
-const generateCacheKey = (communityId, dashboardType, dateBasis = 'added', startDate = null, endDate = null) => {
-  const communityIdShort = communityId ? communityId.substring(0, 8) : 'global';
-  const startDateShort = startDate ? startDate.substring(0, 10) : 'default';
-  const endDateShort = endDate ? endDate.substring(0, 10) : 'default';
+const generateCacheKey = (
+  communityId,
+  dashboardType,
+  dateBasis = "added",
+  blockStartDate = null,
+  blockEndDate = null,
+) => {
+  const communityIdShort = communityId ? communityId.substring(0, 8) : "global";
+  const startDateShort = blockStartDate
+    ? blockStartDate.substring(0, 10)
+    : "default";
+  const endDateShort = blockEndDate ? blockEndDate.substring(0, 10) : "default";
 
   return `isd_${communityIdShort}_${dashboardType}_${dateBasis}_${startDateShort}_${endDateShort}`;
 };
@@ -95,9 +107,9 @@ const generateCacheKey = (communityId, dashboardType, dateBasis = 'added', start
 /**
  * Extract year from date string (YYYY-MM-DD format)
  */
-const extractYear = (startDate) => {
-  if (!startDate) return null;
-  const yearMatch = startDate.match(/^(\d{4})/);
+const extractYear = (blockStartDate) => {
+  if (!blockStartDate) return null;
+  const yearMatch = blockStartDate.match(/^(\d{4})/);
   return yearMatch ? parseInt(yearMatch[1], 10) : null;
 };
 
@@ -139,7 +151,7 @@ const isCacheValid = (cachedData) => {
  */
 const evictOldestEntries = async (db, countToEvict) => {
   return new Promise((resolve, reject) => {
-    const evictTransaction = db.transaction([STORE_NAME], 'readwrite');
+    const evictTransaction = db.transaction([STORE_NAME], "readwrite");
     const evictStore = evictTransaction.objectStore(STORE_NAME);
 
     // Get all entries - we'll sort by lastAccessed in memory
@@ -157,7 +169,10 @@ const evictOldestEntries = async (db, countToEvict) => {
       });
 
       // Select the oldest entries to delete
-      const toDelete = allEntries.slice(0, Math.min(countToEvict, allEntries.length));
+      const toDelete = allEntries.slice(
+        0,
+        Math.min(countToEvict, allEntries.length),
+      );
 
       // Delete them in the same transaction
       let deleted = 0;
@@ -188,16 +203,117 @@ const evictOldestEntries = async (db, countToEvict) => {
 };
 
 /**
+ * Handle updateCachedStats message
+ * @param {Object} params
+ * @param {string} params.communityId
+ * @param {string} params.dashboardType: one of "global", "community"
+ * @param {string} params.blockStartDate: start date of the block
+ *   in YYYY-MM-DD format
+ * @param {string} params.blockEndDate: end date of the block
+ *   in YYYY-MM-DD format
+ * @param {string} params.dateBasis: date basis used to calculate record counts
+ *   ("added", "created", "published")
+ * @param {boolean} params.requestCompressedJson: whether to request compressed json from the API
+ * @param {boolean} params.cacheCompressedJson: whether to cache compressed json
+ * @returns {Promise<Object>} result of the setCachedStats operation
+ *   {
+ *     success: true,
+ *     cacheKey: string,
+ *     compressed: boolean,
+ *     compressedRatio: number,
+ *   }
+ *   or
+ *   { success: false, error: string }
+ */
+const handleUpdateCachedStats = async (params) => {
+  const {
+    communityId,
+    dashboardType,
+    blockStartDate,
+    blockEndDate,
+    dateBasis,
+    requestCompressedJson,
+    cacheCompressedJson,
+  } = params;
+
+  const transformedData = await statsApiClient.getStats(
+    communityId,
+    dashboardType,
+    blockStartDate,
+    blockEndDate,
+    dateBasis,
+    requestCompressedJson,
+  );
+  const year = extractYear(blockStartDate);
+
+  const result = await handleSetCachedStats({
+    ...params,
+    transformedData,
+    year,
+  });
+
+  // Return both the cache operation result and the actual data
+  return {
+    ...result,
+    data: transformedData,
+    year,
+  };
+};
+
+/**
  * Handle setCachedStats message
+ * @param {Object} params
+ * @param {string} params.communityId: community ID
+ * @param {string} params.dashboardType: one of "global", "community"
+ * @param {Object} params.transformedData: transformed stats data (contains all 4 categories)
+ * @param {string} params.dateBasis: date basis used to calculate record counts
+ *   ("added", "created", "published")
+ * @param {string} params.blockStartDate: start date of the block
+ *   in YYYY-MM-DD format
+ * @param {string} params.blockEndDate: end date of the block
+ *   in YYYY-MM-DD format
+ * @param {number} params.year: year of the block
+ * @param {boolean} params.cacheCompressedJson: whether to cache compressed json
+ * @returns {Promise<Object>} result of the setCachedStats operation
+ *   {
+ *     success: true,
+ *     cacheKey: string,
+ *     compressed: boolean,
+ *     compressedRatio: number,
+ *   }
+ *   or
+ *   { success: false, error: string }
  */
 const handleSetCachedStats = async (params) => {
   try {
-    const { communityId = 'global', dashboardType, transformedData, dateBasis = 'added', startDate, endDate, year, compressionEnabled = false } = params;
-    const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
-    console.log('[SET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate, compressionEnabled });
+    const {
+      communityId = "global",
+      dashboardType,
+      transformedData,
+      dateBasis = "added",
+      blockStartDate,
+      blockEndDate,
+      year,
+      cacheCompressedJson = false,
+    } = params;
+    const cacheKey = generateCacheKey(
+      communityId,
+      dashboardType,
+      dateBasis,
+      blockStartDate,
+      blockEndDate,
+    );
+    console.log("[SET] Generated cache key:", cacheKey, "from params:", {
+      communityId,
+      dashboardType,
+      dateBasis,
+      blockStartDate,
+      blockEndDate,
+      cacheCompressedJson,
+    });
     const timestamp = Date.now();
 
-    const cacheYear = year || extractYear(startDate);
+    const cacheYear = year || extractYear(blockStartDate);
 
     // Conditionally compress based on config
     let dataToStore;
@@ -205,13 +321,13 @@ const handleSetCachedStats = async (params) => {
     let originalSize = null;
     let compressedSize = null;
 
-    if (compressionEnabled) {
+    if (cacheCompressedJson) {
       // When compression is enabled: stringify, compress, store as ArrayBuffer
       const jsonString = JSON.stringify(transformedData);
       const compressedData = pako.gzip(jsonString);
       const arrayBuffer = compressedData.buffer.slice(
         compressedData.byteOffset,
-        compressedData.byteOffset + compressedData.byteLength
+        compressedData.byteOffset + compressedData.byteLength,
       );
       dataToStore = arrayBuffer;
       compressed = true;
@@ -225,7 +341,7 @@ const handleSetCachedStats = async (params) => {
 
     const db = await getDB();
 
-    const checkTransaction = db.transaction([STORE_NAME], 'readonly');
+    const checkTransaction = db.transaction([STORE_NAME], "readonly");
     const checkStore = checkTransaction.objectStore(STORE_NAME);
 
     const [existingRecord, totalEntries] = await Promise.all([
@@ -238,7 +354,7 @@ const handleSetCachedStats = async (params) => {
         const countRequest = checkStore.count();
         countRequest.onsuccess = () => resolve(countRequest.result);
         countRequest.onerror = () => reject(countRequest.error);
-      })
+      }),
     ]);
 
     // If adding new entry (not updating existing) and at limit, evict oldest first
@@ -248,7 +364,7 @@ const handleSetCachedStats = async (params) => {
     }
 
     // Store the entry (separate transaction)
-    const storeTransaction = db.transaction([STORE_NAME], 'readwrite');
+    const storeTransaction = db.transaction([STORE_NAME], "readwrite");
     const store = storeTransaction.objectStore(STORE_NAME);
     const isCurrent = isCurrentYear(cacheYear);
 
@@ -260,25 +376,30 @@ const handleSetCachedStats = async (params) => {
       communityId,
       dashboardType,
       dateBasis,
-      startDate,
-      endDate,
+      blockStartDate,
+      blockEndDate,
       year: cacheYear,
       compressed: compressed, // Flag to indicate if data is compressed
       originalSize: originalSize, // Only set when compressed
       compressedSize: compressedSize, // Only set when compressed
-      version: '2.0',
+      version: "2.0",
       // Store server fetch time for current year (used for "last updated" display)
-      serverFetchTimestamp: isCurrent ? timestamp : null
+      serverFetchTimestamp: isCurrent ? timestamp : null,
     };
 
     await new Promise((resolve, reject) => {
       const request = store.put(cacheRecord);
       request.onsuccess = () => {
-        console.log('[SET] Successfully stored cache key:', cacheKey);
+        console.log("[SET] Successfully stored cache key:", cacheKey);
         resolve();
       };
       request.onerror = () => {
-        console.error('[SET] Failed to store cache key:', cacheKey, 'Error:', request.error);
+        console.error(
+          "[SET] Failed to store cache key:",
+          cacheKey,
+          "Error:",
+          request.error,
+        );
         reject(request.error);
       };
     });
@@ -287,11 +408,97 @@ const handleSetCachedStats = async (params) => {
       success: true,
       cacheKey,
       compressed: compressed,
-      compressedRatio: compressed && originalSize ? compressedSize / originalSize : 1.0
+      compressedRatio:
+        compressed && originalSize ? compressedSize / originalSize : 1.0,
     };
   } catch (error) {
     return { success: false, error: error.message };
   }
+};
+
+/**
+ * Check if an update is in progress for a given cache key
+ * @param {string} cacheKey - The cache key to check
+ * @returns {boolean} true if an update is in progress, false otherwise
+ */
+const updateInProgress = (cacheKey) => {
+  return messageQueue.some(
+    (message) =>
+      message.type === "UPDATE_CACHED_STATS" &&
+      message.params.cacheKey === cacheKey,
+  );
+};
+
+/**
+ * Helper function to process retrieved data
+ *
+ * Decompresses compressed data if isCompressed is true and
+ * validates the data is a valid JSON object.
+ *
+ * @param {Object} recordData - The data to process
+ * @param {boolean} isCompressed - Whether the data is compressed
+ * @param {string} cacheKey - The cache key (for error logging and deletion)
+ * @returns {Promise<Object>} { parsedData: object, errorMsg: string }
+ */
+const processRetrievedData = async (recordData, isCompressed, cacheKey) => {
+  let parsedData = null;
+  let errorMsg = null;
+  try {
+    if (isCompressed) {
+      if (recordData instanceof ArrayBuffer) {
+        const compressedData = new Uint8Array(recordData);
+        const decompressedString = pako.ungzip(compressedData, {
+          to: "string",
+        });
+        parsedData = JSON.parse(decompressedString);
+      } else {
+        errorMsg = `Unexpected recordData type for compressed data: ${typeof recordData}. Expected ArrayBuffer.`;
+        console.error(
+          "handleGetCachedStats:",
+          errorMsg,
+          "Invalidating cache entry:",
+          cacheKey,
+        );
+      }
+    } else {
+      // Handle uncompressed data
+      if (
+        typeof recordData === "object" &&
+        recordData !== null &&
+        !(recordData instanceof ArrayBuffer)
+      ) {
+        parsedData = recordData;
+      } else {
+        errorMsg = `Unexpected recordData type for uncompressed data: ${typeof recordData}. Expected object.`;
+        console.error(
+          "handleGetCachedStats:",
+          errorMsg,
+          "Invalidating cache entry:",
+          cacheKey,
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      "handleGetCachedStats: Error during parsing/decompression. Invalidating cache entry:",
+      cacheKey,
+      error,
+    );
+    errorMsg = error.message;
+  }
+
+  if (!parsedData) {
+    console.error(
+      "handleGetCachedStats: Parsed data is null/undefined! Invalidating cache entry:",
+      cacheKey,
+    );
+  }
+
+  if (errorMsg || !parsedData) {
+    await deleteCacheEntry(cacheKey);
+  }
+
+  return { parsedData, errorMsg };
 };
 
 /**
@@ -301,7 +508,7 @@ const handleSetCachedStats = async (params) => {
  */
 const deleteCacheEntry = async (cacheKey) => {
   const db = await getDB();
-  const transaction = db.transaction([STORE_NAME], 'readwrite');
+  const transaction = db.transaction([STORE_NAME], "readwrite");
   const store = transaction.objectStore(STORE_NAME);
   await new Promise((resolve, reject) => {
     const request = store.delete(cacheKey);
@@ -311,16 +518,93 @@ const deleteCacheEntry = async (cacheKey) => {
 };
 
 /**
+ * Update the lastAccessed timestamp for a given cache key
+ * @param {string} cacheKey - The cache key to update
+ * @returns {Promise<void>}
+ */
+const updateLastAccessed = async (cacheKey) => {
+  try {
+    const updateDb = await getDB();
+    const updateTransaction = updateDb.transaction(
+      [STORE_NAME],
+      "readwrite",
+    );
+    const updateStore = updateTransaction.objectStore(STORE_NAME);
+
+    // Get fresh record to ensure we have all properties
+    const freshRecord = await new Promise((resolve, reject) => {
+      const getRequest = updateStore.get(cacheKey);
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+
+    if (freshRecord) {
+      const updatedRecord = {
+        ...freshRecord,
+        lastAccessed: Date.now(),
+      };
+
+      await new Promise((resolve, reject) => {
+        const updateRequest = updateStore.put(updatedRecord);
+        updateRequest.onsuccess = () => resolve();
+        updateRequest.onerror = () => reject(updateRequest.error);
+      });
+    }
+  } catch (error) {
+    // Silently fail - LRU update is not critical for returning cached data
+    console.warn("Failed to update lastAccessed timestamp:", error);
+  }
+};
+
+
+/**
  * Handle getCachedStats
+ * @param {Object} params
+ * @param {string} params.communityId: community ID
+ * @param {string} params.dashboardType: one of "global", "community"
+ * @param {string} params.dateBasis: date basis used to calculate record counts
+ *   ("added", "created", "published")
+ * @param {string} params.blockStartDate: start date of the block
+ *   in YYYY-MM-DD format
+ * @param {string} params.blockEndDate: end date of the block
+ *   in YYYY-MM-DD format
+ * @param {boolean} params.requestCompressedJson: whether to request compressed json from the API
+ * @param {boolean} params.cacheCompressedJson: whether to cache compressed json
+ * @returns {Promise<Object>} result of the getCachedStats operation
+ *   {
+ *     success: true,
+ *     data: object,
+ *     serverFetchTimestamp: number,
+ *     year: number,
+ *     isExpired: boolean,
+ *   } or
+ *   {
+ *     success: false,
+ *     error: string,
+ *     data: null,
+ *   }
  */
 const handleGetCachedStats = async (params) => {
   try {
-    const { communityId = 'global', dashboardType, dateBasis = 'added', startDate, endDate } = params;
-    const cacheKey = generateCacheKey(communityId, dashboardType, dateBasis, startDate, endDate);
-    // console.log('[GET] Generated cache key:', cacheKey, 'from params:', { communityId, dashboardType, dateBasis, startDate, endDate });
+    const {
+      communityId = "global",
+      dashboardType,
+      dateBasis = "added",
+      blockStartDate,
+      blockEndDate,
+      requestCompressedJson,
+      cacheCompressedJson,
+    } = params;
+    const cacheKey = generateCacheKey(
+      communityId,
+      dashboardType,
+      dateBasis,
+      blockStartDate,
+      blockEndDate,
+    );
 
     const db = await getDB();
-    const getTransaction = db.transaction([STORE_NAME], 'readonly');
+    const getTransaction = db.transaction([STORE_NAME], "readonly");
     const getStore = getTransaction.objectStore(STORE_NAME);
 
     const record = await new Promise((resolve, reject) => {
@@ -328,172 +612,54 @@ const handleGetCachedStats = async (params) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-
     if (!record) {
-      // This includes listing all keys, which can be expensive
-      /*
-      const allKeys = await new Promise((resolve, reject) => {
-        const getAllKeysRequest = getStore.getAllKeys();
-        getAllKeysRequest.onsuccess = () => resolve(getAllKeysRequest.result);
-        getAllKeysRequest.onerror = () => reject(getAllKeysRequest.error);
-      });
-      console.warn('[GET] No record found for key:', cacheKey);
-      console.warn('[GET] Available keys in store:', allKeys);
-      console.warn('[GET] Number of keys in store:', allKeys.length);
-      console.warn('[GET] Cache key length:', cacheKey.length, 'Cache key bytes:', new TextEncoder().encode(cacheKey));
-
-      // Check if any keys are similar (might indicate a mismatch)
-      const similarKeys = allKeys.filter(key =>
-        typeof key === 'string' && key.includes(dashboardType) && key.includes(dateBasis)
-      );
-      if (similarKeys.length > 0) {
-        console.warn('[GET] Similar keys found:', similarKeys);
-        console.warn('[GET] Looking for exact match of:', cacheKey);
-        const exactMatch = allKeys.find(key => key === cacheKey);
-        console.warn('[GET] Exact match found?', exactMatch !== undefined, exactMatch);
-        if (exactMatch) {
-          console.warn('[GET] Exact match key:', exactMatch, 'length:', exactMatch.length);
-        }
-        // Check for near-matches (character-by-character comparison)
-        similarKeys.forEach(key => {
-          if (key.length === cacheKey.length) {
-            const differences = [];
-            for (let i = 0; i < key.length; i++) {
-              if (key[i] !== cacheKey[i]) {
-                differences.push({ pos: i, expected: cacheKey[i], actual: key[i], expectedCode: cacheKey.charCodeAt(i), actualCode: key.charCodeAt(i) });
-              }
-            }
-            if (differences.length > 0) {
-              console.warn('[GET] Key differences found:', key, differences);
-            }
-          }
-        });
-      }
-      */
-
       return { success: true, data: null };
     }
 
-    // console.log('[GET] Record found! Key:', cacheKey, 'Record keys:', Object.keys(record));
-
-    // Extract metadata before transaction completes (record is still valid after transaction)
     const serverFetchTimestamp = record.serverFetchTimestamp || null;
     const year = record.year || null;
     const recordData = record.data;
     const isCompressed = record.compressed === true; // Check compression flag (backward compatible with old records)
 
-    // console.log('[GET] Cache validation check:', {
-    //   hasTimestamp: !!record.timestamp,
-    //   timestamp: record.timestamp,
-    //   year: record.year,
-    //   isCurrentYear: isCurrentYear(record.year),
-    //   cacheAge: record.timestamp ? Date.now() - record.timestamp : 'N/A',
-    //   isCompressed: isCompressed
-    // });
+    const isValid = isCacheValid(record);
 
-    if (!isCacheValid(record)) {
-      // console.warn('[GET] Cache expired, deleting key:', cacheKey);
-      // Delete expired cache
-      await deleteCacheEntry(cacheKey);
+    if (!isValid && !updateInProgress(cacheKey)) {
+      // Cache is expired - queue background update but still return expired data
+      // negative id numbers to avoid collision with main thread ids
+      const updateId = --backgroundUpdateIdCounter;
+      messageQueue.push({
+        type: "UPDATE_CACHED_STATS",
+        id: updateId,
+        params: {
+          ...params,
+          cacheKey,
+        },
+      });
+      processQueue();
+
+      // Continue to return the expired data so it can be displayed
+      // The UI will show stale data while the background update happens
+    }
+
+    const { parsedData, errorMsg } = await processRetrievedData(
+      recordData,
+      isCompressed,
+      cacheKey,
+    );
+    if (!parsedData) {
       return { success: true, data: null };
+    } else if (errorMsg) {
+      return { success: false, error: errorMsg, data: null };
     }
+    updateLastAccessed(cacheKey);
 
-    // console.log('[GET] Cache is valid, proceeding to parse/decompress');
-    // console.log('[GET] Record data type:', typeof recordData, 'isCompressed:', isCompressed);
-
-    // Parse or decompress data based on compression flag
-    let parsedData;
-    try {
-      if (isCompressed) {
-        // Handle compressed data (ArrayBuffer)
-        if (recordData instanceof ArrayBuffer) {
-          const compressedData = new Uint8Array(recordData);
-          const decompressedString = pako.ungzip(compressedData, { to: 'string' });
-          parsedData = JSON.parse(decompressedString);
-          // console.log('[GET] Decompression successful, data type:', typeof parsedData, 'keys:', Object.keys(parsedData || {}));
-        } else {
-          const errorMsg = `Unexpected recordData type for compressed data: ${typeof recordData}. Expected ArrayBuffer.`;
-          console.error('handleGetCachedStats:', errorMsg, 'Invalidating cache entry:', cacheKey);
-          await deleteCacheEntry(cacheKey);
-          return { success: false, error: errorMsg, data: null };
-        }
-      } else {
-        // Handle uncompressed data
-        if (typeof recordData === 'object' && recordData !== null && !(recordData instanceof ArrayBuffer)) {
-          // Stored as object directly - use it as-is (no parsing needed)
-          parsedData = recordData;
-          // console.log('[GET] Using object directly, data type:', typeof parsedData, 'keys:', Object.keys(parsedData || {}));
-        } else if (typeof recordData === 'string') {
-          // Backward compatibility: old cache entries stored as JSON string
-          parsedData = JSON.parse(recordData);
-          // console.log('[GET] JSON parsing successful (backward compatibility), data type:', typeof parsedData, 'keys:', Object.keys(parsedData || {}));
-        } else {
-          const errorMsg = `Unexpected recordData type for uncompressed data: ${typeof recordData}. Expected object or string.`;
-          console.error('handleGetCachedStats:', errorMsg, 'Invalidating cache entry:', cacheKey);
-          await deleteCacheEntry(cacheKey);
-          return { success: false, error: errorMsg, data: null };
-        }
-      }
-
-      if (!parsedData) {
-        console.error('handleGetCachedStats: Parsed data is null/undefined! Invalidating cache entry:', cacheKey);
-        await deleteCacheEntry(cacheKey);
-        return { success: true, data: null };
-      }
-    } catch (error) {
-      console.error('handleGetCachedStats: Error during parsing/decompression. Invalidating cache entry:', cacheKey, error);
-      await deleteCacheEntry(cacheKey);
-      return { success: false, error: error.message, data: null };
-    }
-
-    const updateLastAccessed = async () => {
-      try {
-        const updateDb = await getDB();
-        const updateTransaction = updateDb.transaction([STORE_NAME], 'readwrite');
-        const updateStore = updateTransaction.objectStore(STORE_NAME);
-
-        // Get fresh record to ensure we have all properties
-        const freshRecord = await new Promise((resolve, reject) => {
-          const getRequest = updateStore.get(cacheKey);
-          getRequest.onsuccess = () => resolve(getRequest.result);
-          getRequest.onerror = () => reject(getRequest.error);
-        });
-
-        if (freshRecord) {
-          const updatedRecord = {
-            ...freshRecord,
-            lastAccessed: Date.now()
-          };
-
-          await new Promise((resolve, reject) => {
-            const updateRequest = updateStore.put(updatedRecord);
-            updateRequest.onsuccess = () => resolve();
-            updateRequest.onerror = () => reject(updateRequest.error);
-          });
-        }
-      } catch (error) {
-        // Silently fail - LRU update is not critical for returning cached data
-        console.warn('Failed to update lastAccessed timestamp:', error);
-      }
-    };
-
-    // Fire off the update but don't wait for it
-    updateLastAccessed();
-
-    // Return data immediately along with metadata for current year's server fetch time
     const result = {
       success: true,
       data: parsedData,
       serverFetchTimestamp: serverFetchTimestamp,
-      year: year
+      year: year,
+      isExpired: !isValid,
     };
-    // console.log('[GET] Returning result:', {
-    //   success: result.success,
-    //   hasData: !!result.data,
-    //   dataKeys: result.data ? Object.keys(result.data) : null,
-    //   serverFetchTimestamp: result.serverFetchTimestamp,
-    //   year: result.year
-    // });
     return result;
   } catch (error) {
     return { success: false, error: error.message, data: null };
@@ -519,7 +685,7 @@ const handleClearCachedStatsForKey = async (params) => {
 const handleClearAllCachedStats = async () => {
   try {
     const db = await getDB();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const transaction = db.transaction([STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
 
     await new Promise((resolve, reject) => {
@@ -537,13 +703,15 @@ const handleClearAllCachedStats = async () => {
 // Message queue with priority (GET operations processed before SET)
 const messageQueue = [];
 let isProcessing = false;
+let backgroundUpdateIdCounter = 0; // Counter for background update IDs (uses negative numbers to avoid collision with main thread IDs)
 
 // Priority: Lower number = higher priority
 const MESSAGE_PRIORITY = {
-  'GET_CACHED_STATS': 1,           // Highest priority - users are waiting
-  'CLEAR_CACHED_STATS_FOR_KEY': 2,
-  'CLEAR_ALL_CACHED_STATS': 2,
-  'SET_CACHED_STATS': 10,          // Lowest priority - can wait
+  GET_CACHED_STATS: 1, // Highest priority - users are waiting
+  CLEAR_CACHED_STATS_FOR_KEY: 2,
+  CLEAR_ALL_CACHED_STATS: 2,
+  SET_CACHED_STATS: 10, // Lowest priority - can wait
+  UPDATE_CACHED_STATS: 10,
 };
 
 // Process messages from queue (prioritizes GET over SET)
@@ -567,29 +735,37 @@ const processQueue = async () => {
 
     try {
       switch (type) {
-        case 'SET_CACHED_STATS':
+        case "SET_CACHED_STATS":
           result = await handleSetCachedStats(params);
           break;
-        case 'GET_CACHED_STATS':
+        case "GET_CACHED_STATS":
           result = await handleGetCachedStats(params);
           break;
-        case 'CLEAR_CACHED_STATS_FOR_KEY':
+        case "UPDATE_CACHED_STATS":
+          result = await handleUpdateCachedStats(params);
+          break;
+        case "CLEAR_CACHED_STATS_FOR_KEY":
           result = await handleClearCachedStatsForKey(params);
           break;
-        case 'CLEAR_ALL_CACHED_STATS':
+        case "CLEAR_ALL_CACHED_STATS":
           result = await handleClearAllCachedStats();
           break;
         default:
           result = { success: false, error: `Unknown message type: ${type}` };
       }
 
-      // Send result back to main thread
-      self.postMessage({ id, type, result });
+      // Send result back to main thread (skip for background UPDATE_CACHED_STATS)
+      // UPDATE_CACHED_STATS is triggered internally and doesn't need a response
+      if (type !== "UPDATE_CACHED_STATS") {
+        self.postMessage({ id, type, result });
+      } else {
+        self.postMessage({ type: "CACHE_UPDATED", result });
+      }
     } catch (error) {
       self.postMessage({
         id,
         type,
-        result: { success: false, error: error.message }
+        result: { success: false, error: error.message },
       });
     }
   }
@@ -598,13 +774,10 @@ const processQueue = async () => {
 };
 
 // Listen for messages from the main thread
-self.addEventListener('message', (event) => {
+self.addEventListener("message", (event) => {
   const { type, id, params } = event.data;
 
-  // Add message to queue
   messageQueue.push({ type, id, params });
 
-  // Process queue (will handle priority sorting)
   processQueue();
 });
-
