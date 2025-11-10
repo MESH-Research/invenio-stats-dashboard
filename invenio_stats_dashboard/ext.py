@@ -14,7 +14,14 @@ from invenio_rdm_records.services.components import DefaultRecordsComponents
 from invenio_search.proxies import current_search, current_search_client
 from invenio_theme.proxies import current_theme_icons
 
-from . import config
+from .config import config
+from .records.communities.custom_fields.custom_fields import (
+    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
+)
+from .records.communities.custom_fields.custom_fields import (
+    COMMUNITY_STATS_FIELDS,
+    COMMUNITY_STATS_FIELDS_UI,
+)
 from .services.components import (
     CommunityAcceptedEventComponent,
     RecordCommunityEventComponent,
@@ -22,11 +29,6 @@ from .services.components import (
 )
 from .services.service import CommunityStatsService
 from .services.usage_reindexing import EventReindexingService
-from .records.communities.custom_fields.custom_fields import (
-    COMMUNITY_STATS_FIELDS,
-    COMMUNITY_STATS_FIELDS_UI,
-    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
-)
 
 
 def _ensure_templates_registered(app: Flask) -> None:

@@ -20,7 +20,6 @@ from invenio_search.utils import prefix_index
 from ..config.component_metrics import extract_component_names_from_layout
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
-from ..views.views import get_community_dashboard_layout
 
 
 class CachedResponseService:
@@ -48,7 +47,8 @@ class CachedResponseService:
 
         # Filter for category queries (those ending with "-category")
         category_queries = [
-            query_name for query_name in configured_queries.keys()
+            query_name
+            for query_name in configured_queries.keys()
             if query_name.endswith("-category")
         ]
 
@@ -109,7 +109,7 @@ class CachedResponseService:
             responses = all_responses
 
         results = self._create(responses, progress_callback)
-        results['skipped'] = skipped_count
+        results["skipped"] = skipped_count
         return results
 
     def read(
@@ -237,6 +237,8 @@ class CachedResponseService:
             first_record_year = self._get_first_record_creation_year()
             return list(range(first_record_year, current_year + 1))
         else:
+            from ..views.views import get_community_dashboard_layout
+
             creation_year = self._get_community_creation_year(community_id)
             if not creation_year:
                 creation_year = self._get_first_record_creation_year()
@@ -269,8 +271,8 @@ class CachedResponseService:
             body={
                 "query": {"match_all": {}},
                 "size": 1,
-                "sort": [{"created": {"order": "asc"}}]
-            }
+                "sort": [{"created": {"order": "asc"}}],
+            },
         )
         created_date = first_record["hits"]["hits"][0]["_source"]["created"]
         return int(arrow.get(created_date).year)
@@ -293,8 +295,8 @@ class CachedResponseService:
                 body={
                     "query": {"term": {"community_id": community_id}},
                     "size": 1,
-                    "sort": [{"timestamp": {"order": "asc"}}]
-                }
+                    "sort": [{"timestamp": {"order": "asc"}}],
+                },
             )
 
             if earliest_event["hits"]["total"]["value"] > 0:
@@ -369,8 +371,9 @@ class CachedResponseService:
 
         return responses
 
-    def get_or_create(self, request_data: dict, as_json_bytes: bool = False
-                      ) -> bytes | dict | list:
+    def get_or_create(
+        self, request_data: dict, as_json_bytes: bool = False
+    ) -> bytes | dict | list:
         """Get cached response or generate new one.
 
         Args:

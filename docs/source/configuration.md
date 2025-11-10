@@ -2,8 +2,8 @@
 
 ### Configuration Overrides
 
-The default configuration values are defined in the module's `config.py` file. These defaults can be overridden in the top-level `invenio.cfg` file of
-an InvenioRDM instance or as environment variables.
+The default configuration values are defined in the module's `config/config.py` file. These defaults can be overridden in the
+top-level `invenio.cfg` file of an InvenioRDM instance or as environment variables.
 
 ### Module Enable/Disable
 
