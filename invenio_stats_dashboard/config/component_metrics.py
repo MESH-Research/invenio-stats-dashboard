@@ -36,31 +36,46 @@ COMPONENT_METRICS_REGISTRY = {
             "records": ["ContentStatsChart", "SingleStatRecordCount"],
             "uploaders": ["ContentStatsChart", "SingleStatUploaders"],
             "data_volume": ["ContentStatsChart", "SingleStatDataVolume"],
+            "file_count": ["ContentStatsChart"],
         },
         # All record delta subcounts use only "records" metric
         "publishers": {
-            "records": ["PublishersMultiDisplayDelta"],
+            "records": ["PublishersMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "resource_types": {
-            "records": ["ResourceTypesMultiDisplayDelta"],
+            "records": ["ResourceTypesMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "file_types": {
-            "records": ["FileTypesMultiDisplayDelta"],
+            "records": ["FileTypesMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "rights": {
-            "records": ["RightsMultiDisplayDelta"],
+            "records": ["RightsMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "access_statuses": {
-            "records": ["AccessStatusesMultiDisplayDelta"],
+            "records": ["AccessStatusesMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "funders": {
             "records": ["FundersMultiDisplayDelta"],
         },
         "languages": {
-            "records": ["LanguagesMultiDisplayDelta"],
+            "records": ["LanguagesMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "affiliations": {
-            "records": ["AffiliationsMultiDisplayDelta"],
+            "records": ["AffiliationsMultiDisplayDelta", "ContentStatsChart"],
+            "data_volume": ["ContentStatsChart"],
+            "file_count": ["ContentStatsChart"],
         },
         "subjects": {
             "records": ["SubjectsMultiDisplayDelta"],
@@ -87,28 +102,42 @@ COMPONENT_METRICS_REGISTRY = {
         },
         # All record snapshot subcounts use only "records" metric
         "publishers": {
-            "records": ["PublishersMultiDisplay"],
+            "records": ["PublishersMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "resource_types": {
-            "records": ["ResourceTypesMultiDisplay"],
+            "records": ["ResourceTypesMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "file_types": {
-            "records": ["FileTypesMultiDisplay"],
+            "records": ["FileTypesMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "rights": {
-            "records": ["RightsMultiDisplay"],
+            "records": ["RightsMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "access_statuses": {
-            "records": ["AccessStatusesMultiDisplay"],
+            "records": ["AccessStatusesMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "funders": {
             "records": ["FundersMultiDisplay"],
         },
         "languages": {
-            "records": ["LanguagesMultiDisplay"],
+            "records": ["LanguagesMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "affiliations": {
-            "records": ["AffiliationsMultiDisplay"],
+            "records": ["AffiliationsMultiDisplay", "ContentStatsChartCumulative"],
+            "file_count": ["ContentStatsChartCumulative"],
+            "data_volume": ["ContentStatsChartCumulative"],
         },
         "subjects": {
             "records": ["SubjectsMultiDisplay"],
@@ -119,24 +148,38 @@ COMPONENT_METRICS_REGISTRY = {
     },
     "usage_deltas": {
         "global": {
-            "views": ["TrafficStatsChart", "SingleStatViews"],
-            "downloads": ["TrafficStatsChart", "SingleStatDownloads"],
+            "view_unique_records": ["TrafficStatsChart", "SingleStatViews"],
+            "download_unique_files": ["TrafficStatsChart", "SingleStatDownloads"],
             "data_volume": ["TrafficStatsChart", "SingleStatTraffic"],
         },
         "countries": {
-            "views": ["CountriesMultiDisplayViewsDelta", "StatsMap"],
+            "view_unique_records": ["CountriesMultiDisplayViewsDelta", "StatsMap"],
         },
         "referrers": {
-            "views": ["ReferrersMultiDisplayViewsDelta"],
+            "view_unique_records": ["ReferrersMultiDisplayViewsDelta"],
         },
         # Views breakdowns use view_unique_records
         "publishers": {
-            "view_unique_records": ["PublishersMultiDisplayViewsDelta"],
-            "download_unique_files": ["PublishersMultiDisplayDownloadsDelta"],
+            "view_unique_records": [
+                "PublishersMultiDisplayViewsDelta",
+                "TrafficStatsChart",
+            ],
+            "download_unique_files": [
+                "PublishersMultiDisplayDownloadsDelta",
+                "TrafficStatsChart",
+            ],
+            "data_volume": ["TrafficStatsChart"],
         },
         "affiliations": {
-            "view_unique_records": ["AffiliationsMultiDisplayViewsDelta"],
-            "download_unique_files": ["AffiliationsMultiDisplayDownloadsDelta"],
+            "view_unique_records": [
+                "AffiliationsMultiDisplayViewsDelta",
+                "TrafficStatsChart",
+            ],
+            "download_unique_files": [
+                "AffiliationsMultiDisplayDownloadsDelta",
+                "TrafficStatsChart",
+            ],
+            "data_volume": ["TrafficStatsChart"],
         },
         "funders": {
             "view_unique_records": ["FundersMultiDisplayViewsDelta"],
@@ -147,12 +190,26 @@ COMPONENT_METRICS_REGISTRY = {
             "download_unique_files": ["PeriodicalsMultiDisplayDownloadsDelta"],
         },
         "rights": {
-            "view_unique_records": ["RightsMultiDisplayViewsDelta"],
-            "download_unique_files": ["RightsMultiDisplayDownloadsDelta"],
+            "view_unique_records": [
+                "RightsMultiDisplayViewsDelta",
+                "TrafficStatsChart",
+            ],
+            "download_unique_files": [
+                "RightsMultiDisplayDownloadsDelta",
+                "TrafficStatsChart",
+            ],
+            "data_volume": ["TrafficStatsChart"],
         },
         "languages": {
-            "view_unique_records": ["LanguagesMultiDisplayViewsDelta"],
-            "download_unique_files": ["LanguagesMultiDisplayDownloadsDelta"],
+            "view_unique_records": [
+                "LanguagesMultiDisplayViewsDelta",
+                "TrafficStatsChart",
+            ],
+            "download_unique_files": [
+                "LanguagesMultiDisplayDownloadsDelta",
+                "TrafficStatsChart",
+            ],
+            "data_volume": ["TrafficStatsChart"],
         },
         "subjects": {
             "view_unique_records": ["SubjectsMultiDisplayViewsDelta"],
@@ -163,21 +220,35 @@ COMPONENT_METRICS_REGISTRY = {
             "download_unique_files": ["AccessStatusesMultiDisplayDownloadsDelta"],
         },
         "resource_types": {
-            "view_unique_records": ["ResourceTypesMultiDisplayViewsDelta"],
-            "download_unique_files": ["ResourceTypesMultiDisplayDownloadsDelta"],
+            "view_unique_records": [
+                "ResourceTypesMultiDisplayViewsDelta",
+                "TrafficStatsChart",
+            ],
+            "download_unique_files": [
+                "ResourceTypesMultiDisplayDownloadsDelta",
+                "TrafficStatsChart",
+            ],
+            "data_volume": ["TrafficStatsChart"],
         },
         "file_types": {
-            "view_unique_records": ["FileTypesMultiDisplayViewsDelta"],
-            "download_unique_files": ["FileTypesMultiDisplayDownloadsDelta"],
+            "view_unique_records": [
+                "FileTypesMultiDisplayViewsDelta",
+                "TrafficStatsChart",
+            ],
+            "download_unique_files": [
+                "FileTypesMultiDisplayDownloadsDelta",
+                "TrafficStatsChart",
+            ],
+            "data_volume": ["TrafficStatsChart"],
         },
     },
     "usage_snapshots": {
         "global": {
-            "views": [
+            "view_unique_records": [
                 "TrafficStatsChartCumulative",
                 "SingleStatViewsCumulative",
             ],
-            "downloads": [
+            "download_unique_files": [
                 "TrafficStatsChartCumulative",
                 "SingleStatDownloadsCumulative",
             ],
@@ -187,17 +258,20 @@ COMPONENT_METRICS_REGISTRY = {
             ],
         },
         "countries_by_view": {
-            "views": ["CountriesMultiDisplayViews", "StatsMap"],
+            "view_unique_records": ["CountriesMultiDisplayViews", "StatsMap"],
         },
         "countries_by_download": {
-            "downloads": ["StatsMap"],
+            "download_unique_files": ["StatsMap"],
         },
         # Views breakdowns use view_unique_records
         "publishers_by_view": {
             "view_unique_records": ["PublishersMultiDisplayViews"],
         },
         "affiliations_by_view": {
-            "view_unique_records": ["AffiliationsMultiDisplayViews"],
+            "view_unique_records": [
+                "AffiliationsMultiDisplayViews",
+                "TrafficStatsChartCumulative",
+            ],
         },
         "funders_by_view": {
             "view_unique_records": ["FundersMultiDisplayViews"],
@@ -209,26 +283,42 @@ COMPONENT_METRICS_REGISTRY = {
             "view_unique_records": ["RightsMultiDisplayViews"],
         },
         "languages_by_view": {
-            "view_unique_records": ["LanguagesMultiDisplayViews"],
+            "view_unique_records": [
+                "LanguagesMultiDisplayViews",
+                "TrafficStatsChartCumulative",
+            ],
         },
         "subjects_by_view": {
             "view_unique_records": ["SubjectsMultiDisplayViews"],
         },
         "access_statuses_by_view": {
-            "view_unique_records": ["AccessStatusesMultiDisplayViews"],
+            "view_unique_records": [
+                "AccessStatusesMultiDisplayViews",
+                "TrafficStatsChartCumulative",
+            ],
         },
         "resource_types_by_view": {
-            "view_unique_records": ["ResourceTypesMultiDisplayViews"],
+            "view_unique_records": [
+                "ResourceTypesMultiDisplayViews",
+                "TrafficStatsChartCumulative",
+            ],
         },
         "file_types_by_view": {
-            "view_unique_records": ["FileTypesMultiDisplayViews"],
+            "view_unique_records": [
+                "FileTypesMultiDisplayViews",
+                "TrafficStatsChartCumulative",
+            ],
         },
         # Downloads breakdowns use download_unique_files
         "publishers_by_download": {
             "download_unique_files": ["PublishersMultiDisplayDownloads"],
         },
         "affiliations_by_download": {
-            "download_unique_files": ["AffiliationsMultiDisplayDownloads"],
+            "download_unique_files": [
+                "AffiliationsMultiDisplayDownloads",
+                "TrafficStatsChartCumulative",
+            ],
+            "data_volume": ["TrafficStatsChartCumulative"],
         },
         "funders_by_download": {
             "download_unique_files": ["FundersMultiDisplayDownloads"],
@@ -237,22 +327,41 @@ COMPONENT_METRICS_REGISTRY = {
             "download_unique_files": ["PeriodicalsMultiDisplayDownloads"],
         },
         "rights_by_download": {
-            "download_unique_files": ["RightsMultiDisplayDownloads"],
+            "download_unique_files": [
+                "RightsMultiDisplayDownloads",
+                "TrafficStatsChartCumulative",
+            ],
+            "data_volume": ["TrafficStatsChartCumulative"],
         },
         "languages_by_download": {
-            "download_unique_files": ["LanguagesMultiDisplayDownloads"],
+            "download_unique_files": [
+                "LanguagesMultiDisplayDownloads",
+                "TrafficStatsChartCumulative",
+            ],
+            "data_volume": ["TrafficStatsChartCumulative"],
         },
         "subjects_by_download": {
             "download_unique_files": ["SubjectsMultiDisplayDownloads"],
         },
         "access_statuses_by_download": {
-            "download_unique_files": ["AccessStatusesMultiDisplayDownloads"],
+            "download_unique_files": [
+                "AccessStatusesMultiDisplayDownloads",
+                "TrafficStatsChartCumulative",
+            ],
+            "data_volume": ["TrafficStatsChartCumulative"],
         },
         "resource_types_by_download": {
-            "download_unique_files": ["ResourceTypesMultiDisplayDownloads"],
+            "download_unique_files": [
+                "ResourceTypesMultiDisplayDownloads",
+                "TrafficStatsChartCumulative",
+            ],
         },
         "file_types_by_download": {
-            "download_unique_files": ["FileTypesMultiDisplayDownloads"],
+            "download_unique_files": [
+                "FileTypesMultiDisplayDownloads",
+                "TrafficStatsChartCumulative",
+            ],
+            "data_volume": ["TrafficStatsChartCumulative"],
         },
     },
 }
@@ -346,8 +455,7 @@ def get_required_metrics_for_category(
                 filtered_metrics = set()
                 for metric, components_using_metric in metrics_dict.items():
                     if any(
-                        comp in component_names_set
-                        for comp in components_using_metric
+                        comp in component_names_set for comp in components_using_metric
                     ):
                         filtered_metrics.add(metric)
                 required_metrics[subcount] = filtered_metrics
@@ -415,9 +523,7 @@ def validate_registry() -> dict[str, list[str]]:
     for category, subcounts in COMPONENT_METRICS_REGISTRY.items():
         for subcount, metrics in subcounts.items():
             if not metrics:
-                warnings.append(
-                    f"Empty metrics dict for {category}.{subcount}"
-                )
+                warnings.append(f"Empty metrics dict for {category}.{subcount}")
             for metric, components in metrics.items():
                 if not components:
                     warnings.append(

@@ -38,8 +38,8 @@ const CountriesMultiDisplayViews = ({
   }, [dateRange]);
 
   // Extract and process countries data
-  const rawCountries = extractData(stats, null, 'countriesByView', 'views', dateRange, false, true);
-  const globalData = extractData(stats, null, 'global', 'views', dateRange, false, true);
+  const rawCountries = extractData(stats, null, 'countriesByView', 'viewUniqueRecords', dateRange, false, true);
+  const globalData = extractData(stats, null, 'global', 'viewUniqueRecords', dateRange, false, true);
 
   const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformCountryMultiDisplayData(
     rawCountries,

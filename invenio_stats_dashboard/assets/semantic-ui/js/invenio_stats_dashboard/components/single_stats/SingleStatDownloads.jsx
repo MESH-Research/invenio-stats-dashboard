@@ -32,7 +32,7 @@ const SingleStatDownloads = ({
 
   // Extract downloads value using the helper function
   const value = useMemo(() => {
-    return extractUsageDeltaValue(stats, "downloads", "global", dateRange);
+    return extractUsageDeltaValue(stats, "downloadUniqueFiles", "global", dateRange);
   }, [stats, dateRange]);
 
   return (

@@ -31,8 +31,8 @@ const TrafficStatsChart = ({ title = undefined, height = 300, chartType = "line"
   }, [stats]);
 
   const seriesSelectorOptions = [
-    { value: 'views', text: i18next.t('Unique Views') },
-    { value: 'downloads', text: i18next.t('Unique Downloads') },
+    { value: 'viewUniqueRecords', text: i18next.t('Unique Views') },
+    { value: 'downloadUniqueFiles', text: i18next.t('Unique Downloads') },
     { value: 'dataVolume', text: i18next.t('Downloaded Data'), valueType: 'filesize' }
   ];
 

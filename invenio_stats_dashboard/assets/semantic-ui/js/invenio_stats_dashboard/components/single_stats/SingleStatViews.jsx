@@ -32,7 +32,7 @@ const SingleStatViews = ({
 
   // Extract views value using the helper function
   const value = useMemo(() => {
-    return extractUsageDeltaValue(stats, "views", "global", dateRange);
+    return extractUsageDeltaValue(stats, "viewUniqueRecords", "global", dateRange);
   }, [stats, dateRange]);
 
   return (

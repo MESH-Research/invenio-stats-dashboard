@@ -26,7 +26,7 @@ const SingleStatDownloadsCumulative = ({ title = i18next.t("Cumulative Downloads
   const value = useMemo(() => {
     return extractUsageSnapshotValue(
       stats,
-      'downloads',
+      'downloadUniqueFiles',
       'global',
       dateRange
     );

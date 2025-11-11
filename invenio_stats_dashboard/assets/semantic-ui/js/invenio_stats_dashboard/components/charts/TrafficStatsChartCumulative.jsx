@@ -29,8 +29,8 @@ const TrafficStatsChartCumulative = ({ title = undefined, height = 300, chartTyp
   }, [stats]);
 
   const seriesSelectorOptions = [
-    { value: 'views', text: i18next.t('Cumulative Views') },
-    { value: 'downloads', text: i18next.t('Cumulative Downloads') },
+    { value: 'viewUniqueRecords', text: i18next.t('Cumulative Views') },
+    { value: 'downloadUniqueFiles', text: i18next.t('Cumulative Downloads') },
     { value: 'dataVolume', text: i18next.t('Cumulative Downloaded Data'), valueType: 'filesize' }
   ];
 

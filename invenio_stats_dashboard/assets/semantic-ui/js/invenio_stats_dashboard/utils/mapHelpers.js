@@ -101,15 +101,17 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
   const allCountriesData = relevantYearlyStats.flatMap(yearlyStats => {
     let seriesArray = [];
     if (useSnapshot) {
-      if (metric === 'views' && yearlyStats.usageSnapshotData?.countriesByView?.views) {
-        seriesArray = yearlyStats.usageSnapshotData.countriesByView.views;
-      } else if (metric === 'downloads' && yearlyStats.usageSnapshotData?.countriesByDownload?.downloads) {
-        seriesArray = yearlyStats.usageSnapshotData.countriesByDownload.downloads;
+      if (metric === 'views' && yearlyStats.usageSnapshotData?.countriesByView?.viewUniqueRecords) {
+        seriesArray = yearlyStats.usageSnapshotData.countriesByView.viewUniqueRecords;
+      } else if (metric === 'downloads' && yearlyStats.usageSnapshotData?.countriesByDownload?.downloadUniqueFiles) {
+        seriesArray = yearlyStats.usageSnapshotData.countriesByDownload.downloadUniqueFiles;
       } else if (yearlyStats.usageSnapshotData?.countries?.[metric]) {
         seriesArray = yearlyStats.usageSnapshotData.countries[metric];
       }
     } else {
-      seriesArray = yearlyStats.usageDeltaData?.countries?.[metric] || [];
+      // For delta data, map old metric names to new ones
+      const deltaMetric = metric === 'views' ? 'viewUniqueRecords' : metric === 'downloads' ? 'downloadUniqueFiles' : metric;
+      seriesArray = yearlyStats.usageDeltaData?.countries?.[deltaMetric] || [];
     }
     // Convert MM-DD dates to full YYYY-MM-DD format before merging years
     return seriesArray.map(series => ({

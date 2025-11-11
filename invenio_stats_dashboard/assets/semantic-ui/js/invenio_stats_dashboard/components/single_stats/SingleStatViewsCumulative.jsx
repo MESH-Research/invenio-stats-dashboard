@@ -25,7 +25,7 @@ const SingleStatViewsCumulative = ({ title = i18next.t("Cumulative Views"), icon
   // Extract cumulative views value using the helper function
   const value = extractUsageSnapshotValue(
     stats,
-    'views',
+    'viewUniqueRecords',
     'global',
     dateRange
   );

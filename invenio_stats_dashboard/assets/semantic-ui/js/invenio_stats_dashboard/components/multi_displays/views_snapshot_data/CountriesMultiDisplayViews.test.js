@@ -77,7 +77,7 @@ describe('CountriesMultiDisplayViews', () => {
         year: 2024,
         usageSnapshotData: {
           countriesByView: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'united-states',
                 name: 'United States',
@@ -682,7 +682,7 @@ describe('CountriesMultiDisplayViews', () => {
           year: 2024,
           usageSnapshotData: {
             countriesByView: {
-              views: [
+              viewUniqueRecords: [
                 {
                   id: 'united-states',
                   name: 'United States',
@@ -758,7 +758,7 @@ describe('CountriesMultiDisplayViews', () => {
           year: 2024,
           usageSnapshotData: {
             countriesByView: {
-              views: []
+              viewUniqueRecords: []
             }
           }
         }],
