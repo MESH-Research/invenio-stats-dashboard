@@ -230,6 +230,10 @@ class CachedResponse:
         content type. This ensures consistent key generation across the
         application.
 
+        Note: optimize and component_names are excluded from cache key
+        generation as they are filtering parameters that aren't usually
+        used by the client. So the client won't use them to request the data.
+
         Args:
             content_type: Content type for the response
             request_data: Full request data dict
@@ -244,7 +248,19 @@ class CachedResponse:
                 "STATS_CACHE_PREFIX", "stats_dashboard"
             )
 
-        key_data: dict[str, Any] = {"request_data": request_data}
+        # Create a normalized copy of request_data excluding filtering parameters
+        # Standard structure: {"stat": category, "params": {...}}
+        params = request_data.get("params", {}).copy()
+        # Remove filtering parameters that shouldn't affect cache key
+        params.pop("optimize", None)
+        params.pop("component_names", None)
+
+        normalized_request_data = {
+            "stat": request_data["stat"],
+            "params": params
+        }
+
+        key_data: dict[str, Any] = {"request_data": normalized_request_data}
         if content_type:
             key_data["content_type"] = content_type
 

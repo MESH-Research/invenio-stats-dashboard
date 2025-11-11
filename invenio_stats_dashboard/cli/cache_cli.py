@@ -213,15 +213,14 @@ def clear_item_cache_command(
     """
     cache = StatsCache()
 
-    # Build request_data structure for key generation
+    # Build request_data structure for key generation (matching __init__ structure)
     request_data = {
-        stat_name: {
-            "params": {
-                "community_id": community_id,
-                "start_date": start_date or "",
-                "end_date": end_date or "",
-                "date_basis": date_basis,
-            }
+        "stat": stat_name,
+        "params": {
+            "community_id": community_id,
+            "start_date": start_date or "",
+            "end_date": end_date or "",
+            "date_basis": date_basis,
         }
     }
 
@@ -379,7 +378,8 @@ def test_cache_command(community_id, stat_name):
     cache = StatsCache(cache_prefix="stats_test")
 
     test_request_data = {
-        "test_stat": {"params": {"community_id": "global", "stat_name": "test"}}
+        "stat": "test_stat",
+        "params": {"community_id": "global", "stat_name": "test"}
     }
 
     # Test data
@@ -576,7 +576,7 @@ def generate_cache_command(
                 task = generate_cached_responses_task.delay(  # type: ignore
                     community_ids=community_ids,
                     years=years_param,
-                    force=force,
+                    overwrite=overwrite,
                     async_mode=True,
                     current_year_only=False,
                 )
@@ -589,7 +589,7 @@ def generate_cache_command(
                 all_responses = service._generate_all_response_objects(
                     community_ids, service._normalize_years(years_param, community_ids)
                 )
-                if not force:
+                if not overwrite:
                     responses_to_process = [
                         r
                         for r in all_responses
@@ -615,7 +615,7 @@ def generate_cache_command(
                     results = service.create(
                         community_ids=community_ids,
                         years=years_param,
-                        force=force,
+                        overwrite=overwrite,
                         progress_callback=progress_callback,
                     )
 

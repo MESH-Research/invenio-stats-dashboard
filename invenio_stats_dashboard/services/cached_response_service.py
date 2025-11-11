@@ -63,7 +63,7 @@ class CachedResponseService:
         self,
         community_ids: str | list[str] | None = None,
         years: int | list[int] | str | None = None,
-        force: bool = False,
+        overwrite: bool = False,
         async_mode: bool = False,
         progress_callback: Callable | None = None,
         optimize: bool | None = None,
@@ -73,7 +73,7 @@ class CachedResponseService:
         Args:
             community_ids: str, list, or None - Community IDs to process
             years: int, list, str, or None - Years to process
-            force: bool - Overwrite existing cache
+            overwrite: bool - Overwrite existing cache
             async_mode: bool - Whether to use async Celery tasks (not implemented yet)
             progress_callback: Callable - Optional callback function for progress
                 updates. Called with (current, total, message) parameters
@@ -94,7 +94,7 @@ class CachedResponseService:
         all_responses = self._generate_all_response_objects(
             community_ids, years_per_community, optimize=optimize
         )
-        if not force:
+        if not overwrite:
             skipped_count = 0
             responses_to_process = []
             for response in all_responses:
@@ -105,6 +105,8 @@ class CachedResponseService:
             responses = responses_to_process
         else:
             skipped_count = 0
+            for response in all_responses:
+                self.delete(response.community_id, response.year, response.category)
             responses = all_responses
 
         results = self._create(responses, progress_callback)

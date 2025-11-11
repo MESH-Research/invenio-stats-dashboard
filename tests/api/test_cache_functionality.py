@@ -17,7 +17,7 @@ from invenio_stats_dashboard.resources.cache_utils import StatsCache
 @pytest.fixture
 def stats_cache():
     """StatsCache instance using real Redis with automatic cleanup.
-    
+
     Yields:
         StatsCache: The configured cache instance.
     """
@@ -30,7 +30,7 @@ def stats_cache():
 @pytest.fixture
 def sample_data():
     """Sample data for testing.
-    
+
     Returns:
         dict: Sample data dictionary.
     """
@@ -48,24 +48,22 @@ def test_cache_key_generation(running_app, db):
     """Test cache key generation using CachedResponse."""
     # Test that same parameters generate same key
     request_data1 = {
-        "record_delta": {
-            "params": {
-                "community_id": "global",
-                "start_date": "2024-01-01",
-                "end_date": "2024-01-31",
-                "date_basis": "added",
-            }
+        "stat": "record_delta",
+        "params": {
+            "community_id": "global",
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31",
+            "date_basis": "added",
         }
     }
 
     request_data2 = {
-        "record_delta": {
-            "params": {
-                "community_id": "global",
-                "start_date": "2024-01-01",
-                "end_date": "2024-01-31",
-                "date_basis": "added",
-            }
+        "stat": "record_delta",
+        "params": {
+            "community_id": "global",
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31",
+            "date_basis": "added",
         }
     }
 
@@ -78,13 +76,12 @@ def test_cache_key_generation(running_app, db):
 
     # Different parameters should generate different keys
     request_data3 = {
-        "record_delta": {
-            "params": {
-                "community_id": "community-123",
-                "start_date": "2024-01-01",
-                "end_date": "2024-01-31",
-                "date_basis": "added",
-            }
+        "stat": "record_delta",
+        "params": {
+            "community_id": "community-123",
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31",
+            "date_basis": "added",
         }
     }
 
