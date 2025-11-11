@@ -149,7 +149,7 @@ const fetchStatsWithYearlyBlocks = async ({
     });
 
     const missingBlocks = findMissingBlocks(startDate, endDate, currentStats);
-    const blocksAreStale = false;
+    let blocksAreStale = false;
 
     if (missingBlocks.length === 0) {
       // All data already in memory, nothing fetched - don't update timestamps

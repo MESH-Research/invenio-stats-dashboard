@@ -827,6 +827,7 @@ const StatsChart = ({
     const options = {
       ...finalConfig,
     };
+    console.log("chartOptions", options);
 
     return options;
   }, [

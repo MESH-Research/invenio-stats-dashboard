@@ -117,6 +117,8 @@ export class ChartDataAggregator {
       }
 
       const key = this.createAggregationKey(date, granularity);
+      console.log("key", key);
+      console.log("value", value);
 
       if (!aggregatedPoints.has(key)) {
         const dateForReadable = this.createDateForReadable(key, granularity);
@@ -187,7 +189,7 @@ export const calculateYAxisMin = (data) => {
   if (!data || data.length === 0) return 0;
 
   const allValues = data.flatMap(
-    (series) => series.data.map((point) => point[1]), // numeric value from [date, value]
+    (series) => series.data.map((point) => point.value[1]), // numeric value from [date, value]
   );
 
   const [min, max] = [Math.min(...allValues), Math.max(...allValues)];
@@ -224,7 +226,7 @@ export const calculateYAxisMax = (data, isStacked = true) => {
   data.forEach((series) => {
     if (series.data) {
       series.data.forEach((point) => {
-        const timestamp = getTimestamp(point[0]);
+        const timestamp = getTimestamp(point.value[0]);
         if (timestamp !== null) {
           timePoints.add(timestamp);
         }
@@ -240,10 +242,10 @@ export const calculateYAxisMax = (data, isStacked = true) => {
         return data.reduce((sum, series) => {
           if (!series.data) return sum;
           const point = series.data.find((p) => {
-            const timestamp = getTimestamp(p[0]);
+            const timestamp = getTimestamp(p.value[0]);
             return timestamp === timePoint;
           });
-          return sum + (point ? point[1] : 0);
+          return sum + (point ? point.value[1] : 0);
         }, 0);
       }),
     );
@@ -253,7 +255,7 @@ export const calculateYAxisMax = (data, isStacked = true) => {
   } else {
     // For overlapping mode, find the maximum individual value across all series
     const allValues = data.flatMap(
-      (series) => series.data?.map((point) => point[1]) || [],
+      (series) => series.data?.map((point) => point.value[1]) || [],
     );
 
     if (allValues.length === 0) return undefined;
@@ -273,7 +275,7 @@ export const calculateYAxisMax = (data, isStacked = true) => {
 const filterNonZeroSeries = (seriesArray) => {
   return seriesArray.filter(series => {
     if (!series.data || !Array.isArray(series.data)) return false;
-    return series.data.some(point => (point[1] || 0) > 0);
+    return series.data.some(point => point && (point[1] || 0) > 0);
   });
 };
 
@@ -319,8 +321,21 @@ const selectTopSeries = (seriesArray, maxSeries, isCumulative = false) => {
  * @param {boolean} isCumulative - Whether data is cumulative
  * @returns {Object|null} "Other" series object or null if not needed
  */
-const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSeries, dateRange, isCumulative) => {
-  if (!data || !Array.isArray(data) || !displaySeparately || !visibleSeries || visibleSeries.length === 0) {
+const calculateOtherSeries = (
+  data,
+  selectedMetric,
+  displaySeparately,
+  visibleSeries,
+  dateRange,
+  isCumulative,
+) => {
+  if (
+    !data ||
+    !Array.isArray(data) ||
+    !displaySeparately ||
+    !visibleSeries ||
+    visibleSeries.length === 0
+  ) {
     return null;
   }
 
@@ -332,8 +347,8 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
         ...series,
         data: series.data?.map(dataPoint => {
           const [date, value] = dataPoint;
-          return yearlyData.year
-            ? [reconstructDateFromMMDD(date, yearlyData.year), value]
+          return series.year
+            ? [reconstructDateFromMMDD(date, series.year), value]
             : dataPoint;
         })
       }));
@@ -351,12 +366,20 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   // Use the first global series as our reference
   const globalSeriesData = mergedGlobalSeries[0];
 
-  if (!globalSeriesData || !globalSeriesData.data || globalSeriesData.data.length === 0) {
+  if (
+    !globalSeriesData ||
+    !globalSeriesData.data ||
+    globalSeriesData.data.length === 0
+  ) {
     return null;
   }
 
   // Filter global series by date range (always get all data points, not just latest)
-  const filteredGlobalSeries = filterSeriesArrayByDate([globalSeriesData], dateRange, false);
+  const filteredGlobalSeries = filterSeriesArrayByDate(
+    [globalSeriesData],
+    dateRange,
+    false,
+  );
 
   if (filteredGlobalSeries.length === 0 || !filteredGlobalSeries[0].data) {
     return null;
@@ -378,26 +401,33 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
           ...series,
           data: series.data?.map(dataPoint => {
             const [date, value] = dataPoint;
-            return yearlyData.year
-              ? [reconstructDateFromMMDD(date, yearlyData.year), value]
+            return series.year
+              ? [reconstructDateFromMMDD(date, series.year), value]
               : dataPoint;
           })
         }));
       })
       .flat();
 
-    const mergedBreakdownSeries = ChartDataProcessor.mergeSeriesById(allBreakdownSeries);
+    const mergedBreakdownSeries =
+      ChartDataProcessor.mergeSeriesById(allBreakdownSeries);
 
     // Create a combined map of all "other" ID values by date
     const otherValuesByDate = new Map();
 
     // Process each ID that should be treated as "other"
-    otherIds.forEach(otherId => {
-      const otherSeries = mergedBreakdownSeries.find(series => series.id === otherId);
+    otherIds.forEach((otherId) => {
+      const otherSeries = mergedBreakdownSeries.find(
+        (series) => series.id === otherId,
+      );
 
       if (otherSeries && otherSeries.data) {
         // Filter series by date range
-        const filteredOtherSeries = filterSeriesArrayByDate([otherSeries], dateRange, false);
+        const filteredOtherSeries = filterSeriesArrayByDate(
+          [otherSeries],
+          dateRange,
+          false,
+        );
 
         if (filteredOtherSeries.length > 0 && filteredOtherSeries[0].data) {
           // Add values to the combined map
@@ -494,8 +524,8 @@ export class ChartDataProcessor {
           ...series,
           data: series.data?.map(dataPoint => {
             const [date, value] = dataPoint;
-            return yearlyData.year
-              ? [reconstructDateFromMMDD(date, yearlyData.year), value]
+            return series.year
+              ? [reconstructDateFromMMDD(date, series.year), value]
               : dataPoint;
           })
         }));
@@ -592,7 +622,11 @@ export class ChartDataProcessor {
 
       // Select top N series for display
       // Pass isCumulative so snapshot data uses latest value instead of summing
-      const visibleSeries = selectTopSeries(seriesForSelection, maxSeries, isCumulative);
+      const visibleSeries = selectTopSeries(
+        seriesForSelection,
+        maxSeries,
+        isCumulative,
+      );
 
       // Use only the visible series for display
       displaySeries = visibleSeries;
@@ -784,42 +818,6 @@ export class ChartDataProcessor {
       };
     });
   }
-
-  /**
-   * Limits the number of series by selecting the top N series by total value.
-   *
-   * @param {Array} series - Array of series objects to limit
-   * @param {number|undefined} maxSeries - Maximum number of series to return
-   * @returns {Array} Limited array of series, sorted by total value (descending)
-   */
-  static limitSeriesByCount(series, maxSeries) {
-    if (!maxSeries || maxSeries <= 0 || series.length <= maxSeries) {
-      return series;
-    }
-
-    // Sort series by total value (sum of all data points) in descending order
-    const sortedSeries = series
-      .map((seriesItem) => {
-        const totalValue =
-          seriesItem.data?.reduce(
-            (sum, point) => sum + (point[1] || 0),
-            0,
-          ) || 0;
-        return { ...seriesItem, totalValue };
-      })
-      .sort((a, b) => b.totalValue - a.totalValue);
-
-    // Take only the top maxSeries series
-    const limitedSeries = sortedSeries
-      .slice(0, maxSeries)
-      .map(({ totalValue, ...seriesItem }) => seriesItem);
-
-    console.log(
-      `Limited series from ${series.length} to ${limitedSeries.length} (maxSeries: ${maxSeries})`,
-    );
-
-    return limitedSeries;
-  }
 }
 
 /**
@@ -918,8 +916,6 @@ export const mergeSeriesById =
   ChartDataProcessor.mergeSeriesById.bind(ChartDataProcessor);
 export const addSeriesNames =
   ChartDataProcessor.addSeriesNames.bind(ChartDataProcessor);
-export const limitSeriesByCount =
-  ChartDataProcessor.limitSeriesByCount.bind(ChartDataProcessor);
 export const fillMissingPoints =
   ChartDataProcessor.fillMissingPoints.bind(ChartDataProcessor);
 export const sortSeries =
