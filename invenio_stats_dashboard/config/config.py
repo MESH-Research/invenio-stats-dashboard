@@ -157,8 +157,8 @@ STATS_DASHBOARD_UI_CONFIG = {
     "community": {
         "title": _("Statistics"),
         "description": _("This is the community stats dashboard."),
-        "maxHistoryYears": 15,
-        "default_granularity": "month",
+        "maxHistoryYears": 10,
+        "default_granularity": "week",
         "show_title": True,
         "show_description": False,
     },
