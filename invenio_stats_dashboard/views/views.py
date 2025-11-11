@@ -79,6 +79,9 @@ def global_stats_dashboard():
     Returns:
         str: Rendered HTML template for the global stats dashboard.
     """
+    # Force CSRF cookie to be set for API requests made by the dashboard
+    request.csrf_cookie_needs_reset = True
+
     return render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["global"],
         dashboard_config={
@@ -129,6 +132,9 @@ def community_stats_dashboard(
     permissions = community.has_permissions_to(HEADER_PERMISSIONS)
     if not permissions["can_read"]:
         raise PermissionDeniedError()
+
+    # Force CSRF cookie to be set for API requests made by the SPA
+    request.csrf_cookie_needs_reset = True
 
     return str(render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
