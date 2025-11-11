@@ -198,9 +198,10 @@ class ChartConfigBuilder {
     return this;
   }
 
-  withGrid(showGrid, gridConfig) {
+  withGrid(showGrid, gridConfig, valueType) {
+    const gridLeft = (valueType === "filesize") ? "100px" : "80px";
     if (showGrid) {
-      this.config.grid = gridConfig || GRID_CONFIG;
+      this.config.grid = gridConfig || {...GRID_CONFIG, left: gridLeft};
     } else {
       this.config.grid = undefined;
     }
@@ -219,6 +220,7 @@ class ChartConfigBuilder {
     yAxisMax,
     selectedMetric,
     seriesSelectorOptions,
+    valueType,
   ) {
     this.config.xAxis = {
       ...CHART_CONFIG.xAxis,
@@ -240,6 +242,7 @@ class ChartConfigBuilder {
     this.config.yAxis = {
       ...CHART_CONFIG.yAxis,
       name: showAxisLabels ? yAxisLabel || seriesYAxisLabel : undefined,
+      ...(valueType === "filesize" ? {nameGap: 80} : {}),
       min: yAxisMin,
       max: yAxisMax,
       splitLine: {
@@ -252,9 +255,7 @@ class ChartConfigBuilder {
       axisLabel: {
         ...CHART_CONFIG.yAxis.axisLabel,
         formatter: (value) => {
-          // Find the selected metric's valueType from seriesSelectorOptions
-          const selectedOption = seriesSelectorOptions?.find(option => option.value === selectedMetric);
-          const valueType = selectedOption?.valueType || 'number';
+          const valueType = valueType || 'number';
 
           return formatNumber(
             value,
@@ -677,6 +678,7 @@ const StatsChart = ({
     seriesSelectorOptions?.[0]?.value,
   );
   const [displaySeparately, setDisplaySeparately] = useState(null);
+  const chartRef = useRef(null);
 
   // Determine effective default line display mode
   const getEffectiveDefaultLineDisplay = useMemo(() => {
@@ -752,8 +754,6 @@ const StatsChart = ({
     data, // Add data to dependencies
   ]);
 
-  console.log("aggregatedData", aggregatedData);
-
   const seriesColorIndex = useMemo(
     () =>
       seriesSelectorOptions?.findIndex(
@@ -797,7 +797,7 @@ const StatsChart = ({
 
     const finalConfig = new ChartConfigBuilder(baseConfig)
       .withTooltip(showTooltip, tooltipConfig)
-      .withGrid(showGrid, gridConfig)
+      .withGrid(showGrid, gridConfig, aggregatedData[0]?.valueType)
       .withAxisLabels(
         showAxisLabels,
         xAxisLabel,
@@ -810,6 +810,7 @@ const StatsChart = ({
         yAxisMax,
         selectedMetric,
         seriesSelectorOptions,
+        aggregatedData[0]?.valueType,
       )
       .withLegend(showLegend, displaySeparately)
       .withSeries(
@@ -827,7 +828,6 @@ const StatsChart = ({
     const options = {
       ...finalConfig,
     };
-    console.log("chartOptions", options);
 
     return options;
   }, [
@@ -854,6 +854,22 @@ const StatsChart = ({
 
   // ReactECharts handles option updates automatically when props change
   // No need for manual chart instance management
+
+  // Cleanup: dispose chart instance on unmount
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        try {
+          const chartInstance = chartRef.current.getEchartsInstance();
+          if (chartInstance && !chartInstance.isDisposed()) {
+            chartInstance.dispose();
+          }
+        } catch (error) {
+          console.debug("Chart dispose error:", error);
+        }
+      }
+    };
+  }, []);
 
   return (
     <Container fluid>
@@ -950,6 +966,7 @@ const StatsChart = ({
             </div>
           ) : (
             <ReactECharts
+              ref={chartRef}
               key={`${selectedMetric}-${displaySeparately}-${granularity}`}
               option={chartOptions}
               notMerge={true}
