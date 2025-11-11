@@ -30,16 +30,6 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
   // Get current quarter start date
   const quarterStartMonth = currentQuarterIndex * 3 + 1;
 
-  // Debug logging for quarter calculation
-  if (period === "currentQuarter") {
-    console.log("Current quarter calculation debug:");
-    console.log("todayDate:", todayDate.toISOString());
-    console.log("currentMonth (1-indexed):", currentMonth);
-    console.log("currentQuarterIndex (0-3):", currentQuarterIndex);
-    console.log("Expected quarter:", currentQuarterIndex + 1);
-    console.log("quarterStartMonth:", quarterStartMonth);
-  }
-
   switch (period) {
     case "allTime":
       startDate = setDateParts(addYears(todayDate, -maxHistoryYears), {
@@ -111,12 +101,6 @@ const getDateRange = (todayDate, period, maxHistoryYears) => {
         -1,
       );
 
-      // Debug logging for current quarter date range
-      console.log("Current quarter date range:");
-      console.log("startDate:", startDate.toISOString());
-      console.log("endDate:", endDate.toISOString());
-      console.log("quarterStartMonth:", quarterStartMonth);
-      console.log("quarterEndMonth:", quarterEndMonth);
       break;
     case "previousQuarter":
       // Get previous quarter's start month (1-12)
@@ -978,7 +962,6 @@ const DateRangeSelector = ({
   useEffect(() => {
     if (!dateRange) {
       const defaultPeriod = defaultRangeOptions?.[granularity] || "yearToDate";
-      console.log("defaultPeriod", defaultPeriod);
       const initialDateRange = getDateRange(
         todayDate,
         defaultPeriod,
