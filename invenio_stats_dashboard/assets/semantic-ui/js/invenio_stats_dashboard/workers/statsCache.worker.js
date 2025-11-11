@@ -220,7 +220,7 @@ const evictOldestEntries = async (db, countToEvict) => {
  *     success: true,
  *     cacheKey: string,
  *     compressed: boolean,
- *     compressedRatio: number,
+ *     objectSize: number,
  *   }
  *   or
  *   { success: false, error: string }
@@ -279,7 +279,7 @@ const handleUpdateCachedStats = async (params) => {
  *     success: true,
  *     cacheKey: string,
  *     compressed: boolean,
- *     compressedRatio: number,
+ *     objectSize: number,
  *   }
  *   or
  *   { success: false, error: string }
@@ -318,12 +318,14 @@ const handleSetCachedStats = async (params) => {
     // Conditionally compress based on config
     let dataToStore;
     let compressed = false;
-    let originalSize = null;
-    let compressedSize = null;
+    let objectSize = null;
+
+    // Always calculate object size for storage tracking
+    const jsonString = JSON.stringify(transformedData);
+    objectSize = jsonString.length;
 
     if (cacheCompressedJson) {
       // When compression is enabled: stringify, compress, store as ArrayBuffer
-      const jsonString = JSON.stringify(transformedData);
       const compressedData = pako.gzip(jsonString);
       const arrayBuffer = compressedData.buffer.slice(
         compressedData.byteOffset,
@@ -331,8 +333,6 @@ const handleSetCachedStats = async (params) => {
       );
       dataToStore = arrayBuffer;
       compressed = true;
-      originalSize = jsonString.length;
-      compressedSize = compressedData.length;
     } else {
       // When compression is disabled: store object directly (IndexedDB handles it natively)
       dataToStore = transformedData;
@@ -380,8 +380,7 @@ const handleSetCachedStats = async (params) => {
       blockEndDate,
       year: cacheYear,
       compressed: compressed, // Flag to indicate if data is compressed
-      originalSize: originalSize, // Only set when compressed
-      compressedSize: compressedSize, // Only set when compressed
+      objectSize: objectSize, // Size of the JSON-serialized object (always stored)
       version: "2.0",
       // Store server fetch time for current year (used for "last updated" display)
       serverFetchTimestamp: isCurrent ? timestamp : null,
@@ -408,8 +407,7 @@ const handleSetCachedStats = async (params) => {
       success: true,
       cacheKey,
       compressed: compressed,
-      compressedRatio:
-        compressed && originalSize ? compressedSize / originalSize : 1.0,
+      objectSize: objectSize,
     };
   } catch (error) {
     return { success: false, error: error.message };

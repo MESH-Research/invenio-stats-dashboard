@@ -48,7 +48,7 @@ const getWorker = () => {
         pendingMessages.delete(id);
         if (result.success) {
           // GET_CACHED_STATS needs: data, serverFetchTimestamp, year
-          // SET_CACHED_STATS needs: cacheKey, compressed (optional), compressedRatio (optional)
+          // SET_CACHED_STATS needs: cacheKey, compressed (optional), objectSize (optional)
           // CLEAR operations return: success
           pending.resolve(result);
         } else {
@@ -133,9 +133,9 @@ export const setCachedStats = async (
       compressionEnabled,
     });
 
-    if (result.compressed && result.compressedRatio) {
+    if (result.objectSize) {
       console.log(
-        `Successfully cached stats data: ${result.cacheKey} (compression: ${(result.compressedRatio * 100).toFixed(1)}%)`,
+        `Successfully cached stats data: ${result.cacheKey} (size: ${(result.objectSize / 1024).toFixed(2)} KB)`,
       );
     } else {
       console.log(`Successfully cached stats data: ${result.cacheKey}`);

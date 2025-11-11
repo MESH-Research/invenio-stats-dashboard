@@ -429,16 +429,19 @@ describe('StatsCache Worker', () => {
         const timestamp = Date.now();
         const cacheYear = year || (startDate ? parseInt(startDate.substring(0, 4), 10) : null);
 
+        // Always calculate object size
+        const jsonString = JSON.stringify(transformedData);
+        const objectSize = jsonString.length;
+
         // When compression is enabled: stringify, compress, store as ArrayBuffer
         if (compressionEnabled) {
-          const jsonString = JSON.stringify(transformedData);
           const compressedData = new TextEncoder().encode(jsonString); // Mock compression
           const arrayBuffer = compressedData.buffer;
           return {
             success: true,
             cacheKey,
             compressed: true,
-            compressedRatio: compressedData.length / jsonString.length,
+            objectSize: objectSize,
           };
         }
 
@@ -446,6 +449,7 @@ describe('StatsCache Worker', () => {
           success: true,
           cacheKey,
           compressed: false,
+          objectSize: objectSize,
         };
       };
 
@@ -464,8 +468,7 @@ describe('StatsCache Worker', () => {
       expect(result.cacheKey).toContain('test-com');
       expect(result.cacheKey).toContain('community');
       expect(result.compressed).toBe(true);
-      expect(result.compressedRatio).toBeGreaterThan(0);
-      expect(result.compressedRatio).toBeLessThanOrEqual(1);
+      expect(result.objectSize).toBeGreaterThan(0);
     });
 
     it('should handle GET_CACHED_STATS message type with uncompressed object', async () => {
