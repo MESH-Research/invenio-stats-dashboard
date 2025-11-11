@@ -135,6 +135,23 @@ const StatsMultiDisplay = ({
     };
   }, [viewMode, effectiveHasData, isLoading]);
 
+  // Cleanup: dispose chart instance on unmount
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        try {
+          const chartInstance = chartRef.current.getEchartsInstance();
+          if (chartInstance && !chartInstance.isDisposed()) {
+            chartInstance.dispose();
+          }
+        } catch (error) {
+          // Silently handle errors if chart instance is not available
+          console.debug("Chart dispose error:", error);
+        }
+      }
+    };
+  }, []);
+
   // Handle chart ready callback to resize when chart is first initialized
   const handleChartReady = (chart) => {
     // Resize after chart is ready to ensure correct dimensions

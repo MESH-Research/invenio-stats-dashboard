@@ -27,10 +27,26 @@ const StatsMap = ({
   const [isMapRegistered, setIsMapRegistered] = useState(false);
   const [dateRangeSubtitle, setDateRangeSubtitle] = useState(null);
   const { stats, dateRange, isLoading } = useStatsDashboard();
+  const chartRef = React.useRef(null);
 
   useEffect(() => {
-    echarts.registerMap("world", countriesGeoJson);
+    // Only register the map if it hasn't been registered yet
+    // Check if map is already registered to prevent duplicate registrations
+    const mapInfo = echarts.getMap("world");
+    if (!mapInfo) {
+      echarts.registerMap("world", countriesGeoJson);
+    }
     setIsMapRegistered(true);
+
+    // Cleanup: dispose chart instance on unmount
+    return () => {
+      if (chartRef.current) {
+        const chartInstance = chartRef.current.getEchartsInstance();
+        if (chartInstance && !chartInstance.isDisposed()) {
+          chartInstance.dispose();
+        }
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -168,6 +184,7 @@ const StatsMap = ({
           </div>
         ) : isMapRegistered ? (
           <ReactECharts
+            ref={chartRef}
             option={option}
             notMerge={true}
             style={{ height: height, minHeight: minHeight }}
