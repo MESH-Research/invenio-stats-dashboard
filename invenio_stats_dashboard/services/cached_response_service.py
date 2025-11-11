@@ -237,8 +237,6 @@ class CachedResponseService:
             first_record_year = self._get_first_record_creation_year()
             return list(range(first_record_year, current_year + 1))
         else:
-            from ..views.views import get_community_dashboard_layout
-
             creation_year = self._get_community_creation_year(community_id)
             if not creation_year:
                 creation_year = self._get_first_record_creation_year()
@@ -337,6 +335,8 @@ class CachedResponseService:
             # Extract component names if optimization is enabled
             component_names: set[str] | None = None
             if optimize:
+                from ..views.views import get_community_dashboard_layout
+
                 dashboard_type = "community" if community_id != "global" else "global"
 
                 if community_id != "global":

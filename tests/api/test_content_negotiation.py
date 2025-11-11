@@ -29,13 +29,8 @@ class TestBasicSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -67,13 +62,8 @@ class TestCompressionSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -88,7 +78,7 @@ class TestCompressionSerializerWrapperFunctions:
         assert response.headers["Content-Type"] == "application/json"
         assert response.headers["Content-Encoding"] == "gzip"
         assert (
-            "attachment; filename=stats.json.gz" 
+            "attachment; filename=stats.json.gz"
             in response.headers["Content-Disposition"]
         )
 
@@ -105,13 +95,8 @@ class TestCompressionSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -126,7 +111,7 @@ class TestCompressionSerializerWrapperFunctions:
         assert response.headers["Content-Type"] == "application/json"
         assert response.headers["Content-Encoding"] == "br"
         assert (
-            "attachment; filename=stats.json.br" 
+            "attachment; filename=stats.json.br"
             in response.headers["Content-Disposition"]
         )
 
@@ -147,31 +132,16 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                },
-                                {
-                                    "readableDate": "Jun 2, 2025",
-                                    "value": ["2025-06-02", 4096.0],
-                                    "valueType": "filesize",
-                                },
-                            ],
+                            "data": [["06-01", 3072.0], ["06-02", 4096.0]],
+                            "year": 2025,
                         }
                     ],
                     "downloads": [
                         {
                             "id": "open",
                             "label": "Open Access",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 25],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 25]],
+                            "year": 2025,
                         }
                     ],
                 },
@@ -180,13 +150,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "us",
                             "label": "United States",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 100],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 100]],
+                            "year": 2025,
                         }
                     ],
                 },
@@ -201,7 +166,7 @@ class TestDataSeriesSerializerWrapperFunctions:
         assert response.headers["Content-Type"] == "application/gzip"
         assert response.headers["Content-Encoding"] == "gzip"
         assert (
-            "attachment; filename=data_series_csv.tar.gz" 
+            "attachment; filename=data_series_csv.tar.gz"
             in response.headers["Content-Disposition"]
         )
 
@@ -234,13 +199,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -254,7 +214,7 @@ class TestDataSeriesSerializerWrapperFunctions:
         assert response.mimetype == "application/xml"
         assert response.headers["Content-Type"] == "application/xml; charset=utf-8"
         assert (
-            "attachment; filename=data_series_xml.xml" 
+            "attachment; filename=data_series_xml.xml"
             in response.headers["Content-Disposition"]
         )
 
@@ -275,26 +235,16 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ],
                     "downloads": [
                         {
                             "id": "open",
                             "label": "Open Access",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 25],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 25]],
+                            "year": 2025,
                         }
                     ],
                 },
@@ -303,13 +253,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "us",
                             "label": "United States",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 100],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 100]],
+                            "year": 2025,
                         }
                     ],
                 },
@@ -324,7 +269,7 @@ class TestDataSeriesSerializerWrapperFunctions:
         assert response.headers["Content-Type"] == "application/gzip"
         assert response.headers["Content-Encoding"] == "gzip"
         assert (
-            "attachment; filename=data_series_excel.tar.gz" 
+            "attachment; filename=data_series_excel.tar.gz"
             in response.headers["Content-Disposition"]
         )
 
@@ -364,13 +309,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -397,13 +337,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -429,13 +364,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }
@@ -464,13 +394,8 @@ class TestDataSeriesSerializerWrapperFunctions:
                         {
                             "id": "metadata-only",
                             "label": "Metadata Only",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                         }
                     ]
                 }

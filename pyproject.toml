@@ -124,6 +124,7 @@ known-first-party = ["invenio_stats_dashboard", "tests"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "D104", "E402"]
+"tests/helpers/sample_stats_data/sample_usage_query_responses.py" = ["E501"]
 
 [tool.ruff.lint]
 # temporarily removed C for complexity checks

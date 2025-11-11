@@ -12,6 +12,7 @@ from typing import Any
 from flask import current_app
 
 from .base import (
+    METRIC_VALUE_TYPES,
     DataSeries,
     DataSeriesArray,
     DataSeriesSet,
@@ -168,9 +169,7 @@ class FilePresenceRecordDeltaDataSeries(DataSeries):
             return
 
         net_value = int(added_value) - int(removed_value)
-        self.add_data_point(
-            date, net_value, "number" if self.metric != "data_volume" else "filesize"
-        )
+        self.add_data_point(date, net_value)
 
 
 class RecordDeltaDataSeriesSet(DataSeriesSet):
@@ -204,13 +203,17 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
             DataSeriesArray: The created data series array.
         """
         if subcount == "file_presence":
+            # Set appropriate value type based on metric
+            from .base import METRIC_VALUE_TYPES
+            value_type = METRIC_VALUE_TYPES.get(metric, "number")
+
             series_array = DataSeriesArray(
                 "file_presence",
                 FilePresenceRecordDeltaDataSeries,
                 metric,
                 is_global=False,
                 chart_type="line",
-                value_type="number",
+                value_type=value_type,
                 is_special=True,
             )
 
@@ -220,14 +223,14 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
                     "Metadata Only",
                     metric,
                     "line",
-                    "number",
+                    value_type,
                 ),
                 FilePresenceRecordDeltaDataSeries(
                     "with_files",
                     "With Files",
                     metric,
                     "line",
-                    "number",
+                    value_type,
                 ),
             ]
             series_array._initialized = True
@@ -295,7 +298,7 @@ class RecordDeltaDataSeriesSet(DataSeriesSet):
             DataSeriesArray: The created data series array.
         """
         # Set appropriate value type based on metric
-        value_type = "filesize" if metric == "data_volume" else "number"
+        value_type = METRIC_VALUE_TYPES.get(metric, "number")
 
         if subcount == "global":
             return DataSeriesArray(

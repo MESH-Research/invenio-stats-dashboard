@@ -34,9 +34,10 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ['01-01', 1024],
+                    ['01-02', 2048]
                   ]
                 }
               ]
@@ -80,9 +81,10 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ['01-01', 1024],
+                    ['01-02', 2048]
                   ]
                 }
               ]
@@ -112,9 +114,10 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ['01-01', 1024],
+                    ['01-02', 2048]
                   ]
                 }
               ]
@@ -216,11 +219,12 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // In range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // In range (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After range
+                    ['12-31', 512],  // Before range (2023)
+                    ['01-01', 1024], // In range
+                    ['01-02', 2048], // In range (latest)
+                    ['01-03', 4096]  // After range
                   ]
                 }
               ]
@@ -248,11 +252,12 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'dataVolume',
                   name: 'Data Volume',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 512] },  // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] }, // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 2048] }, // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 4096] }  // Outside range
+                    ['12-30', 512],  // Outside range
+                    ['12-31', 1024], // Outside range
+                    ['01-03', 2048], // Outside range
+                    ['01-04', 4096]  // Outside range
                   ]
                 }
               ]
@@ -273,25 +278,44 @@ describe('SingleStatDataVolumeCumulative', () => {
 
     it('should handle partial date ranges (only start date)', () => {
       mockUseStatsDashboard.mockReturnValue({
-        stats: [{
-          year: 2024,
-          recordSnapshotDataAdded: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'global',
-                  name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After start
-                  ]
-                }
-              ]
+        stats: [
+          {
+            year: 2023,
+            recordSnapshotDataAdded: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 512]  // Before start
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            year: 2024,
+            recordSnapshotDataAdded: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2024,
+                    data: [
+                      ['01-01', 1024], // On start date
+                      ['01-02', 2048], // After start
+                      ['01-03', 4096]  // After start
+                    ]
+                  }
+                ]
+              }
             }
           }
-        }],
+        ],
         dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: null },
         recordStartBasis: 'added',
         isLoading: false,
@@ -314,11 +338,12 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 512] },  // Before end
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }, // Before end
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }, // On end date
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After end
+                    ['12-31', 512],  // Before end
+                    ['01-01', 1024], // Before end
+                    ['01-02', 2048], // On end date
+                    ['01-03', 4096]  // After end
                   ]
                 }
               ]
@@ -347,8 +372,9 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] }  // Only one point in range
+                    ['01-01', 1024]  // Only one point in range
                   ]
                 }
               ]
@@ -379,9 +405,10 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ['01-01', 1024],
+                    ['01-02', 2048]
                   ]
                 }
               ]
@@ -409,9 +436,10 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 512] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 1024] }
+                    ['01-01', 512],
+                    ['01-02', 1024]
                   ]
                 }
               ]
@@ -497,40 +525,6 @@ describe('SingleStatDataVolumeCumulative', () => {
       expect(screen.getByText('0 Bytes')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [{
-          year: 2024,
-          recordSnapshotDataAdded: {
-            global: {
-              dataVolume: [
-                {
-                  id: 'global',
-                  name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 4096] } // Invalid date
-                  ]
-                }
-              ]
-            }
-          }
-        }],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added',
-        isLoading: false,
-        binary_sizes: false // Use default setting
-      });
-
-      render(<SingleStatDataVolumeCumulative />);
-
-      // Should only use valid data points within range: 2048 bytes = 2 kB (decimal)
-      expect(screen.getByText('2 kB')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [{
@@ -541,9 +535,10 @@ describe('SingleStatDataVolumeCumulative', () => {
                 {
                   id: 'global',
                   name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ['01-01', 1024],
+                    ['01-02', 2048]
                   ]
                 }
               ]

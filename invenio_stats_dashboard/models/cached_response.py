@@ -62,7 +62,7 @@ class CachedResponse:
         self._created_at: arrow.Arrow | None = None
         self._expires_at: arrow.Arrow | None = None
 
-        self.request_data = {
+        self.request_data: dict[str, Any] = {
             "stat": self.category,
             "params": {
                 "community_id": (
@@ -75,9 +75,11 @@ class CachedResponse:
         }
 
         if optimize:
-            self.request_data["params"]["optimize"] = True
+            params = self.request_data["params"]
+            assert isinstance(params, dict)
+            params["optimize"] = True
             if component_names:
-                self.request_data["params"]["component_names"] = (
+                params["component_names"] = (
                     list(component_names)
                     if isinstance(component_names, set)
                     else component_names

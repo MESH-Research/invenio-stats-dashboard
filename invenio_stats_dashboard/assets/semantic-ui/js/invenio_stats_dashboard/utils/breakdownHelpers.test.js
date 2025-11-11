@@ -14,7 +14,7 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("returns empty array when no breakdowns have data", () => {
-    const seriesWithData = { data: [{ value: [new Date(), 10] }] };
+    const seriesWithData = { year: 2024, data: [['01-01', 10]] };
     const data = [
       {
         global: { records: [seriesWithData] },
@@ -26,9 +26,9 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("finds breakdowns with data in first yearly block", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
-    const series3 = { data: [{ value: [new Date(), 3] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
+    const series3 = { year: 2024, data: [['01-01', 3]] };
     const data = [
       {
         global: { records: [series1] },
@@ -48,9 +48,9 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("finds breakdowns with data in later yearly blocks when first block has zeros", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
-    const series3 = { data: [{ value: [new Date(), 3] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
+    const series3 = { year: 2024, data: [['01-01', 3]] };
     const data = [
       {
         year: 2020,
@@ -76,10 +76,10 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("filters by date range when provided", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
-    const series3 = { data: [{ value: [new Date(), 3] }] };
-    const series4 = { data: [{ value: [new Date(), 2] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
+    const series3 = { year: 2024, data: [['01-01', 3]] };
+    const series4 = { year: 2024, data: [['01-01', 2]] };
     const data = [
       {
         year: 2020,
@@ -116,9 +116,9 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("includes all blocks when date range spans multiple years", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
-    const series3 = { data: [{ value: [new Date(), 3] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
+    const series3 = { year: 2024, data: [['01-01', 3]] };
     const data = [
       {
         year: 2020,
@@ -147,9 +147,9 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("handles blocks without year property by including them all", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
-    const series3 = { data: [{ value: [new Date(), 3] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
+    const series3 = { year: 2024, data: [['01-01', 3]] };
     const data = [
       {
         // No year property
@@ -179,8 +179,8 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("only includes breakdowns that have at least one series with data", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
     const data = [
       {
         global: { records: [series1] },
@@ -201,8 +201,8 @@ describe("getAvailableBreakdowns", () => {
   });
 
   it("skips 'global' key", () => {
-    const series1 = { data: [{ value: [new Date(), 10] }] };
-    const series2 = { data: [{ value: [new Date(), 5] }] };
+    const series1 = { year: 2024, data: [['01-01', 10]] };
+    const series2 = { year: 2024, data: [['01-01', 5]] };
     const data = [
       {
         global: { records: [series1] },

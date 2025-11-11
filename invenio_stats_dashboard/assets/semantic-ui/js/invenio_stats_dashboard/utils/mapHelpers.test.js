@@ -17,16 +17,18 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] },
-                  { value: [new Date('2024-01-02'), 150, 'United States', 'US'] }
+                  ['01-01', 100],
+                  ['01-02', 150]
                 ]
               },
               {
                 id: 'CA',
                 name: 'Canada',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 50, 'Canada', 'CA'] }
+                  ['01-01', 50]
                 ]
               }
             ]
@@ -65,8 +67,9 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 75, 'United States', 'US'] }
+                  ['01-01', 75]
                 ]
               }
             ]
@@ -94,8 +97,9 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] }
+                  ['01-01', 100]
                 ]
               }
             ]
@@ -138,10 +142,11 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2023-12-31'), 50, 'United States', 'US'] }, // Outside range
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] }, // Inside range
-                  { value: [new Date('2024-01-02'), 150, 'United States', 'US'] }  // Inside range
+                  ['12-31', 50], // Outside range (2023)
+                  ['01-01', 100], // Inside range
+                  ['01-02', 150]  // Inside range
                 ]
               }
             ]
@@ -169,8 +174,9 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] }
+                  ['01-01', 100]
                 ]
               }
             ]
@@ -193,16 +199,18 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] },
-                  { value: [new Date('2024-01-02'), 50, 'United States', 'US'] }
+                  ['01-01', 100],
+                  ['01-02', 50]
                 ]
               },
               {
                 id: 'CA',
                 name: 'Canada',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 25, 'Canada', 'CA'] }
+                  ['01-01', 25]
                 ]
               }
             ]
@@ -256,11 +264,12 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2023-12-31'), 50, 'United States', 'US'] }, // Outside range
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] }, // Inside range
-                  { value: [new Date('2024-01-02'), 75, 'United States', 'US'] },  // Inside range
-                  { value: [new Date('2024-01-03'), 25, 'United States', 'US'] }   // Outside range
+                  ['12-31', 50], // Outside range (2023)
+                  ['01-01', 100], // Inside range
+                  ['01-02', 75],  // Inside range
+                  ['01-03', 25]   // Outside range
                 ]
               }
             ]
@@ -288,15 +297,17 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] }
+                  ['01-01', 100]
                 ]
               },
               {
                 id: 'USA',
                 name: 'USA',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-02'), 50, 'USA', 'USA'] }
+                  ['01-02', 50]
                 ]
               }
             ]
@@ -335,8 +346,9 @@ describe('mapHelpers', () => {
               {
                 id: 'US',
                 name: 'United States',
+                year: 2024,
                 data: [
-                  { value: [new Date('2024-01-01'), 100, 'United States', 'US'] }
+                  ['01-01', 100]
                 ]
               }
             ]

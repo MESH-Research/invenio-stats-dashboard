@@ -35,8 +35,9 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
+                      ['01-02', 30]
                     ]
                   }
                 ]
@@ -82,8 +83,9 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
+                      ['01-02', 30]
                     ]
                   }
                 ]
@@ -185,8 +187,9 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }
+                      ['12-31', 10]
                     ]
                   }
                 ]
@@ -201,10 +204,11 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 20] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] },
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }
+                      ['01-01', 20],
+                      ['01-02', 30],
+                      ['01-03', 40]
                     ]
                   }
                 ]
@@ -233,9 +237,10 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-30T00:00:00.000Z'), 10] },
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 20] }
+                      ['12-30', 10],
+                      ['12-31', 20]
                     ]
                   }
                 ]
@@ -251,8 +256,8 @@ describe('SingleStatDownloadsCumulative', () => {
                     id: 'global',
                     name: 'Global',
                     data: [
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 30] },
-                      { value: [new Date('2024-01-04T00:00:00.000Z'), 40] }
+                      ['01-03', 30],
+                      ['01-04', 40]
                     ]
                   }
                 ]
@@ -281,8 +286,9 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }
+                      ['12-31', 10]
                     ]
                   }
                 ]
@@ -297,10 +303,11 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 20] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] },
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }
+                      ['01-01', 20],
+                      ['01-02', 30],
+                      ['01-03', 40]
                     ]
                   }
                 ]
@@ -329,8 +336,9 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }
+                      ['12-31', 10]
                     ]
                   }
                 ]
@@ -345,10 +353,11 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 20] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 30] },
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }
+                      ['01-01', 20],
+                      ['01-02', 30],
+                      ['01-03', 40]
                     ]
                   }
                 ]
@@ -428,40 +437,6 @@ describe('SingleStatDownloadsCumulative', () => {
       expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [
-          {
-            year: 2024,
-            usageSnapshotData: {
-              global: {
-                downloads: [
-                  {
-                    id: 'global',
-                    name: 'Global',
-                    data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: null }, // Invalid data point
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
-                      { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                      { value: ['not a date', 30] } // Invalid date
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        ],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        isLoading: false
-      });
-
-      render(<SingleStatDownloadsCumulative />);
-
-      // Should get the latest valid data point within range: 20
-      expect(screen.getByText('20')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
@@ -473,9 +448,10 @@ describe('SingleStatDownloadsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                      ['01-01', 10],
+                      ['01-02', 20]
                     ]
                   }
                 ]

@@ -652,7 +652,10 @@ def _report_migration_results(results):
 @click.option(
     "--delete-old-indices",
     is_flag=True,
-    help="Delete old indices after migration (default is to keep them). Use 'cleanup-old-indices' command to clean up later if needed.",
+    help=(
+        "Delete old indices after migration (default is to keep them). "
+        "Use 'cleanup-old-indices' command to clean up later if needed."
+    ),
 )
 @click.option(
     "--fresh-start",
@@ -1594,7 +1597,10 @@ def clear_bookmarks_command(event_type, month, confirm):
 @click.option(
     "--delete-old-indices",
     is_flag=True,
-    help="Delete old indices after migration (default is to keep them). Use 'cleanup-old-indices' command to clean up later if needed.",
+    help=(
+        "Delete old indices after migration (default is to keep them). "
+        "Use 'cleanup-old-indices' command to clean up later if needed."
+    ),
 )
 @click.option(
     "--fresh-start",

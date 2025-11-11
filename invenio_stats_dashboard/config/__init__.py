@@ -17,8 +17,19 @@ This approach allows:
 - from .config.component_metrics import ...  # Submodules (explicit import)
 """
 
-from . import config
-from .config import *  # noqa: F403, F405, F401  # Import all objects from config.py
+import importlib
+
+# Import all objects from config.py first (this directly imports the module file)
+# This avoids the circular import that occurs with "from . import config"
+# because "from .config import *" directly imports from the .config module file,
+# whereas "from . import config" tries to resolve through the package namespace
+from .config import *  # noqa: F403, F405, F401
+
+# Get the config module object itself
+# The wildcard import above already loaded it, so this just retrieves it
+config = importlib.import_module(
+    '.config', __package__ or __name__
+)
 
 __all__ = ['config']
 

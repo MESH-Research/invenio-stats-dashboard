@@ -9,6 +9,18 @@
 sample_metadata_journal_article7_pdf = {
     "id": "r4w2d-5tg11",
     "created": "2025-05-30T02:37:21.721607+00:00",
+    "updated": "2025-05-30T02:37:21.845568+00:00",
+    "pids": {
+        "doi": {
+            "identifier": "10.17613/r4w2d-5tg11",
+            "provider": "datacite",
+            "client": "datacite",
+        },
+        "oai": {
+            "identifier": "oai:https://works.hcommons.org:r4w2d-5tg11",
+            "provider": "oai",
+        },
+    },
     "metadata": {
         "resource_type": {
             "id": "textDocument-bookSection",
@@ -30,7 +42,8 @@ sample_metadata_journal_article7_pdf = {
             }
         ],
         "title": (
-            "The Acts of Unity: The Eucharistic Theology of Charles Williams' Arthurian Poetry"  # noqa: E501
+            "The Acts of Unity: The Eucharistic Theology of Charles Williams' "
+            "Arthurian Poetry"
         ),
         "publisher": "Apocryphile Press",
         "publication_date": "2017",
@@ -46,7 +59,8 @@ sample_metadata_journal_article7_pdf = {
         "journal:journal": {"pages": "473-492"},
         "imprint:imprint": {
             "title": (
-                "The Inklings and King Arthur: J. R. R. Tolkien, Charles Williams, C. S. Lewis, and Owen Barfield on the Matter of Britain"  # noqa: E501
+                "The Inklings and King Arthur: J. R. R. Tolkien, Charles Williams, "
+                "C. S. Lewis, and Owen Barfield on the Matter of Britain"
             ),
             "isbn": "9781944769895",
             "pages": "20",
@@ -70,7 +84,8 @@ sample_metadata_journal_article7_pdf = {
                 "size": 58659795,
                 "mimetype": "application/pdf",
                 "key": "The Acts of Unity.pdf",
-            },
+                "access": {"hidden": False},
+            }
         },
     },
 }

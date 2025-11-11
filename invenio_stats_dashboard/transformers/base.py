@@ -17,9 +17,15 @@ from flask import current_app
 from ..config.component_metrics import get_required_metrics_for_category
 from .types import (
     AggregationDocumentDict,
-    DataPointDict,
+    DataPointArray,
     DataSeriesDict,
 )
+
+# Mapping of metric names to their value types
+# Metrics not in this mapping default to "number"
+METRIC_VALUE_TYPES = {
+    "data_volume": "filesize",
+}
 
 
 class DataPoint:
@@ -29,33 +35,40 @@ class DataPoint:
         self,
         date: str | datetime,
         value: int | float,
-        value_type: str = "number",
     ):
         """Initialize a data point.
 
         Args:
             date: Date string (YYYY-MM-DD) or datetime object
             value: Numeric value for this data point
-            value_type: Type of value ('number', 'filesize', etc.)
         """
         if isinstance(date, datetime):
             self.date = date.strftime("%Y-%m-%d")
         else:
             self.date = date
         self.value = value
-        self.value_type = value_type
 
-    def to_dict(self) -> DataPointDict:
-        """Convert to dictionary format matching JavaScript output.
+    def to_dict(
+        self, use_mmdd_format: bool = False, year: int | None = None
+    ) -> DataPointArray:
+        """Convert to array format matching JavaScript output.
+
+        Args:
+            use_mmdd_format: If True, return MM-DD format instead of YYYY-MM-DD
+            year: Year to use for MM-DD format (required if use_mmdd_format is True)
 
         Returns:
-            DataPointDict: Dictionary representation of the data point.
+            DataPointArray: Array representation [date, value] of the data point.
         """
-        return {
-            "value": [self.date, self.value],
-            "readableDate": self._format_readable_date(),
-            "valueType": self.value_type,
-        }
+        if use_mmdd_format and year is not None:
+            try:
+                date_obj = datetime.strptime(self.date, "%Y-%m-%d")
+                if date_obj.year == year:
+                    return [date_obj.strftime("%m-%d"), self.value]
+            except (ValueError, AttributeError):
+                pass
+
+        return [self.date, self.value]
 
     def _format_readable_date(self) -> str:
         """Format date as localized human-readable string matching JavaScript output.
@@ -117,21 +130,21 @@ class DataSeries(ABC):
         pass
 
     def add_data_point(
-        self, date: str, value: int | float, value_type: str | None = None
+        self, date: str, value: int | float
     ) -> None:
         """Add a data point to this series.
 
         Args:
             date: Date string (YYYY-MM-DD)
             value: Numeric value for this data point
-            value_type: Type of value (uses series default if None)
         """
-        if value_type is None:
-            value_type = self.value_type
-        self.data.append(DataPoint(date, value, value_type))
+        self.data.append(DataPoint(date, value))
 
     def to_dict(self) -> DataSeriesDict:
         """Convert to dictionary format matching JavaScript output.
+
+        Optimizes date storage by using MM-DD format when all dates are in the
+        same year, storing the year once at the series level.
 
         Returns:
             DataSeriesDict: Dictionary representation of the data series.
@@ -139,20 +152,54 @@ class DataSeries(ABC):
         # Handle multilingual labels - preserve as object for JavaScript processing
         name = self.series_name
         if isinstance(name, dict):
-            # Convert AttrDict to plain dict if needed for JSON serialization
-            # Keep as object for proper multilingual handling on frontend
             name = dict(name)
         else:
-            # Ensure it's a string
             name = str(name)
 
-        return {
+        # Check if all data points are in the same year
+        series_year = self._get_single_year()
+
+        result: DataSeriesDict = {
             "id": self.series_id,
             "name": name,
-            "data": [dp.to_dict() for dp in self.data],
+            "data": [],
             "type": self.chart_type,
             "valueType": self.value_type,
         }
+
+        # If all dates are in the same year, use optimized MM-DD format
+        if series_year is not None:
+            result["year"] = series_year
+            result["data"] = [
+                dp.to_dict(use_mmdd_format=True, year=series_year)
+                for dp in self.data
+            ]
+        else:
+            # Fallback to full YYYY-MM-DD format for multi-year series
+            result["data"] = [dp.to_dict() for dp in self.data]
+
+        return result
+
+    def _get_single_year(self) -> int | None:
+        """Check if all data points are in the same year.
+
+        Returns:
+            Year (int) if all dates are in the same year, None otherwise.
+        """
+        if not self.data:
+            return None
+
+        years = set()
+        for dp in self.data:
+            try:
+                date_obj = datetime.strptime(dp.date, "%Y-%m-%d")
+                years.add(date_obj.year)
+                if len(years) > 1:
+                    return None
+            except (ValueError, AttributeError):
+                return None
+
+        return years.pop() if len(years) == 1 else None
 
     def for_json(self) -> DataSeriesDict:
         """Convert to dictionary format for JSON serialization.
@@ -205,7 +252,7 @@ class DataSeriesArray:
             if self.is_global:
                 # Create the single global DataSeries
                 self.series = self.data_series_class(
-                    "global", "Global", self.metric, "bar", "number"
+                    "global", "Global", self.metric, "bar", self.value_type
                 )
             else:
                 # Initialize as empty list for subcount series
@@ -531,7 +578,7 @@ class DataSeriesSet(ABC):
         # Add data to all created DataSeriesArray objects
         for doc in self.documents:
             for series_array in self.series_arrays.values():
-                series_array.add(doc)
+                series_array.add(doc)  # type: ignore[arg-type]
 
         # Clear documents from memory after processing
         # (GC will be triggered by the query pagination loop after processing)
@@ -610,7 +657,7 @@ class DataSeriesSet(ABC):
 
         for doc in documents:
             for series_array in self.series_arrays.values():
-                series_array.add(doc)
+                series_array.add(doc)  # type: ignore[arg-type]
 
         # Invalidate cached result so it will be rebuilt lazily the next time
         # build()/for_json() is called. This avoids constructing a full

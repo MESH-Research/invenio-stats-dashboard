@@ -7,6 +7,28 @@
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
 /**
+ * Reconstruct a full YYYY-MM-DD date string from MM-DD format using the series year
+ * @param {string} mmdd - Date string in MM-DD format
+ * @param {number} year - Year to use for reconstruction
+ * @returns {string} Full date string in YYYY-MM-DD format
+ */
+const reconstructDateFromMMDD = (mmdd, year) => {
+  if (!mmdd || typeof mmdd !== "string") {
+    return mmdd;
+  }
+  // Check if it's already in YYYY-MM-DD format
+  if (mmdd.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return mmdd;
+  }
+  // Check if it's in MM-DD format
+  if (mmdd.match(/^\d{2}-\d{2}$/)) {
+    return `${year}-${mmdd}`;
+  }
+  // Return as-is if format is unrecognized
+  return mmdd;
+};
+
+/**
  * Create a Date object with proper UTC handling for date strings
  * @param {string|Date} date - The date to parse (string or Date object)
  * @returns {Date} Date object with proper UTC handling
@@ -15,32 +37,22 @@ const createUTCDate = (date) => {
   if (date instanceof Date) {
     return date;
   } else if (typeof date === "string") {
-    // If the string doesn't have time components, assume UTC midnight
+    // If the string doesn't have time components, parse as YYYY-MM-DD
     if (!date.includes("T") && !date.includes(":")) {
-      // Parse YYYY-MM-DD or YYYY-MM format and create UTC date
       const parts = date.split("-");
       if (parts.length === 3) {
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10);
         const day = parseInt(parts[2], 10);
+        // Date.UTC uses 0-indexed months (0=Jan, 11=Dec), but strings use 1-indexed
         return new Date(Date.UTC(year, month - 1, day));
-      } else if (parts.length === 2) {
-        const year = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-        // For YYYY-MM format, use the first day of the month
-        return new Date(Date.UTC(year, month - 1, 1));
-      } else if (parts.length === 1) {
-        const year = parseInt(parts[0], 10);
-        // For YYYY format, use January 1st of the year
-        return new Date(Date.UTC(year, 0, 1));
       }
-      return new Date(date + "T00:00:00.000Z");
-    } else {
-      return new Date(date);
     }
-  } else {
+    // Otherwise, let Date constructor handle other formats
     return new Date(date);
   }
+  // Return as-is if not a string or Date object
+  return date;
 };
 
 /**
@@ -427,4 +439,5 @@ export {
   formatDateRange,
   formatRelativeTimestamp,
   formatCacheTimestamp,
+  reconstructDateFromMMDD,
 };

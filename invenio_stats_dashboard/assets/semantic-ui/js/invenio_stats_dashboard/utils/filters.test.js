@@ -8,16 +8,17 @@ import { filterSeriesArrayByDate } from "./filters";
 
 describe("filterSeriesArrayByDate", () => {
   it("should filter series array by date", () => {
+    // Test data uses YYYY-MM-DD strings (as extractSeriesForMetric outputs)
     const seriesArray = [
       {
         id: "series-1",
         name: "Series 1",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 1)), 10] },
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
-          { value: [new Date(Date.UTC(2024, 0, 5)), 50] },
+          ["2024-01-01", 10],
+          ["2024-01-02", 20],
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
+          ["2024-01-05", 50],
         ],
         type: "line",
         valueType: "number",
@@ -26,11 +27,11 @@ describe("filterSeriesArrayByDate", () => {
         id: "series-2",
         name: "Series 2",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 1)), 10] },
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
-          { value: [new Date(Date.UTC(2024, 0, 5)), 50] },
+          ["2024-01-01", 10],
+          ["2024-01-02", 20],
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
+          ["2024-01-05", 50],
         ],
         type: "line",
         valueType: "number",
@@ -48,9 +49,9 @@ describe("filterSeriesArrayByDate", () => {
         type: "line",
         valueType: "number",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
+          ["2024-01-02", 20],
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
         ],
       },
       {
@@ -59,25 +60,26 @@ describe("filterSeriesArrayByDate", () => {
         type: "line",
         valueType: "number",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
+          ["2024-01-02", 20],
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
         ],
       },
     ]);
   });
 
   it("should filter series array by date with latestOnly", () => {
+    // Test data uses YYYY-MM-DD strings (as extractSeriesForMetric outputs)
     const seriesArray = [
       {
         id: "series-1",
         name: "Series 1",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 1)), 10] },
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
-          { value: [new Date(Date.UTC(2024, 0, 5)), 50] },
+          ["2024-01-01", 10],
+          ["2024-01-02", 20],
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
+          ["2024-01-05", 50],
         ],
         type: "line",
         valueType: "number",
@@ -91,7 +93,7 @@ describe("filterSeriesArrayByDate", () => {
         name: "Series 1",
         type: "line",
         valueType: "number",
-        data: [{ value: [new Date(Date.UTC(2024, 0, 4)), 40] }],
+        data: [["2024-01-04", 40]],
       },
     ]);
   });
@@ -108,7 +110,7 @@ describe("filterSeriesArrayByDate", () => {
       {
         id: "series-1",
         name: "Series 1",
-        data: [{ value: [new Date(Date.UTC(2024, 0, 1)), 10] }],
+        data: [[new Date(Date.UTC(2024, 0, 1)), 10]],
         type: "line",
         valueType: "number",
       },
@@ -121,7 +123,7 @@ describe("filterSeriesArrayByDate", () => {
         name: "Series 1",
         type: "line",
         valueType: "number",
-        data: [{ value: [new Date(Date.UTC(2024, 0, 1)), 10] }],
+        data: [[new Date(Date.UTC(2024, 0, 1)), 10]],
       },
     ]);
   });
@@ -132,9 +134,9 @@ describe("filterSeriesArrayByDate", () => {
         id: "series-1",
         name: "Series 1",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 1)), 10] },
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
+          [new Date(Date.UTC(2024, 0, 1)), 10],
+          [new Date(Date.UTC(2024, 0, 2)), 20],
+          [new Date(Date.UTC(2024, 0, 3)), 30],
         ],
         type: "line",
         valueType: "number",
@@ -148,7 +150,7 @@ describe("filterSeriesArrayByDate", () => {
         name: "Series 1",
         type: "line",
         valueType: "number",
-        data: [{ value: [new Date(Date.UTC(2024, 0, 3)), 30] }],
+        data: [[new Date(Date.UTC(2024, 0, 3)), 30]],
       },
     ]);
   });
@@ -158,7 +160,7 @@ describe("filterSeriesArrayByDate", () => {
       {
         id: "series-1",
         name: "Series 1",
-        data: [{ value: [new Date(Date.UTC(2024, 0, 1)), 10] }],
+        data: [[new Date(Date.UTC(2024, 0, 1)), 10]],
         type: "line",
         valueType: "number",
       },
@@ -177,16 +179,17 @@ describe("filterSeriesArrayByDate", () => {
   });
 
   it("should return filtered series array even if data points are out of date order", () => {
+    // Test data uses YYYY-MM-DD strings (as extractSeriesForMetric outputs)
     const seriesArray = [
       {
         id: "series-1",
         name: "Series 1",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
-          { value: [new Date(Date.UTC(2024, 0, 1)), 10] },
-          { value: [new Date(Date.UTC(2024, 0, 5)), 50] },
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
+          ["2024-01-02", 20],
+          ["2024-01-01", 10],
+          ["2024-01-05", 50],
         ],
         type: "line",
         valueType: "number",
@@ -201,9 +204,9 @@ describe("filterSeriesArrayByDate", () => {
         type: "line",
         valueType: "number",
         data: [
-          { value: [new Date(Date.UTC(2024, 0, 3)), 30] },
-          { value: [new Date(Date.UTC(2024, 0, 4)), 40] },
-          { value: [new Date(Date.UTC(2024, 0, 2)), 20] },
+          ["2024-01-03", 30],
+          ["2024-01-04", 40],
+          ["2024-01-02", 20],
         ],
       },
     ]);

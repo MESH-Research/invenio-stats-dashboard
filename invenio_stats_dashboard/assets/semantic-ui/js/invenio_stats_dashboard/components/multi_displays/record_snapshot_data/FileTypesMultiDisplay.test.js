@@ -34,17 +34,20 @@ describe('FileTypesMultiDisplay', () => {
               {
                 id: 'pdf',
                 name: 'PDF',
-                data: [{ value: [new Date('2024-01-01'), 150] }]
+                year: 2024,
+                data: [['01-01', 150]]
               },
               {
                 id: 'csv',
                 name: 'CSV',
-                data: [{ value: [new Date('2024-01-01'), 75] }]
+                year: 2024,
+                data: [['01-01', 75]]
               },
               {
                 id: 'txt',
                 name: 'Text',
-                data: [{ value: [new Date('2024-01-01'), 25] }]
+                year: 2024,
+                data: [['01-01', 25]]
               }
             ]
           }
@@ -98,17 +101,20 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 150] }]
+          year: 2024,
+                data: [['01-01', 150]]
         },
         {
           id: 'csv',
           name: 'CSV',
-          data: [{ value: [new Date('2024-01-01'), 75] }]
+          year: 2024,
+                data: [['01-01', 75]]
         },
         {
           id: 'txt',
           name: 'Text',
-          data: [{ value: [new Date('2024-01-01'), 25] }]
+          year: 2024,
+                data: [['01-01', 25]]
         }
       ];
 
@@ -127,17 +133,20 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         },
         {
           id: 'csv',
           name: 'CSV',
-          data: [{ value: [new Date('2024-01-01'), 0] }] // Zero value
+          year: 2024,
+                data: [['01-01', 0]] // Zero value
         },
         {
           id: 'txt',
           name: 'Text',
-          data: [{ value: [new Date('2024-01-01'), 50] }]
+          year: 2024,
+                data: [['01-01', 50]]
         }
       ];
 
@@ -154,12 +163,14 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         },
         {
           id: 'csv',
           name: 'CSV',
-          data: [{ value: [new Date('2024-01-01'), 50] }]
+          year: 2024,
+                data: [['01-01', 50]]
         }
       ];
 
@@ -174,7 +185,8 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         }
       ];
 
@@ -188,7 +200,8 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         }
       ];
 
@@ -204,9 +217,12 @@ describe('FileTypesMultiDisplay', () => {
 
     it('should create otherData with all expected properties when there are additional items', () => {
       const mockData = [
-        { id: 'pdf', name: 'PDF', data: [{ value: [new Date('2024-01-01'), 100] }] },
-        { id: 'csv', name: 'CSV', data: [{ value: [new Date('2024-01-01'), 50] }] },
-        { id: 'txt', name: 'Text', data: [{ value: [new Date('2024-01-01'), 25] }] }
+        { id: 'pdf', name: 'PDF', year: 2024,
+                data: [['01-01', 100]] },
+        { id: 'csv', name: 'CSV', year: 2024,
+                data: [['01-01', 50]] },
+        { id: 'txt', name: 'Text', year: 2024,
+                data: [['01-01', 25]] }
       ];
 
       const result = transformMultiDisplayData(mockData, 2, 'files.entries.ext');
@@ -220,8 +236,10 @@ describe('FileTypesMultiDisplay', () => {
 
     it('should return null for otherData when there are no additional items', () => {
       const mockData = [
-        { id: 'pdf', name: 'PDF', data: [{ value: [new Date('2024-01-01'), 100] }] },
-        { id: 'csv', name: 'CSV', data: [{ value: [new Date('2024-01-01'), 50] }] }
+        { id: 'pdf', name: 'PDF', year: 2024,
+                data: [['01-01', 100]] },
+        { id: 'csv', name: 'CSV', year: 2024,
+                data: [['01-01', 50]] }
       ];
 
       const result = transformMultiDisplayData(mockData, 10, 'files.entries.ext');
@@ -231,8 +249,10 @@ describe('FileTypesMultiDisplay', () => {
 
     it('should handle zero total count', () => {
       const mockData = [
-        { id: 'pdf', name: 'PDF', data: [{ value: [new Date('2024-01-01'), 0] }] },
-        { id: 'csv', name: 'CSV', data: [{ value: [new Date('2024-01-01'), 0] }] }
+        { id: 'pdf', name: 'PDF', year: 2024,
+                data: [['01-01', 0]] },
+        { id: 'csv', name: 'CSV', year: 2024,
+                data: [['01-01', 0]] }
       ];
 
       const result = transformMultiDisplayData(mockData, 10, 'files.entries.ext');
@@ -299,9 +319,10 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01'), 100] },
-            { value: [new Date('2024-01-15'), 150] }
+            ['01-01', 100],
+            ['01-15', 150]
           ]
         }
       ];
@@ -310,7 +331,7 @@ describe('FileTypesMultiDisplay', () => {
 
       expect(filteredData).toHaveLength(1);
       expect(filteredData[0].data).toHaveLength(1);
-      expect(filteredData[0].data[0].value[1]).toBe(150);
+      expect(filteredData[0].data[0][1]).toBe(150);
     });
 
     it('should handle empty date range by returning latest data when latestOnly is true', () => {
@@ -318,9 +339,10 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01'), 100] },
-            { value: [new Date('2024-01-15'), 150] }
+            ['01-01', 100],
+            ['01-15', 150]
           ]
         }
       ];
@@ -329,7 +351,7 @@ describe('FileTypesMultiDisplay', () => {
 
       expect(filteredData).toHaveLength(1);
       expect(filteredData[0].data).toHaveLength(1);
-      expect(filteredData[0].data[0].value[1]).toBe(150);
+      expect(filteredData[0].data[0][1]).toBe(150);
     });
 
     it('should handle data outside the date range by returning empty data', () => {
@@ -337,7 +359,8 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+          data: [['01-01', 100]]
         }
       ];
 
@@ -352,7 +375,8 @@ describe('FileTypesMultiDisplay', () => {
         {
           id: 'pdf',
           name: 'PDF',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+          data: [['01-01', 100]]
         }
       ];
 

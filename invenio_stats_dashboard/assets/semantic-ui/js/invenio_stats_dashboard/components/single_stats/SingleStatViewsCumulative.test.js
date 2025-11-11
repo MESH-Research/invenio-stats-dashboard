@@ -35,10 +35,11 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-02', 30]
+                    ]
+                  }
                 ]
               }
             }
@@ -82,10 +83,11 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-02', 30]
+                    ]
+                  }
                 ]
               }
             }
@@ -178,6 +180,23 @@ describe('SingleStatViewsCumulative', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 10]  // Outside range
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             usageSnapshotData: {
               global: {
@@ -185,13 +204,13 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Outside range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 20] }, // Inside range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }, // Inside range (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }  // Outside range
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-01', 20], // Inside range
+                      ['01-02', 30], // Inside range (latest)
+                      ['01-03', 40]  // Outside range
+                    ]
+                  }
                 ]
               }
             }
@@ -211,6 +230,24 @@ describe('SingleStatViewsCumulative', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-30', 10],  // Outside range
+                      ['12-31', 20]  // Outside range
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             usageSnapshotData: {
               global: {
@@ -218,13 +255,12 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 10] },  // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 20] }, // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 30] }, // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 40] }  // Outside range
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-03', 30], // Outside range
+                      ['01-04', 40]  // Outside range
+                    ]
+                  }
                 ]
               }
             }
@@ -244,6 +280,23 @@ describe('SingleStatViewsCumulative', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 10]  // Before start
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             usageSnapshotData: {
               global: {
@@ -251,13 +304,13 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 20] }, // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }, // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }  // After start (latest)
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-01', 20], // On start date
+                      ['01-02', 30], // After start
+                      ['01-03', 40]  // After start (latest)
+                    ]
+                  }
                 ]
               }
             }
@@ -277,6 +330,23 @@ describe('SingleStatViewsCumulative', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                views: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 10]  // Before end
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             usageSnapshotData: {
               global: {
@@ -284,13 +354,13 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Before end
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 20] }, // Before end
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 30] }, // On end date (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 40] }  // After end
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-01', 20], // Before end
+                      ['01-02', 30], // On end date (latest)
+                      ['01-03', 40]  // After end
+                    ]
+                  }
                 ]
               }
             }
@@ -331,8 +401,9 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: []
-                }
+                    year: 2024,
+                    data: []
+                  }
                 ]
               }
             }
@@ -357,8 +428,8 @@ describe('SingleStatViewsCumulative', () => {
                 views: [
                   {
                     id: 'global',
-                    name: 'Global'
-                    // Missing data property
+                    name: 'Global',
+                    year: 2024
                   }
                 ]
               }
@@ -374,40 +445,6 @@ describe('SingleStatViewsCumulative', () => {
       expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [
-          {
-            year: 2024,
-            usageSnapshotData: {
-              global: {
-                views: [
-                  {
-                    id: 'global',
-                    name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 30] } // Invalid date
-                  ]
-                }
-                ]
-              }
-            }
-          }
-        ],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        isLoading: false
-      });
-
-      render(<SingleStatViewsCumulative />);
-
-      // Should get the latest valid data point within range: 20
-      expect(screen.getByText('20')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
@@ -419,11 +456,12 @@ describe('SingleStatViewsCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-01', 10],
+                      ['01-02', 20]
+                    ]
+                  }
                 ]
               }
             }

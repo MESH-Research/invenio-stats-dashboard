@@ -235,7 +235,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
         if label_field:
             path_strings.append(label_field)
 
-        merged_by_id = {}
+        merged_by_id: dict[str, Any] = {}
         for bucket in buckets:
             bucket_key = bucket["key"]
             source_path = ["label", "hits", "hits", 0, "_source"]
@@ -245,7 +245,7 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 bucket, id_path, bucket_key, "id"
             )
             if not extracted_id or isinstance(extracted_id, (dict, list)):
-                extracted_id = None
+                extracted_id = ""
 
             extracted_name = self._find_item_label(
                 bucket, {}, path_strings, bucket_key
@@ -253,8 +253,6 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
             # If no name extracted or no id, assume bucket_key is the name
             if not extracted_name or not extracted_id:
                 extracted_name = bucket_key
-            if not extracted_id:
-                extracted_id = None
 
             matching_id = None
             if extracted_id:
@@ -281,7 +279,9 @@ class CommunityRecordsDeltaAggregatorBase(CommunityAggregatorBase):
                 self._merge_bucket_contents(existing, bucket)
             else:
                 # If we only have name (no id), use name as id
-                item_id = extracted_id if extracted_id else extracted_name
+                item_id: str = (
+                    str(extracted_id) if extracted_id else str(extracted_name)
+                )
                 bucket["key"] = item_id
                 # Replace nested label aggregation with simple string label
                 if extracted_name:

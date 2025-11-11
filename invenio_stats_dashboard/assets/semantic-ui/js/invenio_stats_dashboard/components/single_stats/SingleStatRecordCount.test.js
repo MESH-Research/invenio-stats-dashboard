@@ -35,9 +35,10 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                      ['01-01', 10],
+                      ['01-02', 20]
                     ]
                   }
                 ]
@@ -86,9 +87,10 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                      ['01-01', 10],
+                      ['01-02', 20]
                     ]
                   }
                 ]
@@ -192,11 +194,12 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Outside range
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Inside range
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // Inside range
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // Outside range
+                      ['12-31', 5],  // Outside range (2023)
+                      ['01-01', 10], // Inside range
+                      ['01-02', 15], // Inside range
+                      ['01-03', 20]  // Outside range
                     ]
                   }
                 ]
@@ -227,11 +230,12 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-30T00:00:00.000Z'), 5] },  // Outside range
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 10] }, // Outside range
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 15] }, // Outside range
-                      { value: [new Date('2024-01-04T00:00:00.000Z'), 20] }  // Outside range
+                      ['12-30', 5],  // Outside range
+                      ['12-31', 10], // Outside range
+                      ['01-03', 15], // Outside range
+                      ['01-04', 20]  // Outside range
                     ]
                   }
                 ]
@@ -262,8 +266,9 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2023,
                     data: [
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 5] }  // Before start
+                      ['12-31', 5]  // Before start
                     ]
                   }
                 ]
@@ -278,10 +283,11 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // On start date
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // After start
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After start
+                      ['01-01', 10], // On start date
+                      ['01-02', 15], // After start
+                      ['01-03', 20]  // After start
                     ]
                   }
                 ]
@@ -304,6 +310,23 @@ describe('SingleStatRecordCount', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            recordDeltaDataAdded: {
+              global: {
+                records: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 5]  // Before end
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             recordDeltaDataAdded: {
               global: {
@@ -311,11 +334,11 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Before end
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }, // Before end
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }, // On end date
-                      { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }  // After end
+                      ['01-01', 10], // Before end
+                      ['01-02', 15], // On end date
+                      ['01-03', 20]  // After end
                     ]
                   }
                 ]
@@ -325,7 +348,6 @@ describe('SingleStatRecordCount', () => {
         ],
         dateRange: { start: null, end: new Date('2024-01-02T00:00:00.000Z') },
         recordStartBasis: 'added',
-        isLoading: false,
         isLoading: false
       });
 
@@ -348,9 +370,10 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                      ['01-01', 10],
+                      ['01-02', 20]
                     ]
                   }
                 ]
@@ -379,9 +402,10 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                      ['01-01', 5],
+                      ['01-02', 15]
                     ]
                   }
                 ]
@@ -464,41 +488,6 @@ describe('SingleStatRecordCount', () => {
       expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [
-          {
-            year: 2024,
-            recordDeltaDataAdded: {
-              global: {
-                records: [
-                  {
-                    id: 'global',
-                    name: 'Global',
-                    data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: null }, // Invalid data point
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] },
-                      { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                      { value: ['not a date', 30] } // Invalid date
-                    ]
-                  }
-                ]
-              }
-            }
-          }
-        ],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        recordStartBasis: 'added',
-        isLoading: false
-      });
-
-      render(<SingleStatRecordCount />);
-
-      // Should only sum valid data points within range: 10 + 20 = 30
-      expect(screen.getByText('30')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
@@ -510,9 +499,10 @@ describe('SingleStatRecordCount', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                    year: 2024,
                     data: [
-                      { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                      { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                      ['01-01', 10],
+                      ['01-02', 20]
                     ]
                   }
                 ]

@@ -9,6 +9,7 @@
 from typing import Any
 
 from .base import (
+    METRIC_VALUE_TYPES,
     DataSeries,
     DataSeriesArray,
     DataSeriesSet,
@@ -51,15 +52,14 @@ class GlobalUsageDeltaDataSeries(DataSeries):
             source, key, value_type = core_metrics[self.metric]
             data = view_data if source == "view" else download_data
             value = data.get(key, 0)
-            self.add_data_point(date, value, value_type)
+            self.add_data_point(date, value)
         else:
             # Handle prefixed metrics (view_* and download_*)
             for prefix, data in [("view_", view_data), ("download_", download_data)]:
                 if self.metric.startswith(prefix):
                     key = self.metric[len(prefix) :]  # noqa: E203
                     value = data.get(key, 0)
-                    value_type = "filesize" if "volume" in key else "number"
-                    self.add_data_point(date, value, value_type)
+                    self.add_data_point(date, value)
                     break
 
 
@@ -170,6 +170,9 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
         Returns:
             DataSeriesArray: The created data series array.
         """
+        # Set appropriate value type based on metric
+        value_type = METRIC_VALUE_TYPES.get(metric, "number")
+
         if series_key == "global":
             return DataSeriesArray(
                 "global",
@@ -177,7 +180,7 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
                 metric,
                 is_global=True,
                 chart_type="line",
-                value_type="number",
+                value_type=value_type,
             )
         else:
             return DataSeriesArray(
@@ -186,5 +189,5 @@ class UsageDeltaDataSeriesSet(DataSeriesSet):
                 metric,
                 is_global=False,
                 chart_type="line",
-                value_type="number",
+                value_type=value_type,
             )

@@ -62,17 +62,20 @@ describe('AffiliationsMultiDisplay', () => {
               {
                 id: 'harvard-university',
                 name: 'Harvard University',
-                data: [{ value: [new Date('2024-01-01'), 150] }]
+                year: 2024,
+                data: [['01-01', 150]]
               },
               {
                 id: 'mit',
                 name: 'MIT',
-                data: [{ value: [new Date('2024-01-01'), 75] }]
+                year: 2024,
+                data: [['01-01', 75]]
               },
               {
                 id: 'stanford-university',
                 name: 'Stanford University',
-                data: [{ value: [new Date('2024-01-01'), 25] }]
+                year: 2024,
+                data: [['01-01', 25]]
               }
             ]
           }
@@ -126,17 +129,20 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 150] }]
+          year: 2024,
+                data: [['01-01', 150]]
         },
         {
           id: 'mit',
           name: 'MIT',
-          data: [{ value: [new Date('2024-01-01'), 75] }]
+          year: 2024,
+                data: [['01-01', 75]]
         },
         {
           id: 'stanford-university',
           name: 'Stanford University',
-          data: [{ value: [new Date('2024-01-01'), 25] }]
+          year: 2024,
+                data: [['01-01', 25]]
         }
       ];
 
@@ -155,17 +161,20 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         },
         {
           id: 'mit',
           name: 'MIT',
-          data: [{ value: [new Date('2024-01-01'), 0] }] // Zero value
+          year: 2024,
+                data: [['01-01', 0]] // Zero value
         },
         {
           id: 'stanford-university',
           name: 'Stanford University',
-          data: [{ value: [new Date('2024-01-01'), 50] }]
+          year: 2024,
+                data: [['01-01', 50]]
         }
       ];
 
@@ -182,12 +191,14 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 80] }]
+          year: 2024,
+                data: [['01-01', 80]]
         },
         {
           id: 'mit',
           name: 'MIT',
-          data: [{ value: [new Date('2024-01-01'), 20] }]
+          year: 2024,
+                data: [['01-01', 20]]
         }
       ];
 
@@ -203,7 +214,8 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         }
       ];
 
@@ -217,12 +229,14 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         },
         {
           id: 'mit',
           name: 'MIT',
-          data: [{ value: [new Date('2024-01-01'), 50] }]
+          year: 2024,
+                data: [['01-01', 50]]
         }
       ];
 
@@ -258,17 +272,20 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         },
         {
           id: 'mit',
           name: 'MIT',
-          data: [{ value: [new Date('2024-01-01'), 50] }]
+          year: 2024,
+                data: [['01-01', 50]]
         },
         {
           id: 'stanford-university',
           name: 'Stanford University',
-          data: [{ value: [new Date('2024-01-01'), 25] }]
+          year: 2024,
+                data: [['01-01', 25]]
         }
       ];
 
@@ -289,12 +306,14 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 100] }]
+          year: 2024,
+                data: [['01-01', 100]]
         },
         {
           id: 'mit',
           name: 'MIT',
-          data: [{ value: [new Date('2024-01-01'), 50] }]
+          year: 2024,
+                data: [['01-01', 50]]
         }
       ];
 
@@ -308,7 +327,8 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
-          data: [{ value: [new Date('2024-01-01'), 0] }]
+          year: 2024,
+                data: [['01-01', 0]]
         }
       ];
 
@@ -412,19 +432,21 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01'), 100] },
-            { value: [new Date('2024-01-15'), 150] },
-            { value: [new Date('2024-01-30'), 200] }
+            ['01-01', 100],
+            ['01-15', 150],
+            ['01-30', 200]
           ]
         },
         {
           id: 'mit',
           name: 'MIT',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-05'), 50] },
-            { value: [new Date('2024-01-20'), 75] },
-            { value: [new Date('2024-02-01'), 100] } // Outside range
+            ['01-05', 50],
+            ['01-20', 75],
+            ['02-01', 100] // Outside range
           ]
         }
       ];
@@ -442,12 +464,12 @@ describe('AffiliationsMultiDisplay', () => {
       // Harvard should have the latest data point within range (Jan 15)
       expect(filteredData[0].id).toBe('harvard-university');
       expect(filteredData[0].data).toHaveLength(1);
-      expect(filteredData[0].data[0].value[1]).toBe(150);
+      expect(filteredData[0].data[0][1]).toBe(150);
 
       // MIT should have the latest data point within range (Jan 20)
       expect(filteredData[1].id).toBe('mit');
       expect(filteredData[1].data).toHaveLength(1);
-      expect(filteredData[1].data[0].value[1]).toBe(75);
+      expect(filteredData[1].data[0][1]).toBe(75);
     });
 
     it('should handle empty date range by returning latest data when latestOnly is true', () => {
@@ -455,9 +477,10 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01'), 100] },
-            { value: [new Date('2024-01-15'), 150] }
+            ['01-01', 100],
+            ['01-15', 150]
           ]
         }
       ];
@@ -470,7 +493,7 @@ describe('AffiliationsMultiDisplay', () => {
       expect(filteredData).toHaveLength(1);
       expect(filteredData[0].id).toBe('harvard-university');
       expect(filteredData[0].data).toHaveLength(1); // Returns only the latest
-      expect(filteredData[0].data[0].value[1]).toBe(150);
+      expect(filteredData[0].data[0][1]).toBe(150);
     });
 
     it('should handle data outside the date range by returning empty data', () => {
@@ -478,9 +501,10 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01'), 100] }, // Before range
-            { value: [new Date('2024-02-01'), 200] }  // After range
+            ['01-01', 100], // Before range
+            ['02-01', 200]  // After range
           ]
         }
       ];
@@ -503,17 +527,19 @@ describe('AffiliationsMultiDisplay', () => {
         {
           id: 'harvard-university',
           name: 'Harvard University',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01'), 100] },
-            { value: [new Date('2024-01-15'), 150] }
+            ['01-01', 100],
+            ['01-15', 150]
           ]
         },
         {
           id: 'mit',
           name: 'MIT',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-10'), 50] },
-            { value: [new Date('2024-01-20'), 75] }
+            ['01-10', 50],
+            ['01-20', 75]
           ]
         }
       ];
@@ -549,17 +575,20 @@ describe('AffiliationsMultiDisplay', () => {
                 {
                   id: 'harvard-university',
                   name: 'Harvard University',
-                  data: [{ value: [new Date('2024-01-01'), 100] }]
+                  year: 2024,
+                data: [['01-01', 100]]
                 },
                 {
                   id: 'mit',
                   name: 'MIT',
-                  data: [{ value: [new Date('2024-01-01'), 50] }]
+                  year: 2024,
+                data: [['01-01', 50]]
                 },
                 {
                   id: 'stanford-university',
                   name: 'Stanford University',
-                  data: [{ value: [new Date('2024-01-01'), 25] }]
+                  year: 2024,
+                data: [['01-01', 25]]
                 }
               ]
             }

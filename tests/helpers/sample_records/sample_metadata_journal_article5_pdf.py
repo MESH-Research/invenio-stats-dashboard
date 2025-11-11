@@ -9,6 +9,18 @@
 sample_metadata_journal_article5_pdf = {
     "id": "0dtmf-ph235",
     "created": "2025-06-03T17:35:55.817258+00:00",
+    "updated": "2025-06-03T17:39:25.129663+00:00",
+    "pids": {
+        "doi": {
+            "identifier": "10.17613/0dtmf-ph235",
+            "provider": "datacite",
+            "client": "datacite",
+        },
+        "oai": {
+            "identifier": "oai:https://works.hcommons.org:0dtmf-ph235",
+            "provider": "oai",
+        },
+    },
     "metadata": {
         "resource_type": {
             "id": "textDocument-book",
@@ -40,7 +52,8 @@ sample_metadata_journal_article5_pdf = {
             },
         ],
         "title": (
-            "Dictionary of Canadianisms on Historical Principles, Third Edition (www.dchp.ca/dchp3)"  # noqa: E501
+            "Dictionary of Canadianisms on Historical Principles, Third Edition "
+            "(www.dchp.ca/dchp3)"
         ),
         "additional_titles": [
             {
@@ -114,7 +127,20 @@ sample_metadata_journal_article5_pdf = {
             },
         ],
         "description": (
-            'This is the third edition of the 1967 A Dictionary of Canadianisms on Historical Principles (DCHP-1). DCHP-3 integrates the legacy data of DCHP-1 (1967) and the updated data of DCHP-2 (2017) with new content to form DCHP-3. There are 136 new and updated entries in this edition for a new total of 12,045 headwords with 14,586 meanings.\n\nDCHP-3 lists, as did its predecessors, Canadianisms. A Canadianism is defined as "a word, expression, or meaning which is native to Canada or which is distinctively characteristic of Canadian usage though not necessarily exclusive to Canada." (Walter S. Avis in DCHP-1, page xiii; see DCHP-1 Online)\n\nThis work should be cited as:\n\nDollinger, Stefan and Margery Fee (eds). 2025. DCHP-3: The Dictionary of Canadianisms on Historical Principles, Third Edition. Vancouver, BC: University of British Columbia, www.dchp.ca/dchp3.'  # noqa: E501
+            "This is the third edition of the 1967 A Dictionary of Canadianisms "
+            "on Historical Principles (DCHP-1). DCHP-3 integrates the legacy "
+            "data of DCHP-1 (1967) and the updated data of DCHP-2 (2017) with "
+            "new content to form DCHP-3. There are 136 new and updated entries "
+            "in this edition for a new total of 12,045 headwords with 14,586 "
+            "meanings.\n\nDCHP-3 lists, as did its predecessors, Canadianisms. "
+            'A Canadianism is defined as "a word, expression, or meaning which '
+            "is native to Canada or which is distinctively characteristic of "
+            "Canadian usage though not necessarily exclusive to Canada. "
+            "(Walter S. Avis in DCHP-1, page xiii; see DCHP-1 Online)\n\n"
+            "This work should be cited as:\n\nDollinger, Stefan and Margery Fee "
+            "(eds). 2025. DCHP-3: The Dictionary of Canadianisms on Historical "
+            "Principles, Third Edition. Vancouver, BC: University of British "
+            "Columbia, www.dchp.ca/dchp3."
         ),
     },
     "custom_fields": {

@@ -3051,7 +3051,8 @@ class EventReindexingService:
                     "deletion_results": {}
                 }
 
-                # Find cleanup candidates (old indices with corresponding migrated indices)
+                # Find cleanup candidates (old indices with corresponding
+                # migrated indices)
                 for old_index in old_indices:
                     # Extract month from old index name
                     # e.g., "kcworks-events-stats-record-view-2025-10" -> "2025-10"
@@ -3090,7 +3091,8 @@ class EventReindexingService:
                                 index=migrated_index
                             )["count"]
 
-                            # Allow for some variance (e.g., new events during migration)
+                            # Allow for some variance
+                            # (e.g., new events during migration)
                             count_ratio = (
                                 migrated_count / old_count
                                 if old_count > 0

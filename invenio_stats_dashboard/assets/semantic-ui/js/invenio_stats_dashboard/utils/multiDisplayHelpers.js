@@ -9,6 +9,7 @@ import { formatNumber } from "./numbers";
 import { CHART_COLORS, RECORD_START_BASES } from "../constants";
 import { extractLocalizedLabel } from "./i18n";
 import { filterSeriesArrayByDate } from "./filters";
+import { reconstructDateFromMMDD } from "./dates";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getCountryNames } from "./mapHelpers";
 import { transformItemForChart } from "./nameTransformHelpers";
@@ -65,12 +66,12 @@ const transformMultiDisplayData = (
     if (isDelta) {
       // For delta data, sum all data points
       return item.data.reduce(
-        (sum, point) => sum + (point?.value?.[1] || 0),
+        (sum, point) => sum + (point?.[1] || 0),
         0,
       );
     } else {
       // For snapshot data, take the first (and only) data point
-      return item.data[0]?.value?.[1] || 0;
+      return item.data[0]?.[1] || 0;
     }
   };
 
@@ -89,13 +90,13 @@ const transformMultiDisplayData = (
       if (isDelta) {
         // For delta data, sum all values
         globalTotalCount = globalSeries.data.reduce(
-          (sum, point) => sum + (point?.value?.[1] || 0),
+          (sum, point) => sum + (point?.[1] || 0),
           0,
         );
       } else {
         // For snapshot data, use first (and only) data point
         // (data should already be filtered to single point by extractData)
-        globalTotalCount = globalSeries.data[0]?.value?.[1] || 0;
+        globalTotalCount = globalSeries.data[0]?.[1] || 0;
       }
     }
   }
@@ -227,12 +228,12 @@ const transformCountryMultiDisplayData = (
     if (isDelta) {
       // For delta data, sum all data points
       return item.data.reduce(
-        (sum, point) => sum + (point?.value?.[1] || 0),
+        (sum, point) => sum + (point?.[1] || 0),
         0,
       );
     } else {
       // For snapshot data, take the first (and only) data point
-      return item.data[0]?.value?.[1] || 0;
+      return item.data[0]?.[1] || 0;
     }
   };
 
@@ -254,13 +255,13 @@ const transformCountryMultiDisplayData = (
       if (isDelta) {
         // For delta data, sum all values
         globalTotalCount = globalSeries.data.reduce(
-          (sum, point) => sum + (point?.value?.[1] || 0),
+          (sum, point) => sum + (point?.[1] || 0),
           0,
         );
       } else {
         // For snapshot data, use first (and only) data point
         // (data should already be filtered to single point by extractData)
-        globalTotalCount = globalSeries.data[0]?.value?.[1] || 0;
+        globalTotalCount = globalSeries.data[0]?.[1] || 0;
       }
     }
   }
@@ -397,10 +398,19 @@ const extractData = (
   if (isUsageData) {
     // Extract usage data
     allItems = stats?.flatMap(
-      (yearlyStats) =>
-        yearlyStats?.[isDelta ? "usageDeltaData" : "usageSnapshotData"]?.[
+      (yearlyStats) => {
+        const seriesArray = yearlyStats?.[isDelta ? "usageDeltaData" : "usageSnapshotData"]?.[
           category
-        ]?.[metric] || [],
+        ]?.[metric] || [];
+        // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+        return seriesArray.map(series => ({
+          ...series,
+          data: series.data?.map(dataPoint => {
+            const [date, value] = dataPoint;
+            return [reconstructDateFromMMDD(date, yearlyStats.year), value];
+          })
+        }));
+      }
     );
   } else {
     // Extract record data
@@ -417,10 +427,19 @@ const extractData = (
         };
 
     allItems = stats?.flatMap(
-      (yearlyStats) =>
-        yearlyStats?.[seriesCategoryMap[recordStartBasis]]?.[category]?.[
+      (yearlyStats) => {
+        const seriesArray = yearlyStats?.[seriesCategoryMap[recordStartBasis]]?.[category]?.[
           metric
-        ] || [],
+        ] || [];
+        // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+        return seriesArray.map(series => ({
+          ...series,
+          data: series.data?.map(dataPoint => {
+            const [date, value] = dataPoint;
+            return [reconstructDateFromMMDD(date, yearlyStats.year), value];
+          })
+        }));
+      }
     );
   }
 

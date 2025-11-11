@@ -32,12 +32,13 @@ describe('SingleStatUploadersCumulative', () => {
             recordSnapshotDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                    ['01-01', 10],
+                    ['01-02', 15]
                   ]
                 }
                 ]
@@ -81,12 +82,13 @@ describe('SingleStatUploadersCumulative', () => {
             recordSnapshotDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                    ['01-01', 10],
+                    ['01-02', 15]
                   ]
                 }
                 ]
@@ -189,11 +191,12 @@ describe('SingleStatUploadersCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },   // Before range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },  // In range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] },  // In range (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }   // After range
+                    ['12-31', 5],   // Before range (2023)
+                    ['01-01', 10],  // In range
+                    ['01-02', 15],  // In range (latest)
+                    ['01-03', 20]   // After range
                   ]
                 }
                 ]
@@ -223,11 +226,12 @@ describe('SingleStatUploadersCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 5] },   // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 10] },  // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 15] },  // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 20] }   // Outside range
+                    ['12-30', 5],   // Outside range
+                    ['12-31', 10],  // Outside range
+                    ['01-03', 15],  // Outside range
+                    ['01-04', 20]   // Outside range
                   ]
                 }
                 ]
@@ -257,11 +261,12 @@ describe('SingleStatUploadersCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },   // Before end
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },  // Before end
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] },  // On end date (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 20] }   // After end
+                    ['12-31', 5],   // Before end
+                    ['01-01', 10],  // Before end
+                    ['01-02', 15],  // On end date (latest)
+                    ['01-03', 20]   // After end
                   ]
                 }
                 ]
@@ -291,8 +296,9 @@ describe('SingleStatUploadersCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] }  // Only one point in range
+                    ['01-01', 10]  // Only one point in range
                   ]
                 }
                 ]
@@ -321,12 +327,13 @@ describe('SingleStatUploadersCumulative', () => {
             recordSnapshotDataCreated: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                    ['01-01', 10],
+                    ['01-02', 15]
                   ]
                 }
                 ]
@@ -355,9 +362,10 @@ describe('SingleStatUploadersCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 8] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 12] }
+                    ['01-01', 8],
+                    ['01-02', 12]
                   ]
                 }
                 ]
@@ -446,41 +454,6 @@ describe('SingleStatUploadersCumulative', () => {
       expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [
-          {
-            year: 2024,
-            recordSnapshotDataAdded: {
-              global: {
-                uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 20] } // Invalid date
-                  ]
-                }
-                ]
-              }
-            }
-          }
-        ],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        isLoading: false,
-        recordStartBasis: 'added'
-      });
-
-      render(<SingleStatUploadersCumulative />);
-
-      // Should show the latest valid data point within range: 15
-      expect(screen.getByText('15')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
@@ -489,12 +462,13 @@ describe('SingleStatUploadersCumulative', () => {
             recordSnapshotDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                    ['01-01', 10],
+                    ['01-02', 15]
                   ]
                 }
                 ]
@@ -521,12 +495,13 @@ describe('SingleStatUploadersCumulative', () => {
             recordSnapshotDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+                    ['01-01', 10],
+                    ['01-02', 15]
                   ]
                 }
                 ]

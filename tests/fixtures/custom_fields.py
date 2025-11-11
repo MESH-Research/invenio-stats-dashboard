@@ -42,9 +42,11 @@ from invenio_search.engine import search as search_engine
 from invenio_search.utils import build_alias_name
 
 from invenio_stats_dashboard.records.communities.custom_fields.custom_fields import (
+    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
+)
+from invenio_stats_dashboard.records.communities.custom_fields.custom_fields import (
     COMMUNITY_STATS_FIELDS,
     COMMUNITY_STATS_FIELDS_UI,
-    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
 )
 
 

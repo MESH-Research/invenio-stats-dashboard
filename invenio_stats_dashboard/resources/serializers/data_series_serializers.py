@@ -321,19 +321,17 @@ class DataSeriesCSVSerializer:
                 continue
 
             for data_point in data_points:
-                if isinstance(data_point, dict):
-                    # Extract date and value from data_point
-                    value_array = data_point.get("value", [])
-                    if isinstance(value_array, list) and len(value_array) >= 2:
-                        date_val = value_array[0]
-                        numeric_val = value_array[1]
-                        all_rows.append([
-                            series_id,
-                            series_label,
-                            date_val,
-                            numeric_val,
-                            unit,
-                        ])
+                # Data points are arrays: [date, value]
+                if isinstance(data_point, list) and len(data_point) >= 2:
+                    date_val = data_point[0]
+                    numeric_val = data_point[1]
+                    all_rows.append([
+                        series_id,
+                        series_label,
+                        date_val,
+                        numeric_val,
+                        unit,
+                    ])
 
         # Only write file if we have data
         if not all_rows:
@@ -555,20 +553,16 @@ class DataSeriesExcelSerializer:
                 continue
 
             for data_point in data_points:
-                if isinstance(data_point, dict):
-                    # Extract date and value from data_point
-                    value_array = data_point.get("value", [])
-                    if isinstance(value_array, list) and len(value_array) >= 2:
-                        date_val = value_array[0]
-                        numeric_val = value_array[1]
+                if isinstance(data_point, list) and len(data_point) >= 2:
+                    date_val = data_point[0]
+                    numeric_val = data_point[1]
 
-                        # Add row with all columns
-                        ws.cell(row=current_row, column=1, value=series_id)
-                        ws.cell(row=current_row, column=2, value=series_label)
-                        ws.cell(row=current_row, column=3, value=date_val)
-                        ws.cell(row=current_row, column=4, value=numeric_val)
-                        ws.cell(row=current_row, column=5, value=unit)
-                        current_row += 1
+                    ws.cell(row=current_row, column=1, value=series_id)
+                    ws.cell(row=current_row, column=2, value=series_label)
+                    ws.cell(row=current_row, column=3, value=date_val)
+                    ws.cell(row=current_row, column=4, value=numeric_val)
+                    ws.cell(row=current_row, column=5, value=unit)
+                    current_row += 1
 
     def _sanitize_sheet_name(self, name: str) -> str:
         """Sanitize sheet name for Excel compatibility.
@@ -925,51 +919,28 @@ class DataSeriesXMLSerializer:
                                 points_elem.set("count", str(len(data_points)))
 
                                 for point in data_points:
-                                    if isinstance(point, dict):
+                                    if isinstance(point, list) and len(point) >= 2:
                                         point_elem = ET.SubElement(points_elem, "point")
+                                        point_elem.set("date", str(point[0]))
+                                        point_elem.set("value", str(point[1]))
 
-                                        # Add readable date if available
-                                        if "readableDate" in point:
-                                            point_elem.set(
-                                                "readableDate",
-                                                str(point["readableDate"]),
-                                            )
+                                        # Add semantic attributes
+                                        unit = self._get_metric_unit(
+                                            str(metric_name)
+                                        )
+                                        if unit:
+                                            point_elem.set("unit", unit)
 
-                                        # Add value array
-                                        value_array = point.get("value", [])
-                                        if (
-                                            isinstance(value_array, list)
-                                            and len(value_array) >= 2
-                                        ):
-                                            point_elem.set("date", str(value_array[0]))
-                                            point_elem.set("value", str(value_array[1]))
-
-                                            # Add value type if available
-                                            if "valueType" in point:
-                                                point_elem.set(
-                                                    "valueType", str(point["valueType"])
-                                                )
-
-                                            # Add semantic attributes
-                                            unit = self._get_metric_unit(
-                                                str(metric_name)
-                                            )
-                                            if unit:
-                                                point_elem.set("unit", unit)
-
-                                            # Add quality indicator
-                                            quality = self._assess_data_quality(point)
-                                            if quality:
-                                                point_elem.set("quality", quality)
+                                        # Add quality indicator
+                                        quality = self._assess_data_quality(point)
+                                        if quality:
+                                            point_elem.set("quality", quality)
 
         # Format XML with proper indentation
         self._indent_xml(root)
 
-        # Create XML string
         xml_string = ET.tostring(root, encoding="unicode", xml_declaration=True)
 
-        # Generate community-specific filename
-        # filename_prefix = self._get_filename_prefix(community_id, "xml")
         return xml_string
 
     def _get_filename_prefix(

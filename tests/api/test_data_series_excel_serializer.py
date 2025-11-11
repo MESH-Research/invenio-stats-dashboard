@@ -22,18 +22,8 @@ class TestDataSeriesExcelSerializer:
                 "access_statuses": {
                     "data_volume": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                },
-                                {
-                                    "readableDate": "Jun 2, 2025",
-                                    "value": ["2025-06-02", 4096.0],
-                                    "valueType": "filesize",
-                                },
-                            ],
+                            "data": [["06-01", 3072.0], ["06-02", 4096.0]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "label": "Metadata Only",
                             "name": "",
@@ -43,13 +33,8 @@ class TestDataSeriesExcelSerializer:
                     ],
                     "downloads": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 3]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "label": "Metadata Only",
                             "name": "",
@@ -57,13 +42,8 @@ class TestDataSeriesExcelSerializer:
                             "valueType": "number",
                         },
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 5],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 5]],
+                            "year": 2025,
                             "id": "open",
                             "label": "Open Access",
                             "name": "",
@@ -75,13 +55,8 @@ class TestDataSeriesExcelSerializer:
                 "countries": {
                     "views": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 1],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 1]],
+                            "year": 2025,
                             "id": "US",
                             "label": "United States",
                             "name": "",
@@ -133,7 +108,7 @@ class TestDataSeriesExcelSerializer:
             # Verify data rows
             assert ws.cell(row=2, column=1).value == "metadata-only"
             assert ws.cell(row=2, column=2).value == "Metadata Only"
-            assert ws.cell(row=2, column=3).value == "2025-06-01"
+            assert ws.cell(row=2, column=3).value == "06-01"
             assert ws.cell(row=2, column=4).value == 3072.0
             assert ws.cell(row=2, column=5).value == "bytes"
 
@@ -178,29 +153,14 @@ class TestDataSeriesExcelSerializer:
             {
                 "id": "en",
                 "label": "English",
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 100],
-                        "valueType": "number",
-                    },
-                    {
-                        "readableDate": "Jun 2, 2025",
-                        "value": ["2025-06-02", 200],
-                        "valueType": "number",
-                    },
-                ],
+                "data": [["06-01", 100], ["06-02", 200]],
+                "year": 2025,
             },
             {
                 "id": "fr",
                 "label": "French",
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 50],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 50]],
+                "year": 2025,
             },
         ]
 
@@ -221,19 +181,19 @@ class TestDataSeriesExcelSerializer:
         # Verify first series data
         assert ws.cell(row=2, column=1).value == "en"
         assert ws.cell(row=2, column=2).value == "English"
-        assert ws.cell(row=2, column=3).value == "2025-06-01"
+        assert ws.cell(row=2, column=3).value == "06-01"
         assert ws.cell(row=2, column=4).value == 100
         assert ws.cell(row=2, column=5).value == "unique views"
 
         # Verify second data point from first series
         assert ws.cell(row=3, column=1).value == "en"
-        assert ws.cell(row=3, column=3).value == "2025-06-02"
+        assert ws.cell(row=3, column=3).value == "06-02"
         assert ws.cell(row=3, column=4).value == 200
 
         # Verify second series data
         assert ws.cell(row=4, column=1).value == "fr"
         assert ws.cell(row=4, column=2).value == "French"
-        assert ws.cell(row=4, column=3).value == "2025-06-01"
+        assert ws.cell(row=4, column=3).value == "06-01"
         assert ws.cell(row=4, column=4).value == 50
 
     def test_empty_data_handling(self, running_app):
@@ -278,13 +238,8 @@ class TestDataSeriesExcelSerializer:
                         {
                             "id": "en",
                             "label": "English",
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 10],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 10]],
+                            "year": 2025,
                         }
                     ],
                     "downloads": [],  # Empty metric

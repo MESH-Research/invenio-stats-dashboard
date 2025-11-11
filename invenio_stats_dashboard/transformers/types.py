@@ -8,23 +8,18 @@
 
 from typing import Any, TypedDict
 
-
-class DataPointDict(TypedDict):
-    """Type definition for a data point dictionary."""
-
-    value: list[str | int | float]  # [date, value] array matching JavaScript format
-    readableDate: str
-    valueType: str
+DataPointArray = list[str | int | float]  # [date, value] array
 
 
-class DataSeriesDict(TypedDict):
+class DataSeriesDict(TypedDict, total=False):
     """Type definition for a data series dictionary."""
 
     id: str
     name: str | dict[str, str]  # Allow multilingual labels
-    data: list[DataPointDict]
+    data: list[DataPointArray]
     type: str
     valueType: str
+    year: int  # Optional: present when all dates are in the same year
 
 
 class GlobalMetricsDict(TypedDict):

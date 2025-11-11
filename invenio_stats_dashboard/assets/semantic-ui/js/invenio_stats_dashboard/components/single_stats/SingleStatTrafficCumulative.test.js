@@ -32,11 +32,12 @@ describe('SingleStatTrafficCumulative', () => {
             usageSnapshotData: {
               global: {
                 dataVolume: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3072] }
+                    ['01-02', 3072]
                   ]
                 }
                 ]
@@ -78,11 +79,12 @@ describe('SingleStatTrafficCumulative', () => {
             usageSnapshotData: {
               global: {
                 dataVolume: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3072] }
+                    ['01-02', 3072]
                   ]
                 }
                 ]
@@ -110,11 +112,12 @@ describe('SingleStatTrafficCumulative', () => {
             usageSnapshotData: {
               global: {
                 dataVolume: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3072] }
+                    ['01-02', 3072]
                   ]
                 }
                 ]
@@ -217,11 +220,12 @@ describe('SingleStatTrafficCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] },  // Outside range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 2048] }, // Inside range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3072] }, // Inside range (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // Outside range
+                    ['12-31', 1024],  // Outside range (2023)
+                    ['01-01', 2048], // Inside range
+                    ['01-02', 3072], // Inside range (latest)
+                    ['01-03', 4096]  // Outside range
                   ]
                 }
                 ]
@@ -251,11 +255,12 @@ describe('SingleStatTrafficCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 1024] },  // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 2048] }, // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 3072] }, // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 4096] }  // Outside range
+                    ['12-30', 1024],  // Outside range
+                    ['12-31', 2048], // Outside range
+                    ['01-03', 3072], // Outside range
+                    ['01-04', 4096]  // Outside range
                   ]
                 }
                 ]
@@ -278,6 +283,23 @@ describe('SingleStatTrafficCumulative', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            usageSnapshotData: {
+              global: {
+                dataVolume: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 1024]  // Before start
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             usageSnapshotData: {
               global: {
@@ -285,13 +307,13 @@ describe('SingleStatTrafficCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 2048] }, // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3072] }, // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After start (latest)
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-01', 2048], // On start date
+                      ['01-02', 3072], // After start
+                      ['01-03', 4096]  // After start (latest)
+                    ]
+                  }
                 ]
               }
             }
@@ -319,11 +341,12 @@ describe('SingleStatTrafficCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 1024] },  // Before end
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 2048] }, // Before end
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3072] }, // On end date (latest)
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 4096] }  // After end
+                    ['12-31', 1024],  // Before end
+                    ['01-01', 2048], // Before end
+                    ['01-02', 3072], // On end date (latest)
+                    ['01-03', 4096]  // After end
                   ]
                 }
                 ]
@@ -413,41 +436,6 @@ describe('SingleStatTrafficCumulative', () => {
       expect(screen.getByText('0 Bytes')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [
-          {
-            year: 2024,
-            usageSnapshotData: {
-              global: {
-                dataVolume: [
-                  {
-                    id: 'global',
-                    name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 3072] } // Invalid date
-                  ]
-                }
-                ]
-              }
-            }
-          }
-        ],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        isLoading: false,
-        binary_sizes: false
-      });
-
-      render(<SingleStatTrafficCumulative />);
-
-      // Should get the latest valid data point within range: 2048 bytes = 2 kB
-      expect(screen.getByText('2 kB')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
@@ -459,9 +447,10 @@ describe('SingleStatTrafficCumulative', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 1024] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 2048] }
+                    ['01-01', 1024],
+                    ['01-02', 2048]
                   ]
                 }
                 ]

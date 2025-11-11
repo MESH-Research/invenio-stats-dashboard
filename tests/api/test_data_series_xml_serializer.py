@@ -19,18 +19,8 @@ class TestDataSeriesXMLSerializer:
                 "access_statuses": {
                     "data_volume": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                },
-                                {
-                                    "readableDate": "Jun 2, 2025",
-                                   "value": ["2025-06-02", 4096.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0], ["06-02", 4096.0]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "name": "",
                             "type": "line",
@@ -39,35 +29,25 @@ class TestDataSeriesXMLSerializer:
                     ],
                     "downloads": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 3]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "name": "",
                             "type": "line",
-                           "valueType": "number",
+                            "valueType": "number",
                         }
                     ]
                 },
                 "countries": {
                     "views": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 1],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 1]],
+                            "year": 2025,
                             "id": "US",
                             "name": "",
                             "type": "line",
                             "valueType": "number",
-                       }
+                        }
                     ]
                 }
             }
@@ -84,20 +64,24 @@ class TestDataSeriesXMLSerializer:
 
         # Check root element (with namespace)
         assert root.tag == (
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataSeriesCollection"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}dataSeriesCollection"
         )
         assert root.get("version") == "1.0"
 
         # Check metadata
         metadata = root.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}metadata"
         )
         assert metadata is not None
         assert metadata.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}generatedAt"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}generatedAt"
         ) is not None
         total_categories_elem = metadata.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}totalCategories"
         )
         assert total_categories_elem is not None
         assert total_categories_elem.text == "1"
@@ -195,17 +179,13 @@ class TestDataSeriesXMLSerializer:
 
         # Check first point
         first_point = points[0]
-        assert first_point.get("readableDate") == "Jun 1, 2025"
-        assert first_point.get("date") == "2025-06-01"
+        assert first_point.get("date") == "06-01"
         assert first_point.get("value") == "3072.0"
-        assert first_point.get("valueType") == "filesize"
 
         # Check second point
         second_point = points[1]
-        assert second_point.get("readableDate") == "Jun 2, 2025"
-        assert second_point.get("date") == "2025-06-02"
+        assert second_point.get("date") == "06-02"
         assert second_point.get("value") == "4096.0"
-        assert second_point.get("valueType") == "filesize"
 
     def test_xml_id_sanitization(self, running_app):
         """Test XML ID sanitization for XML compatibility."""
@@ -242,21 +222,30 @@ class TestDataSeriesXMLSerializer:
 
         # Should have root element and metadata
         assert root.tag == (
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataSeriesCollection"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}dataSeriesCollection"
         )
         assert root.find(
             "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
         ) is not None
         total_categories_elem = root.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata/"
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}metadata/"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}totalCategories"
         )
         assert total_categories_elem is not None
         assert total_categories_elem.text == "0"
         # Should have no categories
-        assert len(
-            root.findall("{https://github.com/MESH-Research/invenio-stats-dashboard}category")
-        ) == 0
+        assert (
+            len(
+                root.findall(
+                    "{https://github.com/MESH-Research/"
+                    "invenio-stats-dashboard}category"
+                )
+            )
+            == 0
+        )
 
         # Test with invalid data structure
         invalid_data = {"level1": "not_a_dict"}
@@ -267,14 +256,17 @@ class TestDataSeriesXMLSerializer:
 
         # Should have root element and metadata
         assert root.tag == (
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}dataSeriesCollection"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}dataSeriesCollection"
         )
         assert root.find(
             "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
         ) is not None
         total_categories_elem = root.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata/"
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}metadata/"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}totalCategories"
         )
         assert total_categories_elem is not None
         assert total_categories_elem.text == "1"
@@ -293,13 +285,8 @@ class TestDataSeriesXMLSerializer:
                 "access_statuses": {
                     "data_volume": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                }
-                            ],
+                            "data": [["06-01", 3072.0]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "name": "",
                             "type": "line",
@@ -309,22 +296,24 @@ class TestDataSeriesXMLSerializer:
                 }
             }
         }
-        
+
         xml_data = serializer.serialize(test_data)
         root = ET.fromstring(xml_data)
-        
+
         # Check that generatedAt timestamp exists and is valid
         generated_at = root.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata/"
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}generatedAt"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}metadata/"
+            "{https://github.com/MESH-Research/"
+            "invenio-stats-dashboard}generatedAt"
         )
         assert generated_at is not None
         assert generated_at.text is not None
-        
+
         # Should be in ISO format with timezone
         timestamp = generated_at.text
         assert timestamp.endswith("+00:00")  # UTC timezone offset format
         assert "T" in timestamp
-        
+
         # Should be parseable as ISO format
         datetime.fromisoformat(timestamp)  # No need to remove anything

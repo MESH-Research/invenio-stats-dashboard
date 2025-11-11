@@ -38,22 +38,11 @@ const mockData = [{
         name: 'Total Records',
         type: 'line',
         valueType: 'number',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 10],
-            readableDate: 'January 1, 2024',
-            valueType: 'number'
-          },
-          {
-            value: [new Date('2024-01-02'), 15],
-            readableDate: 'January 2, 2024',
-            valueType: 'number'
-          },
-          {
-            value: [new Date('2024-01-03'), 20],
-            readableDate: 'January 3, 2024',
-            valueType: 'number'
-          }
+          ['01-01', 10],
+          ['01-02', 15],
+          ['01-03', 20]
         ]
       }
     ],
@@ -63,17 +52,10 @@ const mockData = [{
         name: 'Total Views',
         type: 'bar',
         valueType: 'number',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 100],
-            readableDate: 'January 1, 2024',
-            valueType: 'number'
-          },
-          {
-            value: [new Date('2024-01-02'), 150],
-            readableDate: 'January 2, 2024',
-            valueType: 'number'
-          }
+          ['01-01', 100],
+          ['01-02', 150]
         ]
       }
     ],
@@ -83,17 +65,10 @@ const mockData = [{
         name: 'Data Volume',
         type: 'line',
         valueType: 'filesize',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 1024 * 1024 * 100], // 100 MB
-            readableDate: 'January 1, 2024',
-            valueType: 'filesize'
-          },
-          {
-            value: [new Date('2024-01-02'), 1024 * 1024 * 200], // 200 MB
-            readableDate: 'January 2, 2024',
-            valueType: 'filesize'
-          }
+          ['01-01', 1024 * 1024 * 100], // 100 MB
+          ['01-02', 1024 * 1024 * 200] // 200 MB
         ]
       }
     ]
@@ -105,17 +80,10 @@ const mockData = [{
         name: 'Article',
         type: 'line',
         valueType: 'number',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 3],
-            readableDate: 'January 1, 2024',
-            valueType: 'number'
-          },
-          {
-            value: [new Date('2024-01-02'), 5],
-            readableDate: 'January 2, 2024',
-            valueType: 'number'
-          }
+          ['01-01', 3],
+          ['01-02', 5]
         ]
       },
       {
@@ -123,17 +91,10 @@ const mockData = [{
         name: 'Dataset',
         type: 'line',
         valueType: 'number',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 2],
-            readableDate: 'January 1, 2024',
-            valueType: 'number'
-          },
-          {
-            value: [new Date('2024-01-02'), 3],
-            readableDate: 'January 2, 2024',
-            valueType: 'number'
-          }
+          ['01-01', 2],
+          ['01-02', 3]
         ]
       }
     ]
@@ -167,12 +128,9 @@ const mockDataWithEmptySubcount = [{
         name: 'Total Records',
         type: 'line',
         valueType: 'number',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 10],
-            readableDate: 'January 1, 2024',
-            valueType: 'number'
-          }
+          ['01-01', 10]
         ]
       }
     ]
@@ -184,12 +142,9 @@ const mockDataWithEmptySubcount = [{
         name: 'Article',
         type: 'line',
         valueType: 'number',
+        year: 2024,
         data: [
-          {
-            value: [new Date('2024-01-01'), 3],
-            readableDate: 'January 1, 2024',
-            valueType: 'number'
-          }
+          ['01-01', 3]
         ]
       }
     ]
@@ -431,12 +386,9 @@ describe('StatsChart', () => {
               name: 'Article',
               type: 'bar',
               valueType: 'number',
+              year: 2024,
               data: [
-                {
-                  value: [new Date('2024-01-01'), 5],
-                  readableDate: 'January 1, 2024',
-                  valueType: 'number'
-                }
+                ['01-01', 5]
               ]
             },
             {
@@ -444,12 +396,9 @@ describe('StatsChart', () => {
               name: 'Dataset',
               type: 'bar',
               valueType: 'number',
+              year: 2024,
               data: [
-                {
-                  value: [new Date('2024-01-01'), 3],
-                  readableDate: 'January 1, 2024',
-                  valueType: 'number'
-                }
+                ['01-01', 3]
               ]
             }
           ]
@@ -488,9 +437,9 @@ describe('StatsChart', () => {
               id: 'global',
               name: 'Global',
               data: [
-                { value: [new Date('2024-01-01'), 150] },
-                { value: [new Date('2024-01-02'), 150] },
-                { value: [new Date('2024-01-03'), 150] },
+                ['01-01', 150],
+                ['01-02', 150],
+                ['01-03', 150],
               ]
             }
           ]
@@ -501,27 +450,27 @@ describe('StatsChart', () => {
               id: 'series-a',
               name: 'Series A',
               data: [
-                { value: [new Date('2024-01-01'), 100] },
-                { value: [new Date('2024-01-02'), 30] },
-                { value: [new Date('2024-01-03'), 20] },
+                ['01-01', 100],
+                ['01-02', 30],
+                ['01-03', 20],
               ]
             },
             {
               id: 'series-b',
               name: 'Series B',
               data: [
-                { value: [new Date('2024-01-01'), 10] },
-                { value: [new Date('2024-01-02'), 40] },
-                { value: [new Date('2024-01-03'), 100] },
+                ['01-01', 10],
+                ['01-02', 40],
+                ['01-03', 100],
               ]
             },
             {
               id: 'series-c',
               name: 'Series C',
               data: [
-                { value: [new Date('2024-01-01'), 50] },
-                { value: [new Date('2024-01-02'), 50] },
-                { value: [new Date('2024-01-03'), 50] },
+                ['01-01', 50],
+                ['01-02', 50],
+                ['01-03', 50],
               ]
             }
           ]
@@ -550,20 +499,20 @@ describe('StatsChart', () => {
       await waitFor(() => {
         const chartOption = screen.getByTestId('chart-option');
         const option = JSON.parse(chartOption.getAttribute('data-option'));
-        
+
         // Verify series are ranked by latest value: B (100) > C (50) > A (20)
         // Note: The "other" series is inserted at the beginning, so we check the ordering
         // of the actual series (excluding "Other")
         const seriesNames = option.series.map(s => s.name);
-        
+
         // "Other" is inserted first, then the ranked series
         expect(seriesNames[0]).toBe('Other');
-        
+
         // Find indices of the actual series (excluding "Other")
         const seriesBIndex = seriesNames.indexOf('Series B');
         const seriesCIndex = seriesNames.indexOf('Series C');
         const seriesAIndex = seriesNames.indexOf('Series A');
-        
+
         // Verify ranking: B (100) should come before C (50) and A (20)
         expect(seriesBIndex).toBeLessThan(seriesCIndex);
         expect(seriesBIndex).toBeLessThan(seriesAIndex);
@@ -580,9 +529,9 @@ describe('StatsChart', () => {
       const option = JSON.parse(chartOption.getAttribute('data-option'));
 
       expect(option.series[0].data).toHaveLength(3);
-      expect(option.series[0].data[0].value[1]).toBe(10);
-      expect(option.series[0].data[1].value[1]).toBe(15);
-      expect(option.series[0].data[2].value[1]).toBe(20);
+      expect(option.series[0].data[0][1]).toBe(10);
+      expect(option.series[0].data[1][1]).toBe(15);
+      expect(option.series[0].data[2][1]).toBe(20);
     });
 
     it('filters data by date range', () => {
@@ -595,17 +544,10 @@ describe('StatsChart', () => {
               name: 'Total Records',
               type: 'line',
               valueType: 'number',
+              year: 2024,
               data: [
-                {
-                  value: [new Date('2024-01-01T00:00:00.000Z'), 10],
-                  readableDate: 'January 1, 2024',
-                  valueType: 'number'
-                },
-                {
-                  value: [new Date('2024-01-05T00:00:00.000Z'), 20], // Outside range
-                  readableDate: 'January 5, 2024',
-                  valueType: 'number'
-                }
+                ['01-01', 10],
+                ['01-05', 20] // Outside range
               ]
             }
           ]
@@ -621,9 +563,9 @@ describe('StatsChart', () => {
       // The chart creates data points for the entire date range, but only includes actual data
       expect(option.series[0].data).toHaveLength(3); // Jan 1, 2, 3
       // The aggregation creates empty data points for the date range, which is correct behavior
-      expect(option.series[0].data[0].value[1]).toBe(0); // Jan 1 (aggregated to 0)
-      expect(option.series[0].data[1].value[1]).toBe(0); // Jan 2 (no data)
-      expect(option.series[0].data[2].value[1]).toBe(0); // Jan 3 (no data)
+      expect(option.series[0].data[0][1]).toBe(0); // Jan 1 (aggregated to 0)
+      expect(option.series[0].data[1][1]).toBe(0); // Jan 2 (no data)
+      expect(option.series[0].data[2][1]).toBe(0); // Jan 3 (no data)
     });
   });
 
@@ -687,7 +629,7 @@ describe('StatsChart', () => {
       // Should still render the chart since global and resourceTypes have data
       // Empty subcounts with new structure (empty arrays) are filtered out
       expect(screen.getByText('Test Chart')).toBeInTheDocument();
-      
+
       const filterButton = screen.getByLabelText('Stats Chart Filter');
       fireEvent.click(filterButton);
 
@@ -769,14 +711,16 @@ describe('StatsChart', () => {
               name: 'Series 1',
               type: 'line',
               valueType: 'number',
-              data: [{ value: [new Date('2024-01-01'), 10], readableDate: 'Jan 1', valueType: 'number' }]
+              year: 2024,
+              data: [['01-01', 10]]
             },
             {
               id: 'records-2',
               name: 'Series 2',
               type: 'line',
               valueType: 'number',
-              data: [{ value: [new Date('2024-01-01'), 20], readableDate: 'Jan 1', valueType: 'number' }]
+              year: 2024,
+              data: [['01-01', 20]]
             }
           ]
         }

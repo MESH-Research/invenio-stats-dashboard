@@ -512,6 +512,9 @@ def generate_cache_command(
 
     Returns:
         None: This is a CLI command function.
+
+    Raises:
+        BadParameter: If invalid year values are provided.
     """
     if not force:
         check_scheduled_tasks_enabled(command="cache")

@@ -5,6 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import { filterSeriesArrayByDate } from './filters';
+import { reconstructDateFromMMDD } from './dates';
 import countriesGeoJson from '../components/maps/data/countries.json';
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 
@@ -98,18 +99,26 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
   }
 
   const allCountriesData = relevantYearlyStats.flatMap(yearlyStats => {
+    let seriesArray = [];
     if (useSnapshot) {
       if (metric === 'views' && yearlyStats.usageSnapshotData?.countriesByView?.views) {
-        return yearlyStats.usageSnapshotData.countriesByView.views;
+        seriesArray = yearlyStats.usageSnapshotData.countriesByView.views;
       } else if (metric === 'downloads' && yearlyStats.usageSnapshotData?.countriesByDownload?.downloads) {
-        return yearlyStats.usageSnapshotData.countriesByDownload.downloads;
+        seriesArray = yearlyStats.usageSnapshotData.countriesByDownload.downloads;
       } else if (yearlyStats.usageSnapshotData?.countries?.[metric]) {
-        return yearlyStats.usageSnapshotData.countries[metric];
+        seriesArray = yearlyStats.usageSnapshotData.countries[metric];
       }
     } else {
-      return yearlyStats.usageDeltaData?.countries?.[metric] || [];
+      seriesArray = yearlyStats.usageDeltaData?.countries?.[metric] || [];
     }
-    return [];
+    // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+    return seriesArray.map(series => ({
+      ...series,
+      data: series.data?.map(dataPoint => {
+        const [date, value] = dataPoint;
+        return [reconstructDateFromMMDD(date, yearlyStats.year), value];
+      })
+    }));
   });
 
   if (allCountriesData.length === 0) {
@@ -149,8 +158,8 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
   filteredData.forEach(series => {
     if (series.data && Array.isArray(series.data)) {
       series.data.forEach(dataPoint => {
-        if (dataPoint && dataPoint.value && Array.isArray(dataPoint.value) && dataPoint.value.length >= 2) {
-          const value = dataPoint.value[1];
+        if (dataPoint && Array.isArray(dataPoint) && dataPoint.length >= 2) {
+          const value = dataPoint[1];
           const countryName = series.name || series.id;
           if (value > 0 && countryName) {
             countryCodesWithData.add(countryName);
@@ -166,9 +175,9 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
   filteredData.forEach(series => {
     if (series.data && Array.isArray(series.data)) {
       series.data.forEach(dataPoint => {
-        if (dataPoint && dataPoint.value && Array.isArray(dataPoint.value) && dataPoint.value.length >= 2) {
+        if (dataPoint && Array.isArray(dataPoint) && dataPoint.length >= 2) {
           // Data structure: [date, value] - country name comes from series.name
-          const value = dataPoint.value[1];
+          const value = dataPoint[1];
           const countryName = series.name || series.id;
 
           if (value > 0 && countryName) {

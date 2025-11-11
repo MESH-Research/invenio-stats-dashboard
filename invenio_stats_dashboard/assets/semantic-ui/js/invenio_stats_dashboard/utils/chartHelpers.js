@@ -1,5 +1,5 @@
 import { filterSeriesArrayByDate } from "./filters";
-import { readableGranularDate } from "./dates";
+import { readableGranularDate, reconstructDateFromMMDD } from "./dates";
 import { extractLocalizedLabel } from "./i18n";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { getLicenseLabelForms } from "./nameTransformHelpers";
@@ -110,7 +110,7 @@ export class ChartDataAggregator {
     const aggregatedPoints = new Map();
 
     series.data.forEach((point) => {
-      const [date, value] = point.value;
+      const [date, value] = point;
 
       if (!date || value === undefined) {
         return; // Skip invalid points
@@ -187,7 +187,7 @@ export const calculateYAxisMin = (data) => {
   if (!data || data.length === 0) return 0;
 
   const allValues = data.flatMap(
-    (series) => series.data.map((point) => point.value[1]), // numeric value from [date, value]
+    (series) => series.data.map((point) => point[1]), // numeric value from [date, value]
   );
 
   const [min, max] = [Math.min(...allValues), Math.max(...allValues)];
@@ -224,7 +224,7 @@ export const calculateYAxisMax = (data, isStacked = true) => {
   data.forEach((series) => {
     if (series.data) {
       series.data.forEach((point) => {
-        const timestamp = getTimestamp(point.value[0]);
+        const timestamp = getTimestamp(point[0]);
         if (timestamp !== null) {
           timePoints.add(timestamp);
         }
@@ -240,10 +240,10 @@ export const calculateYAxisMax = (data, isStacked = true) => {
         return data.reduce((sum, series) => {
           if (!series.data) return sum;
           const point = series.data.find((p) => {
-            const timestamp = getTimestamp(p.value[0]);
+            const timestamp = getTimestamp(p[0]);
             return timestamp === timePoint;
           });
-          return sum + (point ? point.value[1] : 0);
+          return sum + (point ? point[1] : 0);
         }, 0);
       }),
     );
@@ -253,7 +253,7 @@ export const calculateYAxisMax = (data, isStacked = true) => {
   } else {
     // For overlapping mode, find the maximum individual value across all series
     const allValues = data.flatMap(
-      (series) => series.data?.map((point) => point.value[1]) || [],
+      (series) => series.data?.map((point) => point[1]) || [],
     );
 
     if (allValues.length === 0) return undefined;
@@ -273,7 +273,7 @@ export const calculateYAxisMax = (data, isStacked = true) => {
 const filterNonZeroSeries = (seriesArray) => {
   return seriesArray.filter(series => {
     if (!series.data || !Array.isArray(series.data)) return false;
-    return series.data.some(point => (point.value[1] || 0) > 0);
+    return series.data.some(point => (point[1] || 0) > 0);
   });
 };
 
@@ -294,10 +294,11 @@ const selectTopSeries = (seriesArray, maxSeries, isCumulative = false) => {
     let totalValue;
     if (isCumulative) {
       // For cumulative data, use the latest value
-      totalValue = series.data[series.data.length - 1]?.value?.[1] || 0;
+      const lastPoint = series.data[series.data.length - 1];
+      totalValue = lastPoint ? lastPoint[1] : 0;
     } else {
       // For delta data, sum all data points
-      totalValue = series.data.reduce((sum, point) => sum + (point.value[1] || 0), 0);
+      totalValue = series.data.reduce((sum, point) => sum + (point[1] || 0), 0);
     }
     return { ...series, totalValue };
   });
@@ -324,7 +325,19 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   }
 
   const globalSeries = data
-    .map((yearlyData) => yearlyData?.global?.[selectedMetric] || [])
+    .map((yearlyData) => {
+      const seriesArray = yearlyData?.global?.[selectedMetric] || [];
+      // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+      return seriesArray.map(series => ({
+        ...series,
+        data: series.data?.map(dataPoint => {
+          const [date, value] = dataPoint;
+          return yearlyData.year
+            ? [reconstructDateFromMMDD(date, yearlyData.year), value]
+            : dataPoint;
+        })
+      }));
+    })
     .flat();
   if (globalSeries.length === 0) {
     return null;
@@ -358,7 +371,19 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   if (otherIds.length > 0) {
     // Get all series from breakdown data (including those that should be treated as "other")
     const allBreakdownSeries = data
-      .map((yearlyData) => yearlyData?.[displaySeparately]?.[selectedMetric] || [])
+      .map((yearlyData) => {
+        const seriesArray = yearlyData?.[displaySeparately]?.[selectedMetric] || [];
+        // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+        return seriesArray.map(series => ({
+          ...series,
+          data: series.data?.map(dataPoint => {
+            const [date, value] = dataPoint;
+            return yearlyData.year
+              ? [reconstructDateFromMMDD(date, yearlyData.year), value]
+              : dataPoint;
+          })
+        }));
+      })
       .flat();
 
     const mergedBreakdownSeries = ChartDataProcessor.mergeSeriesById(allBreakdownSeries);
@@ -377,9 +402,10 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
         if (filteredOtherSeries.length > 0 && filteredOtherSeries[0].data) {
           // Add values to the combined map
           filteredOtherSeries[0].data.forEach(point => {
-            const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+            const [date, value] = point;
+            const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
             const currentValue = otherValuesByDate.get(dateKey) || 0;
-            otherValuesByDate.set(dateKey, currentValue + (point.value[1] || 0));
+            otherValuesByDate.set(dateKey, currentValue + (value || 0));
           });
         }
       }
@@ -388,12 +414,10 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
     // Subtract combined "other" values from global data points
     if (otherValuesByDate.size > 0) {
       globalDataPoints = globalDataPoints.map(point => {
-        const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+        const [date, value] = point;
+        const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
         const otherValue = otherValuesByDate.get(dateKey) || 0;
-        return {
-          ...point,
-          value: [point.value[0], Math.max(0, point.value[1] - otherValue)],
-        };
+        return [date, Math.max(0, value - otherValue)];
       });
     }
   }
@@ -403,9 +427,10 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   visibleSeries.forEach(series => {
     if (series.data && Array.isArray(series.data)) {
       series.data.forEach(point => {
-        const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
+        const [date, value] = point;
+        const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
         const currentValue = visibleSeriesValuesByDate.get(dateKey) || 0;
-        visibleSeriesValuesByDate.set(dateKey, currentValue + (point.value[1] || 0));
+        visibleSeriesValuesByDate.set(dateKey, currentValue + (value || 0));
       });
     }
   });
@@ -413,23 +438,20 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   // Calculate "other" values by subtracting visible series totals from adjusted global totals
   // IDs configured as "other" have already been subtracted from global
   const otherDataPoints = globalDataPoints.map(point => {
-    const dateKey = point.value[0].getTime ? point.value[0].getTime() : new Date(point.value[0]).getTime();
-    const adjustedGlobalValue = point.value[1] || 0;
+    const [date, value] = point;
+    const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
+    const adjustedGlobalValue = value || 0;
     const visibleSeriesTotal = visibleSeriesValuesByDate.get(dateKey) || 0;
 
     // "Other" = Adjusted Global - Visible Series
     // Adjusted Global = Global - (sum of all IDs configured as "other"), so "Other" excludes those IDs
     const otherValue = Math.max(0, adjustedGlobalValue - visibleSeriesTotal);
 
-    return {
-      value: [point.value[0], otherValue],
-      readableDate: point.readableDate,
-      valueType: point.valueType || "number",
-    };
+    return [date, otherValue];
   });
 
   // Only create "other" series if there are non-zero values anywhere in the date range
-  const hasNonZeroValues = otherDataPoints.some(point => point.value[1] > 0);
+  const hasNonZeroValues = otherDataPoints.some(point => point[1] > 0);
 
   if (!hasNonZeroValues) {
     return null;
@@ -438,7 +460,7 @@ const calculateOtherSeries = (data, selectedMetric, displaySeparately, visibleSe
   return {
     id: "other",
     name: i18next.t("Other"),
-    data: otherDataPoints, // Include all data points, even zero values
+    data: otherDataPoints,
     type: "bar", // Default type, will be overridden by chart configuration
     valueType: globalSeriesData.valueType || "number",
   };
@@ -463,11 +485,20 @@ export class ChartDataProcessor {
       .map((yearlyData) => {
         if (!yearlyData) return [];
 
-        if (displaySeparately && yearlyData[displaySeparately]) {
-          return yearlyData[displaySeparately][selectedMetric] || [];
-        } else {
-          return yearlyData.global?.[selectedMetric] || [];
-        }
+        const seriesArray = displaySeparately && yearlyData[displaySeparately]
+          ? yearlyData[displaySeparately][selectedMetric] || []
+          : yearlyData.global?.[selectedMetric] || [];
+
+        // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+        return seriesArray.map(series => ({
+          ...series,
+          data: series.data?.map(dataPoint => {
+            const [date, value] = dataPoint;
+            return yearlyData.year
+              ? [reconstructDateFromMMDD(date, yearlyData.year), value]
+              : dataPoint;
+          })
+        }));
       })
       .flat(); // Combine all series from all years
 
@@ -490,8 +521,8 @@ export class ChartDataProcessor {
       }
 
       const sortedData = [...series.data].sort((a, b) => {
-        const aTime = a.value[0] instanceof Date ? a.value[0].getTime() : new Date(a.value[0]).getTime();
-        const bTime = b.value[0] instanceof Date ? b.value[0].getTime() : new Date(b.value[0]).getTime();
+        const aTime = a[0] instanceof Date ? a[0].getTime() : new Date(a[0]).getTime();
+        const bTime = b[0] instanceof Date ? b[0].getTime() : new Date(b[0]).getTime();
         return aTime - bTime;
       });
 
@@ -697,8 +728,9 @@ export class ChartDataProcessor {
       const existingDays = new Set();
       if (seriesItem.data && seriesItem.data.length > 0) {
         seriesItem.data.forEach((point) => {
-          const day = new Date(point.value[0]).toISOString().split("T")[0];
-          existingDays.add(day);
+          // Dates should already be YYYY-MM-DD strings from extractSeriesForMetric
+          const dateStr = point[0];
+          existingDays.add(dateStr);
         });
       }
 
@@ -722,10 +754,12 @@ export class ChartDataProcessor {
 
         while (dataPointer < seriesItem.data.length) {
           const dataPoint = seriesItem.data[dataPointer];
-          const dataDay = new Date(dataPoint.value[0]).toISOString().split("T")[0];
+          const [date, pointValue] = dataPoint;
+          // Dates should already be YYYY-MM-DD strings from extractSeriesForMetric
+          const dataDay = date;
 
           if (dataDay === currentDay) {
-            value = dataPoint.value[1];
+            value = pointValue;
             lastValue = value;
             dataPointer++;
             break;
@@ -741,11 +775,7 @@ export class ChartDataProcessor {
           value = isCumulative ? lastValue : 0;
         }
 
-        filledData.push({
-          value: [currentDate, value],
-          readableDate: readableDate,
-          valueType: seriesItem.valueType || "number",
-        });
+        filledData.push([currentDay, value]);
       }
 
       return {
@@ -772,7 +802,7 @@ export class ChartDataProcessor {
       .map((seriesItem) => {
         const totalValue =
           seriesItem.data?.reduce(
-            (sum, point) => sum + (point.value[1] || 0),
+            (sum, point) => sum + (point[1] || 0),
             0,
           ) || 0;
         return { ...seriesItem, totalValue };

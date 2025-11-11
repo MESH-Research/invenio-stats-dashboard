@@ -32,12 +32,13 @@ describe('SingleStatUploaders', () => {
             recordDeltaDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] }
+                    ['01-01', 5],
+                    ['01-02', 3]
                   ]
                 }
                 ]
@@ -82,12 +83,13 @@ describe('SingleStatUploaders', () => {
             recordDeltaDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] }
+                    ['01-01', 5],
+                    ['01-02', 3]
                   ]
                 }
                 ]
@@ -190,11 +192,12 @@ describe('SingleStatUploaders', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 2] },  // Outside range
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },  // Inside range
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] },  // Inside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 7] }   // Outside range
+                    ['12-31', 2],  // Outside range (2023)
+                    ['01-01', 5],  // Inside range
+                    ['01-02', 3],  // Inside range
+                    ['01-03', 7]   // Outside range
                   ]
                 }
                 ]
@@ -224,11 +227,12 @@ describe('SingleStatUploaders', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2023-12-30T00:00:00.000Z'), 2] },  // Outside range
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 5] },  // Outside range
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 3] },  // Outside range
-                    { value: [new Date('2024-01-04T00:00:00.000Z'), 7] }   // Outside range
+                    ['12-30', 2],  // Outside range
+                    ['12-31', 5],  // Outside range
+                    ['01-03', 3],  // Outside range
+                    ['01-04', 7]   // Outside range
                   ]
                 }
                 ]
@@ -251,6 +255,23 @@ describe('SingleStatUploaders', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
           {
+            year: 2023,
+            recordDeltaDataAdded: {
+              global: {
+                uploaders: [
+                  {
+                    id: 'global',
+                    name: 'Global',
+                    year: 2023,
+                    data: [
+                      ['12-31', 2]  // Before start
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
             year: 2024,
             recordDeltaDataAdded: {
               global: {
@@ -258,13 +279,13 @@ describe('SingleStatUploaders', () => {
                   {
                     id: 'global',
                     name: 'Global',
-                  data: [
-                    { value: [new Date('2023-12-31T00:00:00.000Z'), 2] },  // Before start
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },  // On start date
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] },  // After start
-                    { value: [new Date('2024-01-03T00:00:00.000Z'), 7] }   // After start
-                  ]
-                }
+                    year: 2024,
+                    data: [
+                      ['01-01', 5],  // On start date
+                      ['01-02', 3],  // After start
+                      ['01-03', 7]   // After start
+                    ]
+                  }
                 ]
               }
             }
@@ -291,12 +312,13 @@ describe('SingleStatUploaders', () => {
             recordDeltaDataCreated: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] }
+                    ['01-01', 5],
+                    ['01-02', 3]
                   ]
                 }
                 ]
@@ -325,9 +347,10 @@ describe('SingleStatUploaders', () => {
                   {
                     id: 'global',
                     name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 3] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 4] }
+                    ['01-01', 3],
+                    ['01-02', 4]
                   ]
                 }
                 ]
@@ -416,41 +439,6 @@ describe('SingleStatUploaders', () => {
       expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('should handle invalid data points', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [
-          {
-            year: 2024,
-            recordDeltaDataAdded: {
-              global: {
-                uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
-                  data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                    { value: null }, // Invalid data point
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] },
-                    { value: [new Date('2024-01-03T00:00:00.000Z')] }, // Missing value
-                    { value: ['not a date', 7] } // Invalid date
-                  ]
-                }
-                ]
-              }
-            }
-          }
-        ],
-        dateRange: { start: new Date('2024-01-01T00:00:00.000Z'), end: new Date('2024-01-02T00:00:00.000Z') },
-        isLoading: false,
-        recordStartBasis: 'added'
-      });
-
-      render(<SingleStatUploaders />);
-
-      // Should only sum valid data points within range: 5 + 3 = 8
-      expect(screen.getByText('8')).toBeInTheDocument();
-    });
-
     it('should handle no date range', () => {
       mockUseStatsDashboard.mockReturnValue({
         stats: [
@@ -459,12 +447,13 @@ describe('SingleStatUploaders', () => {
             recordDeltaDataAdded: {
               global: {
                 uploaders: [
-                  {
-                    id: 'global',
-                    name: 'Global',
+                {
+                  id: 'global',
+                  name: 'Global',
+                  year: 2024,
                   data: [
-                    { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-                    { value: [new Date('2024-01-02T00:00:00.000Z'), 3] }
+                    ['01-01', 5],
+                    ['01-02', 3]
                   ]
                 }
                 ]

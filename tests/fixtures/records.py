@@ -156,12 +156,14 @@ def minimal_published_record_factory(
                 uow.register(RecordCommitOp(record))
                 uow.commit()
                 current_app.logger.error(
-                    f"in published record factory, updated record created date: {pformat(record.id)}"
+                    f"in published record factory, updated record created date: "
+                    f"{pformat(record.id)}"
                 )
 
         if community_list:
             current_app.logger.error(
-                f"in published record factory, adding community to record: {pformat(community_list)}"
+                f"in published record factory, adding community to record: "
+                f"{pformat(community_list)}"
             )
             record = published._record
             add_community_to_record(
@@ -173,7 +175,8 @@ def minimal_published_record_factory(
             )
             for community in community_list[1:] if len(community_list) > 1 else []:
                 current_app.logger.error(
-                    f"in published record factory, adding community to record: {pformat(community)}"
+                    f"in published record factory, adding community to record: "
+                    f"{pformat(community)}"
                 )
                 add_community_to_record(
                     db, record, community, default=False, identity=superuser_identity
@@ -181,12 +184,14 @@ def minimal_published_record_factory(
             # Refresh the record to get the latest state.
             published = records_service.read(system_identity, published.id)
             current_app.logger.error(
-                f"in published record factory, refreshed record: {pformat(published.id)}"
+                f"in published record factory, refreshed record: "
+                f"{pformat(published.id)}"
             )
 
         if input_metadata.get("created"):
             current_app.logger.error(
-                f"in published record factory, updating community events created date: {pformat(published.id)}"
+                f"in published record factory, updating community events created "
+                f"date: {pformat(published.id)}"
             )
             try:
                 # Always update record_created_date, optionally update event_date

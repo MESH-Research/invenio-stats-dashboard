@@ -33,16 +33,12 @@ jest.mock("./filters", () => ({
   filterSeriesArrayByDate: (seriesArray, dateRange, latestOnly) => {
     // Simple mock: return series as-is for testing selectTopSeries behavior
     // The actual filtering logic is tested in filters.test.js
+    // Dates should already be converted to YYYY-MM-DD by extractSeriesForMetric
     return seriesArray;
   },
 }));
 
-// Mock dates helper
-jest.mock("./dates", () => ({
-  readableGranularDate: (date, granularity) => {
-    return date.toISOString().split("T")[0];
-  },
-}));
+// No need to mock dates helper - i18next is already mocked above
 
 // Import the internal function by accessing it through a test-friendly approach
 // Since selectTopSeries is not exported, we'll test it through prepareDataSeries
@@ -66,28 +62,31 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-a",
             name: "Series A",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 100] },
-              { value: [new Date("2024-01-02"), 30] },
-              { value: [new Date("2024-01-03"), 20] },
+              ['01-01', 100],
+              ['01-02', 30],
+              ['01-03', 20],
             ],
           },
           {
             id: "series-b",
             name: "Series B",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 10] },
-              { value: [new Date("2024-01-02"), 40] },
-              { value: [new Date("2024-01-03"), 100] },
+              ['01-01', 10],
+              ['01-02', 40],
+              ['01-03', 100],
             ],
           },
           {
             id: "series-c",
             name: "Series C",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 50] },
-              { value: [new Date("2024-01-02"), 50] },
-              { value: [new Date("2024-01-03"), 50] },
+              ['01-01', 50],
+              ['01-02', 50],
+              ['01-03', 50],
             ],
           },
         ];
@@ -115,12 +114,14 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-a",
             name: "Series A",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
           {
             id: "series-b",
             name: "Series B",
-            data: [{ value: [new Date("2024-01-01"), 50] }],
+            year: 2024,
+            data: [['01-01', 50]],
           },
         ];
 
@@ -144,9 +145,10 @@ describe("ChartDataProcessor", () => {
         const seriesArray = Array.from({ length: 15 }, (_, i) => ({
           id: `series-${i}`,
           name: `Series ${i}`,
+          year: 2024,
           data: [
-            { value: [new Date("2024-01-01"), 100 - i] }, // Decreasing values
-            { value: [new Date("2024-01-02"), 100 - i] },
+            ['01-01', 100 - i], // Decreasing values
+            ['01-02', 100 - i],
           ],
         }));
 
@@ -181,28 +183,31 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-a",
             name: "Series A",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 50] },
-              { value: [new Date("2024-01-02"), 50] },
-              { value: [new Date("2024-01-03"), 50] },
+              ['01-01', 50],
+              ['01-02', 50],
+              ['01-03', 50],
             ],
           },
           {
             id: "series-b",
             name: "Series B",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 10] },
-              { value: [new Date("2024-01-02"), 20] },
-              { value: [new Date("2024-01-03"), 70] },
+              ['01-01', 10],
+              ['01-02', 20],
+              ['01-03', 70],
             ],
           },
           {
             id: "series-c",
             name: "Series C",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 100] },
-              { value: [new Date("2024-01-02"), 50] },
-              { value: [new Date("2024-01-03"), 50] },
+              ['01-01', 100],
+              ['01-02', 50],
+              ['01-03', 50],
             ],
           },
         ];
@@ -230,12 +235,14 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-a",
             name: "Series A",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
           {
             id: "series-b",
             name: "Series B",
-            data: [{ value: [new Date("2024-01-01"), 50] }],
+            year: 2024,
+            data: [['01-01', 50]],
           },
         ];
 
@@ -282,7 +289,8 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-b",
             name: "Series B",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
         ];
 
@@ -312,7 +320,8 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-b",
             name: "Series B",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
         ];
 
@@ -337,7 +346,8 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-a",
             name: "Series A",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
         ];
 
@@ -368,25 +378,27 @@ describe("ChartDataProcessor", () => {
           {
             id: "series-a",
             name: "Series A",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 100] },
-              { value: [new Date("2024-01-02"), 30] },
-              { value: [new Date("2024-01-03"), 20] },
+              ['01-01', 100],
+              ['01-02', 30],
+              ['01-03', 20],
             ],
           },
           {
             id: "series-b",
             name: "Series B",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 10] },
-              { value: [new Date("2024-01-02"), 40] },
-              { value: [new Date("2024-01-03"), 100] },
+              ['01-01', 10],
+              ['01-02', 40],
+              ['01-03', 100],
             ],
           },
         ];
 
         const dateRange = createDateRange("2024-01-01", "2024-01-03");
-        
+
         // Cumulative ranking
         const cumulativeResult = ChartDataProcessor.prepareDataSeries(
           seriesArray,
@@ -429,25 +441,28 @@ describe("ChartDataProcessor", () => {
           {
             id: "US",
             name: "United States",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 100] },
-              { value: [new Date("2024-01-02"), 150] },
+              ['01-01', 100],
+              ['01-02', 150],
             ],
           },
           {
             id: "CA",
             name: "Canada",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 50] },
-              { value: [new Date("2024-01-02"), 75] },
+              ['01-01', 50],
+              ['01-02', 75],
             ],
           },
           {
             id: "imported",
             name: "Imported",
+            year: 2024,
             data: [
-              { value: [new Date("2024-01-01"), 200] },
-              { value: [new Date("2024-01-02"), 250] },
+              ['01-01', 200],
+              ['01-02', 250],
             ],
           },
         ];
@@ -475,12 +490,14 @@ describe("ChartDataProcessor", () => {
           {
             id: "US",
             name: "United States",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
           {
             id: "imported",
             name: "Imported",
-            data: [{ value: [new Date("2024-01-01"), 200] }],
+            year: 2024,
+            data: [['01-01', 200]],
           },
         ];
 
@@ -504,12 +521,14 @@ describe("ChartDataProcessor", () => {
           {
             id: "GB",
             name: "United Kingdom",
-            data: [{ value: [new Date("2024-01-01"), 50] }],
+            year: 2024,
+            data: [['01-01', 50]],
           },
           {
             id: "imported",
             name: "Imported",
-            data: [{ value: [new Date("2024-01-01"), 150] }],
+            year: 2024,
+            data: [['01-01', 150]],
           },
         ];
 
@@ -533,12 +552,14 @@ describe("ChartDataProcessor", () => {
           {
             id: "type-a",
             name: "Type A",
-            data: [{ value: [new Date("2024-01-01"), 100] }],
+            year: 2024,
+            data: [['01-01', 100]],
           },
           {
             id: "imported",
             name: "Imported",
-            data: [{ value: [new Date("2024-01-01"), 200] }],
+            year: 2024,
+            data: [['01-01', 200]],
           },
         ];
 
@@ -559,34 +580,36 @@ describe("ChartDataProcessor", () => {
       });
 
       it("should discard 'imported' and not include it in 'other' category for countries", () => {
+        // Test data simulates what extractSeriesForMetric outputs (YYYY-MM-DD, no year property)
         const seriesArray = [
           {
             id: "US",
             name: "United States",
             data: [
-              { value: [new Date("2024-01-01"), 100], readableDate: "2024-01-01", valueType: "number" },
-              { value: [new Date("2024-01-02"), 150], readableDate: "2024-01-02", valueType: "number" },
+              ['2024-01-01', 100],
+              ['2024-01-02', 150],
             ],
           },
           {
             id: "CA",
             name: "Canada",
             data: [
-              { value: [new Date("2024-01-01"), 50], readableDate: "2024-01-01", valueType: "number" },
-              { value: [new Date("2024-01-02"), 75], readableDate: "2024-01-02", valueType: "number" },
+              ['2024-01-01', 50],
+              ['2024-01-02', 75],
             ],
           },
           {
             id: "imported",
             name: "Imported",
             data: [
-              { value: [new Date("2024-01-01"), 200], readableDate: "2024-01-01", valueType: "number" },
-              { value: [new Date("2024-01-02"), 250], readableDate: "2024-01-02", valueType: "number" },
+              ['2024-01-01', 200],
+              ['2024-01-02', 250],
             ],
           },
         ];
 
         // Create mock originalData with global series that includes imported
+        // This simulates backend output (MM-DD with year) for calculateOtherSeries
         const originalData = [
           {
             year: 2024,
@@ -595,35 +618,55 @@ describe("ChartDataProcessor", () => {
                 {
                   id: "global",
                   name: "Global",
+                  year: 2024,
                   data: [
-                    { value: [new Date("2024-01-01"), 350], readableDate: "2024-01-01", valueType: "number" }, // US (100) + CA (50) + imported (200)
-                    { value: [new Date("2024-01-02"), 475], readableDate: "2024-01-02", valueType: "number" }, // US (150) + CA (75) + imported (250)
+                    ['01-01', 350], // US (100) + CA (50) + imported (200)
+                    ['01-02', 475], // US (150) + CA (75) + imported (250)
                   ],
                 },
               ],
             },
             countries: {
-              views: seriesArray,
+              views: [
+                {
+                  id: "US",
+                  name: "United States",
+                  year: 2024,
+                  data: [['01-01', 100], ['01-02', 150]],
+                },
+                {
+                  id: "CA",
+                  name: "Canada",
+                  year: 2024,
+                  data: [['01-01', 50], ['01-02', 75]],
+                },
+                {
+                  id: "imported",
+                  name: "Imported",
+                  year: 2024,
+                  data: [['01-01', 200], ['01-02', 250]],
+                },
+              ],
             },
           },
         ];
 
         const dateRange = createDateRange("2024-01-01", "2024-01-02");
         const result = ChartDataProcessor.prepareDataSeries(
-          seriesArray,
+          seriesArray, // Already in YYYY-MM-DD format (as if from extractSeriesForMetric)
           "countries",
           "views",
           dateRange,
           1, // Only show top 1 (US), so CA should be in "other", imported should be discarded
           false,
-          originalData,
+          originalData, // Backend format (MM-DD with year) for calculateOtherSeries
         );
 
         // Should have US (top 1) and "other" (which includes CA, but NOT imported)
         const resultIds = result.map(s => s.id);
         expect(resultIds).not.toContain("imported"); // Should not appear as separate series
         expect(resultIds).toContain("US");
-        
+
         // Find the "other" series
         const otherSeries = result.find(s => s.id === "other");
         expect(otherSeries).toBeDefined();
@@ -631,8 +674,8 @@ describe("ChartDataProcessor", () => {
         // Adjusted global = Global - Imported = (350-200, 475-250) = (150, 225)
         // Visible (US) = (100, 150)
         // Other = Adjusted Global - Visible = (150-100, 225-150) = (50, 75) = CA values
-        expect(otherSeries.data[0].value[1]).toBe(50); // 150 - 100 (CA value)
-        expect(otherSeries.data[1].value[1]).toBe(75); // 225 - 150 (CA value)
+        expect(otherSeries.data[0][1]).toBe(50); // 150 - 100 (CA value)
+        expect(otherSeries.data[1][1]).toBe(75); // 225 - 150 (CA value)
       });
     });
   });

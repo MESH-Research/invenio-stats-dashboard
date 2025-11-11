@@ -4,6 +4,8 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
+import { createUTCDate, reconstructDateFromMMDD } from "./dates";
+
 /**
  * Filter data in an array of DataSeries objects by date range
  *
@@ -105,17 +107,19 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
         const current = series.data[i];
 
         // Skip invalid data points
-        if (!current || !current.value || !Array.isArray(current.value) || current.value.length < 2) {
-          continue;
-        }
-
+        if (!current || !Array.isArray(current) || current.length < 2) continue;
+        if (!current[0]) continue;
         // Convert first element to Date if it's a string, or skip if invalid
         let dateObj;
-        if (current.value[0] instanceof Date) {
-          dateObj = current.value[0];
-        } else if (typeof current.value[0] === 'string') {
-          // Handle YYYY-MM-DD format date strings
-          dateObj = new Date(current.value[0] + 'T00:00:00.000Z');
+        if (current[0] instanceof Date) {
+          dateObj = current[0];
+        } else if (typeof current[0] === 'string') {
+          // Handle YYYY-MM-DD or MM-DD format date strings
+          // If series has a year property, reconstruct full date from MM-DD
+          const dateString = series.year
+            ? reconstructDateFromMMDD(current[0], series.year)
+            : current[0];
+          dateObj = createUTCDate(dateString);
         } else {
           continue;
         }
@@ -141,17 +145,21 @@ const filterSeriesArrayByDate = (seriesArray, dateRange, latestOnly = false) => 
     } else {
       filteredData = series.data.filter((point) => {
         // Skip invalid data points
-        if (!point || !point.value || !Array.isArray(point.value) || point.value.length < 2) {
-          return false;
-        }
+        if (!point || !Array.isArray(point) || point.length < 2) return false;
+        const [date] = point;
+        if (!date) return false;
 
         // Convert first element to Date if it's a string, or skip if invalid
         let dateObj;
-        if (point.value[0] instanceof Date) {
-          dateObj = point.value[0];
-        } else if (typeof point.value[0] === 'string') {
-          // Handle YYYY-MM-DD format date strings
-          dateObj = new Date(point.value[0] + 'T00:00:00.000Z');
+        if (date instanceof Date) {
+          dateObj = date;
+        } else if (typeof date === 'string') {
+          // Handle YYYY-MM-DD or MM-DD format date strings
+          // If series has a year property, reconstruct full date from MM-DD
+          const dateString = series.year
+            ? reconstructDateFromMMDD(date, series.year)
+            : date;
+          dateObj = createUTCDate(dateString);
         } else {
           return false;
         }

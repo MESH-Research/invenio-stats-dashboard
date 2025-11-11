@@ -5,6 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import { filterSeriesArrayByDate } from './filters';
+import { reconstructDateFromMMDD } from './dates';
 
 /**
  * Common helper for delta value extraction
@@ -37,9 +38,17 @@ const extractDeltaValue = (stats, getDataSource, dateRange) => {
     return 0;
   }
 
-  const allSeries = relevantYearlyStats.flatMap(yearlyStats =>
-    getDataSource(yearlyStats) || []
-  );
+  const allSeries = relevantYearlyStats.flatMap(yearlyStats => {
+    const seriesArray = getDataSource(yearlyStats) || [];
+    // Convert MM-DD dates to full YYYY-MM-DD format before merging years
+    return seriesArray.map(series => ({
+      ...series,
+      data: series.data?.map(dataPoint => {
+        const [date, value] = dataPoint;
+        return [reconstructDateFromMMDD(date, yearlyStats.year), value];
+      })
+    }));
+  });
 
   if (allSeries.length === 0) {
     return 0;
@@ -53,8 +62,8 @@ const extractDeltaValue = (stats, getDataSource, dateRange) => {
     }
 
     const seriesTotal = series.data.reduce((seriesSum, dataPoint) => {
-      if (dataPoint && dataPoint.value && Array.isArray(dataPoint.value) && dataPoint.value.length >= 2) {
-        return seriesSum + dataPoint.value[1];
+      if (dataPoint && Array.isArray(dataPoint) && dataPoint.length >= 2) {
+        return seriesSum + dataPoint[1];
       }
       return seriesSum;
     }, 0);
@@ -106,9 +115,7 @@ const extractSnapshotValue = (stats, getDataSource, dateRange) => {
   }
 
   const dataPoint = series.data[0];
-  const value = dataPoint.value[1];
-
-  return value;
+  return dataPoint[1];
 };
 
 /**

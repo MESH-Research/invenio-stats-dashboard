@@ -19,18 +19,8 @@ class TestDataSeriesCSVSerializer:
                 "access_statuses": {
                     "data_volume": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3072.0],
-                                    "valueType": "filesize",
-                                },
-                                {
-                                    "readableDate": "Jun 2, 2025",
-                                    "value": ["2025-06-02", 4096.0],
-                                    "valueType": "filesize",
-                                },
-                            ],
+                            "data": [["06-01", 3072.0], ["06-02", 4096.0]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "label": "Metadata Only",
                             "name": "",
@@ -40,13 +30,8 @@ class TestDataSeriesCSVSerializer:
                     ],
                     "downloads": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 3],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 3]],
+                            "year": 2025,
                             "id": "metadata-only",
                             "label": "Metadata Only",
                             "name": "",
@@ -54,13 +39,8 @@ class TestDataSeriesCSVSerializer:
                             "valueType": "number",
                         },
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 5],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 5]],
+                            "year": 2025,
                             "id": "open",
                             "label": "Open Access",
                             "name": "",
@@ -72,13 +52,8 @@ class TestDataSeriesCSVSerializer:
                 "countries": {
                     "views": [
                         {
-                            "data": [
-                                {
-                                    "readableDate": "Jun 1, 2025",
-                                    "value": ["2025-06-01", 1],
-                                    "valueType": "number",
-                                }
-                            ],
+                            "data": [["06-01", 1]],
+                            "year": 2025,
                             "id": "US",
                             "label": "United States",
                             "name": "",
@@ -123,8 +98,8 @@ class TestDataSeriesCSVSerializer:
             with open(data_volume_csv) as f:
                 content = f.read()
                 assert "id,label,date,value,units" in content  # Header
-                assert "metadata-only,Metadata Only,2025-06-01,3072.0,bytes" in content
-                assert "metadata-only,Metadata Only,2025-06-02,4096.0,bytes" in content
+                assert "metadata-only,Metadata Only,06-01,3072.0,bytes" in content
+                assert "metadata-only,Metadata Only,06-02,4096.0,bytes" in content
 
             # Check downloads CSV content - should consolidate multiple series
             with open(downloads_csv) as f:
@@ -132,9 +107,9 @@ class TestDataSeriesCSVSerializer:
                 assert len(lines) == 3  # Header + 2 data rows
                 assert "id,label,date,value,units" in lines[0]
                 content = "".join(lines)
-                expected = "metadata-only,Metadata Only,2025-06-01,3,unique downloads"
+                expected = "metadata-only,Metadata Only,06-01,3,unique downloads"
                 assert expected in content
-                assert "open,Open Access,2025-06-01,5,unique downloads" in content
+                assert "open,Open Access,06-01,5,unique downloads" in content
 
     def test_consolidated_csv_file_content(self):
         """Test consolidated CSV file creation with multiple series."""
@@ -143,29 +118,14 @@ class TestDataSeriesCSVSerializer:
             {
                 "id": "eng",
                 "label": {"en": "English"},
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 100],
-                        "valueType": "number",
-                    },
-                    {
-                        "readableDate": "Jun 2, 2025",
-                        "value": ["2025-06-02", 200],
-                        "valueType": "number",
-                    },
-                ],
+                "data": [["06-01", 100], ["06-02", 200]],
+                "year": 2025,
             },
             {
                 "id": "spa",
                 "label": {"en": "Spanish"},
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 50],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 50]],
+                "year": 2025,
             },
         ]
 
@@ -185,9 +145,9 @@ class TestDataSeriesCSVSerializer:
                 assert lines[0].strip() == "id,label,date,value,units"
 
                 content = "".join(lines)
-                assert "eng,English,2025-06-01,100,unique views" in content
-                assert "eng,English,2025-06-02,200,unique views" in content
-                assert "spa,Spanish,2025-06-01,50,unique views" in content
+                assert "eng,English,06-01,100,unique views" in content
+                assert "eng,English,06-02,200,unique views" in content
+                assert "spa,Spanish,06-01,50,unique views" in content
 
     def test_filename_sanitization(self):
         """Test that metric names are properly sanitized for filenames."""
@@ -197,13 +157,8 @@ class TestDataSeriesCSVSerializer:
             {
                 "id": "test-id",
                 "label": "Test",
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 100],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 100]],
+                "year": 2025,
             }
         ]
 

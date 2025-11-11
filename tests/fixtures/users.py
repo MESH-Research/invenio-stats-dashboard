@@ -62,6 +62,7 @@ def user_factory(
         password: str = "password",
         token: bool = False,
         admin: bool = False,
+        saml_id: str | None = None,
     ) -> AugmentedUserFixture:
         """Create an augmented pytest-invenio user fixture.
 
@@ -70,6 +71,7 @@ def user_factory(
             password: The password of the user.
             token: Whether the user should have a token.
             admin: Whether the user should have admin access.
+            saml_id: SAML ID for compatibility (ignored).
 
         Returns:
             The created UserFixture object. This has the following attributes:

@@ -27,6 +27,7 @@ from ..queries import (
 )
 from .base import CommunitySnapshotAggregatorBase
 from .types import (
+    UsageCategories,
     UsageDeltaDocument,
     UsageSnapshotDocument,
     UsageSnapshotTopCategories,
@@ -308,7 +309,7 @@ class UsageSnapshotMemoryEstimator:
         delta_sample_info: dict | None,
         first_event_date: arrow.Arrow,
         upper_limit: arrow.Arrow,
-        previous_snapshot: dict,
+        previous_snapshot: UsageSnapshotDocument,
     ) -> int:
         """Estimate exhaustive cache memory for historical scans.
 
@@ -334,7 +335,9 @@ class UsageSnapshotMemoryEstimator:
         # Estimate unique items that will be discovered by scanning all
         # historical deltas. Start with current top items from previous
         # snapshot.
-        prev_subcounts = previous_snapshot.get("subcounts", {})
+        prev_subcounts: dict[
+            str, list[UsageSubcountItem] | UsageSnapshotTopCategories
+        ] = previous_snapshot.get("subcounts", {})
 
         try:
             prev_date = arrow.get(previous_snapshot.get("snapshot_date", ""))
@@ -346,9 +349,9 @@ class UsageSnapshotMemoryEstimator:
 
         est_total_unique_items = 0
         for k in self.top_keys:
-            sc = prev_subcounts.get(k, {})
+            sc = prev_subcounts.get(k)
             unique_ids: set[str] = set()
-            if isinstance(sc, dict):
+            if sc and isinstance(sc, dict):
                 for item in sc.get("by_view", []) or []:
                     try:
                         unique_ids.add(item["id"])  # type: ignore[index]
@@ -441,7 +444,7 @@ class UsageSnapshotMemoryEstimator:
 
         exhaustive_cache_bytes = int(
             self._estimate_exhaustive_cache(
-                delta_sample_info, first_event_date, upper_limit, previous_snapshot
+                delta_sample_info, first_event_date, upper_limit, previous_snapshot  # type: ignore[arg-type]
             )
             * self.inmemory_factor
         )
@@ -1028,7 +1031,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
         adjusted_scan_page_size = self.planned_scan_page_size
         try:
             adjusted_scan_page_size = self._estimate_initial_memory(
-                previous_snapshot=previous_snapshot,
+                previous_snapshot=previous_snapshot,  # type: ignore[arg-type]
                 first_event_date=first_event_date,
                 upper_limit=end_date,
             )
@@ -1036,7 +1039,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             pass
 
         working_totals, working_all = self._init_working_state_from_snapshot(
-            previous_snapshot  # last reference
+            previous_snapshot  # type: ignore[arg-type]
         )
 
         try:
@@ -1106,7 +1109,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 source_content = self.create_agg_dict(
                     current_iteration_date,
                     community_id,
-                    daily_delta,
+                    daily_delta,  # type: ignore[arg-type]
                     working_state,
                 )
 
@@ -1140,7 +1143,7 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
 
     def _init_working_state_from_snapshot(
         self, previous_snapshot: UsageSnapshotDocument
-    ) -> tuple[dict, dict[str, dict[str, dict]]]:
+    ) -> tuple[UsageCategories, dict[str, dict[str, dict]]]:
         """Create compact working state (totals + 'all' subcounts maps).
 
         This method initializes the working state for the portions of the aggregation
@@ -1157,65 +1160,54 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
                 seed cumulative totals and the "all" subcounts maps.
 
         Returns:
-            tuple[dict, dict[str, dict[str, dict]]]:
+            tuple[UsageCategories, dict[str, dict[str, dict]]]:
                 - working_totals: cumulative totals (view/download)
                 - working_all: "all" subcounts as maps (key → id → metrics)
         """
-        prev_totals = previous_snapshot.get("totals", {})  # type: ignore[assignment]
-        working_totals: dict = copy.deepcopy(prev_totals)
+        prev_totals: UsageCategories = previous_snapshot["totals"]
+        working_totals: UsageCategories = copy.deepcopy(prev_totals)
 
         # Build maps for 'all' subcounts only
         working_all: dict[str, dict[str, dict]] = {}
-        prev_subcounts = previous_snapshot.get("subcounts", {})  # type: ignore[assignment]
+        prev_subcounts: dict[
+            str, list[UsageSubcountItem] | UsageSnapshotTopCategories
+        ] = previous_snapshot.get("subcounts", {})
         for subcount_key, config in self.subcount_configs.items():
             usage_config = config.get("usage_events")
             if not usage_config or usage_config.get("snapshot_type", "all") != "all":
                 continue
             working_all[subcount_key] = {}
-            has_list = isinstance(prev_subcounts, dict) and (
-                subcount_key in prev_subcounts
-                and isinstance(prev_subcounts[subcount_key], list)
-            )
-            if has_list:
-                for item in prev_subcounts[subcount_key]:
+            subcount_value = prev_subcounts.get(subcount_key)
+            if subcount_value and isinstance(subcount_value, list):
+                for item in subcount_value:
                     try:
                         item_id = item["id"]
+                        view_metrics = item.get("view", {})
+                        download_metrics = item.get("download", {})
                         working_all[subcount_key][item_id] = {
                             "id": item_id,
                             "label": item.get("label", ""),
                             "view": {
-                                "total_events": item.get("view", {}).get(
-                                    "total_events", 0
-                                ),
-                                "unique_visitors": item.get("view", {}).get(
+                                "total_events": view_metrics.get("total_events", 0),
+                                "unique_visitors": view_metrics.get(
                                     "unique_visitors", 0
                                 ),
-                                "unique_records": item.get("view", {}).get(
-                                    "unique_records", 0
-                                ),
-                                "unique_parents": item.get("view", {}).get(
-                                    "unique_parents", 0
-                                ),
+                                "unique_records": view_metrics.get("unique_records", 0),
+                                "unique_parents": view_metrics.get("unique_parents", 0),
                             },
                             "download": {
-                                "total_events": item.get("download", {}).get(
-                                    "total_events", 0
-                                ),
-                                "unique_visitors": item.get("download", {}).get(
+                                "total_events": download_metrics.get("total_events", 0),
+                                "unique_visitors": download_metrics.get(
                                     "unique_visitors", 0
                                 ),
-                                "unique_records": item.get("download", {}).get(
+                                "unique_records": download_metrics.get(
                                     "unique_records", 0
                                 ),
-                                "unique_parents": item.get("download", {}).get(
+                                "unique_parents": download_metrics.get(
                                     "unique_parents", 0
                                 ),
-                                "unique_files": item.get("download", {}).get(
-                                    "unique_files", 0
-                                ),
-                                "total_volume": item.get("download", {}).get(
-                                    "total_volume", 0
-                                ),
+                                "unique_files": download_metrics.get("unique_files", 0),
+                                "total_volume": download_metrics.get("total_volume", 0),
                             },
                         }
                     except Exception:

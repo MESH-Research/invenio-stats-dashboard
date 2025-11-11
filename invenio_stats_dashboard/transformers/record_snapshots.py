@@ -9,6 +9,7 @@
 from typing import Any
 
 from .base import (
+    METRIC_VALUE_TYPES,
     DataSeries,
     DataSeriesArray,
     DataSeriesSet,
@@ -47,8 +48,7 @@ class GlobalRecordSnapshotDataSeries(DataSeries):
             files_data = doc.get("total_files")
             if files_data and isinstance(files_data, dict):
                 value = files_data.get(self.metric, 0)
-                value_type = "filesize" if self.metric == "data_volume" else "number"
-                self.add_data_point(date, value, value_type)
+                self.add_data_point(date, value)
         else:
             # Direct numeric value (fallback for any other metrics)
             metric_data = doc.get(self.metric)
@@ -91,8 +91,7 @@ class SubcountRecordSnapshotDataSeries(DataSeries):
             files_data = doc.get("files")
             if files_data and isinstance(files_data, dict):
                 value = files_data.get(self.metric, 0)
-                value_type = "filesize" if self.metric == "data_volume" else "number"
-                self.add_data_point(date, value, value_type)
+                self.add_data_point(date, value)
         else:
             # Direct numeric value
             metric_data = doc.get(self.metric)
@@ -117,16 +116,15 @@ class FilePresenceRecordSnapshotDataSeries(DataSeries):
             # series ids we're looking for
             metric_data = doc.get(f"total_{self.metric}")
             if isinstance(metric_data, dict):
-                self.add_data_point(date, int(metric_data[self.series_id]), "number")
+                self.add_data_point(date, int(metric_data[self.series_id]))
         elif self.metric in ["data_volume", "file_count"]:
             # These come from files structure
             files_data = doc.get("total_files", {})
             if self.series_id == "metadata_only":
-                self.add_data_point(date, 0, "number")
+                self.add_data_point(date, 0)
             elif self.series_id == "with_files":
                 value = files_data.get(self.metric, 0)
-                value_type = "filesize" if self.metric == "data_volume" else "number"
-                self.add_data_point(date, value, value_type)
+                self.add_data_point(date, value)
 
 
 class RecordSnapshotDataSeriesSet(DataSeriesSet):
@@ -160,13 +158,17 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
             DataSeriesArray: The created data series array.
         """
         if subcount == "file_presence":
+            # Set appropriate value type based on metric
+            from .base import METRIC_VALUE_TYPES
+            value_type = METRIC_VALUE_TYPES.get(metric, "number")
+
             series_array = DataSeriesArray(
                 "file_presence",
                 FilePresenceRecordSnapshotDataSeries,
                 metric,
                 is_global=False,
                 chart_type="line",
-                value_type="number",
+                value_type=value_type,
                 is_special=True,
             )
 
@@ -176,14 +178,14 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
                     "Metadata Only",
                     metric,
                     "line",
-                    "number",
+                    value_type,
                 ),
                 FilePresenceRecordSnapshotDataSeries(
                     "with_files",
                     "With Files",
                     metric,
                     "line",
-                    "number",
+                    value_type,
                 ),
             ]
 
@@ -245,6 +247,9 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
         Returns:
             DataSeriesArray: The created data series array.
         """
+        # Set appropriate value type based on metric
+        value_type = METRIC_VALUE_TYPES.get(metric, "number")
+
         if subcount == "global":
             return DataSeriesArray(
                 "global",
@@ -252,7 +257,7 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
                 metric,
                 is_global=True,
                 chart_type="bar",
-                value_type="number",
+                value_type=value_type,
             )
         else:
             return DataSeriesArray(
@@ -261,5 +266,5 @@ class RecordSnapshotDataSeriesSet(DataSeriesSet):
                 metric,
                 is_global=False,
                 chart_type="line",
-                value_type="number",
+                value_type=value_type,
             )

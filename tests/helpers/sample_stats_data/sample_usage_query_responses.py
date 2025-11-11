@@ -84,7 +84,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 "name": "University Of British Columbia"
                                             },
                                             {
-                                                "name": "University of British Columbia",
+                                                "name": (
+                                                    "University of British Columbia"
+                                                ),
                                                 "id": "03rmrcq20",
                                             },
                                         ]
@@ -177,7 +179,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 "name": "University Of British Columbia"
                                             },
                                             {
-                                                "name": "University of British Columbia",
+                                                "name": (
+                                                    "University of British Columbia"
+                                                ),
                                                 "id": "03rmrcq20",
                                             },
                                         ]
@@ -208,7 +212,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 "name": "University Of British Columbia"
                                             },
                                             {
-                                                "name": "University of British Columbia",
+                                                "name": (
+                                                    "University of British Columbia"
+                                                ),
                                                 "id": "03rmrcq20",
                                             },
                                         ]
@@ -236,7 +242,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                     "_source": {
                                         "affiliations": [
                                             {
-                                                "name": "University of Missouri - St. Louis"
+                                                "name": (
+                                                    "University of Missouri - St. Louis"
+                                                )
                                             }
                                         ]
                                     },
@@ -641,7 +649,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -652,7 +663,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -660,7 +674,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -681,7 +698,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -811,7 +830,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -822,7 +844,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -830,7 +855,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -851,7 +879,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -914,7 +944,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -925,7 +958,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -933,7 +969,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -954,7 +993,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1017,7 +1058,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1028,7 +1072,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1036,7 +1083,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1057,7 +1107,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1120,7 +1172,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1131,7 +1186,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1139,7 +1197,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1160,7 +1221,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1223,7 +1286,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1234,7 +1300,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1242,7 +1311,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1263,7 +1335,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1326,7 +1400,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1337,7 +1414,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1345,7 +1425,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1366,7 +1449,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1496,7 +1581,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1507,7 +1595,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1515,7 +1606,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1536,7 +1630,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1599,7 +1695,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1610,7 +1709,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1618,7 +1720,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1639,7 +1744,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1702,7 +1809,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1713,7 +1823,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1721,7 +1834,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1742,7 +1858,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -1805,7 +1923,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                             # "hits": [
                                 # {
                                     # "_id": (
-                                        # "2025-07-03T13:02:55-2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # (
+                                        #     "2025-07-03T13:02:55-"
+                                        #     "2e451e41b611b7eba881d07bfa380cb6d68cf760"
+                                        # )
                                     # ),
                                     # "_index": "events-stats-record-view-2025-07",
                                     # "_score": 1.006192,
@@ -1816,7 +1937,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911979"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Written English--History"
+                                                    # (
+                                                    #     "English language--Written "
+                                                    #     "English--History"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1824,7 +1948,10 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                     # "http://id.worldcat.org/fast/911660"
                                                 # ),
                                                 # "subject": (
-                                                    # "English language--Spoken English--Research"
+                                                    # (
+                                                    #     "English language--Spoken "
+                                                    #     "English--Research"
+                                                    # )
                                                 # ),
                                             # },
                                             # {
@@ -1845,7 +1972,9 @@ MOCK_USAGE_QUERY_RESPONSE_VIEWS = {
                                                 # "id": (
                                                     # "http://id.worldcat.org/fast/845184"
                                                 # ),
-                                                # "subject": "Canadian prose literature",
+                                                # "subject": (
+                                                #     "Canadian prose literature"
+                                                # ),
                                             # },
                                             # {
                                                 # "id": (
@@ -2354,7 +2483,9 @@ MOCK_USAGE_QUERY_RESPONSE_DOWNLOADS = {
                                     "_source": {
                                         "affiliations": [
                                             {
-                                                "name": "University of Missouri - St. Louis"
+                                                "name": (
+                                                    "University of Missouri - St. Louis"
+                                                )
                                             }
                                         ]
                                     },

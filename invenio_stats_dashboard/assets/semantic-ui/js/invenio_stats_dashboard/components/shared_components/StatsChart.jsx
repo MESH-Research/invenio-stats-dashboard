@@ -165,14 +165,16 @@ const TOOLTIP_CONFIG = {
 
     sortedParams.forEach((param) => {
       const displayName = param.data?.fullName || param.seriesName;
+      const value = param.data.value[1];
+      const valueType = param.data.valueType || "number";
       result +=
         param.marker +
         " " +
         displayName +
         ": " +
         formatNumber(
-          param.data.value[1],
-          param.data.valueType === "filesize" ? "filesize" : "compact",
+          value,
+          valueType === "filesize" ? "filesize" : "compact",
           { compactThreshold: 100_000_000 },
         ) +
         "<br/>";

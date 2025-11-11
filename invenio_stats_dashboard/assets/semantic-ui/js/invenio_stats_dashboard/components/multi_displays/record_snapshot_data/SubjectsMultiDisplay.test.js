@@ -56,17 +56,20 @@ describe('SubjectsMultiDisplay', () => {
               {
                 id: 'subject-1',
                 name: 'Computer Science',
-                data: [{ value: [new Date('2024-01-01'), 150] }]
+                year: 2024,
+                data: [['01-01', 150]]
               },
               {
                 id: 'subject-2',
                 name: 'Physics',
-                data: [{ value: [new Date('2024-01-01'), 75] }]
+                year: 2024,
+                data: [['01-01', 75]]
               },
               {
                 id: 'subject-3',
                 name: 'Biology',
-                data: [{ value: [new Date('2024-01-01'), 25] }]
+                year: 2024,
+                data: [['01-01', 25]]
               }
             ]
           }
@@ -239,7 +242,8 @@ describe('SubjectsMultiDisplay', () => {
                 {
                   id: 'subject-1',
                   name: 'Computer Science',
-                  data: [{ value: [new Date('2024-01-01'), 0] }]
+                  year: 2024,
+                data: [['01-01', 0]]
                 }
               ]
             }

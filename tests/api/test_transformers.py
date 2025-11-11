@@ -40,7 +40,8 @@ class TestRecordDeltaDataSeriesSet:
 
     def test_record_delta_series_set_basic_usage(self, running_app: RunningApp):
         """Test basic usage of RecordDeltaDataSeriesSet with sample documents."""
-        documents: list[AggregationDocumentDict] = MOCK_RECORD_DELTA_DOCS_2  # type:ignore
+        # type:ignore
+        documents: list[AggregationDocumentDict] = MOCK_RECORD_DELTA_DOCS_2
 
         series_set = RecordDeltaDataSeriesSet(documents)
         result = series_set.build()
@@ -137,24 +138,18 @@ class TestRecordDeltaDataSeriesSet:
 
         # Check first data point format: [date, value] array
         first_data_point = global_records_series["data"][0]
-        assert "value" in first_data_point
-        assert isinstance(first_data_point["value"], list)
-        assert len(first_data_point["value"]) == 2  # [date, value] array
-        assert first_data_point["value"][0] == "2025-05-30"  # date string
-        assert first_data_point["value"][1] == 2  # net value (added - removed)
+        assert isinstance(first_data_point, list)  # Data point is now just an array
+        assert len(first_data_point) == 2  # [date, value] array
+        assert first_data_point[0] == "05-30"  # date string (MM-DD format)
+        assert first_data_point[1] == 2  # net value (added - removed)
+        # Verify year property is present when all dates are in same year
+        assert global_records_series.get("year") == 2025
 
-        # Check readableDate is localized (not just the raw date)
-        assert "readableDate" in first_data_point
-        assert first_data_point["readableDate"] != "2025-05-30"  # Should be localized
-        assert "2025" in first_data_point["readableDate"]  # Should contain year
+        assert global_records_series["valueType"] == "number"
 
-        # Check valueType
-        assert "valueType" in first_data_point
-        assert first_data_point["valueType"] == "number"
-
-        # Verify file volume data is correct format
+        # Verify file volume data has correct valueType on parent series
         global_data_volume_series = result["subjects"]["data_volume"][0]
-        assert global_data_volume_series["data"][0]["valueType"] == "filesize"
+        assert global_data_volume_series["valueType"] == "filesize"
 
 
 class TestRecordSnapshotDataSeriesSet:
@@ -252,22 +247,15 @@ class TestRecordSnapshotDataSeriesSet:
 
         # Check first data point format: [date, value] array
         first_data_point = global_records_series["data"][0]
-        assert "value" in first_data_point
-        assert isinstance(first_data_point["value"], list)
-        assert len(first_data_point["value"]) == 2  # [date, value] array
-        assert first_data_point["value"][0] == "2025-08-27"  # date string
-        assert (
-            first_data_point["value"][1] == 2
-        )  # total records (metadata_only + with_files)
+        assert isinstance(first_data_point, list)
+        assert len(first_data_point) == 2
+        assert first_data_point[0] == "08-27"  # date string (MM-DD format)
+        assert first_data_point[1] == 2  # total records (metadata_only + with_files)
+        # Verify year property is present when all dates are in same year
+        assert global_records_series.get("year") == 2025
 
-        # Check readableDate is localized (not just the raw date)
-        assert "readableDate" in first_data_point
-        assert first_data_point["readableDate"] != "2025-08-27"  # Should be localized
-        assert "2025" in first_data_point["readableDate"]  # Should contain year
-
-        # Check valueType
-        assert "valueType" in first_data_point
-        assert first_data_point["valueType"] == "number"
+        # Verify valueType is on the parent series object
+        assert global_records_series["valueType"] == "number"
 
         # Test specific subcount series creation
         # Check that affiliations has individual series
@@ -325,7 +313,7 @@ class TestRecordSnapshotDataSeriesSet:
 
         # Check that global series still exists
         assert len(result["global"]["records"]) == 1
-        assert result["global"]["records"][0]["data"][0]["value"][1] == 0  # No records
+        assert result["global"]["records"][0]["data"][0][1] == 0  # No records
 
     def test_record_snapshot_file_presence_processing(self, running_app: RunningApp):
         """Test file_presence special subcount processing."""
@@ -372,10 +360,10 @@ class TestRecordSnapshotDataSeriesSet:
         # First document: 1 metadata_only, 1 with_files
         # Second document: 1 metadata_only, 3 with_files
         metadata_values = [
-            point["value"][1] for point in metadata_only_series[0]["data"]
+            point[1] for point in metadata_only_series[0]["data"]
         ]
         with_files_values = [
-            point["value"][1] for point in with_files_series[0]["data"]
+            point[1] for point in with_files_series[0]["data"]
         ]
 
         assert metadata_values == [1, 1]  # metadata_only records
@@ -397,12 +385,14 @@ class TestRecordSnapshotDataSeriesSet:
         global_records_series = result["global"]["records"][0]
         assert len(global_records_series["data"]) == 3
 
-        # Check dates are in order
-        dates = [point["value"][0] for point in global_records_series["data"]]
-        assert dates == ["2025-08-27", "2025-08-31", "2025-09-01"]
+        # Check dates are in order (MM-DD format when all dates are in same year)
+        dates = [point[0] for point in global_records_series["data"]]
+        assert dates == ["08-27", "08-31", "09-01"]
+        # Verify year property is present when all dates are in same year
+        assert global_records_series.get("year") == 2025
 
         # Check values progression
-        values = [point["value"][1] for point in global_records_series["data"]]
+        values = [point[1] for point in global_records_series["data"]]
         assert values == [2, 4, 3]  # Records: 2 -> 4 -> 3
 
         # Check that subcount series also have 3 data points
@@ -496,42 +486,16 @@ class TestUsageDeltaDataSeriesSet:
 
         # Check data point format: [date, value] array
         data_point = global_views_series["data"][0]
-        assert "value" in data_point
-        assert isinstance(data_point["value"], list)
-        assert len(data_point["value"]) == 2  # [date, value] array
-        assert data_point["value"][0] == "2025-06-01"  # date string
-        assert data_point["value"][1] == 3  # view events value
+        assert isinstance(data_point, list)
+        assert len(data_point) == 2
+        assert data_point[0] == "06-01"  # date string (MM-DD format)
+        assert data_point[1] == 3
+        # Verify year property is present when all dates are in same year
+        assert global_views_series.get("year") == 2025
 
-        # Check readableDate is localized
-        assert "readableDate" in data_point
-        assert data_point["readableDate"] != "2025-06-01"  # Should be localized
-        assert "2025" in data_point["readableDate"]  # Should contain year
+        assert global_views_series["valueType"] == "number"
 
-        # Check valueType
-        assert "valueType" in data_point
-        assert data_point["valueType"] == "number"
-
-        # Verify data point format
-        global_views_series = result["global"]["views"][0]
-        assert "data" in global_views_series
-        assert len(global_views_series["data"]) == 1  # One data point
-
-        # Check data point format: [date, value] array
-        data_point = global_views_series["data"][0]
-        assert "value" in data_point
-        assert isinstance(data_point["value"], list)
-        assert len(data_point["value"]) == 2  # [date, value] array
-        assert data_point["value"][0] == "2025-06-01"  # date string
-        assert data_point["value"][1] == 3  # view events value
-
-        # Check readableDate is localized
-        assert "readableDate" in data_point
-        assert data_point["readableDate"] != "2025-06-01"  # Should be localized
-        assert "2025" in data_point["readableDate"]  # Should contain year
-
-        # Check valueType
-        assert "valueType" in data_point
-        assert data_point["valueType"] == "number"
+        # Verify data point format (duplicate check removed)
 
         # Check that all expected subcounts are present
         expected_subcounts = [
@@ -552,7 +516,8 @@ class TestUsageDeltaDataSeriesSet:
         for subcount in expected_subcounts:
             assert subcount in result, f"Missing subcount: {subcount}"
 
-        assert result["global"]["data_volume"][0]["data"][0]["valueType"] == "filesize"
+        # Check data volume valueType is on parent series (not data points)
+        assert result["global"]["data_volume"][0]["valueType"] == "filesize"
 
     def test_usage_delta_all_subcounts(self, running_app: RunningApp):
         """Test UsageDeltaDataSeriesSet with all available subcounts."""
@@ -708,30 +673,24 @@ class TestUsageSnapshotDataSeriesSet:
         assert "download_unique_files" in result["access_statuses"]
 
         # Verify data points exist
-        assert len(result["global"]["views"]) == 1  # Single global series
-        assert len(result["access_statuses"]["views"]) == 2  # Two access status series
+        assert len(result["global"]["views"]) == 1
+        assert len(result["access_statuses"]["views"]) == 2
 
         # Verify data point format matches JavaScript dataTransformer.js
         global_views_series = result["global"]["views"][0]
         assert "data" in global_views_series
-        assert len(global_views_series["data"]) == 1  # One data point
+        assert len(global_views_series["data"]) == 1
 
         # Check data point format: [date, value] array
         data_point = global_views_series["data"][0]
-        assert "value" in data_point
-        assert isinstance(data_point["value"], list)
-        assert len(data_point["value"]) == 2  # [date, value] array
-        assert data_point["value"][0] == "2025-06-01"  # date string
-        assert data_point["value"][1] == 45  # view events value (updated total)
+        assert isinstance(data_point, list)
+        assert len(data_point) == 2
+        assert data_point[0] == "06-01"  # date string (MM-DD format)
+        assert data_point[1] == 45
+        # Verify year property is present when all dates are in same year
+        assert global_views_series.get("year") == 2025
 
-        # Check readableDate is localized
-        assert "readableDate" in data_point
-        assert data_point["readableDate"] != "2025-06-01"  # Should be localized
-        assert "2025" in data_point["readableDate"]  # Should contain year
-
-        # Check valueType
-        assert "valueType" in data_point
-        assert data_point["valueType"] == "number"
+        assert global_views_series["valueType"] == "number"
 
         # Check that we have the expected series IDs
         access_status_series_ids = [s["id"] for s in result["access_statuses"]["views"]]
@@ -739,8 +698,7 @@ class TestUsageSnapshotDataSeriesSet:
         assert "with-files" in access_status_series_ids
 
         current_app.logger.error(pformat(result))
-        # Check data volume valueType
         assert (
-            result["access_statuses"]["data_volume"][0]["data"][0]["valueType"]
+            result["access_statuses"]["data_volume"][0]["valueType"]
             == "filesize"
         )

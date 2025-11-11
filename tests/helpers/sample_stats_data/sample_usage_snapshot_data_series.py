@@ -10,26 +10,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
     "access_statuses": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 5120.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 5120.0]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 15360.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 15360.0]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -38,26 +28,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 4],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 4]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 10],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 10]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -66,26 +46,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 7],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 7]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -94,26 +64,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 5],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 5]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 9],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 9]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -122,26 +82,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 2]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 4],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 4]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -150,26 +100,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 5],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 5]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 12],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 12]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -178,26 +118,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 5],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 5]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 8],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 8]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -206,26 +136,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 8],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 8]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 12],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 12]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -234,26 +154,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 6],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 6]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -262,26 +172,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 10],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 10]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "Metadata Only",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 15],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 15]],
+                "year": 2025,
                 "id": "with-files",
                 "name": "With Files",
                 "type": "line",
@@ -306,26 +206,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
     "countries_by_download": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 10240.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 10240.0]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2048.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 2048.0]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -334,26 +224,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 4],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 4]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -362,26 +242,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 10],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 10]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 4],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 4]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -390,26 +260,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 7],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 7]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -418,26 +278,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 18],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 18]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 8],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 8]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -448,26 +298,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
     "countries_by_view": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 8192.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 8192.0]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 4096.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 4096.0]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -476,26 +316,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 2],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 2]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -504,26 +334,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 8],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 8]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 6],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 6]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -532,26 +352,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 8],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 8]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 4],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 4]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -560,26 +370,16 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 20],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 20]],
+                "year": 2025,
                 "id": "US",
                 "name": "United States",
                 "type": "line",
                 "valueType": "number",
             },
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 12],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 12]],
+                "year": 2025,
                 "id": "CA",
                 "name": "Canada",
                 "type": "line",
@@ -626,13 +426,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
     "global": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 20480.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 20480.0]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -641,13 +436,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 20],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 20]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -656,13 +446,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 15],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 15]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -671,13 +456,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 20],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 20]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -686,13 +466,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 10],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 10]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -701,13 +476,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 25],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 25]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -716,13 +486,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 25],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 25]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -731,13 +496,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 35],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 35]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -746,13 +506,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 18],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 18]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -761,13 +516,8 @@ MOCK_USAGE_SNAPSHOT_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 45],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 45]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",

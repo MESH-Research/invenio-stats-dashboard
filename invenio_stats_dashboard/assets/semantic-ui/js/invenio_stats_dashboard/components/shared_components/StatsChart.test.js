@@ -41,9 +41,10 @@ describe('StatsChart FilterSelector', () => {
         {
           id: 'records',
           name: 'Records',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-            { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+            ['01-01', 10],
+            ['01-02', 20]
           ]
         }
       ]
@@ -53,9 +54,10 @@ describe('StatsChart FilterSelector', () => {
         {
           id: 'resourceTypes',
           name: 'Resource Types',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01T00:00:00.000Z'), 5] },
-            { value: [new Date('2024-01-02T00:00:00.000Z'), 15] }
+            ['01-01', 5],
+            ['01-02', 15]
           ]
         }
       ]
@@ -65,9 +67,10 @@ describe('StatsChart FilterSelector', () => {
         {
           id: 'subjects',
           name: 'Subjects',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01T00:00:00.000Z'), 3] },
-            { value: [new Date('2024-01-02T00:00:00.000Z'), 7] }
+            ['01-01', 3],
+            ['01-02', 7]
           ]
         }
       ]
@@ -77,9 +80,10 @@ describe('StatsChart FilterSelector', () => {
         {
           id: 'languages',
           name: 'Languages',
+          year: 2024,
           data: [
-            { value: [new Date('2024-01-01T00:00:00.000Z'), 2] },
-            { value: [new Date('2024-01-02T00:00:00.000Z'), 8] }
+            ['01-01', 2],
+            ['01-02', 8]
           ]
         }
       ]
@@ -216,9 +220,10 @@ describe('StatsChart FilterSelector', () => {
             {
               id: 'records',
               name: 'Records',
+              year: 2024,
               data: [
-                { value: [new Date('2024-01-01T00:00:00.000Z'), 10] },
-                { value: [new Date('2024-01-02T00:00:00.000Z'), 20] }
+                ['01-01', 10],
+                ['01-02', 20]
               ]
             }
           ]
@@ -228,8 +233,9 @@ describe('StatsChart FilterSelector', () => {
             {
               id: 'article',
               name: 'Article',
+              year: 2024,
               data: [
-                { value: [new Date('2024-01-01T00:00:00.000Z'), 5] }
+                ['01-01', 5]
               ]
             }
           ]
@@ -239,8 +245,9 @@ describe('StatsChart FilterSelector', () => {
             {
               id: 'science',
               name: 'Science',
+              year: 2024,
               data: [
-                { value: [new Date('2024-01-01T00:00:00.000Z'), 3] }
+                ['01-01', 3]
               ]
             }
           ]

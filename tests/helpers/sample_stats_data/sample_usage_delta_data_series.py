@@ -10,13 +10,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
     "access_statuses": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3072.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 3072.0]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -25,13 +20,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -40,13 +30,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -55,13 +40,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -70,13 +50,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -85,13 +60,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -100,13 +70,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -115,13 +80,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -130,13 +90,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -145,13 +100,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "metadata-only",
                 "name": "",
                 "type": "line",
@@ -174,13 +124,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
     "countries": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 512.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 512.0]],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -189,13 +134,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -204,13 +147,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -219,13 +160,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -234,13 +173,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -249,13 +186,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -264,13 +199,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -279,13 +212,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -294,13 +225,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -309,13 +238,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "US",
                 "name": "",
                 "type": "line",
@@ -326,13 +253,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
     "file_types": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 128.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 128.0]],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -341,13 +263,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -356,13 +276,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -371,13 +289,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -386,13 +302,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -401,13 +315,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -416,13 +328,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -431,13 +341,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -446,13 +354,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -461,13 +367,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "pdf",
                 "name": "",
                 "type": "line",
@@ -490,13 +394,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
     "global": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3072.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 3072.0]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -505,13 +404,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -520,13 +414,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -535,13 +424,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -550,13 +434,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -565,13 +444,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -580,13 +454,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -595,13 +464,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -610,13 +474,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -625,13 +484,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 3],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 3]],
+                "year": 2025,
                 "id": "global",
                 "name": "Global",
                 "type": "bar",
@@ -642,13 +496,8 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
     "languages": {
         "data_volume": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1024.0],
-                        "valueType": "filesize",
-                    }
-                ],
+                "data": [["06-01", 1024.0]],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -657,13 +506,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -672,13 +519,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -687,13 +532,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -702,13 +545,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -717,13 +558,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -732,13 +571,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -747,13 +584,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -762,13 +597,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",
@@ -777,13 +610,11 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [
-                    {
-                        "readableDate": "Jun 1, 2025",
-                        "value": ["2025-06-01", 1],
+                "data": [["06-01", 1],
                         "valueType": "number",
                     }
                 ],
+                "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
                 "type": "line",

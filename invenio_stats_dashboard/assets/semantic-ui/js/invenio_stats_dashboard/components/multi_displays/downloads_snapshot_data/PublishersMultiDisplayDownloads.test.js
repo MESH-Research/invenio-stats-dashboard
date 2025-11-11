@@ -64,12 +64,14 @@ describe('PublishersMultiDisplayDownloads', () => {
               {
                 id: 'item-1',
                 name: 'Item 1',
-                data: [{ value: [new Date('2024-01-01'), 150] }]
+                year: 2024,
+                data: [['01-01', 150]]
               },
               {
                 id: 'item-2',
                 name: 'Item 2',
-                data: [{ value: [new Date('2024-01-01'), 75] }]
+                year: 2024,
+                data: [['01-01', 75]]
               }
             ]
           }
