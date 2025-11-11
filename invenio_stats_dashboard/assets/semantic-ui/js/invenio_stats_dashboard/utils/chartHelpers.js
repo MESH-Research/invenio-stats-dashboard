@@ -94,8 +94,9 @@ export class ChartDataAggregator {
         monday.setUTCDate(monday.getUTCDate() + daysFromMonday);
         return monday.toISOString().split("T")[0];
       case "day":
+        return date  // should already be in YYYY-MM-DD format
       default:
-        return date.toISOString().split("T")[0];
+        return d.toISOString().split("T")[0];
     }
   }
 
@@ -117,8 +118,6 @@ export class ChartDataAggregator {
       }
 
       const key = this.createAggregationKey(date, granularity);
-      console.log("key", key);
-      console.log("value", value);
 
       if (!aggregatedPoints.has(key)) {
         const dateForReadable = this.createDateForReadable(key, granularity);
@@ -168,9 +167,6 @@ export class ChartDataAggregator {
    */
   static aggregateData(data, granularity, isCumulative = false) {
     if (!data) return [];
-    if (granularity === "day") {
-      return data;
-    }
 
     const aggregatedSeries = data.map((series) =>
       this.aggregateSingleSeries(series, granularity, isCumulative),
@@ -273,9 +269,9 @@ export const calculateYAxisMax = (data, isStacked = true) => {
  * @returns {Array} Array of series that have at least one non-zero value
  */
 const filterNonZeroSeries = (seriesArray) => {
-  return seriesArray.filter(series => {
+  return seriesArray.filter((series) => {
     if (!series.data || !Array.isArray(series.data)) return false;
-    return series.data.some(point => point && (point[1] || 0) > 0);
+    return series.data.some((point) => point && (point[1] || 0) > 0);
   });
 };
 
@@ -288,7 +284,7 @@ const filterNonZeroSeries = (seriesArray) => {
  * @returns {Array} Array of top N series by total value
  */
 const selectTopSeries = (seriesArray, maxSeries, isCumulative = false) => {
-  const seriesWithTotals = seriesArray.map(series => {
+  const seriesWithTotals = seriesArray.map((series) => {
     if (!series.data || series.data.length === 0) {
       return { ...series, totalValue: 0 };
     }
@@ -305,9 +301,13 @@ const selectTopSeries = (seriesArray, maxSeries, isCumulative = false) => {
     return { ...series, totalValue };
   });
 
-  const sortedSeries = seriesWithTotals.sort((a, b) => b.totalValue - a.totalValue);
+  const sortedSeries = seriesWithTotals.sort(
+    (a, b) => b.totalValue - a.totalValue,
+  );
 
-  return sortedSeries.slice(0, maxSeries).map(({ totalValue, ...series }) => series);
+  return sortedSeries
+    .slice(0, maxSeries)
+    .map(({ totalValue, ...series }) => series);
 };
 
 /**
@@ -343,14 +343,14 @@ const calculateOtherSeries = (
     .map((yearlyData) => {
       const seriesArray = yearlyData?.global?.[selectedMetric] || [];
       // Convert MM-DD dates to full YYYY-MM-DD format before merging years
-      return seriesArray.map(series => ({
+      return seriesArray.map((series) => ({
         ...series,
-        data: series.data?.map(dataPoint => {
+        data: series.data?.map((dataPoint) => {
           const [date, value] = dataPoint;
           return series.year
             ? [reconstructDateFromMMDD(date, series.year), value]
             : dataPoint;
-        })
+        }),
       }));
     })
     .flat();
@@ -395,16 +395,17 @@ const calculateOtherSeries = (
     // Get all series from breakdown data (including those that should be treated as "other")
     const allBreakdownSeries = data
       .map((yearlyData) => {
-        const seriesArray = yearlyData?.[displaySeparately]?.[selectedMetric] || [];
+        const seriesArray =
+          yearlyData?.[displaySeparately]?.[selectedMetric] || [];
         // Convert MM-DD dates to full YYYY-MM-DD format before merging years
-        return seriesArray.map(series => ({
+        return seriesArray.map((series) => ({
           ...series,
-          data: series.data?.map(dataPoint => {
+          data: series.data?.map((dataPoint) => {
             const [date, value] = dataPoint;
             return series.year
               ? [reconstructDateFromMMDD(date, series.year), value]
               : dataPoint;
-          })
+          }),
         }));
       })
       .flat();
@@ -431,9 +432,11 @@ const calculateOtherSeries = (
 
         if (filteredOtherSeries.length > 0 && filteredOtherSeries[0].data) {
           // Add values to the combined map
-          filteredOtherSeries[0].data.forEach(point => {
+          filteredOtherSeries[0].data.forEach((point) => {
             const [date, value] = point;
-            const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
+            const dateKey = date.getTime
+              ? date.getTime()
+              : new Date(date).getTime();
             const currentValue = otherValuesByDate.get(dateKey) || 0;
             otherValuesByDate.set(dateKey, currentValue + (value || 0));
           });
@@ -443,9 +446,11 @@ const calculateOtherSeries = (
 
     // Subtract combined "other" values from global data points
     if (otherValuesByDate.size > 0) {
-      globalDataPoints = globalDataPoints.map(point => {
+      globalDataPoints = globalDataPoints.map((point) => {
         const [date, value] = point;
-        const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
+        const dateKey = date.getTime
+          ? date.getTime()
+          : new Date(date).getTime();
         const otherValue = otherValuesByDate.get(dateKey) || 0;
         return [date, Math.max(0, value - otherValue)];
       });
@@ -454,11 +459,13 @@ const calculateOtherSeries = (
 
   // Create a map of visible series values by date for efficient lookup
   const visibleSeriesValuesByDate = new Map();
-  visibleSeries.forEach(series => {
+  visibleSeries.forEach((series) => {
     if (series.data && Array.isArray(series.data)) {
-      series.data.forEach(point => {
+      series.data.forEach((point) => {
         const [date, value] = point;
-        const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
+        const dateKey = date.getTime
+          ? date.getTime()
+          : new Date(date).getTime();
         const currentValue = visibleSeriesValuesByDate.get(dateKey) || 0;
         visibleSeriesValuesByDate.set(dateKey, currentValue + (value || 0));
       });
@@ -467,7 +474,7 @@ const calculateOtherSeries = (
 
   // Calculate "other" values by subtracting visible series totals from adjusted global totals
   // IDs configured as "other" have already been subtracted from global
-  const otherDataPoints = globalDataPoints.map(point => {
+  const otherDataPoints = globalDataPoints.map((point) => {
     const [date, value] = point;
     const dateKey = date.getTime ? date.getTime() : new Date(date).getTime();
     const adjustedGlobalValue = value || 0;
@@ -481,7 +488,7 @@ const calculateOtherSeries = (
   });
 
   // Only create "other" series if there are non-zero values anywhere in the date range
-  const hasNonZeroValues = otherDataPoints.some(point => point[1] > 0);
+  const hasNonZeroValues = otherDataPoints.some((point) => point[1] > 0);
 
   if (!hasNonZeroValues) {
     return null;
@@ -515,19 +522,20 @@ export class ChartDataProcessor {
       .map((yearlyData) => {
         if (!yearlyData) return [];
 
-        const seriesArray = displaySeparately && yearlyData[displaySeparately]
-          ? yearlyData[displaySeparately][selectedMetric] || []
-          : yearlyData.global?.[selectedMetric] || [];
+        const seriesArray =
+          displaySeparately && yearlyData[displaySeparately]
+            ? yearlyData[displaySeparately][selectedMetric] || []
+            : yearlyData.global?.[selectedMetric] || [];
 
         // Convert MM-DD dates to full YYYY-MM-DD format before merging years
-        return seriesArray.map(series => ({
+        return seriesArray.map((series) => ({
           ...series,
-          data: series.data?.map(dataPoint => {
+          data: series.data?.map((dataPoint) => {
             const [date, value] = dataPoint;
             return series.year
               ? [reconstructDateFromMMDD(date, series.year), value]
               : dataPoint;
-          })
+          }),
         }));
       })
       .flat(); // Combine all series from all years
@@ -551,8 +559,10 @@ export class ChartDataProcessor {
       }
 
       const sortedData = [...series.data].sort((a, b) => {
-        const aTime = a[0] instanceof Date ? a[0].getTime() : new Date(a[0]).getTime();
-        const bTime = b[0] instanceof Date ? b[0].getTime() : new Date(b[0]).getTime();
+        const aTime =
+          a[0] instanceof Date ? a[0].getTime() : new Date(a[0]).getTime();
+        const bTime =
+          b[0] instanceof Date ? b[0].getTime() : new Date(b[0]).getTime();
         return aTime - bTime;
       });
 
@@ -593,7 +603,11 @@ export class ChartDataProcessor {
     // Don't pass isCumulative to filterSeriesArrayByDate
     // because we want to present data points for each time period,
     // not just the latest data point for each series
-    const filteredData = filterSeriesArrayByDate(mergedSeries, dateRange, false);
+    const filteredData = filterSeriesArrayByDate(
+      mergedSeries,
+      dateRange,
+      false,
+    );
     console.log("filteredData", filteredData);
 
     const sortedData = ChartDataProcessor.sortSeries(filteredData);
@@ -616,9 +630,10 @@ export class ChartDataProcessor {
       const otherIds = getOtherIdsForCategory(displaySeparately);
 
       // Filter out series with IDs that should be treated as "other"
-      const seriesForSelection = otherIds.length > 0
-        ? nonZeroSeries.filter(series => !otherIds.includes(series.id))
-        : nonZeroSeries;
+      const seriesForSelection =
+        otherIds.length > 0
+          ? nonZeroSeries.filter((series) => !otherIds.includes(series.id))
+          : nonZeroSeries;
 
       // Select top N series for display
       // Pass isCumulative so snapshot data uses latest value instead of summing
@@ -642,7 +657,9 @@ export class ChartDataProcessor {
       );
 
       if (otherSeries) {
-        const existingOtherSeries = displaySeries.find(series => series.id === "other");
+        const existingOtherSeries = displaySeries.find(
+          (series) => series.id === "other",
+        );
 
         if (!existingOtherSeries) {
           // Insert "other" series at the beginning so it appears at the bottom of the stack
@@ -704,16 +721,22 @@ export class ChartDataProcessor {
     return series.map((seriesItem, index) => {
       if (displaySeparately) {
         // For breakdown view, use the series name or fall back to the series ID
-        const seriesName = seriesItem.name || seriesItem.id || `Series ${index + 1}`;
+        const seriesName =
+          seriesItem.name || seriesItem.id || `Series ${index + 1}`;
         const localizedName = extractLocalizedLabel(
           seriesName,
           currentLanguage,
         );
 
         // Apply license abbreviation for rights data
-        const labelForms = displaySeparately === 'rights'
-          ? getLicenseLabelForms(seriesItem.id, localizedName)
-          : { short: localizedName, long: localizedName, isAbbreviated: false };
+        const labelForms =
+          displaySeparately === "rights"
+            ? getLicenseLabelForms(seriesItem.id, localizedName)
+            : {
+                short: localizedName,
+                long: localizedName,
+                isAbbreviated: false,
+              };
 
         return {
           ...seriesItem,
