@@ -226,7 +226,9 @@ class DataSeriesMemoryEstimator:
             int: Current RSS in bytes, or 0 if unavailable.
         """
         try:
-            return self.proc.memory_info().rss if self.proc else 0  # type: ignore[union-attr]
+            if self.proc:
+                return self.proc.memory_info().rss  # type: ignore[union-attr]
+            return 0
         except Exception:
             return 0
 
@@ -402,8 +404,10 @@ class DataSeriesQueryBase(Query):
             sample_doc = hits[0]["_source"]
 
             # Serialize to measure actual byte size (as orjson would)
-            # Convert AttrDict to dict for serialization
-            doc_dict = dict(sample_doc) if hasattr(sample_doc, "keys") else sample_doc
+            if hasattr(sample_doc, "to_dict"):
+                doc_dict = sample_doc.to_dict()
+            else:
+                doc_dict = sample_doc
             serialized_bytes = orjson.dumps(doc_dict, option=orjson.OPT_NAIVE_UTC)
 
             return len(serialized_bytes)

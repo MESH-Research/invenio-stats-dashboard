@@ -17,7 +17,7 @@
 // If using webpack/vite, ensure pako is bundled for the worker context
 import pako from "pako";
 
-import { statsApiClient } from "../api/api";
+import { statsApiClient } from "../api/apiClient";
 
 const DB_NAME = "invenio_stats_dashboard";
 const DB_VERSION = 2; // Increment version to add new indices
