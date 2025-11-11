@@ -8,7 +8,7 @@
 """Service for managing cached stats responses."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import arrow
 from flask import current_app
@@ -17,7 +17,6 @@ from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 
-from ..config.component_metrics import extract_component_names_from_layout
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
 
@@ -335,6 +334,9 @@ class CachedResponseService:
             # Extract component names if optimization is enabled
             component_names: set[str] | None = None
             if optimize:
+                from ..config.component_metrics import (
+                    extract_component_names_from_layout,
+                )
                 from ..views.views import get_community_dashboard_layout
 
                 dashboard_type = "community" if community_id != "global" else "global"
@@ -388,7 +390,10 @@ class CachedResponseService:
         response.get_or_generate()
 
         # Return in requested format
-        return response.bytes_data if as_json_bytes else response.object_data
+        if as_json_bytes:
+            return cast(bytes, response.bytes_data)
+        else:
+            return cast(dict | list, response.object_data)
 
     def _create(
         self, responses: list[CachedResponse], progress_callback: Callable | None = None

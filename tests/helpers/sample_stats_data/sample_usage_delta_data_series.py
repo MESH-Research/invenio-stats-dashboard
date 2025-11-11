@@ -134,10 +134,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -147,10 +144,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -160,10 +154,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -173,10 +164,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -186,10 +174,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -199,10 +184,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -212,10 +194,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -225,10 +204,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -238,10 +214,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "US",
                 "name": "",
@@ -263,10 +236,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -276,10 +246,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -289,10 +256,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -302,10 +266,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -315,10 +276,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -328,10 +286,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -341,10 +296,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -354,10 +306,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -367,10 +316,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "pdf",
                 "name": "",
@@ -506,10 +452,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_files": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -519,10 +462,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_parents": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -532,10 +472,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_unique_records": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -545,10 +482,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "download_visitors": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -558,10 +492,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "downloads": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -571,10 +502,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_parents": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -584,10 +512,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_unique_records": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -597,10 +522,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "view_visitors": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",
@@ -610,10 +532,7 @@ MOCK_USAGE_DELTA_DATA_SERIES = {
         ],
         "views": [
             {
-                "data": [["06-01", 1],
-                        "valueType": "number",
-                    }
-                ],
+                "data": [["06-01", 1]],
                 "year": 2025,
                 "id": "eng",
                 "name": "{'en': 'English'}",

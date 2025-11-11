@@ -188,7 +188,8 @@ class CachedResponse:
 
         if self._bytes_data is not None:
             # orjson.loads accepts bytes directly
-            self._object_data = orjson.loads(self._bytes_data)
+            # Cast to preserve type information (orjson.loads returns Any)
+            self._object_data = cast(dict | list, orjson.loads(self._bytes_data))
             return self._object_data
 
         raise ValueError("No data available")
@@ -279,7 +280,8 @@ class CachedResponse:
         """
         response = cls(community_id, year, category, cache_type)
         if decode:
-            response._object_data = orjson.loads(data)
+            # Cast to preserve type information (orjson.loads returns Any)
+            response._object_data = cast(dict | list, orjson.loads(data))
         else:
             # Store as bytes for passthrough - no unnecessary decode/encode
             response._bytes_data = data
