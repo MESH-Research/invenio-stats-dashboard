@@ -337,9 +337,11 @@ const formatDateRange = (
  * - Same year: "Jan 5, 9:56 AM" (month + day + time)
  * - Different year: "Jan 5, 2024, 9:56 AM" (full date + time)
  * @param {number} timestamp - Timestamp in milliseconds
+ * @param {boolean} localize - Whether to display in local time (true) or UTC (false).
+ *   Defaults to true. If false, the timestamp is displayed as UTC.
  * @returns {string} Concise relative date string
  */
-const formatRelativeTimestamp = (timestamp) => {
+const formatRelativeTimestamp = (timestamp, localize = true) => {
   if (!timestamp) {
     return "Unknown";
   }
@@ -371,13 +373,15 @@ const formatRelativeTimestamp = (timestamp) => {
   // Check if same year
   const isSameYear = dateUTC.getUTCFullYear() === nowUTC.getUTCFullYear();
 
+  const timeZoneOption = localize ? {} : { timeZone: "UTC" };
+
   if (isSameDay) {
     // Same day: show time only
     return new Intl.DateTimeFormat(i18next.language, {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "UTC",
+      ...timeZoneOption,
     }).format(date);
   } else if (isSameWeek) {
     // Same week: show day + time
@@ -386,7 +390,7 @@ const formatRelativeTimestamp = (timestamp) => {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "UTC",
+      ...timeZoneOption,
     }).format(date);
   } else if (isSameYear) {
     // Same year: show month + day + time
@@ -396,7 +400,7 @@ const formatRelativeTimestamp = (timestamp) => {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "UTC",
+      ...timeZoneOption,
     }).format(date);
   } else {
     // Different year: show full date + time
@@ -407,7 +411,7 @@ const formatRelativeTimestamp = (timestamp) => {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "UTC",
+      ...timeZoneOption,
     }).format(date);
   }
 };
