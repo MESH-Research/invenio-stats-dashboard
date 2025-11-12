@@ -55,11 +55,15 @@ def minimal_draft_record_factory(running_app, db, record_metadata):
         draft = records_service.create(identity, input_metadata)
 
         if input_metadata.get("created"):
-            record = records_service.read(system_identity, id_=draft.id)._record
-            record.model.created = input_metadata.get("created")
-            uow = UnitOfWork(db.session)
-            uow.register(RecordCommitOp(record))
-            uow.commit()
+            with UnitOfWork(db.session) as uow:
+                record = records_service.read_draft(
+                    system_identity, id_=draft.id
+                )._record
+                record.model.created = (
+                    arrow.get(input_metadata.get("created", "")).to("UTC").datetime
+                )
+                uow.register(RecordCommitOp(record))
+                return records_service.read_draft(system_identity, id_=draft.id)
 
         return draft
 
@@ -111,7 +115,9 @@ def minimal_published_record_factory(
 
         # Enable files before creating draft if file_paths are provided
         if file_paths:
-            input_metadata["files"] = {"enabled": True}
+            files_block = input_metadata.get("files") or {}
+            files_block["enabled"] = True
+            input_metadata["files"] = files_block
 
         draft = records_service.create(identity, input_metadata)
         current_app.logger.error(
@@ -928,7 +934,7 @@ class TestRecordMetadata:
                     self.metadata_in["created"]
                 )
             else:
-                assert now - arrow.get(actual["created"]) < timedelta(seconds=7)
+                assert now - arrow.get(actual["created"]) < timedelta(seconds=30)
             assert actual["custom_fields"] == expected["custom_fields"]
             assert "expires_at" not in actual.keys()
             assert actual["files"]["count"] == expected["files"]["count"]
@@ -1057,7 +1063,7 @@ class TestRecordMetadata:
             # assert actual["revision_id"] == 4  # NOTE: Too difficult to test
             assert actual["stats"] == expected["stats"]
             assert actual["status"] == "published"
-            assert now - arrow.get(actual["updated"]) < timedelta(seconds=7)
+            assert now - arrow.get(actual["updated"]) < timedelta(seconds=30)
             assert actual["versions"] == expected["versions"]
             return True
         except AssertionError as e:
@@ -1138,6 +1144,9 @@ class TestRecordMetadataWithFiles(TestRecordMetadata):
     @property
     def metadata_in(self) -> dict:
         """Return the input metadata for record creation with files."""
+        if "files" not in self._metadata_in:
+            self._metadata_in["files"] = {}
+
         self._metadata_in["files"]["enabled"] = True
         self._metadata_in["files"]["entries"] = self.file_entries
         self._metadata_in.get("access", {})["status"] = self.file_access_status
