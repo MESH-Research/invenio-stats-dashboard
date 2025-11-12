@@ -118,6 +118,9 @@ def admin_role_need(db):
          done on the basis of a User/Role being associated with that Need.
          If no User/Role is associated with that Need (in the DB), the
          permission is expanded to an empty list.
+
+    Returns:
+        ActionNeed: The action need for administration access.
     """
     role = Role(name="administration-access")
     db.session.add(role)
@@ -131,7 +134,11 @@ def admin_role_need(db):
 
 @pytest.fixture(scope="function")
 def admin(user_factory) -> AugmentedUserFixture:
-    """Admin user for requests."""
+    """Admin user for requests.
+
+    Returns:
+        AugmentedUserFixture: An admin user fixture.
+    """
     u: AugmentedUserFixture = user_factory(
         email="admin@inveniosoftware.org",
         password="password",
@@ -150,6 +157,9 @@ def superuser_role_need(db):
          done on the basis of a User/Role being associated with that Need.
          If no User/Role is associated with that Need (in the DB), the
          permission is expanded to an empty list.
+
+    Returns:
+        ActionNeed: The action need for superuser access.
     """
     role = Role(name="superuser-access")
     db.session.add(role)
@@ -164,7 +174,11 @@ def superuser_role_need(db):
 
 @pytest.fixture(scope="function")
 def superuser_identity(admin: AugmentedUserFixture, superuser_role_need) -> Identity:
-    """Superuser identity fixture."""
+    """Superuser identity fixture.
+
+    Returns:
+        Identity: A superuser identity.
+    """
     identity = admin.identity
     identity.provides.add(superuser_role_need)
     return identity
@@ -172,7 +186,11 @@ def superuser_identity(admin: AugmentedUserFixture, superuser_role_need) -> Iden
 
 @pytest.fixture(scope="module")
 def user1_data() -> dict:
-    """Data for user1."""
+    """Data for user1.
+
+    Returns:
+        dict: A dictionary containing user1 data.
+    """
     return {
         "saml_id": "user1",
         "email": "user1@inveniosoftware.org",
@@ -348,7 +366,8 @@ user_data_set = {
 def client_with_login(requests_mock, app):
     """Log in a user to the client.
 
-    Returns a factory function that returns a client with a logged in user.
+    Returns:
+        Callable: A factory function that returns a client with a logged in user.
     """
 
     def log_in_user(
@@ -360,6 +379,9 @@ def client_with_login(requests_mock, app):
         Parameters:
             client: The client to log in with.
             user: The user to log in.
+
+        Returns:
+            FlaskClient: The client with the user logged in.
         """
         login_user(user)
         login_user_via_session(client, email=user.email)

@@ -42,14 +42,22 @@ from .vocabularies.resource_types import RESOURCE_TYPES
 
 @pytest.fixture(scope="function")
 def minimal_draft_record_factory(running_app, db, record_metadata):
-    """Factory for creating a minimal draft record."""
+    """Factory for creating a minimal draft record.
+
+    Returns:
+        Callable: A factory function that creates minimal draft records.
+    """
 
     def _factory(
         metadata: dict | None = None,
         identity: Identity | None = None,
         **kwargs: Any,
     ):
-        """Create a minimal draft record."""
+        """Create a minimal draft record.
+
+        Returns:
+            RecordItem: The created draft record.
+        """
         input_metadata = metadata or deepcopy(record_metadata().metadata_in)
         identity = identity or system_identity
         draft = records_service.create(identity, input_metadata)
@@ -74,7 +82,11 @@ def minimal_draft_record_factory(running_app, db, record_metadata):
 def minimal_published_record_factory(
     running_app, db, record_metadata, superuser_identity
 ):
-    """Factory for creating a minimal published record."""
+    """Factory for creating a minimal published record.
+
+    Returns:
+        Callable: A factory function that creates minimal published records.
+    """
 
     def _factory(
         metadata: dict | None = None,
@@ -220,7 +232,11 @@ def minimal_published_record_factory(
 
 @pytest.fixture(scope="function")
 def record_metadata(running_app):
-    """Factory for creating a record metadata object."""
+    """Factory for creating a record metadata object.
+
+    Returns:
+        Callable: A factory function that creates record metadata objects.
+    """
 
     def _factory(
         metadata_in: dict | None = None,
@@ -229,7 +245,11 @@ def record_metadata(running_app):
         file_entries: dict | None = None,
         owner_id: str | None = "1",
     ):
-        """Create a record metadata object."""
+        """Create a record metadata object.
+
+        Returns:
+            TestRecordMetadata: A test record metadata object.
+        """
         metadata_in = metadata_in or {}
         community_list = community_list or []
         file_entries = file_entries or {}
@@ -401,9 +421,6 @@ class TestRecordMetadata:
             metadata_updates (dict): A dictionary of metadata updates. The keys are
                 bar separated (NOT dot separated) paths to the values to update. The
                 values are the new values to update the metadata with at those paths.
-
-        Returns:
-            None
         """
         metadata_updates = metadata_updates or {}
         for key, val in metadata_updates.items():
@@ -432,7 +449,11 @@ class TestRecordMetadata:
         ui_base_url: str,
         doi: str | None = None,
     ) -> dict:
-        """Build the draft record links."""
+        """Build the draft record links.
+
+        Returns:
+            dict: A dictionary containing draft record links.
+        """
         links = {
             "self": f"{base_url}/records/{record_id}/draft",
             "self_html": f"{ui_base_url}/uploads/{record_id}",
@@ -474,7 +495,11 @@ class TestRecordMetadata:
         parent_id: str,
         record_doi: str = "",
     ) -> dict:
-        """Build the published record links."""
+        """Build the published record links.
+
+        Returns:
+            dict: A dictionary containing published record links.
+        """
         if not record_doi:
             record_doi = f"10.17613/{record_id}"
         parent_doi = f"10.17613/{parent_id}"
@@ -742,10 +767,6 @@ class TestRecordMetadata:
             skip_fields (list[str], optional): A list of field paths that are expected
                 to be missing from the actual metadata due to validation errors.
 
-        Raises:
-            AssertionError: If the actual metadata dictionary does not match the
-                expected metadata dictionary.
-
         Returns:
             bool: True if the actual metadata dictionary matches the expected
                 metadata dictionary, otherwise raises an error.
@@ -917,10 +938,6 @@ class TestRecordMetadata:
         Returns:
             bool: True if the actual metadata dictionary matches the expected
                 metadata dictionary, False otherwise.
-
-        Raises:
-            AssertionError: If the actual metadata dictionary does not match
-                the expected metadata dictionary.
         """
         app = self.app
         expected = deepcopy(self.published) if not expected else expected
@@ -1073,7 +1090,11 @@ class TestRecordMetadata:
 
 @pytest.fixture(scope="function")
 def record_metadata_with_files(running_app):
-    """Factory for creating a record metadata object with files."""
+    """Factory for creating a record metadata object with files.
+
+    Returns:
+        Callable: A factory function that creates record metadata objects with files.
+    """
 
     def _factory(
         metadata_in: dict | None = None,
@@ -1082,7 +1103,11 @@ def record_metadata_with_files(running_app):
         file_entries: dict | None = None,
         owner_id: str | None = "1",
     ):
-        """Create a record metadata object with files."""
+        """Create a record metadata object with files.
+
+        Returns:
+            TestRecordMetadataWithFiles: A test record metadata object with files.
+        """
         metadata_in = metadata_in or {}
         community_list = community_list or []
         file_entries = file_entries or {}
@@ -1153,7 +1178,11 @@ class TestRecordMetadataWithFiles(TestRecordMetadata):
         return self._metadata_in
 
     def _add_file_entries(self, metadata: dict) -> dict:
-        """Add the file entries to the metadata."""
+        """Add the file entries to the metadata.
+
+        Returns:
+            dict: The metadata dictionary with file entries added.
+        """
         metadata["files"]["count"] = len(self.file_entries.keys())
         metadata["files"]["total_bytes"] = sum(
             [e["size"] for k, e in self.file_entries.items()]
@@ -1200,7 +1229,11 @@ class TestRecordMetadataWithFiles(TestRecordMetadata):
 
 @pytest.fixture(scope="function")
 def full_sample_record_metadata(users):
-    """Full record data as dict coming from the external world."""
+    """Full record data as dict coming from the external world.
+
+    Returns:
+        dict: A dictionary containing full sample record metadata.
+    """
     return {
         "pids": {
             "doi": {
@@ -1387,9 +1420,6 @@ def enhance_metadata_with_funding_and_affiliations(metadata, record_index):
     Args:
         metadata: The base metadata to enhance (will be modified in-place)
         record_index: Index of the record (0-3) to determine what data to add
-
-    Returns:
-        None (modifies metadata in-place)
     """
     # Only enhance the first record with affiliations
     if record_index == 0:

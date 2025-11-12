@@ -41,6 +41,9 @@ def AllowAllPermissionFactory(obj_id, action):
     Parameters:
         obj_id: The object id.
         action: The action.
+
+    Returns:
+        AllowAllPermission: An allow all permission instance.
     """
     return AllowAllPermission
 
@@ -399,7 +402,8 @@ def put_old_stats_templates():
 def usage_event_factory():
     """Factory for creating usage stats events for testing.
 
-    Returns a factory function that can create view and download events
-    for testing usage statistics.
+    Returns:
+        UsageEventFactory: A factory that can create view and download events
+            for testing usage statistics.
     """
     return UsageEventFactory()

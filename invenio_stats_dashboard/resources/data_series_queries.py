@@ -227,7 +227,7 @@ class DataSeriesMemoryEstimator:
         """
         try:
             if self.proc:
-                return self.proc.memory_info().rss  # type: ignore[union-attr]
+                return self.proc.memory_info().rss  # type: ignore[union-attr, no-any-return] # noqa: E501
             return 0
         except Exception:
             return 0

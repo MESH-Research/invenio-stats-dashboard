@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "esnext",
+    "jsx": "react",
+    "checkJs": false,
+    "allowJs": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@translations/*": ["invenio_stats_dashboard/assets/semantic-ui/js/translations/*"]
+    }
+  },
+  "include": [
+    "invenio_stats_dashboard/assets/semantic-ui/js/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+

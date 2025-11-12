@@ -23,7 +23,11 @@ from invenio_vocabularies.contrib.subjects.api import Subject
 
 @pytest.fixture(scope="module")
 def subjects_service(app):
-    """Pytest fixture providing the current subjects service."""
+    """Pytest fixture providing the current subjects service.
+
+    Returns:
+        Service: The subjects service instance.
+    """
     return current_service_registry.get("subjects")
 
 

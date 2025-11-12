@@ -55,7 +55,9 @@ class FakeDataCiteRESTClient:
         :param metadata: JSON format of the metadata.
         :param doi: DOI (e.g. 10.123/456)
         :param url: URL where the doi will resolve.
-        :return:
+
+        Returns:
+            Mock: A mock object.
         """
         return Mock()
 
@@ -64,7 +66,9 @@ class FakeDataCiteRESTClient:
 
         :param url: URL where the doi will resolve.
         :param metadata: JSON format of the metadata.
-        :return:
+
+        Returns:
+            Mock: A mock object.
         """
         return Mock()
 
@@ -74,7 +78,9 @@ class FakeDataCiteRESTClient:
         This will only work for draft dois
 
         :param doi: DOI (e.g. 10.123/456)
-        :return:
+
+        Returns:
+            Mock: A mock object.
         """
         return Mock()
 
@@ -85,7 +91,9 @@ class FakeDataCiteRESTClient:
         longer be found in DataCite Search
 
         :param doi: DOI to hide e.g. 10.12345/1.
-        :return:
+
+        Returns:
+            Mock: A mock object.
         """
         return Mock()
 
@@ -96,7 +104,9 @@ class FakeDataCiteRESTClient:
         longer be found in DataCite Search
 
         :param doi: DOI to hide e.g. 10.12345/1.
-        :return:
+
+        Returns:
+            Mock: A mock object.
         """
         return Mock()
 
@@ -105,6 +115,12 @@ class FakeDataCiteRESTClient:
 
         Check that the doi has a form
         12.12345/123 with the prefix defined
+
+        Returns:
+            str: The normalized DOI.
+
+        Raises:
+            ValueError: If the DOI prefix doesn't match the expected prefix.
         """
         # If prefix is in doi
         if "/" in doi:
@@ -121,7 +137,11 @@ class FakeDataCiteRESTClient:
         return normalize_doi(doi)
 
     def __repr__(self):
-        """Create string representation of object."""
+        """Create string representation of object.
+
+        Returns:
+            str: String representation of the object.
+        """
         return f"<FakeDataCiteRESTClient: {self.username}>"
 
 

@@ -37,13 +37,22 @@ class FilesHelper:
 
     @staticmethod
     def sanitize_filenames(directory) -> list:
-        """Sanitize filenames in a directory."""
+        """Sanitize filenames in a directory.
+
+        Returns:
+            list: A list of sanitized filenames (empty in this simplified
+                implementation).
+        """
         # Simplified implementation for testing
         return []
 
     @unit_of_work()
     def set_to_metadata_only(self, draft_id: str, uow: UnitOfWork | None = None):
-        """Set record to metadata-only mode."""
+        """Set record to metadata-only mode.
+
+        Raises:
+            RuntimeError: If uow is not provided.
+        """
         if uow:
             try:
                 record = records_service.read(system_identity, draft_id)._record
@@ -75,7 +84,11 @@ class FilesHelper:
         files_type: str = "",
         uow: UnitOfWork | None = None,
     ) -> bool:
-        """Delete a file from the record."""
+        """Delete a file from the record.
+
+        Returns:
+            bool: True if the file was successfully deleted.
+        """
         if files_service is None:
             files_service = self.files_service
         read_method = (
@@ -120,7 +133,11 @@ class FilesHelper:
         source_filepaths: dict | None = None,
         uow: UnitOfWork | None = None,
     ) -> dict[str, list[str | list[str]]]:
-        """Handle file uploads for a record."""
+        """Handle file uploads for a record.
+
+        Returns:
+            dict: A dictionary containing file upload results.
+        """
         if files is None:
             files = []
         if existing_record is None:

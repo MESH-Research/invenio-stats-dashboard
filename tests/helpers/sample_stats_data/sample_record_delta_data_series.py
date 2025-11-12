@@ -551,7 +551,9 @@ MOCK_RECORD_DELTA_DATA_SERIES_SET = {
                     ["05-30", 59117831.0]
                 ],
                 "id": "cc-by-sa-4.0",
-                "name": {"en": "Creative Commons Attribution-ShareAlike 4.0 International"},
+                "name": {
+                    "en": "Creative Commons Attribution-ShareAlike 4.0 International"
+                },
                 "type": "line",
                 "year": 2025,
                 "valueType": "filesize",
@@ -563,7 +565,9 @@ MOCK_RECORD_DELTA_DATA_SERIES_SET = {
                     ["05-30", 2]
                 ],
                 "id": "cc-by-sa-4.0",
-                "name": {"en": "Creative Commons Attribution-ShareAlike 4.0 International"},
+                "name": {
+                    "en": "Creative Commons Attribution-ShareAlike 4.0 International"
+                },
                 "type": "line",
                 "year": 2025,
                 "valueType": "number",

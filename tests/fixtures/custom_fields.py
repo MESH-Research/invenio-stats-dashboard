@@ -51,7 +51,11 @@ from invenio_stats_dashboard.records.communities.custom_fields.custom_fields imp
 
 
 def _(x):
-    """Identity function for string extraction."""
+    """Identity function for string extraction.
+
+    Returns:
+        Any: The input value unchanged.
+    """
     return x
 
 

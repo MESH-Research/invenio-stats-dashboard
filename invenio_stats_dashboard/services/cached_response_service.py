@@ -393,9 +393,13 @@ class CachedResponseService:
 
         # Return in requested format
         if as_json_bytes:
-            return cast(bytes, response.bytes_data)
+            return cast(  # type: ignore[redundant-cast]
+                bytes, response.bytes_data
+            )
         else:
-            return cast(dict | list, response.object_data)
+            return cast(  # type: ignore[redundant-cast]
+                dict | list, response.object_data
+            )
 
     def _create(
         self, responses: list[CachedResponse], progress_callback: Callable | None = None

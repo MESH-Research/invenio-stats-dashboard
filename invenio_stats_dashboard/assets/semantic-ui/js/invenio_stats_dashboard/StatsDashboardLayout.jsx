@@ -15,7 +15,6 @@ import { GranularitySelector } from "./components/controls/GranularitySelector";
 import { ReportSelector } from "./components/controls/ReportSelector";
 import { StatsDashboardProvider } from "./context/StatsDashboardContext";
 import { fetchStats, updateStatsFromCache, updateState } from "./api/api";
-import { DASHBOARD_TYPES } from "./constants";
 import { UpdateStatusMessage } from "./components/shared_components/UpdateStatusMessage";
 import PropTypes from "prop-types";
 
@@ -67,7 +66,7 @@ const StatsDashboardLayout = ({
   const [currentYearLastUpdated, setCurrentYearLastUpdated] = useState(null);
   const isMountedRef = useRef(true);
 
-  const handleTabChange = (e, { name }) => {
+  const handleTabChange = (_, { name }) => {
     setSelectedTab(name);
   };
 
@@ -139,7 +138,7 @@ const StatsDashboardLayout = ({
   // Listen for background cache updates
   useEffect(() => {
     const handleCacheUpdate = (event) => {
-      const { cacheKey, data, year, success, error } = event.detail;
+      const { data, year, success } = event.detail;
 
       if (!success || !data || !year) {
         return;

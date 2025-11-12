@@ -99,8 +99,9 @@ def minimal_community_factory(
 ):
     """Create a minimal community for testing.
 
-    Returns a function that can be called to create a minimal community
-    for testing. That function returns the created community record.
+    Returns:
+        Callable: A function that can be called to create a minimal community
+            for testing. That function returns the created community record.
     """
 
     def create_minimal_community(
@@ -119,6 +120,9 @@ def minimal_community_factory(
         Also allows specifying the members of the community with their roles.
 
         If no owner is specified, a new user is created and used as the owner.
+
+        Returns:
+            Community: The created community record.
         """
         metadata = metadata or {}
         access = access or {}
