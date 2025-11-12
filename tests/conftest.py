@@ -10,14 +10,18 @@ import os
 import shutil
 import tempfile
 from collections import namedtuple
+from collections.abc import Callable, Generator
 from pathlib import Path
+from typing import Any
 
 import jinja2
 import pytest
+from flask import Flask
 from invenio_app.factory import create_app as _create_app
 from invenio_files_rest.models import Location
 from invenio_queues import current_queues
 from invenio_search.proxies import current_search_client
+from opensearchpy import OpenSearch
 
 from .fixtures.custom_fields import test_config_fields
 from .fixtures.frontend import MockManifestLoader
@@ -46,11 +50,16 @@ pytest_plugins = (
     "tests.fixtures.vocabularies.roles",
     "tests.fixtures.vocabularies.subjects",
     "tests.fixtures.vocabularies.title_types",
+    "tests.pytest_plugins.pytest_live_status",
 )
 
 
-def _(x):
-    """Identity function for string extraction."""
+def _(x) -> Any:
+    """Identity function for string extraction.
+
+    Returns:
+        Any: The input value unchanged.
+    """
     return x
 
 
@@ -129,8 +138,12 @@ test_config["SITE_UI_URL"] = os.environ.get(
 
 
 @pytest.fixture(scope="session")
-def celery_config(celery_config):
-    """Celery config fixture for Invenio-Stats-Dashboard."""
+def celery_config(celery_config) -> dict:
+    """Celery config fixture for Invenio-Stats-Dashboard.
+
+    Returns:
+        dict: Celery configuration dictionary.
+    """
     celery_config["logfile"] = str(log_folder_path / "celery.log")
     celery_config["loglevel"] = "DEBUG"
     celery_config["task_always_eager"] = True
@@ -138,23 +151,30 @@ def celery_config(celery_config):
     celery_config["result_backend"] = "cache"
     celery_config["task_eager_propagates_exceptions"] = True
 
-    return celery_config
+    return dict(celery_config)
 
 
 @pytest.fixture(scope="session")
-def celery_enable_logging():
-    """Celery enable logging fixture."""
+def celery_enable_logging() -> bool:
+    """Celery enable logging fixture.
+
+    Returns:
+        bool: True to enable Celery logging.
+    """
     return True
 
 
 @pytest.yield_fixture(scope="module")
-def location(database):
+def location(database: Callable) -> Generator[Location, None, None]:
     """Creates a simple default location for a test.
 
     Use this fixture if your test requires a `files location <https://invenio-
     files-rest.readthedocs.io/en/latest/api.html#invenio_files_rest.models.
     Location>`_. The location will be a default location with the name
     ``pytest-location``.
+
+    Yields:
+        Location: The created test location.
     """
     uri = tempfile.mkdtemp()
     location_obj = Location(name="pytest-location", uri=uri, default=True)
@@ -216,11 +236,14 @@ def running_app(
     title_type_v,
     create_communities_custom_fields,
     create_records_custom_fields,
-):
+) -> RunningApp:
     """This fixture provides an app with the typically needed db data loaded.
 
     All of these fixtures are often needed together, so collecting them
     under a semantic umbrella makes sense.
+
+    Returns:
+        RunningApp: The running application instance fixture.
     """
     return RunningApp(
         app,
@@ -246,18 +269,26 @@ def running_app(
 
 
 @pytest.fixture(scope="function")
-def search_clear(search_clear):
+def search_clear(search_clear) -> Generator[OpenSearch, None, None]:
     """Clear search indices after test finishes (function scope).
 
-    the search_clear fixture should each time start by running
+    This fixture extends the pytest_invenio ``search_clear`` fixture to also
+    clear stats indices and templates, which are not handled by the base
+    fixture. It also clears the identity cache before each test to prevent
+    stale community role data.
+
+    The base ``search_clear`` fixture should each time start by running:
     ```python
     current_search.create()
     current_search.put_templates()
     ```
-    and then clear the indices during the fixture teardown. But
-    this doesn't catch the stats indices, so we need to add an
-    additional step to delete the stats indices and template manually.
-    Otherwise, the stats indices aren't cleared between tests.
+    and then clear the indices during the fixture teardown. But this doesn't
+    catch the stats indices, so we need to add an additional step to delete
+    the stats indices and template manually. Otherwise, the stats indices
+    aren't cleared between tests.
+
+    Yields:
+        The OpenSearch search client (same as the base ``search_clear`` fixture).
     """
     # Clear identity cache before each test to prevent stale community role data
     from invenio_communities.proxies import current_identities_cache
@@ -273,8 +304,12 @@ def search_clear(search_clear):
 
 
 @pytest.fixture(scope="module")
-def template_loader():
-    """Fixture providing overloaded and custom templates to test app."""
+def template_loader() -> Callable:
+    """Fixture providing overloaded and custom templates to test app.
+
+    Returns:
+        Callable: A function that loads templates for the test app.
+    """
 
     def load_tempates(app):
         """Load templates for the test app."""
@@ -312,7 +347,7 @@ def app(
     search,
     template_loader,
     admin_roles,
-):
+) -> Generator[Flask, None, None]:
     """This fixture provides an app with the typically needed basic fixtures.
 
     This fixture should be used in conjunction with the `running_app`
@@ -320,6 +355,9 @@ def app(
     fixtures. This fixture sets up the basic functions like db, search,
     and template loader once per modules. The `running_app` fixture is function
     scoped and initializes all the fixtures that should be reset between tests.
+
+    Yields:
+        Flask: The Flask application instance.
     """
     current_queues.declare()
     template_loader(app)
@@ -328,11 +366,15 @@ def app(
 
 @pytest.fixture(scope="module")
 def app_config(app_config) -> dict:
-    """App config fixture."""
+    """App config fixture.
+
+    Returns:
+        dict: The application configuration dictionary.
+    """
     for k, v in test_config.items():
         app_config[k] = v
 
-    return app_config
+    return dict(app_config)
 
 
 @pytest.fixture(scope="module")
@@ -341,5 +383,8 @@ def create_app(instance_path, entry_points):
 
     This initializes the basic Flask app which will then be used
     to set up the `app` fixture with initialized services.
+
+    Returns:
+        Callable: The application factory function.
     """
     return _create_app
