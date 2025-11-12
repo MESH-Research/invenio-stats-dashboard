@@ -498,7 +498,7 @@ const FilterSelector = ({
   useEffect(() => {
     if (isOpen && clearButtonRef?.current) {
       setTimeout(() => {
-        clearButtonRef.current.focus();
+        clearButtonRef.current?.focus();
       }, 100);
     }
   }, [isOpen]);

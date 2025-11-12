@@ -13,7 +13,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageSnapshotData: {
           countriesByView: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',
@@ -63,7 +63,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageSnapshotData: {
           countriesByDownload: {
-            downloads: [
+            downloadUniqueFiles: [
               {
                 id: 'US',
                 name: 'United States',
@@ -138,7 +138,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageSnapshotData: {
           countriesByView: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',
@@ -170,7 +170,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageSnapshotData: {
           countriesByView: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',
@@ -195,7 +195,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageDeltaData: {
           countries: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',
@@ -260,7 +260,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageDeltaData: {
           countries: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',
@@ -293,7 +293,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageDeltaData: {
           countries: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',
@@ -342,7 +342,7 @@ describe('mapHelpers', () => {
         year: 2024,
         usageSnapshotData: {
           countriesByView: {
-            views: [
+            viewUniqueRecords: [
               {
                 id: 'US',
                 name: 'United States',

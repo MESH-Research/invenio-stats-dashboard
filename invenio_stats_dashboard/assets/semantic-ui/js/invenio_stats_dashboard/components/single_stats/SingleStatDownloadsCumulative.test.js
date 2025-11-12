@@ -31,7 +31,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -79,7 +79,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -183,7 +183,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -200,7 +200,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -233,7 +233,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -251,7 +251,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -282,7 +282,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -299,7 +299,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -332,7 +332,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -349,7 +349,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -444,7 +444,7 @@ describe('SingleStatDownloadsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',

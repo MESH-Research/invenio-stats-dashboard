@@ -436,6 +436,9 @@ describe('StatsChart', () => {
             {
               id: 'global',
               name: 'Global',
+              type: 'line',
+              valueType: 'number',
+              year: 2024,
               data: [
                 ['01-01', 150],
                 ['01-02', 150],
@@ -449,6 +452,9 @@ describe('StatsChart', () => {
             {
               id: 'series-a',
               name: 'Series A',
+              type: 'line',
+              valueType: 'number',
+              year: 2024,
               data: [
                 ['01-01', 100],
                 ['01-02', 30],
@@ -458,6 +464,9 @@ describe('StatsChart', () => {
             {
               id: 'series-b',
               name: 'Series B',
+              type: 'line',
+              valueType: 'number',
+              year: 2024,
               data: [
                 ['01-01', 10],
                 ['01-02', 40],
@@ -467,6 +476,9 @@ describe('StatsChart', () => {
             {
               id: 'series-c',
               name: 'Series C',
+              type: 'line',
+              valueType: 'number',
+              year: 2024,
               data: [
                 ['01-01', 50],
                 ['01-02', 50],
@@ -501,14 +513,15 @@ describe('StatsChart', () => {
         const option = JSON.parse(chartOption.getAttribute('data-option'));
 
         // Verify series are ranked by latest value: B (100) > C (50) > A (20)
-        // Note: The "other" series is inserted at the beginning, so we check the ordering
-        // of the actual series (excluding "Other")
         const seriesNames = option.series.map(s => s.name);
 
-        // "Other" is inserted first, then the ranked series
-        expect(seriesNames[0]).toBe('Other');
+        // With only 3 series and maxSeries=12, no "Other" series should be created
+        // Verify we have all 3 series
+        expect(seriesNames).toContain('Series A');
+        expect(seriesNames).toContain('Series B');
+        expect(seriesNames).toContain('Series C');
 
-        // Find indices of the actual series (excluding "Other")
+        // Find indices of the series
         const seriesBIndex = seriesNames.indexOf('Series B');
         const seriesCIndex = seriesNames.indexOf('Series C');
         const seriesAIndex = seriesNames.indexOf('Series A');
@@ -529,9 +542,9 @@ describe('StatsChart', () => {
       const option = JSON.parse(chartOption.getAttribute('data-option'));
 
       expect(option.series[0].data).toHaveLength(3);
-      expect(option.series[0].data[0][1]).toBe(10);
-      expect(option.series[0].data[1][1]).toBe(15);
-      expect(option.series[0].data[2][1]).toBe(20);
+      expect(option.series[0].data[0].value[1]).toBe(10);
+      expect(option.series[0].data[1].value[1]).toBe(15);
+      expect(option.series[0].data[2].value[1]).toBe(20);
     });
 
     it('filters data by date range', () => {
@@ -563,9 +576,9 @@ describe('StatsChart', () => {
       // The chart creates data points for the entire date range, but only includes actual data
       expect(option.series[0].data).toHaveLength(3); // Jan 1, 2, 3
       // The aggregation creates empty data points for the date range, which is correct behavior
-      expect(option.series[0].data[0][1]).toBe(0); // Jan 1 (aggregated to 0)
-      expect(option.series[0].data[1][1]).toBe(0); // Jan 2 (no data)
-      expect(option.series[0].data[2][1]).toBe(0); // Jan 3 (no data)
+      expect(option.series[0].data[0].value[1]).toBe(0); // Jan 1 (aggregated to 0)
+      expect(option.series[0].data[1].value[1]).toBe(0); // Jan 2 (no data)
+      expect(option.series[0].data[2].value[1]).toBe(0); // Jan 3 (no data)
     });
   });
 

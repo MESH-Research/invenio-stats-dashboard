@@ -31,7 +31,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -81,7 +81,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -186,7 +186,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -220,7 +220,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -254,7 +254,7 @@ describe('SingleStatDownloads', () => {
             year: 2023,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -271,7 +271,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -304,7 +304,7 @@ describe('SingleStatDownloads', () => {
             year: 2023,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -321,7 +321,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -368,7 +368,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -395,7 +395,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global'
@@ -422,7 +422,7 @@ describe('SingleStatDownloads', () => {
             year: 2024,
             usageDeltaData: {
               global: {
-                downloads: [
+                downloadUniqueFiles: [
                   {
                     id: 'global',
                     name: 'Global',

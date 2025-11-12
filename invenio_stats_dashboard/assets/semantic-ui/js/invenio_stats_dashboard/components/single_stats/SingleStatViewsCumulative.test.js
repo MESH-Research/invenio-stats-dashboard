@@ -31,7 +31,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -79,7 +79,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -183,7 +183,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -200,7 +200,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -233,7 +233,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -251,7 +251,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -283,7 +283,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -300,7 +300,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -333,7 +333,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2023,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -350,7 +350,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -397,7 +397,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -425,7 +425,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',
@@ -452,7 +452,7 @@ describe('SingleStatViewsCumulative', () => {
             year: 2024,
             usageSnapshotData: {
               global: {
-                views: [
+                viewUniqueRecords: [
                   {
                     id: 'global',
                     name: 'Global',

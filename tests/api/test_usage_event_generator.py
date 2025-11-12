@@ -81,10 +81,11 @@ def test_synthetic_usage_event_creation(
 
     client.indices.refresh(index="events-stats-*")
 
-    # Wait a moment for refresh to fully propagate in CI environments
+    # Wait for refresh to fully propagate in CI environments
     # This addresses race conditions where count queries execute before
     # all documents are visible after refresh
-    time.sleep(0.5)
+    # CI environments often need longer waits than local development
+    time.sleep(2.0)
 
     expected_months = [
         "2024-06",
@@ -98,8 +99,9 @@ def test_synthetic_usage_event_creation(
 
     # Retry mechanism to ensure all events are visible
     # In CI environments, refresh propagation can be delayed
-    max_retries = 5
-    retry_delay = 0.2
+    # Increased retries and delay for more robust CI behavior
+    max_retries = 10
+    retry_delay = 0.5
     total_events = 0
 
     for attempt in range(max_retries):
