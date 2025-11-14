@@ -274,11 +274,12 @@ class TestCustomFieldsConfiguration:
 
     def test_community_stats_fields_ui_defined(self):
         """Test that community stats fields UI is properly defined."""
-        assert isinstance(COMMUNITY_STATS_FIELDS_UI, dict)
-        assert COMMUNITY_STATS_FIELDS_UI["section"] == "Stats Dashboard Settings"
-        assert len(COMMUNITY_STATS_FIELDS_UI["fields"]) > 0
+        ui_config = COMMUNITY_STATS_FIELDS_UI()  # Call to get the config dict
+        assert isinstance(ui_config, dict)
+        assert ui_config["section"] == "Stats Dashboard Settings"
+        assert len(ui_config["fields"]) > 0
         assert (
-            COMMUNITY_STATS_FIELDS_UI["fields"][0]["field"] == "stats:dashboard_layout"
+            ui_config["fields"][0]["field"] == "stats:dashboard_enabled"
         )
 
     def test_communities_namespaces_defined(self):

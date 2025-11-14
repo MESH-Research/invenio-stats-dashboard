@@ -24,6 +24,7 @@ from invenio_communities.communities.services.results import CommunityItem
 from invenio_communities.proxies import current_communities
 from invenio_communities.views.communities import HEADER_PERMISSIONS
 from invenio_communities.views.decorators import pass_community
+from invenio_i18n import lazy_gettext as _
 from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
@@ -31,8 +32,9 @@ from ..config.component_metrics import extract_component_names_from_layout
 from ..services.cached_response_service import CachedResponseService
 
 
-def get_community_dashboard_layout(community: CommunityItem, dashboard_type: str
-                                   ) -> dict[str, Any]:
+def get_community_dashboard_layout(
+    community: CommunityItem, dashboard_type: str
+) -> dict[str, Any]:
     """Get dashboard layout configuration for a community.
 
     Checks the community's custom field for dashboard layout configuration
@@ -55,13 +57,13 @@ def get_community_dashboard_layout(community: CommunityItem, dashboard_type: str
     default_layout: dict[str, Any] = community_default_layout or global_default_layout
 
     # Access custom fields through the serialized data (preferred) or underlying record
-    custom_fields = community.data.get('custom_fields', {})
+    custom_fields = community.data.get("custom_fields", {})
     if not custom_fields:
-        # Fallback to underlying record if not in serialized data
-        custom_fields = getattr(community._record, 'custom_fields', {})
+        custom_fields = getattr(community._record, "custom_fields", {})
 
-    bespoke_layout: dict[str, Any] = custom_fields.get('stats:dashboard_layout', {}
-                                                       ).get(layout_key, {})
+    bespoke_layout: dict[str, Any] = custom_fields.get(
+        "stats:dashboard_layout", {}
+    ).get(layout_key, {})
 
     if not bespoke_layout:
         current_app.logger.debug(
@@ -85,25 +87,29 @@ def global_stats_dashboard():
     return render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["global"],
         dashboard_config={
-            "display_binary_sizes": not current_app.config.get(
-                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
-            ),
-            "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global_layout"],
-            "dashboard_type": "global",
-            "default_range_options": current_app.config[
-                "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
-            ],
-            "use_test_data": current_app.config.get(
-                "STATS_DASHBOARD_USE_TEST_DATA", True
-            ),
-            "ui_subcounts": current_app.config.get(
-                "STATS_DASHBOARD_UI_SUBCOUNTS", {}
+            "client_cache_compression_enabled": current_app.config.get(
+                "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
             ),
             "compress_json": current_app.config.get(
                 "STATS_DASHBOARD_COMPRESS_JSON", True
             ),
-            "client_cache_compression_enabled": current_app.config.get(
-                "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
+            "dashboard_type": "global",
+            "dashboard_enabled": current_app.config.get(
+                "STATS_DASHBOARD_ENABLED_GLOBAL"
+            ),
+            "default_range_options": current_app.config[
+                "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
+            ],
+            "disabled_message": _(
+                current_app.config.get("STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL")
+            ).format(title=current_app.config.get("THEME_SHORT_TITLE")),
+            "display_binary_sizes": not current_app.config.get(
+                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
+            ),
+            "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global_layout"],
+            "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
+            "use_test_data": current_app.config.get(
+                "STATS_DASHBOARD_USE_TEST_DATA", True
             ),
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
@@ -136,34 +142,59 @@ def community_stats_dashboard(
     # Force CSRF cookie to be set for API requests made by the SPA
     request.csrf_cookie_needs_reset = True
 
-    return str(render_template(
-        current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
-        dashboard_config={
-            "display_binary_sizes": not current_app.config.get(
-                "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
-            ),
-            "layout": get_community_dashboard_layout(community, "community"),
-            "dashboard_type": "community",
-            "default_range_options": current_app.config[
-                "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
-            ],
-            "use_test_data": current_app.config.get(
-                "STATS_DASHBOARD_USE_TEST_DATA", True
-            ),
-            "ui_subcounts": current_app.config.get(
-                "STATS_DASHBOARD_UI_SUBCOUNTS", {}
-            ),
-            "compress_json": current_app.config.get(
-                "STATS_DASHBOARD_COMPRESS_JSON", True
-            ),
-            "client_cache_compression_enabled": current_app.config.get(
-                "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
-            ),
-            **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
-        },
-        community=community_ui,
-        permissions=permissions,
-    ))
+    dashboard_enabled_default = not current_app.config.get(
+        "STATS_DASHBOARD_COMMUNITY_OPT_IN", True
+    )
+    dashboard_enabled_specific = (
+        community.data.get("custom_fields").get("stats:dashboard_enabled")
+        or dashboard_enabled_default
+    )
+    dashboard_enabled_override = current_app.config.get(
+        "STATS_DASHBOARD_ENABLED_COMMUNITY"
+    )
+
+    return str(
+        render_template(
+            current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
+            dashboard_config={
+                "client_cache_compression_enabled": current_app.config.get(
+                    "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
+                ),
+                "compress_json": current_app.config.get(
+                    "STATS_DASHBOARD_COMPRESS_JSON", True
+                ),
+                "dashboard_enabled": dashboard_enabled_specific
+                and dashboard_enabled_override,
+                "dashboard_enabled_communities": dashboard_enabled_override,
+                "dashboard_enabled_global": current_app.config.get(
+                    "STATS_DASHBOARD_ENABLED_GLOBAL"
+                ),
+                "dashboard_type": "community",
+                "default_range_options": current_app.config[
+                    "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS"
+                ],
+                "disabled_message": current_app.config.get(
+                    "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY"
+                ),
+                "disabled_message_global": _(
+                    current_app.config.get("STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL")
+                ).format(title=current_app.config.get("THEME_SHORT_TITLE")),
+                "display_binary_sizes": not current_app.config.get(
+                    "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
+                ),
+                "layout": get_community_dashboard_layout(community, "community"),
+                "ui_subcounts": current_app.config.get(
+                    "STATS_DASHBOARD_UI_SUBCOUNTS", {}
+                ),
+                "use_test_data": current_app.config.get(
+                    "STATS_DASHBOARD_USE_TEST_DATA", True
+                ),
+                **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
+            },
+            community=community_ui,
+            permissions=permissions,
+        )
+    )
 
 
 class StatsDashboardAPIResource(ContentNegotiatedMethodView):
@@ -230,8 +261,8 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
             ]
 
             # Determine if we're requesting JSON (for special raw byte handling)
-            accept_header = request.headers.get('Accept', 'application/json')
-            is_json_request = 'application/json' in accept_header
+            accept_header = request.headers.get("Accept", "application/json")
+            is_json_request = "application/json" in accept_header
 
             # Extract layout and component names if optimize is enabled
             component_names: set[str] | None = None
@@ -246,8 +277,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                 if any([p for p in query_params.keys() if p not in allowed_params]):
                     return {
                         "error": (
-                            f"Unknown parameter in request body for "
-                            f"query {query_name}"
+                            f"Unknown parameter in request body for query {query_name}"
                         )
                     }, 400
 
@@ -299,9 +329,7 @@ class StatsDashboardAPIResource(ContentNegotiatedMethodView):
                 results[query_name] = result
 
             # For JSON responses, handle raw bytes to avoid double serialization
-            if is_json_request and all(
-                isinstance(v, bytes) for v in results.values()
-            ):
+            if is_json_request and all(isinstance(v, bytes) for v in results.values()):
                 # Cast to correct type since we've verified all values are bytes
                 bytes_results: dict[str, bytes] = results  # type: ignore
                 final_json = self._build_json_response(bytes_results)

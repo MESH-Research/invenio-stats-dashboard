@@ -1,7 +1,8 @@
 """Custom fields for community records."""
 
+from flask import current_app
 from invenio_i18n import lazy_gettext as _
-from invenio_records_resources.services.custom_fields import BaseCF
+from invenio_records_resources.services.custom_fields import BaseCF, BooleanCF
 from marshmallow import INCLUDE, RAISE, Schema, fields, validate
 
 COMMUNITIES_NAMESPACES = {"stats": None}
@@ -13,11 +14,9 @@ class ComponentPropsSchema(Schema):
     class Meta:  # noqa: D106
         unknown = INCLUDE  # Allow any additional props
 
-    # Basic display props
     title = fields.Str(allow_none=True)
     icon = fields.Str(allow_none=True)
 
-    # Layout and sizing props (used in dashboard config)
     width = fields.Int(allow_none=True, validate=validate.Range(min=1, max=16))
     height = fields.Int(allow_none=True, validate=validate.Range(min=100, max=2000))
     minHeight = fields.Int(allow_none=True, validate=validate.Range(min=100, max=2000))
@@ -126,24 +125,72 @@ class DashboardLayoutCF(BaseCF):
 
 
 COMMUNITY_STATS_FIELDS = [
+    BooleanCF(name="stats:dashboard_enabled"),
     DashboardLayoutCF(name="stats:dashboard_layout"),
 ]
 
-COMMUNITY_STATS_FIELDS_UI = {
-    "section": _("Stats Dashboard Settings"),
-    "fields": [
-        {
-            "field": "stats:dashboard_layout",
-            "ui_widget": "DashboardLayoutField",
-            "template": "dashboard_layout_field.html",
-            "props": {
-                "label": _("Dashboard Layout Configuration"),
-                "placeholder": _("Enter dashboard layout configuration as JSON"),
-                "description": _(
-                    "JSON configuration for community-specific dashboard layout"
-                ),
-                "icon": "chart pie",
+
+def get_community_stats_fields_ui(app=None):
+    """Get the community stats fields UI configuration.
+
+    This function lazily evaluates the config to avoid accessing current_app
+    at import time, which would fail when initializing the custom fields without an
+    application context.
+
+    Args:
+        app: Optional Flask application instance. If provided, uses this app's
+            config. Otherwise, tries to use current_app if in an app context,
+            or falls back to defaults.
+
+    Returns:
+        dict: UI configuration for community stats fields
+    """
+    if app is not None:
+        config = app.config
+    else:
+        try:
+            config = current_app.config
+        except RuntimeError:
+            config = {}
+
+    return {
+        "section": _("Stats Dashboard Settings"),
+        "fields": [
+            {
+                "field": "stats:dashboard_enabled",
+                "ui_widget": "BooleanCheckbox",
+                "props": {
+                    "label": config.get(
+                        "STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_LABEL"
+                    )
+                    or _("Enable Dashboard"),
+                    "description": config.get(
+                        "STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_DESCRIPTION"
+                    )
+                    or _(
+                        "Enable the 'Insights' tab that displays a "
+                        "statistics dashboard."
+                    ),
+                    "trueLabel": "Enable",
+                    "falseLabel": "Disable",
+                },
             },
-        }
-    ],
-}
+            # {
+            #     "field": "stats:dashboard_layout",
+            #     "ui_widget": "DashboardLayoutField",
+            #     "template": "dashboard_layout_field.html",
+            #     "props": {
+            #         "label": _("Dashboard Layout Configuration"),
+            #         "placeholder": _("Enter dashboard layout configuration as JSON"),
+            #         "description": _(
+            #             "JSON configuration for community-specific dashboard layout"
+            #         ),
+            #         "icon": "chart pie",
+            #     },
+            # },
+        ],
+    }
+
+
+# Export the function directly - it must be called to get the UI config
+COMMUNITY_STATS_FIELDS_UI = get_community_stats_fields_ui

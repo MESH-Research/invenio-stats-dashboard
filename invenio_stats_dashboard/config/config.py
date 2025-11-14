@@ -8,7 +8,8 @@
 
 from typing import Any
 
-from invenio_i18n import gettext as _
+from flask import current_app
+from invenio_i18n import lazy_gettext as _
 from invenio_rdm_records.resources.stats.event_builders import (
     build_record_unique_id,
 )
@@ -55,6 +56,10 @@ COMMUNITY_STATS_ENABLED = True
 COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
 COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
 
+STATS_DASHBOARD_ENABLED_GLOBAL = True
+STATS_DASHBOARD_ENABLED_COMMUNITY = True
+STATS_DASHBOARD_COMMUNITY_OPT_IN = True
+
 STATS_DASHBOARD_OPTIMIZE_DATA_SERIES = True
 """Whether to optimize data series by default.
 
@@ -94,6 +99,21 @@ This timing is spaced from other InvenioRDM tasks:
 COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
 
 COMMUNITY_STATS_CATCHUP_INTERVAL = 365
+
+STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY = _(
+    "Community managers and administrators can enable the "
+    "dashboard from the community settings page"
+)
+
+STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL = (
+    "The global statistics dashboard must be enabled by the {title} administrators."
+)
+
+STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_LABEL = _("Enable Dashboard")
+
+STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_DESCRIPTION = _(
+    "Enable the 'Insights' tab that displays a community statistics dashboard."
+)
 
 STATS_DASHBOARD_UI_SUBCOUNTS: dict[str, dict] = {
     "resource_types": {},

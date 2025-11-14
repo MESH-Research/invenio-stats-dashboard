@@ -8,6 +8,7 @@
 
 import React from "react";
 import { StatsDashboardLayout } from "./StatsDashboardLayout";
+import { StatsDashboardDisabledMessage } from "./StatsDashboardDisabledMessage";
 import { DASHBOARD_TYPES } from "./constants";
 import PropTypes from "prop-types";
 
@@ -15,33 +16,38 @@ import PropTypes from "prop-types";
  * Global stats dashboard layout
  */
 const GlobalStatsDashboardLayout = ({ dashboardConfig, stats }) => {
-  const dashboardType = DASHBOARD_TYPES.GLOBAL;
+	const dashboardType = DASHBOARD_TYPES.GLOBAL;
 
-  // Global-specific configuration
-  const containerClassNames = `${dashboardType}-stats-dashboard`;
-  const sidebarClassNames = "global-stats-left-sidebar";
-  const bodyClassNames = "global-stats-body";
+	// Global-specific configuration
+	const containerClassNames = `${dashboardType}-stats-dashboard`;
+	const sidebarClassNames = "global-stats-left-sidebar";
+	const bodyClassNames = "global-stats-body";
 
-  // Global uses default getStats behavior (no custom params needed)
-  const getStatsParams = null;
+	// Global uses default getStats behavior (no custom params needed)
+	const getStatsParams = null;
 
-  return (
-    <StatsDashboardLayout
-      dashboardConfig={dashboardConfig}
-      dashboardType={dashboardType}
-      showSubheader={true}
-      containerClassNames={containerClassNames}
-      sidebarClassNames={sidebarClassNames}
-      bodyClassNames={bodyClassNames}
-      getStatsParams={getStatsParams}
-      stats={stats}
-    />
-  );
+	return dashboardConfig.dashboard_enabled ? (
+		<StatsDashboardLayout
+			dashboardConfig={dashboardConfig}
+			dashboardType={dashboardType}
+			showSubheader={true}
+			containerClassNames={containerClassNames}
+			sidebarClassNames={sidebarClassNames}
+			bodyClassNames={bodyClassNames}
+			getStatsParams={getStatsParams}
+			stats={stats}
+		/>
+	) : (
+		<StatsDashboardDisabledMessage
+			msg={dashboardConfig.disabled_message}
+			dashboardType={dashboardType}
+		/>
+	);
 };
 
 GlobalStatsDashboardLayout.propTypes = {
-  dashboardConfig: PropTypes.object.isRequired,
-  stats: PropTypes.object,
+	dashboardConfig: PropTypes.object.isRequired,
+	stats: PropTypes.object,
 };
 
 export { GlobalStatsDashboardLayout };

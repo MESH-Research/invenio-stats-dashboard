@@ -113,7 +113,7 @@ class InvenioStatsDashboard:
         if app:
             self.init_app(app)
 
-    def init_app(self, app):
+    def init_app(self, app: Flask) -> None:
         """Flask application initialization."""
         self.init_config(app)
 
@@ -121,6 +121,51 @@ class InvenioStatsDashboard:
             self.service = CommunityStatsService(app)
             self.event_reindexing_service = EventReindexingService(app)
             app.extensions["invenio-stats-dashboard"] = self
+
+    def _get_effective_cf(self, app: Flask) -> dict:
+        """Get communities custom fields configuration.
+
+        We prefer adding the UI config here rather than in the instance's
+        invenio.cfg so that we can inject config values in the definition.
+        But if the instance has overridden this we respect the overrides.
+
+        Returns:
+            dict: Configuration dictionary for communities custom fields
+        """
+        custom_fields = app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
+        if not any(k for k in custom_fields if k.name == "stats:dashboard_enabled"):
+            custom_fields = [
+                *COMMUNITY_STATS_FIELDS,
+                *custom_fields,
+            ]
+        return custom_fields
+
+    def _get_effective_cf_ui(self, app: Flask) -> dict:
+        """Get communities custom fields ui configuration.
+
+        We prefer adding the UI config here rather than in the instance's
+        invenio.cfg so that we can inject config values for label and
+        description props in the UI widgets. But if the instance has
+        overridden this we respect the overrides.
+
+        Returns:
+            dict: Configuration dictionary for communities custom fields ui
+        """
+        custom_fields_ui = app.config.get("COMMUNITIES_CUSTOM_FIELDS_UI", [])
+        if not any(
+            u
+            for u in custom_fields_ui
+            if any(
+                f
+                for f in u.get("fields", {})
+                if f.get("field") == "stats:dashboard_enabled"
+            )
+        ):
+            custom_fields_ui = [
+                COMMUNITY_STATS_FIELDS_UI(app),  # Call with app to get config values
+                *custom_fields_ui,
+            ]
+        return custom_fields_ui
 
     def init_config(self, app):
         """Initialize configuration."""
@@ -214,17 +259,8 @@ class InvenioStatsDashboard:
             **STATS_COMMUNITIES_NAMESPACES,
         }
 
-        existing_custom_fields = app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
-        app.config["COMMUNITIES_CUSTOM_FIELDS"] = [
-            *existing_custom_fields,
-            *COMMUNITY_STATS_FIELDS,
-        ]
-
-        existing_custom_fields_ui = app.config.get("COMMUNITIES_CUSTOM_FIELDS_UI", [])
-        app.config["COMMUNITIES_CUSTOM_FIELDS_UI"] = [
-            *existing_custom_fields_ui,
-            COMMUNITY_STATS_FIELDS_UI,
-        ]
+        app.config["COMMUNITIES_CUSTOM_FIELDS"] = self._get_effective_cf(app)
+        app.config["COMMUNITIES_CUSTOM_FIELDS_UI"] = self._get_effective_cf_ui(app)
 
     def _ensure_rdm_service_components(self, app, components_list):
         """Ensure the components list includes all default RDM components.
