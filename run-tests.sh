@@ -111,8 +111,36 @@ unset INVENIO_SQLALCHEMY_DATABASE_URI
 if ! uv pip show invenio-stats-dashboard 2>/dev/null | grep -q "Editable project location"; then
     echo "Installing package in editable mode"
     uv pip install -e .
+    NEED_PATCHES=true
 else
     echo "Package already installed as editable, skipping installation"
+    NEED_PATCHES=false
+fi
+
+# Check if patches need to be applied by checking for the patched code
+# Look for the components config in RDMRecordCommunitiesConfig
+SITE_PACKAGES=$(find .venv -name "site-packages" -type d | head -1)
+if [ -n "$SITE_PACKAGES" ]; then
+    CONFIG_FILE="$SITE_PACKAGES/invenio_rdm_records/services/config.py"
+    if [ -f "$CONFIG_FILE" ]; then
+        if ! grep -q "RDM_RECORD_COMMUNITIES_SERVICE_COMPONENTS" "$CONFIG_FILE"; then
+            echo "Patches not detected in dependencies"
+            NEED_PATCHES=true
+        else
+            echo "Patches already applied to dependencies"
+        fi
+    else
+        echo "Warning: Could not find invenio_rdm_records config file"
+        NEED_PATCHES=true
+    fi
+fi
+
+# Apply patches if needed
+if [ "$NEED_PATCHES" = true ]; then
+    echo "Applying patches to invenio dependencies"
+    ./apply_patches.sh
+else
+    echo "Skipping patch application (already applied)"
 fi
 
 # Run mypy
