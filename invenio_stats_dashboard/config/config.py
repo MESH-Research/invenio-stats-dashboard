@@ -8,7 +8,6 @@
 
 from typing import Any
 
-from flask import current_app
 from invenio_i18n import lazy_gettext as _
 from invenio_rdm_records.resources.stats.event_builders import (
     build_record_unique_id,

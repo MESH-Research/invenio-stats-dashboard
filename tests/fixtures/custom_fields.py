@@ -86,7 +86,7 @@ test_config_fields["COMMUNITIES_CUSTOM_FIELDS"] = [
 ]
 
 test_config_fields["COMMUNITIES_CUSTOM_FIELDS_UI"] = [
-    COMMUNITY_STATS_FIELDS_UI(),  # Call to get UI config (uses defaults if no app context)
+    COMMUNITY_STATS_FIELDS_UI(),  # Call to get UI config
 ]
 
 

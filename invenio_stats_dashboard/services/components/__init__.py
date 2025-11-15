@@ -8,6 +8,7 @@
 
 from .components import (
     CommunityAcceptedEventComponent,
+    CommunityCustomFieldsDefaultsComponent,
     RecordCommunityEventComponent,
     RecordCommunityEventTrackingComponent,
     update_community_events_created_date,
@@ -16,6 +17,7 @@ from .components import (
 
 __all__ = [
     "CommunityAcceptedEventComponent",
+    "CommunityCustomFieldsDefaultsComponent",
     "RecordCommunityEventComponent",
     "RecordCommunityEventTrackingComponent",
     "update_community_events_index",

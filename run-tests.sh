@@ -107,8 +107,13 @@ unset SQLALCHEMY_DATABASE_URI
 unset INVENIO_SQLALCHEMY_DATABASE_URI
 
 # Install the package in editable mode for pytest-ruff to work properly
-echo "Installing package in editable mode"
-uv pip install -e .
+# Only install if not already installed as editable
+if ! uv pip show invenio-stats-dashboard 2>/dev/null | grep -q "Editable project location"; then
+    echo "Installing package in editable mode"
+    uv pip install -e .
+else
+    echo "Package already installed as editable, skipping installation"
+fi
 
 # Run mypy
 echo "Running mypy on the invenio_stats_dashboard directory"

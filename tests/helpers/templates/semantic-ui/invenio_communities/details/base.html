@@ -1,0 +1,19 @@
+{# -*- coding: utf-8 -*-
+  Test stub template for invenio_communities/details/base.html
+  Part of Invenio-Stats-Dashboard
+  Copyright (C) 2025 MESH Research
+#}
+{% extends "invenio_communities/base.html" %}
+
+{% block page_body %}
+    {% set community_menu_active = True %}
+    {% block community_header %}
+        {% if community %}
+        <div class="community-header">
+            <h1>{{ community.metadata.title | default(community.slug) }}</h1>
+        </div>
+        {% endif %}
+    {% endblock community_header %}
+    {% block community_content %}{% endblock %}
+{% endblock page_body %}
+

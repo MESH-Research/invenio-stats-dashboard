@@ -14,6 +14,7 @@ from flask_sqlalchemy import SQLAlchemy
 from invenio_access.permissions import authenticated_user, system_identity
 from invenio_access.utils import get_identity
 from invenio_accounts.proxies import current_datastore
+from invenio_communities.proxies import current_communities
 from invenio_communities.utils import load_community_needs
 from invenio_rdm_records.proxies import (
     current_rdm_records,
@@ -59,7 +60,7 @@ class TestCommunitiesEventsComponentsIncluded:
 
     def setup_users(self, user_factory):
         """Setup test users.
-        
+
         Returns:
             tuple: A tuple containing (user_id, user_email, user_id2, user_email2).
         """
@@ -75,7 +76,7 @@ class TestCommunitiesEventsComponentsIncluded:
 
     def setup_community(self, minimal_community_factory, user_id):
         """Setup test community.
-        
+
         Returns:
             str: The community ID.
         """
@@ -95,7 +96,7 @@ class TestCommunitiesEventsComponentsIncluded:
         community_id,
     ):
         """Setup test record.
-        
+
         Returns:
             Record: The created record.
         """
@@ -108,9 +109,9 @@ class TestCommunitiesEventsComponentsIncluded:
     def setup_requests(self, db, record, community_id, owner_id, user_id):
         """Setup test requests."""
         type_ = current_request_type_registry.lookup(CommunityInclusion.type_id)
-        receiver_proxy = ResolverRegistry.resolve_entity_proxy(
-            {"community": community_id}
-        )
+        receiver_proxy = ResolverRegistry.resolve_entity_proxy({
+            "community": community_id
+        })
         assert receiver_proxy is not None
         receiver = receiver_proxy.resolve()
 
@@ -322,7 +323,7 @@ class TestCommunitiesEventsComponentsDeleted(TestCommunitiesEventsComponentsIncl
         community_id,
     ):
         """Setup test record.
-        
+
         Returns:
             Record: The created record.
         """
@@ -470,7 +471,7 @@ class TestCommunitiesEventsComponentsRemoved(TestCommunitiesEventsComponentsIncl
         community_id,
     ):
         """Setup test record.
-        
+
         Returns:
             Record: The created record.
         """
@@ -483,9 +484,9 @@ class TestCommunitiesEventsComponentsRemoved(TestCommunitiesEventsComponentsIncl
     def setup_requests(self, db, record, community_id, owner_id, user_id):
         """Setup events to submit the record to a community."""
         type_ = current_request_type_registry.lookup(CommunitySubmission.type_id)
-        receiver_proxy = ResolverRegistry.resolve_entity_proxy(
-            {"community": community_id}
-        )
+        receiver_proxy = ResolverRegistry.resolve_entity_proxy({
+            "community": community_id
+        })
         assert receiver_proxy is not None
         receiver = receiver_proxy.resolve()
         identity = get_identity(current_datastore.get_user(owner_id))
@@ -687,7 +688,7 @@ class TestCommunitiesEventsComponentsNewVersion(
         community_id,
     ):
         """Setup test record with community already included.
-        
+
         Returns:
             Record: The created record.
         """
@@ -832,7 +833,7 @@ class TestCommunitiesEventsComponentsRestored(TestCommunitiesEventsComponentsInc
         community_id,
     ):
         """Setup test record.
-        
+
         Returns:
             Record: The created record.
         """
@@ -1016,3 +1017,43 @@ class TestCommunitiesEventsComponentsRestored(TestCommunitiesEventsComponentsInc
             record._record.parent.communities.ids
             == self.restored_record._record.parent.communities.ids
         )
+
+
+class TestCommunityCustomFieldsDefaultsComponent:
+    """Test class for component setting custom fields default values."""
+
+    def check_enabled_default_opt_in_true(
+        self,
+        running_app: RunningApp,
+        db: SQLAlchemy,
+        set_app_config_fn_scoped: Callable,
+        minimal_community_factory: Callable,
+    ) -> None:
+        """Check that the component sets dashboard_enabled to False."""
+        set_app_config_fn_scoped({"STATS_DASHBOARD_COMMUNITY_OPT_IN": True})
+        community_result = minimal_community_factory(slug="test-community")
+
+        community_item = current_communities.service.read(
+            system_identity, community_result.id
+        )
+        running_app.app.logger.error(
+            f"Custom fields: {community_item._record.custom_fields}"
+        )
+        running_app.app.logger.error(f"Custom fields: {community_item.custom_fields}")
+        assert community_item.custom_fields["stats:dashboard_enabled"] is False
+
+    def check_enabled_default_opt_in_false(
+        self,
+        running_app: RunningApp,
+        db: SQLAlchemy,
+        set_app_config_fn_scoped: Callable,
+        minimal_community_factory: Callable,
+    ) -> None:
+        """Check that the component sets dashboard_enabled to False."""
+        set_app_config_fn_scoped({"STATS_DASHBOARD_COMMUNITY_OPT_IN": False})
+        community_result = minimal_community_factory(slug="test-community")
+
+        community_item = current_communities.service.read(
+            system_identity, community_result.id
+        )
+        assert community_item.custom_fields["stats:dashboard_enabled"] is True

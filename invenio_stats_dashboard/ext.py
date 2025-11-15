@@ -8,6 +8,9 @@
 
 from flask import Flask
 from flask_menu import current_menu
+from invenio_communities.communities.services.components import (
+    DefaultCommunityComponents,
+)
 from invenio_i18n import LazyString
 from invenio_i18n import lazy_gettext as _
 from invenio_rdm_records.services.components import DefaultRecordsComponents
@@ -24,6 +27,7 @@ from .records.communities.custom_fields.custom_fields import (
 )
 from .services.components import (
     CommunityAcceptedEventComponent,
+    CommunityCustomFieldsDefaultsComponent,
     RecordCommunityEventComponent,
     RecordCommunityEventTrackingComponent,
 )
@@ -122,7 +126,7 @@ class InvenioStatsDashboard:
             self.event_reindexing_service = EventReindexingService(app)
             app.extensions["invenio-stats-dashboard"] = self
 
-    def _get_effective_cf(self, app: Flask) -> dict:
+    def _get_effective_cf(self, app: Flask) -> list:
         """Get communities custom fields configuration.
 
         We prefer adding the UI config here rather than in the instance's
@@ -130,9 +134,9 @@ class InvenioStatsDashboard:
         But if the instance has overridden this we respect the overrides.
 
         Returns:
-            dict: Configuration dictionary for communities custom fields
+            list: Configuration dictionary for communities custom fields
         """
-        custom_fields = app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
+        custom_fields: list = app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
         if not any(k for k in custom_fields if k.name == "stats:dashboard_enabled"):
             custom_fields = [
                 *COMMUNITY_STATS_FIELDS,
@@ -140,7 +144,7 @@ class InvenioStatsDashboard:
             ]
         return custom_fields
 
-    def _get_effective_cf_ui(self, app: Flask) -> dict:
+    def _get_effective_cf_ui(self, app: Flask) -> list[dict]:
         """Get communities custom fields ui configuration.
 
         We prefer adding the UI config here rather than in the instance's
@@ -149,9 +153,11 @@ class InvenioStatsDashboard:
         overridden this we respect the overrides.
 
         Returns:
-            dict: Configuration dictionary for communities custom fields ui
+            list[dict]: Configuration dictionary for communities custom fields ui
         """
-        custom_fields_ui = app.config.get("COMMUNITIES_CUSTOM_FIELDS_UI", [])
+        custom_fields_ui: list[dict] = app.config.get(
+            "COMMUNITIES_CUSTOM_FIELDS_UI", []
+        )
         if not any(
             u
             for u in custom_fields_ui
@@ -261,6 +267,17 @@ class InvenioStatsDashboard:
 
         app.config["COMMUNITIES_CUSTOM_FIELDS"] = self._get_effective_cf(app)
         app.config["COMMUNITIES_CUSTOM_FIELDS_UI"] = self._get_effective_cf_ui(app)
+
+        # Add component to apply default values for custom fields
+        # This must run after CustomFieldsComponent
+        existing_community_components = app.config.get(
+            "COMMUNITIES_SERVICE_COMPONENTS", DefaultCommunityComponents
+        )
+        if CommunityCustomFieldsDefaultsComponent not in existing_community_components:
+            app.config["COMMUNITIES_SERVICE_COMPONENTS"] = [
+                *existing_community_components,
+                CommunityCustomFieldsDefaultsComponent,
+            ]
 
     def _ensure_rdm_service_components(self, app, components_list):
         """Ensure the components list includes all default RDM components.

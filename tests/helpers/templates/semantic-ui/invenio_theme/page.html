@@ -1,0 +1,21 @@
+{# -*- coding: utf-8 -*-
+  Test stub template for invenio_theme/page.html
+  Part of Invenio-Stats-Dashboard
+  Copyright (C) 2025 MESH Research
+#}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}{{ title | default('Test Page') }}{% endblock %}</title>
+    {% block css %}{% endblock %}
+</head>
+<body>
+    {% block body %}
+        {% block page_header %}{% endblock %}
+        {% block page_body %}{% endblock %}
+        {% block page_footer %}{% endblock %}
+    {% endblock %}
+    {% block javascript %}{% endblock %}
+</body>
+</html>
+

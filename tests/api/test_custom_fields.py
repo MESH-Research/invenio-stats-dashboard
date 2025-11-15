@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 from invenio_communities.proxies import current_communities
+from invenio_records_resources.services.custom_fields import BooleanCF
 from invenio_records_resources.services.custom_fields.validate import (
     validate_custom_fields,
 )
@@ -268,9 +269,11 @@ class TestCustomFieldsConfiguration:
 
     def test_community_stats_fields_defined(self):
         """Test that community stats fields are properly defined."""
-        assert len(COMMUNITY_STATS_FIELDS) == 1
-        assert isinstance(COMMUNITY_STATS_FIELDS[0], DashboardLayoutCF)
-        assert COMMUNITY_STATS_FIELDS[0].name == "stats:dashboard_layout"
+        assert len(COMMUNITY_STATS_FIELDS) == 2
+        assert isinstance(COMMUNITY_STATS_FIELDS[0], BooleanCF)
+        assert isinstance(COMMUNITY_STATS_FIELDS[1], DashboardLayoutCF)
+        assert COMMUNITY_STATS_FIELDS[0].name == "stats:dashboard_enabled"
+        assert COMMUNITY_STATS_FIELDS[1].name == "stats:dashboard_layout"
 
     def test_community_stats_fields_ui_defined(self):
         """Test that community stats fields UI is properly defined."""
@@ -278,9 +281,7 @@ class TestCustomFieldsConfiguration:
         assert isinstance(ui_config, dict)
         assert ui_config["section"] == "Stats Dashboard Settings"
         assert len(ui_config["fields"]) > 0
-        assert (
-            ui_config["fields"][0]["field"] == "stats:dashboard_enabled"
-        )
+        assert ui_config["fields"][0]["field"] == "stats:dashboard_enabled"
 
     def test_communities_namespaces_defined(self):
         """Test that communities namespaces are properly defined."""
@@ -332,17 +333,32 @@ class TestCustomFieldsIntegration:
         assert dashboard_layout_mapping["type"] == "object"
         assert dashboard_layout_mapping["enabled"] is False
 
+        assert "stats:dashboard_enabled" in properties["custom_fields"]["properties"]
+
+        dashboard_enabled_mapping = properties["custom_fields"]["properties"][
+            "stats:dashboard_enabled"
+        ]
+        assert dashboard_enabled_mapping["type"] == "boolean"
+
     def test_community_without_custom_field(
-        self, running_app, minimal_community_factory
-    ):
-        """Test creating a community without the custom field."""
+        self,
+        running_app: RunningApp,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+    ) -> None:
+        """Test creating a community without the custom field.
+
+        The field with a default value should still be created.
+        """
+        set_app_config_fn_scoped({"STATS_DASHBOARD_COMMUNITY_OPT_IN": True})
         community = minimal_community_factory(slug="test-community")
 
-        # Custom fields should be empty or not contain our field
         assert (
             "stats:dashboard_layout" not in community._record.custom_fields
             or not community._record.custom_fields.get("stats:dashboard_layout")
         )
+        assert "stats:dashboard_enabled" in community._record.custom_fields
+        assert community._record.custom_fields["stats:dashboard_enabled"] is False
 
     def test_custom_field_data_persistence(
         self, running_app: RunningApp, minimal_community_factory: Callable

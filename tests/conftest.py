@@ -313,25 +313,57 @@ def template_loader() -> Callable:
 
     def load_tempates(app):
         """Load templates for the test app."""
-        theme_path = (
-            Path(__file__).parent.parent
-            / "invenio_stats_dashboard"
-            / "templates"
-            / "semantic-ui"
+        test_file_path = Path(__file__).parent
+        package_root = test_file_path.parent
+        
+        # Package template paths
+        stats_dashboard_path = (
+            package_root / "invenio_stats_dashboard" / "templates" / "semantic-ui"
         )
-        root_path = (
-            Path(__file__).parent.parent / "invenio_stats_dashboard" / "templates"
+        stats_dashboard_test_path = (
+            test_file_path / "helpers" / "templates" / "semantic-ui"
         )
-        test_path = Path(__file__).parent / "helpers" / "templates" / "semantic-ui"
-        for path in (
-            theme_path,
-            root_path,
-            test_path,
-        ):
-            assert path.exists()
+        
+        # Find installed package template paths
+        theme_template_paths = []
+        # Package template path structures:
+        # - invenio_theme: templates/semantic-ui
+        # - invenio_app_rdm: theme/templates/semantic-ui
+        # - invenio_banners: templates/semantic-ui
+        package_template_paths = {
+            "invenio_theme": ["templates", "semantic-ui"],
+            "invenio_app_rdm": ["theme", "templates", "semantic-ui"],
+            "invenio_banners": ["templates", "semantic-ui"],
+        }
+        for package_name, path_parts in package_template_paths.items():
+            try:
+                package = __import__(package_name)
+                if hasattr(package, "__file__") and package.__file__:
+                    package_path = Path(package.__file__).parent
+                    template_path = package_path
+                    for part in path_parts:
+                        template_path = template_path / part
+                    if template_path.exists():
+                        theme_template_paths.append(str(template_path))
+            except (ImportError, AttributeError):
+                # Package not installed or doesn't have __file__ attribute
+                pass
+        
+        # Build list of paths that exist
+        template_paths = []
+        all_paths: list[str | Path] = [
+            stats_dashboard_test_path,  # Test stubs (highest priority)
+            stats_dashboard_path,
+            *[Path(p) for p in theme_template_paths],  # Installed theme packages
+        ]
+        for path in all_paths:
+            path_obj = Path(path) if isinstance(path, str) else path
+            if path_obj.exists():
+                template_paths.append(str(path_obj))
+        
         custom_loader = jinja2.ChoiceLoader([
             app.jinja_loader,
-            jinja2.FileSystemLoader([str(theme_path), str(root_path), str(test_path)]),
+            jinja2.FileSystemLoader(template_paths),
         ])
         app.jinja_loader = custom_loader
         app.jinja_env.loader = custom_loader

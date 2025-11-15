@@ -325,7 +325,7 @@ def update_community_events_index(
 
     def get_newest_event(record_id: str, community_id: str, is_removal: bool = False):
         """Get the newest event for a record/community combination using the alias.
-        
+
         Returns:
             dict | None: The newest event document, or None if not found.
         """
@@ -704,3 +704,69 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
             record_published_date=record_published_date,
         )
         # Note: No need to register RecordCommitOp since we're not modifying the record
+
+
+class CommunityCustomFieldsDefaultsComponent(ServiceComponent):
+    """Service component to apply default values for custom fields.
+
+    This component runs after CustomFieldsComponent and applies default values
+    from config for any custom fields that are missing.
+    """
+
+    def _get_default_value_for_field(self, cf):
+        """Get the default value for a custom field.
+
+        Args:
+            cf: The custom field instance
+
+        Returns:
+            The default value, or None if not applicable.
+        """
+        # Handle stats:dashboard_enabled field
+        if cf.name == "stats:dashboard_enabled":
+            config_value = current_app.config.get("STATS_DASHBOARD_OPT_IN")
+            if config_value is not None:
+                if isinstance(config_value, bool):
+                    bool_value = config_value
+                elif isinstance(config_value, str):
+                    bool_value = config_value.lower() in ("true", "1", "yes", "on")
+                else:
+                    bool_value = bool(config_value)
+                # Invert the config value
+                return not bool_value
+            # Fallback default if config key is not set
+            return False
+
+        return None
+
+    def _apply_default_for_field(self, cf, custom_fields):
+        """Apply default value for a custom field if it's missing.
+
+        Args:
+            cf: The custom field instance
+            custom_fields: The custom_fields dict to update
+        """
+        if cf.name not in custom_fields:
+            default_value = self._get_default_value_for_field(cf)
+            if default_value is not None:
+                custom_fields[cf.name] = default_value
+
+    def create(self, identity, data=None, record=None, errors=None, **kwargs):
+        """Apply default values for custom fields during creation."""
+        custom_fields = dict(record.custom_fields) if record.custom_fields else {}
+        cf_config = current_app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
+        for cf in cf_config:
+            self._apply_default_for_field(cf, custom_fields)
+        record.custom_fields = custom_fields
+
+    def update(self, identity, data=None, record=None, **kwargs):
+        """Apply default values for custom fields during update."""
+        # Get current custom_fields or create empty dict
+        custom_fields = dict(record.custom_fields) if record.custom_fields else {}
+
+        # Get all custom fields from config
+        cf_config = current_app.config.get("COMMUNITIES_CUSTOM_FIELDS", [])
+        for cf in cf_config:
+            self._apply_default_for_field(cf, custom_fields)
+
+        record.custom_fields = custom_fields
