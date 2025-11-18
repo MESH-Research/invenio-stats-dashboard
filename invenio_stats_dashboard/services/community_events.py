@@ -11,8 +11,9 @@ from datetime import datetime
 import arrow
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
+from opensearchpy.exceptions import NotFoundError
 from opensearchpy.helpers.aggs import Max, Min, Terms
-from opensearchpy.helpers.query import Match_all
+from opensearchpy.helpers.query import MatchAll
 from opensearchpy.helpers.search import Search
 
 
@@ -27,7 +28,7 @@ class CommunityRecordEventsService:
         first_active: arrow.Arrow | datetime | None = None,
         active_since: arrow.Arrow | datetime | None = None,
         record_threshold: int = 0,
-        filter_priority: list[str] = None,
+        filter_priority: list[str] | None = None,
     ):
         """Find communities with record events matching the provided parameters.
 
@@ -47,7 +48,7 @@ class CommunityRecordEventsService:
         """
         event_search = Search(
             using=current_search_client, index=prefix_index("stats-community-events")
-        ).query(Match_all())
+        ).query(MatchAll())
 
         event_search = event_search.extra(size=0)
 
@@ -57,7 +58,10 @@ class CommunityRecordEventsService:
         by_community.metric("min_event_date", Min(field="event_date"))
         by_community.metric("max_event_date", Max(field="event_date"))
 
-        event_results = event_search.execute()
+        try:
+            event_results = event_search.execute()
+        except NotFoundError:
+            return []
 
         community_info = {}
         for bucket in event_results.aggregations.by_community.buckets:
@@ -67,10 +71,16 @@ class CommunityRecordEventsService:
             last_event = bucket_dict["max_event_date"].get("value")
             if record_count < record_threshold:
                 continue
-            if first_active and first_active > arrow.get(first_event):
-                continue
-            if active_since and active_since > arrow.get(last_event):
-                continue
+            if first_active:
+                first_event_date = arrow.get(first_event).date()
+                first_active_date = arrow.get(first_active).date()
+                if first_event_date > first_active_date:
+                    continue
+            if active_since:
+                last_event_date = arrow.get(last_event).date()
+                active_since_date = arrow.get(active_since).date()
+                if active_since_date > last_event_date:
+                    continue
 
             community_info[bucket_dict["key"]] = {
                 "record_count": record_count,

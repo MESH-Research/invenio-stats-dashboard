@@ -8,7 +8,9 @@
 
 """Core CLI commands for community statistics aggregation and management."""
 
-from pprint import pformat
+import traceback
+from pprint import pformat, pprint
+from typing import TypedDict
 
 import arrow
 import click
@@ -881,15 +883,7 @@ def clear_lock_command(lock_name, list_locks, dry_run):
 
 
 @click.command(name="enable-dashboards")
-@click.argument(
-    "ids",
-    narg=-1,
-    help=(
-        "Ids (UUIDs) of communities whose dashboards will be enabled. Optional. "
-        "If no ids are provided, any community meeting the criteria "
-        "in the other supplied options will have its dashboard enabled."
-    ),
-)
+@click.argument("community_ids", nargs=-1)
 @click.option(
     "--first-active",
     type=str,
@@ -909,30 +903,91 @@ def clear_lock_command(lock_name, list_locks, dry_run):
 @click.option(
     "--record-threshold",
     type=int,
+    default=0,
     help=(
         "Include only communities that have at least this number of record "
         "events. Optional."
     ),
 )
+@click.option(
+    "--verbose", "-v", is_flag=True, default=False, help=("Display verbose output.")
+)
 @with_appcontext
 def enable_dashboards_command(
+    community_ids: tuple[str, ...],
     first_active: str | None,
     active_since: str | None,
-    record_threshold: int = 0,
+    record_threshold,
+    verbose: bool,
 ):
-    r"""Enable stats dashboards for individual communities."""
+    r"""Enable stats dashboards for individual communities.
+    
+    Args:
+        community_ids: Ids (UUIDs) of communities whose dashboards will be enabled.
+            Optional. If no ids are provided, any community meeting the criteria
+            in the other supplied options will have its dashboard enabled.
+        first_active: Include only communities that were first active prior to or on
+            this date. Formatted like YYYY-MM-DD. Optional.
+        active_since: Include only communities that have had records added or removed
+            since this date (inclusive). Formatted like YYYY-MM-DD. Optional.
+        record_threshold: Include only communities that have at least this number of
+            record events. Optional. Defaults to 0.
+        verbose: Display verbose output. Optional. Defaults to False.
+    """
     print("==================================")
     print("Enabling stats dashboards for selected communities")
     print("==================================")
 
-    if first_active or active_since or record_threshold > 0:
-        enable_args = {}
-        if first_active:
-            enable_args["first_active"] = arrow.get(first_active)
-        if active_since:
-            enable_args["active_since"] = arrow.get(active_since)
-        if record_threshold > 0:
-            enable_args["record_threshold"] = int(record_threshold)
+    try:
+        if (
+            len(community_ids) > 0
+            or first_active
+            or active_since
+            or record_threshold > 0
+        ):
 
-        service = CommunityDashboardsService()
-        result = service.enable_community_dashboards(**enable_args)
+            class EnableDashboardsArgs(TypedDict, total=False):
+                ids: tuple[str, ...]
+                first_active: arrow.Arrow
+                active_since: arrow.Arrow
+                record_threshold: int
+                verbose: bool
+
+            enable_args: EnableDashboardsArgs = {}
+            if len(community_ids) > 0:
+                enable_args["ids"] = community_ids
+            if first_active:
+                enable_args["first_active"] = arrow.get(first_active)
+            if active_since:
+                enable_args["active_since"] = arrow.get(active_since)
+            if record_threshold > 0:
+                enable_args["record_threshold"] = record_threshold
+
+            enable_args["verbose"] = verbose
+
+            service = CommunityDashboardsService()
+            result = service.enable_community_dashboards(**enable_args)
+            failures = result.get("communities_failed", [])
+            successes = result.get("communities_updated", [])
+
+            if verbose and len(successes) > 0:
+                print("==================================")
+                print(f"{len(successes)} communities could not be enabled")
+                pprint(successes)
+
+            if verbose and len(failures) > 0:
+                print("==================================")
+                print(f"{len(failures)} communities could not be enabled")
+                pprint(failures)
+
+            print("==================================")
+            print(f"Enabled dashboards for {len(successes)}")
+            print(f"Failed to enable dashboards for {len(failures)}")
+        else:
+            print(
+                "No community ids or selection criteria provided. Could "
+                "not perform any updates."
+            )
+    except Exception:
+        print("Something went wrong:")
+        print(traceback.format_exc())

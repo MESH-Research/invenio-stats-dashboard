@@ -30,6 +30,7 @@ from .fixtures.stats import test_config_stats
 
 pytest_plugins = (
     "celery.contrib.pytest",
+    "tests.fixtures.community_events",
     "tests.fixtures.files",
     "tests.fixtures.fixtures",
     "tests.fixtures.mail",

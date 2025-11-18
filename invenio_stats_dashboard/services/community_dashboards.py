@@ -26,14 +26,19 @@ class CommunityDashboardsService:
 
     def enable_community_dashboards(
         self,
+        ids: tuple[str, ...] | None = None,
         first_active: arrow.Arrow | datetime | None = None,
         active_since: arrow.Arrow | datetime | None = None,
         record_threshold: int = 0,
-        filter_priority: list[str] = None,
+        filter_priority: list[str] | None = None,
+        verbose: bool = False,
     ) -> dict[str, list]:
         """Enable individual communities' dashboards if they match criteria.
 
         Arguments:
+            ids (tuple[str, ...] | None): Individual community ids (UUIDs) for
+                communities to enable. If provided, this list is used and the other
+                filtering arguments are ignored. Defaults to None.
             first_active (arrow.Arrow | datetime | None): Include only communities
                 that were first active prior to or on the provided date. Defaults
                 to None.
@@ -43,6 +48,7 @@ class CommunityDashboardsService:
                 of records or more. Defaults to 0.
             filter_priority (list[str] | None): List of argument names in the order
                 in which the filters should be applied. Defaults to None.
+            verbose (bool): Flag for displaying verbose output. Defaults to False.
 
         Returns:
             dict[str, list]: A dictionary with two keys:
@@ -54,12 +60,19 @@ class CommunityDashboardsService:
 
         """
         events_service = CommunityRecordEventsService()
-        communities_to_enable = events_service.filter_communities_by_activity(
-            first_active=first_active,
-            active_since=active_since,
-            record_threshold=record_threshold,
-            filter_priority=filter_priority,
-        )
+        communities_to_enable = list(ids) if ids else []
+        if len(communities_to_enable) < 1:
+            communities_to_enable = events_service.filter_communities_by_activity(
+                first_active=first_active,
+                active_since=active_since,
+                record_threshold=record_threshold,
+                filter_priority=filter_priority,
+            )
+        elif first_active or active_since or record_threshold:
+            current_app.logger.warning(
+                "Filtering criteria (first_active, active_since, record_threshold) "
+                "are ignored when specific community IDs are provided."
+            )
 
         results: dict[str, list] = {
             "communities_updated": [],
@@ -95,9 +108,9 @@ class CommunityDashboardsService:
                         ),
                     })
             except Exception as e:
-                current_app.logger.error(traceback.format_exc(e))
+                current_app.logger.error(traceback.format_exc())
                 results["communities_failed"].append({
-                    "id": update_dict["id"],
+                    "id": community_id,
                     "error_message": f"{e}",
                 })
 
