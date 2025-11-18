@@ -69,7 +69,7 @@ class CommunityStatsService:
 
         Returns:
             AggregationResponse object
-            
+
         Raises:
             ValueError: If invalid parameters are provided.
         """
@@ -467,7 +467,7 @@ class CommunityStatsService:
 
         Returns:
             Tuple of (success, result) where success indicates if data was found
-            
+
         Raises:
             ValueError: If invalid parameters are provided.
         """
@@ -788,20 +788,20 @@ class CommunityStatsService:
         self, lock_name: str = "community_stats_aggregation", dry_run: bool = False
     ) -> dict[str, Any]:
         """Clear a specific lock from the cache.
-        
+
         Args:
             lock_name: The name of the lock to clear (without 'lock:' prefix)
             dry_run: If True, only show what would be cleared without actually clearing
-            
+
         Returns:
             Dictionary with success status and details about the operation
         """
         full_lock_key = f"lock:{lock_name}"
-        
+
         try:
             # Check if the lock exists
             current_value = current_cache.get(full_lock_key)
-            
+
             if current_value is None:
                 return {
                     "success": True,
@@ -813,7 +813,7 @@ class CommunityStatsService:
                     "lock_value": None,
                     "cleared": False,
                 }
-                
+
             if dry_run:
                 return {
                     "success": True,
@@ -822,10 +822,10 @@ class CommunityStatsService:
                     "lock_value": current_value,
                     "cleared": False,
                 }
-                
+
             # Clear the lock
             success = current_cache.delete(full_lock_key)
-            
+
             if success:
                 return {
                     "success": True,
@@ -842,7 +842,7 @@ class CommunityStatsService:
                     "lock_value": current_value,
                     "cleared": False,
                 }
-                
+
         except Exception as e:
             return {
                 "success": False,
@@ -855,14 +855,14 @@ class CommunityStatsService:
 
     def list_aggregation_locks(self) -> dict[str, Any]:
         """List all lock keys in the cache.
-        
+
         Returns:
             Dictionary with success status and list of all lock keys
         """
         try:
             # Get all keys that start with 'lock:'
             all_keys = current_cache.cache._read_client.keys("lock:*")
-            
+
             if not all_keys:
                 return {
                     "success": True,
@@ -870,25 +870,25 @@ class CommunityStatsService:
                     "locks": [],
                     "count": 0,
                 }
-                
+
             locks = []
             for key in all_keys:
                 # Decode bytes to string if needed
                 if isinstance(key, bytes):
-                    key = key.decode('utf-8')
+                    key = key.decode("utf-8")
                 value = current_cache.get(key)
                 locks.append({
                     "key": key,
                     "value": value,
                 })
-                
+
             return {
                 "success": True,
                 "message": f"Found {len(locks)} lock keys",
                 "locks": locks,
                 "count": len(locks),
             }
-            
+
         except Exception as e:
             return {
                 "success": False,

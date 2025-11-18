@@ -22,28 +22,26 @@ from invenio_stats_dashboard.services.components.components import (
 )
 
 
-def test_update_event_deletion_fields(running_app, create_stats_indices, search_clear):
+def test_update_event_deletion_fields(
+    running_app, create_stats_indices, search_clear, create_community_events
+):
     """Test update_event_deletion_fields function."""
     client = current_search_client
-
-    # Create a test event in the community events index
     event_year = arrow.utcnow().year
     write_index = prefix_index(f"stats-community-events-{event_year}")
 
-    test_event = {
-        "record_id": "test-record-123",
-        "community_id": "test-community-456",
-        "event_type": "added",
-        "event_date": arrow.utcnow().isoformat(),
-        "is_deleted": False,
-        "timestamp": arrow.utcnow().isoformat(),
-        "updated_timestamp": arrow.utcnow().isoformat(),
-    }
-
-    # Index the test event
-    result = client.index(index=write_index, body=test_event)
-    event_id = result["_id"]
-    client.indices.refresh(index=write_index)
+    # Create a test event using the fixture
+    event_ids = create_community_events(
+        [
+            {
+                "record_id": "test-record-123",
+                "community_id": "test-community-456",
+                "event_date": arrow.utcnow().isoformat(),
+            }
+        ],
+        return_ids=True,
+    )
+    event_id = event_ids[0]
 
     # Test updating deletion fields
     deleted_date = arrow.utcnow().isoformat()
@@ -59,38 +57,33 @@ def test_update_event_deletion_fields(running_app, create_stats_indices, search_
 
 
 def test_update_community_events_deletion_fields(
-    running_app, create_stats_indices, search_clear
+    running_app, create_stats_indices, search_clear, create_community_events
 ):
     """Test update_community_events_deletion_fields function."""
     client = current_search_client
 
-    # Create test events in the community events index
-    event_year = arrow.utcnow().year
-    write_index = prefix_index(f"stats-community-events-{event_year}")
-
+    # Create test events using the fixture
     record_id = "test-record-789"
     community_ids = ["comm-1", "comm-2", "comm-3"]
+    current_time = arrow.utcnow()
 
-    for i, community_id in enumerate(community_ids):
-        test_event = {
+    events_data = [
+        {
             "record_id": record_id,
             "community_id": community_id,
-            "event_type": "added",
-            "event_date": arrow.utcnow().shift(hours=i).isoformat(),
-            "is_deleted": False,
-            "timestamp": arrow.utcnow().isoformat(),
-            "updated_timestamp": arrow.utcnow().isoformat(),
+            "event_date": current_time.shift(hours=i).isoformat(),
         }
-        client.index(index=write_index, body=test_event)
+        for i, community_id in enumerate(community_ids)
+    ]
 
-    client.indices.refresh(index=write_index)
+    create_community_events(events_data)
 
     # Test updating deletion fields for all events of the record
     deleted_date = arrow.utcnow().isoformat()
     update_community_events_deletion_fields(record_id, True, deleted_date)
 
     # Verify the updates
-    client.indices.refresh(index=write_index)
+    client.indices.refresh(index=prefix_index("stats-community-events"))
     query = {
         "query": {"term": {"record_id": record_id}},
         "size": 10,
