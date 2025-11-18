@@ -17,6 +17,7 @@ from .core_cli import (
     aggregate_stats_command,
     clear_bookmarks_command,
     clear_lock_command,
+    enable_dashboards_command,
     read_stats_command,
     status_command,
 )
@@ -38,6 +39,7 @@ cli.add_command(clear_lock_command)
 cli.add_command(read_stats_command)
 cli.add_command(status_command)
 cli.add_command(destroy_indices_command)
+cli.add_command(enable_dashboards_command)
 
 cli.add_command(cache_cli)
 cli.add_command(community_events_cli)

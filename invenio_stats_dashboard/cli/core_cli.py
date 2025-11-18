@@ -17,13 +17,14 @@ from flask.cli import with_appcontext
 from halo import Halo
 
 from ..proxies import current_community_stats_service
+from ..services.community_dashboards import CommunityDashboardsService
 from ..tasks.aggregation_tasks import format_agg_startup_message
 from ..utils.process_manager import ProcessManager
 
 
 def check_stats_enabled():
     """Check if community stats are enabled.
-    
+
     Raises:
         click.ClickException: If community stats are disabled.
     """
@@ -36,7 +37,7 @@ def check_stats_enabled():
 
 def check_scheduled_tasks_enabled(command="aggregate"):
     """Check if scheduled tasks are enabled.
-    
+
     Raises:
         click.ClickException: If scheduled tasks are disabled.
     """
@@ -274,7 +275,7 @@ def aggregate_stats_background_command(
     - Cancel: invenio community-stats processes cancel aggregation
     - View logs: invenio community-stats processes status aggregation \\
         --show-log
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -435,7 +436,7 @@ def read_stats_command(community_id, start_date, end_date, query_type):
 
 def _abbreviate_agg_name(agg_type):
     """Abbreviate aggregation type name for display.
-    
+
     Returns:
         str: Abbreviated aggregation type name.
     """
@@ -545,7 +546,7 @@ def status_command(community_id, verbose):
     - invenio community-stats status --community-id my-community-id
     - invenio community-stats status --verbose
     - invenio community-stats status --community-id comm1 --community-id comm2
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -724,7 +725,7 @@ def clear_bookmarks_command(
         community-records-delta-created-agg
     - invenio community-stats clear-bookmarks --community-id comm1 \\
         --community-id comm2 --confirm
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -845,7 +846,7 @@ def clear_lock_command(lock_name, list_locks, dry_run):
     - invenio community-stats clear-lock --lock-name community_stats_cache_generation
     - invenio community-stats clear-lock --list-locks
     - invenio community-stats clear-lock --dry-run
-    
+
     Returns:
         None: This is a CLI command function.
     """
@@ -877,3 +878,61 @@ def clear_lock_command(lock_name, list_locks, dry_run):
         click.echo(f"❌ {result['message']}")
         click.echo("Check your Redis connection and try again.")
         return 1
+
+
+@click.command(name="enable-dashboards")
+@click.argument(
+    "ids",
+    narg=-1,
+    help=(
+        "Ids (UUIDs) of communities whose dashboards will be enabled. Optional. "
+        "If no ids are provided, any community meeting the criteria "
+        "in the other supplied options will have its dashboard enabled."
+    ),
+)
+@click.option(
+    "--first-active",
+    type=str,
+    help=(
+        "Include only communities that were first active prior to or on this "
+        "date. Formatted like YYYY-MM-DD. Optional."
+    ),
+)
+@click.option(
+    "--active-since",
+    type=str,
+    help=(
+        "Include only communities that have had records added or removed since "
+        "this date (inclusive). Formatted like YYYY-MM-DD. Optional."
+    ),
+)
+@click.option(
+    "--record-threshold",
+    type=int,
+    help=(
+        "Include only communities that have at least this number of record "
+        "events. Optional."
+    ),
+)
+@with_appcontext
+def enable_dashboards_command(
+    first_active: str | None,
+    active_since: str | None,
+    record_threshold: int = 0,
+):
+    r"""Enable stats dashboards for individual communities."""
+    print("==================================")
+    print("Enabling stats dashboards for selected communities")
+    print("==================================")
+
+    if first_active or active_since or record_threshold > 0:
+        enable_args = {}
+        if first_active:
+            enable_args["first_active"] = arrow.get(first_active)
+        if active_since:
+            enable_args["active_since"] = arrow.get(active_since)
+        if record_threshold > 0:
+            enable_args["record_threshold"] = int(record_threshold)
+
+        service = CommunityDashboardsService()
+        result = service.enable_community_dashboards(**enable_args)

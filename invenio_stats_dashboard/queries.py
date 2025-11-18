@@ -326,7 +326,7 @@ class CommunityUsageDeltaQuery:
         Args:
             field (str): The field to aggregate on.
             event_type (str): The type of event (view or download).
-            
+
         Returns:
             dict: Simple subcount aggregation dictionary.
         """
@@ -346,7 +346,7 @@ class CommunityUsageDeltaQuery:
             field (str): The field to aggregate on.
             label_source_includes (list[str]): The fields to include in the label.
             event_type (str): The type of event (view or download).
-            
+
         Returns:
             dict: Labeled subcount aggregation dictionary.
         """
@@ -384,9 +384,7 @@ class CommunityUsageDeltaQuery:
                     # Handle combined subfields (e.g., id and name.keyword)
                     for subfield in combine_subfields:
                         if len(source_fields) > 1:
-                            query_name = (
-                                f"{subcount_key}_{field_index}_{subfield.split('.')[-1]}"
-                            )
+                            query_name = f"{subcount_key}_{field_index}_{subfield.split('.')[-1]}"
                         else:
                             query_name = f"{subcount_key}_{subfield.split('.')[-1]}"
                         subcounts[query_name] = self._make_labeled_subcount_aggregation(
@@ -697,7 +695,7 @@ class CommunityRecordDeltaQuery:
 
     def _make_subcount_agg_dict(self, field, label_field, label_includes):
         """Make a subcount aggregation dictionary.
-        
+
         Returns:
             dict: Subcount aggregation dictionary.
         """
@@ -737,7 +735,7 @@ class CommunityRecordDeltaQuery:
         self, sub_aggs, records_config, subcount_key, field_index
     ):
         """Build a single aggregations for a single subcount's field/subfields.
-        
+
         Returns:
             dict: Aggregation dictionary for the subcount field.
         """
@@ -805,7 +803,7 @@ class CommunityRecordDeltaQuery:
 
         Returns:
             dict: The query for the daily record delta counts.
-            
+
         Raises:
             ValueError: If community_id is None.
         """
