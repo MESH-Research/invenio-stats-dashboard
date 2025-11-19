@@ -245,8 +245,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_USE_TEST_DATA": False,
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             # Set up g.identity for the @pass_community decorator
             g.identity = system_identity
@@ -335,8 +339,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_USE_TEST_DATA": False,
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             g.identity = system_identity
 
@@ -394,8 +402,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_USE_TEST_DATA": False,
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             g.identity = system_identity
 
@@ -453,8 +465,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_USE_TEST_DATA": False,
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             g.identity = system_identity
 
@@ -500,8 +516,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             g.identity = system_identity
 
@@ -569,8 +589,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_USE_TEST_DATA": False,
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             g.identity = system_identity
 
@@ -675,8 +699,12 @@ class TestCommunityStatsDashboardView:
             "STATS_DASHBOARD_USE_TEST_DATA": False,
         })
 
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
         with app.test_request_context(
-            path=f"/communities/{community.id}/stats"
+            path=community_route
         ) as req_ctx:
             g.identity = system_identity
 

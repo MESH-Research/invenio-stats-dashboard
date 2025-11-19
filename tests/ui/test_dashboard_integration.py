@@ -143,7 +143,13 @@ class TestDashboardViewsIntegration:
 
         # Make request to community dashboard
         # Route uses pid_value, which is the community ID
-        response = client.get(f"/communities/{community.id}/stats")
+        community_route_template = (
+            running_app.app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        )
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        response = client.get(community_route)
 
         assert response.status_code == 200
         # The template should be rendered with the custom layout
@@ -197,7 +203,13 @@ class TestDashboardViewsIntegration:
 
         # Make request to community dashboard
         # Route uses pid_value, which is the community ID
-        response = client.get(f"/communities/{community.id}/stats")
+        community_route_template = (
+            running_app.app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        )
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        response = client.get(community_route)
 
         assert response.status_code == 200
         # The template should be rendered with the default layout from config
