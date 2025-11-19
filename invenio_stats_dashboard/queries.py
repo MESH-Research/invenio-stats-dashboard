@@ -384,7 +384,10 @@ class CommunityUsageDeltaQuery:
                     # Handle combined subfields (e.g., id and name.keyword)
                     for subfield in combine_subfields:
                         if len(source_fields) > 1:
-                            query_name = f"{subcount_key}_{field_index}_{subfield.split('.')[-1]}"
+                            query_name = (
+                                f"{subcount_key}_{field_index}_"
+                                f"{subfield.split('.')[-1]}"
+                            )
                         else:
                             query_name = f"{subcount_key}_{subfield.split('.')[-1]}"
                         subcounts[query_name] = self._make_labeled_subcount_aggregation(

@@ -98,6 +98,7 @@ class CommunityRecordDeltaAggregatorTestBase:
         community_id,
         minimal_published_record_factory,
         test_sample_files_folder,
+        **kwargs,
     ) -> None:
         """Setup the records.
 
@@ -276,6 +277,9 @@ class CommunityRecordDeltaAggregatorTestBase:
         expected_days = (
             arrow.utcnow().floor("day") - min(self.creation_dates).floor("day")
         ).days + 1
+        self.app.logger.error(
+            f"OPT_IN: {self.app.config.get('STATS_DASHBOARD_COMMUNITY_OPT_IN')}"
+        )
         assert (
             agg_documents["hits"]["total"]["value"]
             == expected_days * 2  # both community and global records
@@ -294,9 +298,7 @@ class CommunityRecordDeltaAggregatorTestBase:
 
 
 @pytest.mark.skip(reason="Created aggregators deactivated.")
-class TestCommunityRecordDeltaCreatedAggregator(
-    CommunityRecordDeltaAggregatorTestBase
-):
+class TestCommunityRecordDeltaCreatedAggregator(CommunityRecordDeltaAggregatorTestBase):
     """Test the CommunityRecordsDeltaCreatedAggregator."""
 
     @property
@@ -431,9 +433,7 @@ class TestCommunityRecordDeltaCreatedAggregator(
                             assert subcount_item == matching_doc
 
 
-class TestCommunityRecordDeltaAddedAggregator(
-    CommunityRecordDeltaAggregatorTestBase
-):
+class TestCommunityRecordDeltaAddedAggregator(CommunityRecordDeltaAggregatorTestBase):
     """Test the CommunityRecordsDeltaAddedAggregator.
 
     Tests the CommunityRecordsDeltaAddedAggregator which produces daily
@@ -575,6 +575,142 @@ class TestCommunityRecordDeltaAddedAggregator(
                         assert f["records"]["added"]["metadata_only"] == 0
                         assert f["records"]["removed"]["with_files"] == 1
                         assert f["records"]["removed"]["metadata_only"] == 0
+
+
+class TestCommunityRecordAddedDeltaAggregatorOptIn(
+    CommunityRecordDeltaAggregatorTestBase
+):
+    """Test class to ensure that community opt-in settings are respected."""
+
+    @property
+    def aggregator_instance(self) -> CommunityRecordsDeltaAddedAggregator:
+        """Get the aggregator class.
+
+        Returns:
+            CommunityRecordsDeltaAddedAggregator: The aggregator instance.
+        """
+        return CommunityRecordsDeltaAddedAggregator(
+            name="community-records-delta-added-agg",
+        )
+
+    @property
+    def index_name(self):
+        """Get the index name."""
+        return "stats-community-records-delta-added"
+
+    def _setup_records(
+        self,
+        user_email,
+        community_id,
+        minimal_published_record_factory,
+        test_sample_files_folder,
+        extra_community_ids=None,
+    ) -> None:
+        """Setup the records.
+
+        We want to just create one record for each of our communities on the
+        current date.
+        """
+        community_ids = [community_id, *(extra_community_ids or [])]
+        for cid in community_ids:
+            meta: dict = deepcopy(sample_metadata_journal_article5_pdf)
+            del meta["pids"]
+            rec_args = {
+                "metadata": meta,
+                "community_list": [cid],
+            }
+            minimal_published_record_factory(**rec_args)
+
+        self.client.indices.refresh(index="*rdmrecords-records*")
+        self.client.indices.refresh(index="*stats-community-events*")
+
+    def test_community_records_delta_agg(
+        self,
+        running_app,
+        db,
+        minimal_community_factory,
+        minimal_published_record_factory,
+        user_factory,
+        create_stats_indices,
+        celery_worker,
+        requests_mock,
+        search_clear,
+        test_sample_files_folder,
+        set_app_config_fn_scoped,
+    ) -> None:
+        """Test CommunityRecordsDeltaCreatedAggregator's run method.
+
+        This should NOT generate any aggregations for communities 1 and 2
+        because their custom_fields.stats:dashboard_enabled field is either
+        missing or is False. Only community3 will receive aggregations.
+        """
+        set_app_config_fn_scoped({"STATS_DASHBOARD_COMMUNITY_OPT_IN": True})
+        requests_mock.real_http = True
+        self.app = running_app.app
+        self.client = current_search_client
+        community1 = minimal_community_factory(slug="community1")
+        community_1_id = community1.id
+
+        community2 = minimal_community_factory(
+            slug="community2",
+            custom_fields={"stats:dashboard_enabled": False},
+        )
+        community_2_id = community2.id
+
+        community3 = minimal_community_factory(
+            slug="community3",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+        community_3_id = community3.id
+
+        u = user_factory(email="test@example.com")
+        user_email = u.user.email
+
+        self._setup_records(
+            user_email,
+            community_1_id,
+            minimal_published_record_factory,
+            test_sample_files_folder,
+            extra_community_ids=[community_2_id, community_3_id],
+        )
+
+        aggregator = self.aggregator_instance
+        aggregator.run(
+            start_date=arrow.utcnow().floor("day").isoformat(),
+            end_date=arrow.utcnow().ceil("day").isoformat(),
+            update_bookmark=True,
+            ignore_bookmark=False,
+        )
+
+        current_search_client.indices.refresh(
+            index=f"*{prefix_index(self.index_name)}*"
+        )
+
+        agg_documents = current_search_client.search(
+            index=prefix_index(self.index_name),
+            body={
+                "query": {
+                    "match_all": {},
+                },
+            },
+            size=1000,
+        )
+
+        agg_docs = {}
+        for doc in agg_documents["hits"]["hits"]:
+            agg_docs.setdefault(doc["_source"]["community_id"], []).append(doc)
+
+        self.app.logger.error(
+            f"GLOBAL: {[g['_source']['period_start'] for g in agg_docs['global']]}"
+        )
+        self.app.logger.error(
+            f"COMMUNITY3: "
+            f"{[g['_source']['period_start'] for g in agg_docs[community_3_id]]}"
+        )
+        assert len(agg_docs["global"]) == 1
+        assert len(agg_docs[community_3_id]) == 1
+        assert "community1" not in agg_docs
+        assert "community2" not in agg_docs
 
 
 @pytest.mark.skip(reason="Published aggregators deactivated.")

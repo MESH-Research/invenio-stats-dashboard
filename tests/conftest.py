@@ -107,6 +107,7 @@ test_config = {
     # Disable optimization by default in tests so all metrics are included
     # Individual tests can enable optimization explicitly if needed
     "STATS_DASHBOARD_OPTIMIZE_DATA_SERIES": False,
+    "STATS_DASHBOARD_COMMUNITY_OPT_IN": False,
 }
 
 parent_path = Path(__file__).parent
@@ -316,7 +317,7 @@ def template_loader() -> Callable:
         """Load templates for the test app."""
         test_file_path = Path(__file__).parent
         package_root = test_file_path.parent
-        
+
         # Package template paths
         stats_dashboard_path = (
             package_root / "invenio_stats_dashboard" / "templates" / "semantic-ui"
@@ -324,7 +325,7 @@ def template_loader() -> Callable:
         stats_dashboard_test_path = (
             test_file_path / "helpers" / "templates" / "semantic-ui"
         )
-        
+
         # Find installed package template paths
         theme_template_paths = []
         # Package template path structures:
@@ -349,7 +350,7 @@ def template_loader() -> Callable:
             except (ImportError, AttributeError):
                 # Package not installed or doesn't have __file__ attribute
                 pass
-        
+
         # Build list of paths that exist
         template_paths = []
         all_paths: list[str | Path] = [
@@ -361,7 +362,7 @@ def template_loader() -> Callable:
             path_obj = Path(path) if isinstance(path, str) else path
             if path_obj.exists():
                 template_paths.append(str(path_obj))
-        
+
         custom_loader = jinja2.ChoiceLoader([
             app.jinja_loader,
             jinja2.FileSystemLoader(template_paths),
