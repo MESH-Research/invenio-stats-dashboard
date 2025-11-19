@@ -24,6 +24,114 @@ class CommunityDashboardsService:
         """Initialize a CommunityDashboardsService instance."""
         pass
 
+    @staticmethod
+    def _extract_community_id_and_fields(community):
+        """Extract community ID and custom_fields from various data structures.
+
+        Handles:
+        - Dict with "id" key (from CommunityListResult.hits projections)
+        - CommunityItem objects with .id property
+        - CommunityItem objects with .data property (dict with "id" key)
+        - CommunityItem.to_dict() (returns dict with "id" key)
+
+        Args:
+            community: Community data in any supported format
+
+        Returns:
+            tuple: (community_id, custom_fields) or (None, {}) if ID not found
+        """
+        # Priority 1: If dict, use dict.get()
+        if isinstance(community, dict):
+            return (
+                community.get("id"),
+                community.get("custom_fields", {}),
+            )
+
+        # Priority 2: If has .id property (CommunityItem), use it
+        # and extract custom_fields from .data or .to_dict()
+        if hasattr(community, "id"):
+            community_id = community.id
+            # Try to get custom_fields from .data first
+            if hasattr(community, "data"):
+                custom_fields = community.data.get("custom_fields", {})
+            elif hasattr(community, "to_dict"):
+                custom_fields = community.to_dict().get("custom_fields", {})
+            else:
+                custom_fields = {}
+            return (community_id, custom_fields)
+
+        # Priority 3: If has .data property, use it
+        if hasattr(community, "data"):
+            community_data = community.data
+            return (
+                community_data.get("id"),
+                community_data.get("custom_fields", {}),
+            )
+
+        # Priority 4: If has .to_dict() method, use it
+        if hasattr(community, "to_dict"):
+            community_dict = community.to_dict()
+            return (
+                community_dict.get("id"),
+                community_dict.get("custom_fields", {}),
+            )
+
+        # No ID found, skip this community
+        return (None, {})
+
+    @staticmethod
+    def get_enabled_communities(
+        communities: list[dict], include_global: bool = True
+    ) -> list[str]:
+        """Get enabled communities based on opt-in config and dashboard_enabled.
+
+        If STATS_DASHBOARD_COMMUNITY_OPT_IN is True, only returns communities where
+        custom_fields.stats:dashboard_enabled is True. Otherwise, returns all
+        communities.
+
+        Args:
+            communities: List of community dictionaries or hit objects
+                (from scan or similar)
+            include_global: Whether to include "global" in the result
+                (default: True)
+
+        Returns:
+            List of community IDs that should be processed
+        """
+        opt_in_enabled = current_app.config.get(
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN", True
+        )
+
+        if not opt_in_enabled:
+            community_ids: list[str] = []
+            for c in communities:
+                community_id, _ = (
+                    CommunityDashboardsService._extract_community_id_and_fields(c)
+                )
+                if community_id:
+                    community_ids.append(community_id)
+            if include_global:
+                community_ids.append("global")
+            return community_ids
+
+        filtered_ids: list[str] = []
+        for community in communities:
+            community_id, custom_fields = (
+                CommunityDashboardsService._extract_community_id_and_fields(community)
+            )
+
+            if not community_id:
+                continue
+
+            dashboard_enabled = custom_fields.get("stats:dashboard_enabled", False)
+            if dashboard_enabled is True:
+                filtered_ids.append(community_id)
+
+        if include_global:
+            filtered_ids.append("global")
+
+        return filtered_ids
+
     def enable_community_dashboards(
         self,
         ids: tuple[str, ...] | None = None,

@@ -19,6 +19,7 @@ from invenio_search.utils import prefix_index
 
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
+from .community_dashboards import CommunityDashboardsService
 
 
 class CachedResponseService:
@@ -246,13 +247,21 @@ class CachedResponseService:
     def _get_all_community_ids(self) -> list[str]:
         """Get all community IDs from communities service.
 
+        Filters communities based on opt-in config and dashboard_enabled custom field
+        if STATS_DASHBOARD_COMMUNITY_OPT_IN is True.
+
         Returns:
-            list[str]: List of all community IDs.
+            list[str]: List of community IDs (filtered if opt-in is enabled).
         """
         try:
             # Use scan to get all communities without size limits
             communities_result = current_communities.service.scan(system_identity)
-            return [comm["id"] for comm in communities_result.hits]
+            all_communities = list(communities_result.hits)
+            # Filter based on opt-in config and dashboard_enabled
+            enabled_communities = CommunityDashboardsService.get_enabled_communities(
+                all_communities, include_global=True
+            )
+            return list(enabled_communities)
         except Exception:
             current_app.logger.warning(
                 "Could not fetch community IDs, using global only"

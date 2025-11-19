@@ -31,6 +31,7 @@ from ..exceptions import (
     CommunityEventsNotInitializedError,
     DeltaDataGapError,
 )
+from ..services.community_dashboards import CommunityDashboardsService
 from .bookmarks import CommunityBookmarkAPI
 from .types import (
     RecordDeltaDocument,
@@ -332,13 +333,15 @@ class CommunityAggregatorBase(StatAggregator):
         if self.community_ids:
             communities_to_aggregate = self.community_ids
         else:
-            communities_to_aggregate = [
-                c["id"]
-                for c in current_communities.service.read_all(system_identity, [])
-            ]
-            communities_to_aggregate.append(
-                "global"
-            )  # Add global stats only when no specific communities
+            # Get all communities and filter based on opt-in config
+            all_communities = list(
+                current_communities.service.scan(system_identity)
+            )
+            communities_to_aggregate = (
+                CommunityDashboardsService.get_enabled_communities(
+                    all_communities, include_global=True
+                )
+            )
 
         results = []
         for community_id in communities_to_aggregate:
@@ -676,8 +679,10 @@ class CommunityAggregatorBase(StatAggregator):
 
             docs_indexed, errors = result
 
-            error_count = len(errors) if isinstance(errors, list) else (
-                errors if isinstance(errors, int) else 0
+            error_count = (
+                len(errors)
+                if isinstance(errors, list)
+                else (errors if isinstance(errors, int) else 0)
             )
 
             if error_count > 0:
@@ -929,9 +934,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         except NotFoundError:
             pass
         except Exception as e:
-            current_app.logger.error(
-                f"_get_previous_snapshot: Unexpected error: {e}"
-            )
+            current_app.logger.error(f"_get_previous_snapshot: Unexpected error: {e}")
             pass
 
         return (
@@ -1009,7 +1012,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
 
         # Adaptive page sizing - start large, reduce on timeout
         current_page_size = 1000  # Start with moderate page size
-        min_page_size = 50        # Minimum page size (very small)
+        min_page_size = 50  # Minimum page size (very small)
         page_size_reduction_factor = 0.5
 
         # Use search_after pagination for large datasets
@@ -1044,14 +1047,11 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                     break
 
             except Exception as e:
-                if (
-                    "timeout" in str(e).lower()
-                    and current_page_size > min_page_size
-                ):
+                if "timeout" in str(e).lower() and current_page_size > min_page_size:
                     # Reduce page size and retry
                     new_page_size = max(
                         int(current_page_size * page_size_reduction_factor),
-                        min_page_size
+                        min_page_size,
                     )
                     current_app.logger.warning(
                         f"_fetch_all_delta_documents: Timeout with page_size="
