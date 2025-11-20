@@ -8,10 +8,13 @@
 
 from collections.abc import Callable
 
-from flask import render_template, render_template_string
+from flask import g, render_template, render_template_string
+from invenio_access.permissions import system_identity
 from invenio_communities.communities.resources.serializer import (
     UICommunityJSONSerializer,
 )
+from invenio_communities.proxies import current_communities
+from invenio_communities.views.communities import HEADER_PERMISSIONS
 
 from tests.conftest import RunningApp
 from tests.helpers.utils import extract_json_from_html_attribute
@@ -229,32 +232,51 @@ class TestGlobalStatsDashboardTemplate:
 class TestCommunityStatsDashboardTemplate:
     """Test the community stats dashboard template."""
 
-    def test_template_extends_community_base(self, running_app: RunningApp) -> None:
+    def test_template_extends_community_base(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+    ) -> None:
         """Test that template extends the community base template."""
         app = running_app.app
         dashboard_config = {
             "dashboard_type": "community",
             "dashboard_enabled": True,
         }
-        community = {
-            "id": "test-community-id",
-            "slug": "test-community",
-            "metadata": {"title": "Test Community"},
-        }
 
-        with app.app_context():
-            with app.test_request_context():
-                rendered = render_template(
-                    "invenio_communities/details/stats/index.html",
-                    dashboard_config=dashboard_config,
-                    community=community,
-                )
-                # Verify template rendered successfully
-                assert rendered is not None
-                # Verify the macro was called (dashboard div should be present)
-                assert 'id="stats-dashboard"' in rendered
-                assert "data-dashboard-config" in rendered
-                assert "data-community" in rendered
+        community = minimal_community_factory(slug="test-community")
+
+        communities_routes = app.config.get("COMMUNITIES_ROUTES", {})
+        community_route_template = communities_routes.get(
+            "about", "/collections/<pid_value>/about"
+        )
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+
+        with app.test_request_context(path=community_route):
+            g.identity = system_identity
+            g._menu_kwargs = {"pid_value": str(community.id)}
+
+            community_item = current_communities.service.read(
+                system_identity, id_=community.id
+            )
+            permissions = community_item.has_permissions_to(HEADER_PERMISSIONS)
+
+            serializer = UICommunityJSONSerializer()
+            community_ui = serializer.dump_obj(community.to_dict())
+
+            rendered = render_template(
+                "invenio_communities/details/stats/index.html",
+                dashboard_config=dashboard_config,
+                community=community_ui,
+                permissions=permissions,
+            )
+            assert rendered is not None
+            assert 'id="stats-dashboard"' in rendered
+            assert "data-dashboard-config" in rendered
+            assert "data-community" in rendered
 
     def test_template_sets_active_menu_item(self, running_app: RunningApp) -> None:
         """Test that template sets active_community_header_menu_item."""
@@ -301,26 +323,43 @@ class TestCommunityStatsDashboardTemplate:
         # Verify community data is present
         assert "test-community-id" in rendered or "test-community" in rendered
 
-    def test_template_calls_super_block(self, running_app: RunningApp) -> None:
+    def test_template_calls_super_block(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+    ) -> None:
         """Test that template calls super() for page_body block."""
         app = running_app.app
-        # The template uses {{ super() }} to include parent template content
-        # This is tested indirectly by checking the template structure
-        template_str = """
-        {% extends "invenio_theme/base.html" %}
-        {%- block page_body %}
-            {{ super() }}
-            <div>Dashboard content</div>
-        {%- endblock page_body -%}
-        """
-
-        with app.app_context():
-            with app.test_request_context():
-                rendered = render_template_string(template_str)
-
-        # Verify the block structure - both parent content and our content
-        # should be present
-        assert "Dashboard content" in rendered
+        
+        community = minimal_community_factory(slug="test-community")
+        dashboard_config = {"dashboard_type": "community", "dashboard_enabled": True}
+        
+        communities_routes = app.config.get("COMMUNITIES_ROUTES", {})
+        community_route = communities_routes.get(
+            "about", "/collections/<pid_value>/about"
+        ).replace("<pid_value>", str(community.id))
+        
+        with app.test_request_context(path=community_route):
+            g.identity = system_identity
+            g._menu_kwargs = {"pid_value": str(community.id)}
+            
+            community_item = current_communities.service.read(
+                system_identity, id_=community.id
+            )
+            permissions = community_item.has_permissions_to(HEADER_PERMISSIONS)
+            serializer = UICommunityJSONSerializer()
+            community_ui = serializer.dump_obj(community.to_dict())
+            
+            rendered = render_template(
+                "invenio_communities/details/stats/index.html",
+                dashboard_config=dashboard_config,
+                community=community_ui,
+                permissions=permissions,
+            )
+        
+        assert 'id="stats-dashboard"' in rendered
+        assert rendered is not None and len(rendered) > 100
 
 
 class TestDashboardTemplateIntegration:
@@ -418,29 +457,41 @@ class TestDashboardTemplateIntegration:
             "ui_subcounts": {},
         }
 
-        # Use the actual serializer to create community_ui, just like the
-        # @pass_community(serialize=True) decorator does
-        serializer = UICommunityJSONSerializer()
-        community_ui = serializer.dump_obj(community.to_dict())
-
         set_app_config_fn_scoped({
             "STATS_DASHBOARD_TEMPLATES": {
                 "macro": "invenio_stats_dashboard/macros/stats_dashboard_macro.html",
                 "community": "invenio_communities/details/stats/index.html",
             },
-            "BASE_TEMPLATE": "invenio_theme/base.html",
+            "BASE_TEMPLATE": "invenio_theme/page.html",
         })
 
-        with app.app_context():
-            with app.test_request_context():
-                rendered = render_template(
-                    "invenio_communities/details/stats/index.html",
-                    dashboard_config=dashboard_config,
-                    community=community_ui,
-                )
-                # Verify key elements are present
-                assert rendered is not None
-                # Verify macro output is present
-                assert 'id="stats-dashboard"' in rendered
-                assert "data-dashboard-config" in rendered
-                assert "data-community" in rendered
+        communities_routes = app.config.get("COMMUNITIES_ROUTES", {})
+        community_route_template = communities_routes.get(
+            "about", "/collections/<pid_value>/about"
+        )
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+
+        with app.test_request_context(path=community_route):
+            g.identity = system_identity
+            g._menu_kwargs = {"pid_value": str(community.id)}
+
+            community_item = current_communities.service.read(
+                system_identity, id_=community.id
+            )
+            permissions = community_item.has_permissions_to(HEADER_PERMISSIONS)
+
+            serializer = UICommunityJSONSerializer()
+            community_ui = serializer.dump_obj(community.to_dict())
+
+            rendered = render_template(
+                "invenio_communities/details/stats/index.html",
+                dashboard_config=dashboard_config,
+                community=community_ui,
+                permissions=permissions,
+            )
+            assert rendered is not None
+            assert 'id="stats-dashboard"' in rendered
+            assert "data-dashboard-config" in rendered
+            assert "data-community" in rendered
