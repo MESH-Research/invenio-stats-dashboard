@@ -101,7 +101,7 @@ def test_synthetic_usage_event_creation(
     # In CI environments, refresh propagation can be delayed
     # Increased retries and delay for more robust CI behavior
     max_retries = 10
-    retry_delay = 0.5
+    retry_delay = 1
     total_events = 0
 
     for attempt in range(max_retries):
