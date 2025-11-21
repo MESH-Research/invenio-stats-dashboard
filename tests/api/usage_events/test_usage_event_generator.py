@@ -308,12 +308,15 @@ def test_synthetic_usage_event_creation(
     client.indices.refresh(index="events-stats-*")
     time.sleep(0.5)  # Brief pause after refresh
     
-    # Get per-index breakdown for diagnostics
+    # Get per-index breakdown for diagnostics and recalculate total from fresh counts
+    # This ensures we use the most up-to-date counts after the final refresh
     index_counts = {}
+    total_events = 0
     for idx in indices_checked:
         try:
             count = client.count(index=idx)["count"]
             index_counts[idx] = count
+            total_events += count
         except Exception:
             index_counts[idx] = "error"
 

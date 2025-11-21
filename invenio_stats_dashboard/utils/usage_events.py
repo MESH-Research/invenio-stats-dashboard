@@ -136,6 +136,8 @@ class UsageEventFactory:
             minutes=random.randint(0, max_minute),
             seconds=random.randint(0, max_second),
         )
+        
+        event_time = event_time.to("UTC")
 
         # Generate diverse user/session data for realistic anonymization
         user_id = f"test-user-{random.randint(1000, 9999)}"
@@ -437,7 +439,9 @@ class UsageEventFactory:
 
         monthly_events: dict[str, dict[str, list[tuple[dict, str]]]] = {}
         for event, event_id in events:
-            timestamp = arrow.get(event["timestamp"])
+            # We must treat it as UTC to avoid month boundary issues
+            timestamp_str = event["timestamp"]
+            timestamp = arrow.get(timestamp_str).replace(tzinfo="UTC")
             month = timestamp.format("YYYY-MM")
 
             event_type = "download" if "bucket_id" in event else "view"
@@ -480,7 +484,7 @@ class UsageEventFactory:
 
                 try:
                     success, errors_batch = bulk(
-                        current_search_client, docs, stats_only=False
+                        current_search_client, docs, stats_only=False, refresh=True
                     )
                     if errors_batch:
                         errors += len(errors_batch)
