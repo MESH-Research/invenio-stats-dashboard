@@ -262,7 +262,7 @@ class TestRecordSnapshotDataSeriesSet:
         affiliations_series = result["affiliations"]["records"]
         assert len(affiliations_series) == 1  # One affiliation in first doc
         assert affiliations_series[0]["id"] == "03rmrcq20"
-        assert affiliations_series[0]["name"] == ""
+        assert affiliations_series[0]["name"] == "University of British Columbia"
 
         # Check that subjects has multiple series
         subjects_series = result["subjects"]["records"]
@@ -359,12 +359,8 @@ class TestRecordSnapshotDataSeriesSet:
         # Check values
         # First document: 1 metadata_only, 1 with_files
         # Second document: 1 metadata_only, 3 with_files
-        metadata_values = [
-            point[1] for point in metadata_only_series[0]["data"]
-        ]
-        with_files_values = [
-            point[1] for point in with_files_series[0]["data"]
-        ]
+        metadata_values = [point[1] for point in metadata_only_series[0]["data"]]
+        with_files_values = [point[1] for point in with_files_series[0]["data"]]
 
         assert metadata_values == [1, 1]  # metadata_only records
         assert with_files_values == [1, 3]  # with_files records
@@ -698,7 +694,4 @@ class TestUsageSnapshotDataSeriesSet:
         assert "with-files" in access_status_series_ids
 
         current_app.logger.error(pformat(result))
-        assert (
-            result["access_statuses"]["data_volume"][0]["valueType"]
-            == "filesize"
-        )
+        assert result["access_statuses"]["data_volume"][0]["valueType"] == "filesize"
