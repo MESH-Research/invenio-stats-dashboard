@@ -481,6 +481,10 @@ In addition to the same subcounts included in the record delta aggregations, the
 The counts for unique visitors, unique views, and unique downloads depend on the deduplication logic in the `invenio-stats` module, implemented when the `record-view` and `file-download` events are indexed.
 ```
 
+```{note}
+The `affiliations` subcount in usage aggregations only includes affiliations that have an `id` value. The `affiliations.name` field is a text field used only for label retrieval.
+```
+
 These aggregation documents are stored in the indices:
 
 - `stats-community-usage-delta-YYYY`

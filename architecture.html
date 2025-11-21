@@ -754,6 +754,10 @@ may also want to display a time series of a community’s contents based on when
 <p class="admonition-title">Note</p>
 <p>The counts for unique visitors, unique views, and unique downloads depend on the deduplication logic in the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, implemented when the <code class="docutils literal notranslate"><span class="pre">record-view</span></code> and <code class="docutils literal notranslate"><span class="pre">file-download</span></code> events are indexed.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">affiliations</span></code> subcount in usage aggregations only includes affiliations that have an <code class="docutils literal notranslate"><span class="pre">id</span></code> value. The <code class="docutils literal notranslate"><span class="pre">affiliations.name</span></code> field is a text field used only for label retrieval.</p>
+</div>
 <p>These aggregation documents are stored in the indices:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">stats-community-usage-delta-YYYY</span></code></p>

@@ -366,13 +366,11 @@ STATS_DASHBOARD_UI_SUBCOUNTS = {
                     "field": "metadata.creators.affiliations.id",
                     "label_field": "metadata.creators.affiliations.name",
                     "label_source_includes": ["metadata.creators.affiliations.id", "metadata.creators.affiliations.name"],
-                    "combine_subfields": ["id", "name.keyword"]
                 },
                 {
                     "field": "metadata.contributors.affiliations.id",
                     "label_field": "metadata.contributors.affiliations.name",
                     "label_source_includes": ["metadata.contributors.affiliations.id", "metadata.contributors.affiliations.name"],
-                    "combine_subfields": ["id", "name.keyword"]
                 }
             ]
         }
@@ -545,8 +543,8 @@ The following table provides a complete reference of all available configuration
 | `STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT` | `85`                                               | Maximum memory usage percentage before stopping migration                                                                                         |
 | `STATS_EVENTS`                                  | `{...}`                                            | Event type configurations for statistics processing                                                                                               |
 | `COMMUNITIES_NAMESPACES`                        | `{...}`                                            | Custom field namespaces (auto-merged by extension)                                                                                                |
-| `COMMUNITIES_CUSTOM_FIELDS`                     | `{...}`                                            | Community custom fields (auto-merged by extension)                                                                                               |
-| `COMMUNITIES_CUSTOM_FIELDS_UI`                  | `{...}`                                            | Community custom fields UI configuration (auto-merged by extension)                                                                              |
+| `COMMUNITIES_CUSTOM_FIELDS`                     | `{...}`                                            | Community custom fields (auto-merged by extension)                                                                                                |
+| `COMMUNITIES_CUSTOM_FIELDS_UI`                  | `{...}`                                            | Community custom fields UI configuration (auto-merged by extension)                                                                               |
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
 
@@ -559,6 +557,7 @@ The stats dashboard extension automatically provides a custom field for communit
 The custom field is automatically integrated into InvenioRDM communities through the extension's initialization process. The extension merges its custom field configuration with any existing community custom fields, ensuring non-destructive integration.
 
 **Field Details:**
+
 - **Field Name**: `stats:dashboard_layout`
 - **Field Type**: Structured JSON object with validation
 - **Namespace**: `stats` (internal namespace)
