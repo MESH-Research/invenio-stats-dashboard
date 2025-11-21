@@ -487,22 +487,34 @@ class UsageEventFactory:
                     indexed += success
                     # Count error docs separately
                     if errors_batch:
-                        error_count = len(errors_batch) if isinstance(errors_batch, list) else errors_batch
+                        error_count = (
+                            len(errors_batch)
+                            if isinstance(errors_batch, list)
+                            else errors_batch
+                        )
                         errors += error_count
                         # Log bulk errors for debugging
                         try:
+                            first_error = (
+                                errors_batch[0]
+                                if isinstance(errors_batch, list)
+                                else "N/A"
+                            )
                             current_app.logger.warning(
-                                f"Bulk indexing to {monthly_index}: {success} succeeded, "
-                                f"{error_count} failed. First error: {errors_batch[0] if isinstance(errors_batch, list) else 'N/A'}"
+                                f"Bulk indexing to {monthly_index}: "
+                                f"{success} succeeded, {error_count} failed. "
+                                f"First error: {first_error}"
                             )
                         except Exception:
                             pass  # Don't fail if logging fails
                     else:
-                        # Log successful batch indexing (only if not in test mode to avoid verbosity)
+                        # Log successful batch indexing
+                        # (only if not in test mode to avoid verbosity)
                         try:
                             if not current_app.config.get("TESTING", False):
                                 current_app.logger.debug(
-                                    f"Bulk indexed {success} {event_type} events to {monthly_index}"
+                                    f"Bulk indexed {success} {event_type} "
+                                    f"events to {monthly_index}"
                                 )
                         except Exception:
                             pass
@@ -521,11 +533,13 @@ class UsageEventFactory:
         try:
             if errors > 0:
                 current_app.logger.warning(
-                    f"Usage event indexing completed: {indexed} indexed, {errors} errors"
+                    f"Usage event indexing completed: "
+                    f"{indexed} indexed, {errors} errors"
                 )
             else:
                 current_app.logger.info(
-                    f"Usage event indexing completed: {indexed} events indexed successfully"
+                    f"Usage event indexing completed: "
+                    f"{indexed} events indexed successfully"
                 )
         except Exception:
             pass  # Don't fail if logging fails

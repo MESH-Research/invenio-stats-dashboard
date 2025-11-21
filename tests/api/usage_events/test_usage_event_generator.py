@@ -78,7 +78,8 @@ def test_synthetic_usage_event_creation(
         event_end_date="2024-12-31",
     )
     app.logger.info(
-        f"Indexing result: {usage_events['indexed']} indexed, {usage_events['errors']} errors"
+        f"Indexing result: {usage_events['indexed']} indexed, "
+        f"{usage_events['errors']} errors"
     )
     assert usage_events["indexed"] == 200, (
         f"Should have indexed 200 events, but got {usage_events['indexed']} indexed "
@@ -87,6 +88,16 @@ def test_synthetic_usage_event_creation(
     assert usage_events["errors"] == 0, (
         f"Should have no indexing errors, but got {usage_events['errors']}"
     )
+
+    expected_months = [
+        "2024-06",
+        "2024-07",
+        "2024-08",
+        "2024-09",
+        "2024-10",
+        "2024-11",
+        "2024-12",
+    ]
 
     # Refresh all event indices
     client.indices.refresh(index="events-stats-*")
@@ -100,23 +111,15 @@ def test_synthetic_usage_event_creation(
             expected_indices.append(view_idx)
         if client.indices.exists(index=download_idx):
             expected_indices.append(download_idx)
-    app.logger.info(f"Expected indices after indexing: {len(expected_indices)} indices")
+    app.logger.info(
+        f"Expected indices after indexing: {len(expected_indices)} indices"
+    )
 
     # Wait for refresh to fully propagate in CI environments
     # This addresses race conditions where count queries execute before
     # all documents are visible after refresh
     # CI environments often need longer waits than local development
     time.sleep(2.0)
-
-    expected_months = [
-        "2024-06",
-        "2024-07",
-        "2024-08",
-        "2024-09",
-        "2024-10",
-        "2024-11",
-        "2024-12",
-    ]
 
     # Retry mechanism to ensure all events are visible
     # In CI environments, refresh propagation can be delayed
@@ -294,7 +297,8 @@ def test_synthetic_usage_event_creation(
             # Exponential backoff: 0.5s, 1s, 2s, 4s, 8s, then cap at 10s
             retry_delay = min(0.5 * (2 ** attempt), 10.0)
             app.logger.warning(
-                f"Attempt {attempt + 1}/{max_retries}: Found {total_events}/200 events. "
+                f"Attempt {attempt + 1}/{max_retries}: "
+                f"Found {total_events}/200 events. "
                 f"Retrying after {retry_delay:.1f}s delay..."
             )
             time.sleep(retry_delay)
@@ -325,6 +329,7 @@ def test_synthetic_usage_event_creation(
         f"Should have found 200 events in monthly indices, but found {total_events}. "
         f"Checked {len(indices_checked)} indices after {max_retries} retries. "
         f"Index counts: {index_counts}. "
-        f"This indicates either a bulk indexing issue (check usage_events result above) "
+        f"This indicates either a bulk indexing issue "
+        f"(check usage_events result above) "
         f"or a persistent refresh propagation problem in CI environments."
     )
