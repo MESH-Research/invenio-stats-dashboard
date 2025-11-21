@@ -30,6 +30,7 @@ def test_synthetic_usage_event_creation(
     test_sample_files_folder,
 ):
     """Test synthetic usage event creation and indexing."""
+    app = running_app.app
     client = current_search_client
 
     u = user_factory(email="test@example.com")
@@ -76,10 +77,30 @@ def test_synthetic_usage_event_creation(
         event_start_date="2024-06-01",
         event_end_date="2024-12-31",
     )
-    assert usage_events["indexed"] == 200, "Should have indexed 200 events"
-    assert usage_events["errors"] == 0, "Should have no indexing errors"
+    app.logger.info(
+        f"Indexing result: {usage_events['indexed']} indexed, {usage_events['errors']} errors"
+    )
+    assert usage_events["indexed"] == 200, (
+        f"Should have indexed 200 events, but got {usage_events['indexed']} indexed "
+        f"and {usage_events['errors']} errors"
+    )
+    assert usage_events["errors"] == 0, (
+        f"Should have no indexing errors, but got {usage_events['errors']}"
+    )
 
+    # Refresh all event indices
     client.indices.refresh(index="events-stats-*")
+
+    # Log which indices should exist
+    expected_indices = []
+    for month in expected_months:
+        view_idx = f"{prefix_index('events-stats-record-view')}-{month}"
+        download_idx = f"{prefix_index('events-stats-file-download')}-{month}"
+        if client.indices.exists(index=view_idx):
+            expected_indices.append(view_idx)
+        if client.indices.exists(index=download_idx):
+            expected_indices.append(download_idx)
+    app.logger.info(f"Expected indices after indexing: {len(expected_indices)} indices")
 
     # Wait for refresh to fully propagate in CI environments
     # This addresses race conditions where count queries execute before
@@ -99,19 +120,31 @@ def test_synthetic_usage_event_creation(
 
     # Retry mechanism to ensure all events are visible
     # In CI environments, refresh propagation can be delayed
-    # Increased retries and delay for more robust CI behavior
-    max_retries = 10
-    retry_delay = 1
+    # Use exponential backoff for more efficient retries
+    max_retries = 12
     total_events = 0
+    indices_checked = []
 
     for attempt in range(max_retries):
+        # Refresh at the START of each attempt, including the first one
+        # This ensures we're counting against the most recent index state
+        # after any wait periods
+        client.indices.refresh(index="events-stats-*")
+        
         total_events = 0
+        indices_checked = []
+        
         for month in expected_months:
             view_index = f"{prefix_index('events-stats-record-view')}-{month}"
             download_index = f"{prefix_index('events-stats-file-download')}-{month}"
 
             view_exists = client.indices.exists(index=view_index)
             download_exists = client.indices.exists(index=download_index)
+            
+            if view_exists:
+                indices_checked.append(view_index)
+            if download_exists:
+                indices_checked.append(download_index)
 
             if view_exists:
                 view_count = client.count(index=view_index)["count"]
@@ -250,14 +283,48 @@ def test_synthetic_usage_event_creation(
 
         # If we found all expected events, break out of retry loop
         if total_events == 200:
+            if attempt > 0:
+                app.logger.info(
+                    f"Found all 200 events after {attempt + 1} attempt(s)"
+                )
             break
 
-        # Otherwise, wait and retry
+        # Otherwise, wait and retry with exponential backoff
         if attempt < max_retries - 1:
+            # Exponential backoff: 0.5s, 1s, 2s, 4s, 8s, then cap at 10s
+            retry_delay = min(0.5 * (2 ** attempt), 10.0)
+            app.logger.warning(
+                f"Attempt {attempt + 1}/{max_retries}: Found {total_events}/200 events. "
+                f"Retrying after {retry_delay:.1f}s delay..."
+            )
             time.sleep(retry_delay)
-            client.indices.refresh(index="events-stats-*")
+            # Note: Refresh happens at start of next loop iteration
 
+    # Final explicit refresh before assertion
+    client.indices.refresh(index="events-stats-*")
+    time.sleep(0.5)  # Brief pause after refresh
+    
+    # Get per-index breakdown for diagnostics
+    index_counts = {}
+    for idx in indices_checked:
+        try:
+            count = client.count(index=idx)["count"]
+            index_counts[idx] = count
+        except Exception:
+            index_counts[idx] = "error"
+
+    # Log per-index breakdown if we're missing events
+    if total_events != 200:
+        app.logger.error(
+            f"Event count mismatch: Expected 200, found {total_events}. "
+            f"Per-index breakdown: {index_counts}"
+        )
+
+    # Provide detailed diagnostic information if assertion fails
     assert total_events == 200, (
         f"Should have found 200 events in monthly indices, but found {total_events}. "
-        f"This may indicate a refresh propagation issue in CI environments."
+        f"Checked {len(indices_checked)} indices after {max_retries} retries. "
+        f"Index counts: {index_counts}. "
+        f"This indicates either a bulk indexing issue (check usage_events result above) "
+        f"or a persistent refresh propagation problem in CI environments."
     )

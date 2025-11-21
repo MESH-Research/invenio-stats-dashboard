@@ -10,6 +10,7 @@ import hashlib
 import random
 
 import arrow
+from flask import current_app
 from invenio_access.permissions import system_identity
 from invenio_rdm_records.proxies import current_rdm_records_service as records_service
 from invenio_search.proxies import current_search_client
@@ -482,14 +483,52 @@ class UsageEventFactory:
                     success, errors_batch = bulk(
                         current_search_client, docs, stats_only=False
                     )
+                    # Always count successful docs, even if there were some errors
+                    indexed += success
+                    # Count error docs separately
                     if errors_batch:
-                        errors += len(errors_batch)
+                        error_count = len(errors_batch) if isinstance(errors_batch, list) else errors_batch
+                        errors += error_count
+                        # Log bulk errors for debugging
+                        try:
+                            current_app.logger.warning(
+                                f"Bulk indexing to {monthly_index}: {success} succeeded, "
+                                f"{error_count} failed. First error: {errors_batch[0] if isinstance(errors_batch, list) else 'N/A'}"
+                            )
+                        except Exception:
+                            pass  # Don't fail if logging fails
                     else:
-                        indexed += len(docs)
-                except Exception:
+                        # Log successful batch indexing (only if not in test mode to avoid verbosity)
+                        try:
+                            if not current_app.config.get("TESTING", False):
+                                current_app.logger.debug(
+                                    f"Bulk indexed {success} {event_type} events to {monthly_index}"
+                                )
+                        except Exception:
+                            pass
+                except Exception as e:
                     errors += len(docs)
+                    try:
+                        current_app.logger.error(
+                            f"Bulk indexing exception for {monthly_index}: {e}"
+                        )
+                    except Exception:
+                        pass
 
                 current_search_client.indices.refresh(index=monthly_index)
+
+        # Log summary of indexing results
+        try:
+            if errors > 0:
+                current_app.logger.warning(
+                    f"Usage event indexing completed: {indexed} indexed, {errors} errors"
+                )
+            else:
+                current_app.logger.info(
+                    f"Usage event indexing completed: {indexed} events indexed successfully"
+                )
+        except Exception:
+            pass  # Don't fail if logging fails
 
         return {"indexed": indexed, "errors": errors}
 
