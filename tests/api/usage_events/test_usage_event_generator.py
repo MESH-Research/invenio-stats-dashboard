@@ -325,7 +325,7 @@ def test_synthetic_usage_event_creation(
 
     # Provide detailed diagnostic information if assertion fails
     # FIXME: Continual out-by-1 failures on CI
-    assert abs(total_events - 200) >= 2, (
+    assert abs(total_events - 200) <= 2, (
         f"Should have found 200 events in monthly indices, but found {total_events}. "
         f"Checked {len(indices_checked)} indices after {max_retries} retries. "
         f"Index counts: {index_counts}. "

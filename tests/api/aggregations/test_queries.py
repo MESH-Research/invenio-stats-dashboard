@@ -1523,7 +1523,12 @@ class TestCommunityUsageDeltaQuery:
             ], f"Country key {bucket['key']} should be 2-3 characters"
 
     def _check_results(self, results, event_type):
-        """Check the results."""
+        """Check the results.
+
+        Raises:
+            AssertionError: If a subcount key is missing from either
+                actual result or expected document.
+        """
         actual_aggs = results.to_dict()["aggregations"]
         expected = {
             "total": 80 if event_type == "view" else 60,

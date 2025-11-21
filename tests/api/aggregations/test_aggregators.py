@@ -2015,6 +2015,8 @@ class TestCommunityUsageAggregators:
 
     def _check_all_snap_subcounts(self, last_day_snap, delta_results) -> None:
         """Check subcounts for all_subcount_type categories."""
+        # Subcount types that should have labels
+        subcounts_with_labels = ["resource_types"]
         for all_subcount_type in [
             "file_types",
             "access_statuses",
@@ -2032,6 +2034,22 @@ class TestCommunityUsageAggregators:
                     f"delta items for {all_subcount_type}: {matching_delta_items}"
                 )
                 self.app.logger.error(f"item: {item}")
+
+                # Check labels for subcounts that should have them
+                if all_subcount_type in subcounts_with_labels:
+                    assert "label" in item, (
+                        f"{all_subcount_type} item {item['id']} missing label"
+                    )
+                    for delta_item in matching_delta_items:
+                        assert "label" in delta_item, (
+                            f"Delta {all_subcount_type} item {delta_item['id']} "
+                            "missing label"
+                        )
+                        assert item["label"] == delta_item["label"], (
+                            f"{all_subcount_type} {item['id']} label mismatch: "
+                            f"snapshot has '{item['label']}', "
+                            f"delta has '{delta_item['label']}'"
+                        )
 
                 # Check metrics for this item
                 self._check_snap_item_metrics(
@@ -2079,6 +2097,30 @@ class TestCommunityUsageAggregators:
                         f"matching_delta_items: {pformat(matching_delta_items)}"
                     )
                     self.app.logger.error(f"item: {item}")
+
+                    # Subcount types that should have labels
+                    subcounts_with_labels = [
+                        "languages",
+                        "rights",
+                        "funders",
+                        "affiliations",
+                    ]
+                    # Verify that label is correctly extracted and matches delta items
+                    if top_subcount_type in subcounts_with_labels:
+                        assert "label" in item, (
+                            f"{top_subcount_type} item {item['id']} missing label"
+                        )
+                        # All matching delta items should have the same label
+                        for delta_item in matching_delta_items:
+                            assert "label" in delta_item, (
+                                f"Delta {top_subcount_type} item {delta_item['id']} "
+                                "missing label"
+                            )
+                            assert item["label"] == delta_item["label"], (
+                                f"{top_subcount_type} {item['id']} label mismatch: "
+                                f"snapshot has '{item['label']}', "
+                                f"delta has '{delta_item['label']}'"
+                            )
 
                     # Adjustments for the counts added by the 4 extra view events
                     # (1 per record) created before the start date and so missing
