@@ -1353,26 +1353,18 @@ COMMUNITY_STATS_SUBCOUNTS = {
             "source_fields": [
                 {
                     "field": "metadata.creators.affiliations.id",
-                    "label_field": "metadata.creators.affiliations.name.keyword",
+                    "label_field": "metadata.creators.affiliations.name",
                     "label_source_includes": [
-                        "metadata.creators.affiliations.name.keyword",
+                        "metadata.creators.affiliations.name",
                         "metadata.creators.affiliations.id",
-                    ],
-                    "combine_subfields": [
-                        "metadata.creators.affiliations.id",
-                        "metadata.creators.affiliations.name.keyword",
                     ],
                 },
                 {
                     "field": "metadata.contributors.affiliations.id",
-                    "label_field": "metadata.contributors.affiliations.name.keyword",
+                    "label_field": "metadata.contributors.affiliations.name",
                     "label_source_includes": [
-                        "metadata.contributors.affiliations.name.keyword",
+                        "metadata.contributors.affiliations.name",
                         "metadata.contributors.affiliations.id",
-                    ],
-                    "combine_subfields": [
-                        "metadata.contributors.affiliations.id",
-                        "metadata.contributors.affiliations.name.keyword",
                     ],
                 },
             ],
@@ -1394,10 +1386,6 @@ COMMUNITY_STATS_SUBCOUNTS = {
                     "field": "affiliations.id",
                     "label_field": "affiliations.name",
                     "label_source_includes": ["affiliations.name", "affiliations.id"],
-                    "combine_subfields": [
-                        "affiliations.id",
-                        "affiliations.name",
-                    ],
                 },
             ],
         },

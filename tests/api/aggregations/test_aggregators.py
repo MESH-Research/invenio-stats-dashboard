@@ -2087,7 +2087,7 @@ class TestCommunityUsageAggregators:
                         "view": {
                             "Knowledge Commons": 2,
                             "00k4n6c31": 2,
-                            "03rmrcq20": 3,
+                            "03rmrcq20": 2,
                             "eng": 2,
                         },
                         "download": {},
@@ -3109,7 +3109,7 @@ class TestFindItemLabel:
                 {},
                 [
                     "metadata.creators.affiliations.id",
-                    "metadata.creators.affiliations.name.keyword",
+                    "metadata.creators.affiliations.name",
                 ],
                 "013v4ng57",
                 "San Francisco Public Library",
@@ -3338,7 +3338,7 @@ class TestFindItemLabel:
                 None,
                 [
                     "metadata.creators.affiliations.id",
-                    "metadata.creators.affiliations.name.keyword",
+                    "metadata.creators.affiliations.name",
                 ],
                 "01ggx4157",
                 "CERN",

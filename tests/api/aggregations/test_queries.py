@@ -6,6 +6,7 @@
 
 """Test the queries used by the stats dashboard."""
 
+import json
 import re
 from copy import deepcopy
 from pprint import pformat
@@ -73,10 +74,8 @@ class TestCommunityRecordCreatedDeltaQuery:
 
     SUB_AGGS = [
         "access_statuses",
-        "affiliations_id",
-        "affiliations_keyword",
-        "affiliations_1_id",
-        "affiliations_1_keyword",
+        "affiliations",
+        "affiliations_1",
         "file_types",
         "funders_id",
         "funders_keyword",
@@ -172,7 +171,7 @@ class TestCommunityRecordCreatedDeltaQuery:
                 }
             }
 
-        assert result == {
+        expected = {
             "doc_count": count_with_files + count_without_files,
             "file_count": {"value": count_with_files},
             "key": expected_key,
@@ -187,6 +186,12 @@ class TestCommunityRecordCreatedDeltaQuery:
                 "unique_parents": {"value": count_without_files},
             },
         }
+        result_dict = result.to_dict()
+        assert result_dict == expected, (
+            f"Result mismatch.\n"
+            f"Actual result:\n{json.dumps(result_dict, indent=2, default=str)}\n\n"
+            f"Expected result:\n{json.dumps(expected, indent=2, default=str)}"
+        )
 
     def _setup_community(self, minimal_community_factory, user_id):
         """Setup test community.
@@ -230,8 +235,7 @@ class TestCommunityRecordCreatedDeltaQuery:
             }
             if idx != 1:
                 file_path = (
-                    test_sample_files_folder
-                    / list(rec["files"]["entries"].keys())[0]
+                    test_sample_files_folder / list(rec["files"]["entries"].keys())[0]
                 )
                 rec_args["file_paths"] = [file_path]
             rec = minimal_published_record_factory(**rec_args)
@@ -283,13 +287,11 @@ class TestCommunityRecordCreatedDeltaQuery:
             count_without_files=0,
             expected_bytes=59117831.0,
         )
-        assert result["affiliations_keyword"]["buckets"] == []
-        assert result["affiliations_1_id"]["buckets"] == []
-        assert result["affiliations_1_keyword"]["buckets"] == []
+        assert result["affiliations_1"]["buckets"] == []
 
         # Find affiliations by key since order is not guaranteed
         affiliations = {
-            bucket["key"]: bucket for bucket in result["affiliations_id"]["buckets"]
+            bucket["key"]: bucket for bucket in result["affiliations"]["buckets"]
         }
 
         self._check_query_subcount_results(
@@ -299,13 +301,17 @@ class TestCommunityRecordCreatedDeltaQuery:
             expected_label={
                 "metadata": {
                     "creators": [
+                        {"affiliations": [{"name": "San Francisco Public Library"}]},
+                        {"affiliations": [{"name": "San Francisco Public Library"}]},
                         {
                             "affiliations": [
                                 {
+                                    "name": "San Francisco Public Library",
                                     "id": "013v4ng57",
                                 }
                             ]
-                        }
+                        },
+                        {"affiliations": [{"name": "San Francisco Public Library"}]},
                     ]
                 }
             },
@@ -468,17 +474,13 @@ class TestCommunityRecordCreatedDeltaQuery:
             for a in self.SUB_AGGS
             if a
             not in [
-                "affiliations_id",
-                "affiliations_keyword",
-                "affiliations_1_id",
-                "affiliations_1_keyword",
+                "affiliations",
+                "affiliations_1",
             ]
         ]:
             assert result[agg]["buckets"] == []
-        assert result["affiliations_id"]["buckets"] == []
-        assert result["affiliations_keyword"]["buckets"] == []
-        assert result["affiliations_1_id"]["buckets"] == []
-        assert result["affiliations_1_keyword"]["buckets"] == []
+        assert result["affiliations"]["buckets"] == []
+        assert result["affiliations_1"]["buckets"] == []
 
     def _check_result_day2(self, result):
         """Check the results for day 2."""
@@ -527,7 +529,7 @@ class TestCommunityRecordCreatedDeltaQuery:
         )
 
         affiliations_ids = {
-            bucket["key"]: bucket for bucket in result["affiliations_id"]["buckets"]
+            bucket["key"]: bucket for bucket in result["affiliations"]["buckets"]
         }
         self._check_query_subcount_results(
             affiliations_ids["03rmrcq20"],
@@ -536,12 +538,22 @@ class TestCommunityRecordCreatedDeltaQuery:
             expected_key="03rmrcq20",
             expected_bytes=0.0,
             expected_label={
-                "metadata": {"creators": [{"affiliations": [{"id": "03rmrcq20"}]}]}
+                "metadata": {
+                    "creators": [
+                        {"affiliations": [{"name": "University Of British Columbia"}]},
+                        {
+                            "affiliations": [
+                                {
+                                    "id": "03rmrcq20",
+                                    "name": "University of British Columbia",
+                                }
+                            ]
+                        },
+                    ]
+                }
             },
         )
-        assert result["affiliations_keyword"]["buckets"] == []
-        assert result["affiliations_1_id"]["buckets"] == []
-        assert result["affiliations_1_keyword"]["buckets"] == []
+        assert result["affiliations_1"]["buckets"] == []
 
         # Find file types by key since order is not guaranteed
         file_types = {
@@ -1547,14 +1559,27 @@ class TestCommunityUsageDeltaQuery:
 
         for agg_name in [
             # "subjects",  # disabled for usage events
-            "affiliations_id",
-            "affiliations_name",
+            "affiliations",
             "funders_id",
             "funders_name",
             "languages",
             "rights",
             "resource_types",
         ]:
+            if agg_name not in mock_aggs:
+                available_keys = (
+                    list(mock_aggs.keys()) if hasattr(mock_aggs, "keys") else "unknown"
+                )
+                raise AssertionError(
+                    f"Mock aggregations missing '{agg_name}'. "
+                    f"Available keys: {available_keys}"
+                )
+            if agg_name not in actual_aggs:
+                raise AssertionError(
+                    f"Actual aggregations missing '{agg_name}' "
+                    f"but mock expects it. Available keys: "
+                    f"{list(actual_aggs.keys())}"
+                )
             current_app.logger.error(agg_name)
             current_app.logger.error("ACTUAL--------")
             current_app.logger.error(pformat(actual_aggs[agg_name]["buckets"]))
