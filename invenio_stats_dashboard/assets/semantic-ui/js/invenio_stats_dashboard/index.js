@@ -14,33 +14,36 @@ import { GlobalStatsDashboardLayout } from "./GlobalStatsDashboardLayout";
 // Initialize the dashboard if the container exists
 const domContainer = document.getElementById("stats-dashboard");
 console.log("domContainer", domContainer);
+console.log(JSON.parse(domContainer.dataset.dashboardConfig || "{}"));
 if (domContainer) {
-  const config = JSON.parse(domContainer.dataset.dashboardConfig || "{}");
-  console.log("config", config);
-  console.log("community", domContainer.dataset.community);
-  const community = ["None", null, undefined].includes(domContainer.dataset.community)
-    ? null
-    : JSON.parse(domContainer.dataset.community);
+	const config = JSON.parse(domContainer.dataset.dashboardConfig || "{}");
+	console.log("config", config);
+	console.log("community", domContainer.dataset.community);
+	const community = ["None", null, undefined].includes(
+		domContainer.dataset.community,
+	)
+		? null
+		: JSON.parse(domContainer.dataset.community);
 
-  let DashboardComponent;
-  switch (config.dashboard_type) {
-    case "community":
-      DashboardComponent = CommunityStatsDashboardLayout;
-      break;
-    case "global":
-      DashboardComponent = GlobalStatsDashboardLayout;
-      break;
-    default:
-      DashboardComponent = StatsDashboardLayout;
-  }
+	let DashboardComponent;
+	switch (config.dashboard_type) {
+		case "community":
+			DashboardComponent = CommunityStatsDashboardLayout;
+			break;
+		case "global":
+			DashboardComponent = GlobalStatsDashboardLayout;
+			break;
+		default:
+			DashboardComponent = StatsDashboardLayout;
+	}
 
-  ReactDOM.render(
-    <DashboardComponent
-      {...(community && { community })}
-      dashboardConfig={config}
-    />,
-    domContainer
-  );
+	ReactDOM.render(
+		<DashboardComponent
+			{...(community && { community })}
+			dashboardConfig={config}
+		/>,
+		domContainer,
+	);
 }
 
 // Export all components
@@ -49,8 +52,8 @@ export * from "./api";
 export * from "./utils";
 export * from "./context";
 export {
-  CommunityStatsDashboardLayout,
-  GlobalStatsDashboardLayout,
-  StatsDashboardPage,
-  StatsDashboardLayout,
+	CommunityStatsDashboardLayout,
+	GlobalStatsDashboardLayout,
+	StatsDashboardPage,
+	StatsDashboardLayout,
 };

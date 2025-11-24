@@ -84,6 +84,11 @@ def global_stats_dashboard():
     # Force CSRF cookie to be set for API requests made by the dashboard
     request.csrf_cookie_needs_reset = True
 
+    test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", True)
+    if test_data_flag in ["True", "true"]:
+        test_data_flag = True
+    current_app.logger.debug(f"test_data_flag {test_data_flag}")
+
     return render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["global"],
         dashboard_config={
@@ -108,9 +113,7 @@ def global_stats_dashboard():
             ),
             "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global_layout"],
             "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
-            "use_test_data": current_app.config.get(
-                "STATS_DASHBOARD_USE_TEST_DATA", True
-            ),
+            "use_test_data": True,  # FIXME: test_data_flag,
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
@@ -153,6 +156,10 @@ def community_stats_dashboard(
         "STATS_DASHBOARD_ENABLED_COMMUNITY"
     )
 
+    test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", True)
+    if test_data_flag in ["True", "true"]:
+        test_data_flag = True
+
     return str(
         render_template(
             current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
@@ -186,9 +193,7 @@ def community_stats_dashboard(
                 "ui_subcounts": current_app.config.get(
                     "STATS_DASHBOARD_UI_SUBCOUNTS", {}
                 ),
-                "use_test_data": current_app.config.get(
-                    "STATS_DASHBOARD_USE_TEST_DATA", True
-                ),
+                "use_test_data": test_data_flag,
                 **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
             },
             community=community_ui,

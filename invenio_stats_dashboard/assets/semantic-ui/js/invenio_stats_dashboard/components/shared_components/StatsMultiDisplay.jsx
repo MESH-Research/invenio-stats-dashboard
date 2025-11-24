@@ -7,23 +7,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
-  Header,
-  Segment,
-  Icon,
-  Button,
-  Loader,
-  Message,
+	Header,
+	Segment,
+	Icon,
+	Button,
+	Loader,
+	Message,
 } from "semantic-ui-react";
 import { PropTypes } from "prop-types";
 import ReactECharts from "echarts-for-react";
 import { StatsTable } from "./StatsTable";
 
 const VIEW_MODE_ICON_MAP = {
-  list: "list",
-  line: "chart line",
-  bar: "chart bar",
-  pie: "pie chart",
-  map: "map",
+	list: "list",
+	line: "chart line",
+	bar: "chart bar",
+	pie: "pie chart",
+	map: "map",
 };
 
 /** A component that displays a data series in a variety of views.
@@ -71,213 +71,265 @@ const VIEW_MODE_ICON_MAP = {
  * @param {boolean} hideOtherInCharts - If true and "other" is >30% of total, exclude it from charts and show as floating label.
  */
 const StatsMultiDisplay = ({
-  title,
-  subtitle,
-  icon: labelIcon,
-  label,
-  headers,
-  rows,
-  chartOptions,
-  defaultViewMode = "list",
-  onEvents,
-  isLoading = false,
-  maxHeight = null,
-  isDelta = false,
-  dateRangeEnd = null,
-  metricType = "records",
+	title,
+	subtitle,
+	icon: labelIcon,
+	label,
+	headers,
+	rows,
+	chartOptions,
+	defaultViewMode = "list",
+	onEvents,
+	isLoading = false,
+	maxHeight = null,
+	isDelta = false,
+	dateRangeEnd = null,
+	metricType = "records",
+	startCollapsed = false,
 }) => {
-  const [viewMode, setViewMode] = useState(defaultViewMode);
-  const chartRef = useRef(null);
-  const availableViewModes = Object.keys(chartOptions);
-  const tableLabel = label
-    ? label
-    : title
-      ? title.toLowerCase().replace(/\s+/g, "-")
-      : "stats";
+	const [viewMode, setViewMode] = useState(defaultViewMode);
+	const [collapsed, setCollapsed] = useState(collapsed);
+	const [neverOpened, setNeverOpened] = useState(true);
+	const [showContent, setShowContent] = useState(!collapsed && !neverOpened);
+	const chartRef = useRef(null);
+	const availableViewModes = Object.keys(chartOptions);
+	const tableLabel = label
+		? label
+		: title
+			? title.toLowerCase().replace(/\s+/g, "-")
+			: "stats";
 
-  const handleViewChange = (mode) => {
-    setViewMode(mode);
-  };
+	const handleViewChange = (e, mode) => {
+		e.stopPropagation();
+		if (!!collapsed) {
+			setCollapsed(false);
+		}
+		setViewMode(mode);
+	};
 
-  const effectiveHasData = !isLoading && rows && rows.length > 0;
+	const handleOpenClose = () => {
+		setCollapsed(!collapsed);
+		if (!!neverOpened) {
+			setNeverOpened(false);
+		}
+	};
 
-  // Resize chart after mount and when viewMode changes to fix initial zoom/overflow issue
-  const resizeChart = () => {
-    if (!chartRef.current) {
-      return;
-    }
+	const effectiveHasData = !isLoading && rows && rows.length > 0;
 
-    // Use requestAnimationFrame to ensure the DOM has settled and container has final size
-    requestAnimationFrame(() => {
-      try {
-        const chartInstance = chartRef.current.getEchartsInstance();
-        if (chartInstance) {
-          chartInstance.resize();
-        }
-      } catch (error) {
-        // Silently handle errors if chart instance is not ready
-        console.debug("Chart resize error:", error);
-      }
-    });
-  };
+	// Resize chart after mount and when viewMode changes to fix initial zoom/overflow issue
+	const resizeChart = () => {
+		if (!chartRef.current) {
+			return;
+		}
 
-  useEffect(() => {
-    if (viewMode === "list" || !effectiveHasData || isLoading) {
-      return;
-    }
+		// Use requestAnimationFrame to ensure the DOM has settled and container has final size
+		requestAnimationFrame(() => {
+			try {
+				const chartInstance = chartRef.current.getEchartsInstance();
+				if (chartInstance) {
+					chartInstance.resize();
+				}
+			} catch (error) {
+				// Silently handle errors if chart instance is not ready
+				console.debug("Chart resize error:", error);
+			}
+		});
+	};
 
-    // Resize immediately and after a short delay to handle any async layout
-    resizeChart();
-    const timeoutId = setTimeout(resizeChart, 100);
+	useEffect(() => {
+		if (viewMode === "list" || !effectiveHasData || isLoading) {
+			return;
+		}
 
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [viewMode, effectiveHasData, isLoading]);
+		// Resize immediately and after a short delay to handle any async layout
+		resizeChart();
+		const timeoutId = setTimeout(resizeChart, 100);
 
-  // Cleanup: dispose chart instance on unmount
-  useEffect(() => {
-    return () => {
-      if (chartRef.current) {
-        try {
-          const chartInstance = chartRef.current.getEchartsInstance();
-          if (chartInstance && !chartInstance.isDisposed()) {
-            chartInstance.dispose();
-          }
-        } catch (error) {
-          // Silently handle errors if chart instance is not available
-          console.debug("Chart dispose error:", error);
-        }
-      }
-    };
-  }, []);
+		return () => {
+			clearTimeout(timeoutId);
+		};
+	}, [viewMode, effectiveHasData, isLoading]);
 
-  // Handle chart ready callback to resize when chart is first initialized
-  const handleChartReady = (chart) => {
-    // Resize after chart is ready to ensure correct dimensions
-    setTimeout(() => {
-      if (chart) {
-        chart.resize();
-      }
-    }, 0);
-  };
+	// Set collapsed state based on mobile width (Semantic UI mobile breakpoint is < 768px)
+	useEffect(() => {
+		const checkMobile = () => {
+			const isMobileWidth = window.innerWidth < 768;
+			// Collapse on mobile if never opened, or if already collapsed
+			if (isMobileWidth && neverOpened) {
+				setCollapsed(true);
+			}
+		};
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
 
-  // Add aria.enabled to all chart options
-  const enhancedChartOptions = Object.fromEntries(
-    Object.entries(chartOptions).map(([key, value]) => [
-      key,
-      {
-        ...value,
-        aria: {
-          enabled: true,
-        },
-      },
-    ]),
-  );
+		return () => {
+			window.removeEventListener("resize", checkMobile);
+		};
+	}, [neverOpened]);
 
-  return (
-    <div
-      className={`stats-multi-display-container ${tableLabel}-stats-multi-display-container rel-mb-1 rel-mt-1`}
-      role="region"
-      aria-label={title}
-      data-testid="stats-multi-display"
-    >
-      {title && (
-        <Header
-          as="h3"
-          id={`${tableLabel}-stats-multi-display-header`}
-          className="stats-multi-display-header"
-          attached="top"
-        >
-          {labelIcon && (
-            <Icon
-              name={labelIcon}
-              className="stats-multi-display-icon"
-              aria-hidden="true"
-              size="small"
-            />
-          )}
-          {availableViewModes.length > 1 &&
-            !isLoading &&
-            availableViewModes.map((mode) => (
-              <Button
-                key={mode}
-                active={viewMode === mode}
-                onClick={() => handleViewChange(mode)}
-                aria-label={i18next.t(mode)}
-                size="small"
-                toggle
-              >
-                <Icon fitted name={VIEW_MODE_ICON_MAP[mode]} />
-              </Button>
-            ))}
-          {title}
-          {subtitle && <Header.Subheader>{subtitle}</Header.Subheader>}
-        </Header>
-      )}
-      <Segment
-        attached
-        className="stats-multi-display-segment pr-0 pl-0 pb-0 pt-0"
-      >
-        {isLoading ? (
-          <div className="stats-loading-container">
-            <Loader active size="large" />
-          </div>
-        ) : !effectiveHasData ? (
-          <div className="stats-no-data-container">
-            <Message info>
-              <Message.Header>{i18next.t("No Data Available")}</Message.Header>
-              <p>
-                {i18next.t(
-                  "No data is available for the selected time period.",
-                )}
-              </p>
-            </Message>
-          </div>
-        ) : viewMode === "list" ? (
-          <StatsTable
-            label={`${tableLabel}-table`}
-            headers={headers}
-            rows={rows}
-            labelIcon={labelIcon}
-            maxHeight={maxHeight}
-            isDelta={isDelta}
-            dateRangeEnd={dateRangeEnd}
-            metricType={metricType}
-          />
-        ) : (
-          <ReactECharts
-            ref={chartRef}
-            option={enhancedChartOptions[viewMode]}
-            notMerge={true}
-            style={{ height: "338px" }} // 340px - 2px for border
-            className={`${tableLabel}-${viewMode}-chart`}
-            onEvents={onEvents}
-            onChartReady={handleChartReady}
-          />
-        )}
-      </Segment>
-    </div>
-  );
+	// Delay content rendering during open animation (500ms transition duration)
+	useEffect(() => {
+		if (collapsed) {
+			// Hide content immediately when collapsing
+			setShowContent(false);
+		} else {
+			// Delay showing content when opening to allow animation to complete
+			const timeoutId = setTimeout(() => {
+				setShowContent(true);
+			}, 500); // Match the CSS transition duration
+
+			return () => {
+				clearTimeout(timeoutId);
+			};
+		}
+	}, [collapsed]);
+
+	// Cleanup: dispose chart instance on unmount
+	useEffect(() => {
+		return () => {
+			if (chartRef.current) {
+				try {
+					const chartInstance = chartRef.current.getEchartsInstance();
+					if (chartInstance && !chartInstance.isDisposed()) {
+						chartInstance.dispose();
+					}
+				} catch (error) {
+					// Silently handle errors if chart instance is not available
+					console.debug("Chart dispose error:", error);
+				}
+			}
+		};
+	}, []);
+
+	// Handle chart ready callback to resize when chart is first initialized
+	const handleChartReady = (chart) => {
+		// Resize after chart is ready to ensure correct dimensions
+		setTimeout(() => {
+			if (chart) {
+				chart.resize();
+			}
+		}, 0);
+	};
+
+	// Add aria.enabled to all chart options
+	const enhancedChartOptions = Object.fromEntries(
+		Object.entries(chartOptions).map(([key, value]) => [
+			key,
+			{
+				...value,
+				aria: {
+					enabled: true,
+				},
+			},
+		]),
+	);
+
+	return (
+		<div
+			className={`stats-multi-display-container ${tableLabel}-stats-multi-display-container rel-mb-1 rel-mt-1`}
+			role="region"
+			aria-label={title}
+			data-testid="stats-multi-display"
+		>
+			{title && (
+				<Header
+					as="h3"
+					id={`${tableLabel}-stats-multi-display-header`}
+					className="stats-multi-display-header"
+					attached="top"
+					onClick={handleOpenClose}
+				>
+					{labelIcon && (
+						<Icon
+							name={labelIcon}
+							className="stats-multi-display-icon"
+							aria-hidden="true"
+							size="small"
+						/>
+					)}
+					{availableViewModes.length > 1 &&
+						!isLoading &&
+						availableViewModes.map((mode) => (
+							<Button
+								key={mode}
+								active={viewMode === mode}
+								onClick={(e) => handleViewChange(e, mode)}
+								aria-label={i18next.t(mode)}
+								size="small"
+								toggle
+							>
+								<Icon fitted name={VIEW_MODE_ICON_MAP[mode]} />
+							</Button>
+						))}
+					{title}
+					{subtitle && <Header.Subheader>{subtitle}</Header.Subheader>}
+				</Header>
+			)}
+			<Segment
+				attached
+				className={`stats-multi-display-segment pr-0 pl-0 pb-0 pt-0 ${collapsed ? "collapsed" : ""} ${!!neverOpened ? "never-opened" : ""}`}
+			>
+				{isLoading ? (
+					<div className="stats-loading-container">
+						<Loader active size="large" />
+					</div>
+				) : !effectiveHasData ? (
+					<div className="stats-no-data-container">
+						<Message info>
+							<Message.Header>{i18next.t("No Data Available")}</Message.Header>
+							<p>
+								{i18next.t(
+									"No data is available for the selected time period.",
+								)}
+							</p>
+						</Message>
+					</div>
+				) : showContent ? (
+					viewMode === "list" ? (
+						<StatsTable
+							label={`${tableLabel}-table`}
+							headers={headers}
+							rows={rows}
+							labelIcon={labelIcon}
+							maxHeight={maxHeight}
+							isDelta={isDelta}
+							dateRangeEnd={dateRangeEnd}
+							metricType={metricType}
+						/>
+					) : (
+						<ReactECharts
+							ref={chartRef}
+							option={enhancedChartOptions[viewMode]}
+							notMerge={true}
+							style={{ height: "338px" }} // 340px - 2px for border
+							className={`${tableLabel}-${viewMode}-chart`}
+							onEvents={onEvents}
+							onChartReady={handleChartReady}
+						/>
+					)
+				) : null}
+			</Segment>
+		</div>
+	);
 };
 
 StatsMultiDisplay.propTypes = {
-  title: PropTypes.string.isRequired,
-  subtitle: PropTypes.string,
-  icon: PropTypes.string,
-  label: PropTypes.string,
-  headers: PropTypes.array.isRequired,
-  rows: PropTypes.array.isRequired,
-  chartOptions: PropTypes.object.isRequired,
-  defaultViewMode: PropTypes.string,
-  onEvents: PropTypes.object,
-  isLoading: PropTypes.bool,
-  hasData: PropTypes.bool,
-  maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  hideOtherInCharts: PropTypes.bool,
-  isDelta: PropTypes.bool,
-  dateRangeEnd: PropTypes.string,
-  metricType: PropTypes.string,
+	title: PropTypes.string.isRequired,
+	subtitle: PropTypes.string,
+	icon: PropTypes.string,
+	label: PropTypes.string,
+	headers: PropTypes.array.isRequired,
+	rows: PropTypes.array.isRequired,
+	chartOptions: PropTypes.object.isRequired,
+	defaultViewMode: PropTypes.string,
+	onEvents: PropTypes.object,
+	isLoading: PropTypes.bool,
+	hasData: PropTypes.bool,
+	maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+	hideOtherInCharts: PropTypes.bool,
+	isDelta: PropTypes.bool,
+	dateRangeEnd: PropTypes.string,
+	metricType: PropTypes.string,
 };
 
 export { StatsMultiDisplay };

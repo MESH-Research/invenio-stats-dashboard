@@ -227,12 +227,20 @@ STATS_DASHBOARD_LAYOUT = {
                             {
                                 "component": "SingleStatRecordCountCumulative",
                                 "width": 5,
-                                "props": {"title": "Total Records", "icon": "file"},
+                                "props": {
+                                    "title": "Total Records",
+                                    "icon": "file",
+                                    "mobile": 6,
+                                },
                             },
                             {
                                 "component": "SingleStatUploadersCumulative",
                                 "width": 6,
-                                "props": {"title": "Total Uploaders", "icon": "users"},
+                                "props": {
+                                    "title": "Total Uploaders",
+                                    "icon": "users",
+                                    "mobile": 6,
+                                },
                             },
                             {
                                 "component": "SingleStatDataVolumeCumulative",
@@ -240,6 +248,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "Total Data Volume",
                                     "icon": "database",
+                                    "mobile": 16,
                                 },
                             },
                         ],
@@ -385,12 +394,20 @@ STATS_DASHBOARD_LAYOUT = {
                             {
                                 "component": "SingleStatRecordCount",
                                 "width": 5,
-                                "props": {"title": "New Records", "icon": "file"},
+                                "props": {
+                                    "title": "New Records",
+                                    "icon": "file",
+                                    "mobile": 6,
+                                },
                             },
                             {
                                 "component": "SingleStatUploaders",
                                 "width": 6,
-                                "props": {"title": "Active Uploaders", "icon": "users"},
+                                "props": {
+                                    "title": "Active Uploaders",
+                                    "icon": "users",
+                                    "mobile": 6,
+                                },
                             },
                             {
                                 "component": "SingleStatDataVolume",
@@ -398,6 +415,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "New Data Uploaded",
                                     "icon": "database",
+                                    "mobile": 16,
                                 },
                             },
                         ],
@@ -557,7 +575,11 @@ STATS_DASHBOARD_LAYOUT = {
                             {
                                 "component": "SingleStatViewsCumulative",
                                 "width": 5,
-                                "props": {"title": "Total Views", "icon": "eye"},
+                                "props": {
+                                    "title": "Total Views",
+                                    "icon": "eye",
+                                    "mobile": 6,
+                                },
                             },
                             {
                                 "component": "SingleStatDownloadsCumulative",
@@ -565,6 +587,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "Total Downloads",
                                     "icon": "download",
+                                    "mobile": 6,
                                 },
                             },
                             {
@@ -573,6 +596,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "Total Traffic",
                                     "icon": "chart line",
+                                    "mobile": 16,
                                 },
                             },
                         ],
@@ -642,29 +666,30 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "StatsMap",
                                 "width": 16,
                                 "props": {
-                                    "title": "Top Countries by Visits",
+                                    "title": "Country of Origin for Visits",
                                     "height": 400,
                                     "minHeight": 400,
                                     "zoom": 1.3,
                                     "center": [0, 20],
+                                    "uniformColorMode": True,
                                 },
                             },
                         ],
                     },
                     {
-                        "name": "tables",
+                        "name": "tables2",
                         "components": [
-                            {
-                                "component": "CountriesMultiDisplayViews",
-                                "width": 8,
-                                "props": {
-                                    "title": "Top Countries by Visits",
-                                    "pageSize": 8,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
+                            # {
+                            #     "component": "CountriesMultiDisplayViews",
+                            #     "width": 8,
+                            #     "props": {
+                            #         "title": "Top Countries by Visits",
+                            #         "pageSize": 8,
+                            #         "available_views": ["pie", "bar", "list"],
+                            #         "default_view": "pie",
+                            #         "hideOtherInCharts": True,
+                            #     },
+                            # },
                             # Disabled: referrers for usage events
                             # {
                             #     "component": "TopReferrersMultiDisplay",
@@ -748,7 +773,11 @@ STATS_DASHBOARD_LAYOUT = {
                             {
                                 "component": "SingleStatViews",
                                 "width": 5,
-                                "props": {"title": "Record Views", "icon": "eye"},
+                                "props": {
+                                    "title": "Record Views",
+                                    "icon": "eye",
+                                    "mobile": 6,
+                                },
                             },
                             {
                                 "component": "SingleStatDownloads",
@@ -756,6 +785,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "Record Downloads",
                                     "icon": "download",
+                                    "mobile": 6,
                                 },
                             },
                             {
@@ -764,6 +794,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "props": {
                                     "title": "Data Downloaded",
                                     "icon": "chart line",
+                                    "mobile": 16,
                                 },
                             },
                         ],
@@ -811,6 +842,7 @@ STATS_DASHBOARD_LAYOUT = {
                                     "zoom": 1.3,
                                     "center": [0, 20],
                                     "useSnapshot": False,
+                                    "uniformColorMode": True,
                                 },
                             },
                         ],
@@ -818,17 +850,17 @@ STATS_DASHBOARD_LAYOUT = {
                     {
                         "name": "tables2",
                         "components": [
-                            {
-                                "component": "CountriesMultiDisplayViewsDelta",
-                                "width": 8,
-                                "props": {
-                                    "title": "Top Countries by Visits",
-                                    "pageSize": 10,
-                                    "available_views": ["pie", "bar", "list"],
-                                    "default_view": "pie",
-                                    "hideOtherInCharts": True,
-                                },
-                            },
+                            # {
+                            #     "component": "CountriesMultiDisplayViewsDelta",
+                            #     "width": 8,
+                            #     "props": {
+                            #         "title": "Top Countries by Visits",
+                            #         "pageSize": 10,
+                            #         "available_views": ["pie", "bar", "list"],
+                            #         "default_view": "pie",
+                            #         "hideOtherInCharts": True,
+                            #     },
+                            # },
                             {
                                 "component": "FileTypesMultiDisplayDownloadsDelta",
                                 "width": 8,

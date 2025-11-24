@@ -225,4 +225,32 @@ const extractCountryMapData = (stats, metric = 'views', dateRange = null, useSna
   return Array.from(countryDataMap.values());
 };
 
+/**
+ * Calculate minimum zoom level to ensure map fills at least one dimension of container
+ * Prevents map from being smaller than container in both width and height simultaneously
+ * @param {number} containerWidth - Container width in pixels
+ * @param {number} containerHeight - Container height in pixels
+ * @param {number} mapAspectRatio - Map's natural aspect ratio (width/height), default 2.0 for world map
+ * @param {number} initialZoom - Initial zoom level to use as baseline
+ * @returns {number} Minimum zoom level
+ */
+export const calculateMinZoom = (containerWidth, containerHeight, mapAspectRatio = 2.0, initialZoom = 1.0) => {
+  if (containerWidth === 0 || containerHeight === 0) {
+    return Math.max(1, initialZoom);
+  }
+  
+  const containerAspectRatio = containerWidth / containerHeight;
+  
+  let widthZoom = 1.0;
+  let heightZoom = 1.0;
+  
+  if (containerAspectRatio > mapAspectRatio) {
+    heightZoom = 1.0;
+  } else {
+    widthZoom = mapAspectRatio / containerAspectRatio;
+  }
+  
+  return Math.max(initialZoom, Math.max(widthZoom, heightZoom));
+};
+
 export { extractCountryMapData, getCountryNames };

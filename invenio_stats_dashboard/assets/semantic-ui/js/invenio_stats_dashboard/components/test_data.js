@@ -21,6 +21,37 @@ const generateDates = (startDate, endDate) => {
   return dates;
 };
 
+/** Generate dates for a specific year within a date range
+ * 
+ *  @param {Date} startDate - The start date of the date range
+ *  @param {Date} endDate - The end date of the date range
+ *  @param {number} year - The year to generate dates for
+ *  @returns {Array} An array of dates
+ */ 
+const generateDatesForYear = (startDate, endDate, year) => {
+  // Normalize dates to start of day for consistent comparison
+  const normalizeDate = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+  
+  const rangeStart = normalizeDate(startDate);
+  const rangeEnd = normalizeDate(endDate);
+  
+  const actualStart = rangeStart > yearStart ? rangeStart : yearStart;
+  const actualEnd = rangeEnd < yearEnd ? rangeEnd : yearEnd;
+  
+  if (actualStart > actualEnd) {
+    return [];
+  }
+  
+  return generateDates(actualStart, actualEnd);
+};
+
 // Create a DataPoint array matching the backend format [date, value]
 // Dates are stored as MM-DD strings when all points are in the same year
 const createDataPoint = (date, value, valueType = 'number', year = null) => {
@@ -62,9 +93,12 @@ const createGlobalSeries = (dataPoints, type = 'line', valueType = 'number', yea
   return createDataSeries("global", "Global", dataPoints, type, valueType, year);
 };
 
-// Unified data generation function to reduce code duplication
 // Assumes all dates are in the same year (from the date range)
 const generateDataPoints = (baseValue, variance, startValue = 0, isCumulative = false, valueType = 'number', dates, year) => {
+  if (!dates || dates.length === 0) {
+    return [];
+  }
+
   let cumulative = startValue;
 
   return dates.map((date, index) => {
@@ -125,10 +159,16 @@ const createUsageMetrics = (isSnapshot = false, dates, year) => {
   const dataVolumeType = isSnapshot ? generateCumulativeDataVolumeDataPoints : generateDataVolumeDataPoints;
 
   return {
-    views: [createGlobalSeries(dataType(250000, 100, 50, dates, year), 'bar', 'number', year)],
-    downloads: [createGlobalSeries(dataType(75000, 40, 20, dates, year), 'bar', 'number', year)],
-    visitors: [createGlobalSeries(dataType(200000, 80, 40, dates, year), 'bar', 'number', year)],
-    dataVolume: [createGlobalSeries(dataVolumeType(5000000000000, 200000000, 100000000, dates, year), 'bar', 'filesize', year)]
+    // Core metrics used by chart components
+    viewUniqueRecords: [createGlobalSeries(dataType(250000, 100, 50, dates, year), 'bar', 'number', year)],
+    downloadUniqueFiles: [createGlobalSeries(dataType(75000, 40, 20, dates, year), 'bar', 'number', year)],
+    dataVolume: [createGlobalSeries(dataVolumeType(5000000000000, 200000000, 100000000, dates, year), 'bar', 'filesize', year)],
+    // Additional metrics for completeness (not used by components but may be useful for testing)
+    viewVisitors: [createGlobalSeries(dataType(200000, 80, 40, dates, year), 'bar', 'number', year)],
+    downloadVisitors: [createGlobalSeries(dataType(150000, 60, 30, dates, year), 'bar', 'number', year)],
+    viewUniqueParents: [createGlobalSeries(dataType(200000, 80, 40, dates, year), 'bar', 'number', year)],
+    downloadUniqueParents: [createGlobalSeries(dataType(60000, 30, 15, dates, year), 'bar', 'number', year)],
+    downloadUniqueRecords: [createGlobalSeries(dataType(70000, 35, 18, dates, year), 'bar', 'number', year)]
   };
 };
 
@@ -274,7 +314,7 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
   // If no global metrics provided, fall back to random data
   if (!globalMetrics || items.length === 0) {
           return {
-        views: items.map(item => {
+        viewUniqueRecords: items.map(item => {
           return createDataSeries(
             item.id,
             item.name,
@@ -284,21 +324,11 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
             year
           );
         }),
-        downloads: items.map(item => {
+        downloadUniqueFiles: items.map(item => {
           return createDataSeries(
             item.id,
             item.name,
             dataType(75000, 40, 20, dates, year),
-            'line',
-            'number',
-            year
-          );
-        }),
-        visitors: items.map(item => {
-          return createDataSeries(
-            item.id,
-            item.name,
-            dataType(200000, 80, 40, dates, year),
             'line',
             'number',
             year
@@ -311,6 +341,27 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
             dataVolumeType(5000000000000, 200000000, 100000000, dates, year),
             'line',
             'filesize',
+            year
+          );
+        }),
+        // Additional metrics for completeness (not used by components but may be useful for testing)
+        viewVisitors: items.map(item => {
+          return createDataSeries(
+            item.id,
+            item.name,
+            dataType(200000, 80, 40, dates, year),
+            'line',
+            'number',
+            year
+          );
+        }),
+        downloadVisitors: items.map(item => {
+          return createDataSeries(
+            item.id,
+            item.name,
+            dataType(150000, 60, 30, dates, year),
+            'line',
+            'number',
             year
           );
         })
@@ -361,36 +412,31 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
   };
 
   // Get global data points for each metric
-  const globalViews = globalMetrics.views[0]?.data || [];
-  const globalDownloads = globalMetrics.downloads[0]?.data || [];
-  const globalVisitors = globalMetrics.visitors[0]?.data || [];
+  const globalViewUniqueRecords = globalMetrics.viewUniqueRecords?.[0]?.data || [];
+  const globalDownloadUniqueFiles = globalMetrics.downloadUniqueFiles?.[0]?.data || [];
   const globalDataVolume = globalMetrics.dataVolume[0]?.data || [];
+  const globalViewVisitors = globalMetrics.viewVisitors?.[0]?.data || [];
+  const globalDownloadVisitors = globalMetrics.downloadVisitors?.[0]?.data || [];
 
   // Generate breakdown distributions
-  const viewsDistribution = generateBreakdownData(globalViews, items.length, dates);
-  const downloadsDistribution = generateBreakdownData(globalDownloads, items.length, dates);
-  const visitorsDistribution = generateBreakdownData(globalVisitors, items.length, dates);
+  const viewUniqueRecordsDistribution = generateBreakdownData(globalViewUniqueRecords, items.length, dates);
+  const downloadUniqueFilesDistribution = generateBreakdownData(globalDownloadUniqueFiles, items.length, dates);
   const dataVolumeDistribution = generateBreakdownData(globalDataVolume, items.length, dates);
+  const viewVisitorsDistribution = generateBreakdownData(globalViewVisitors, items.length, dates);
+  const downloadVisitorsDistribution = generateBreakdownData(globalDownloadVisitors, items.length, dates);
 
   return {
-    views: items.map((item, itemIndex) => {
-      const dataPoints = viewsDistribution.map((distribution, dateIndex) => {
+    // Core metrics used by chart components
+    viewUniqueRecords: items.map((item, itemIndex) => {
+      const dataPoints = viewUniqueRecordsDistribution.map((distribution, dateIndex) => {
         const date = dates[dateIndex];
         const value = distribution[itemIndex] || 0;
         return createDataPoint(date, value, 'number', year);
       });
       return createDataSeries(item.id, item.name, dataPoints, 'line', 'number', year);
     }),
-    downloads: items.map((item, itemIndex) => {
-      const dataPoints = downloadsDistribution.map((distribution, dateIndex) => {
-        const date = dates[dateIndex];
-        const value = distribution[itemIndex] || 0;
-        return createDataPoint(date, value, 'number', year);
-      });
-      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number', year);
-    }),
-    visitors: items.map((item, itemIndex) => {
-      const dataPoints = visitorsDistribution.map((distribution, dateIndex) => {
+    downloadUniqueFiles: items.map((item, itemIndex) => {
+      const dataPoints = downloadUniqueFilesDistribution.map((distribution, dateIndex) => {
         const date = dates[dateIndex];
         const value = distribution[itemIndex] || 0;
         return createDataPoint(date, value, 'number', year);
@@ -404,6 +450,23 @@ const createUsageSubcountSeries = (categoryName, items, isSnapshot = false, glob
         return createDataPoint(date, value, 'filesize', year);
       });
       return createDataSeries(item.id, item.name, dataPoints, 'line', 'filesize', year);
+    }),
+    // Additional metrics for completeness (not used by components but may be useful for testing)
+    viewVisitors: items.map((item, itemIndex) => {
+      const dataPoints = viewVisitorsDistribution.map((distribution, dateIndex) => {
+        const date = dates[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number', year);
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number', year);
+    }),
+    downloadVisitors: items.map((item, itemIndex) => {
+      const dataPoints = downloadVisitorsDistribution.map((distribution, dateIndex) => {
+        const date = dates[dateIndex];
+        const value = distribution[itemIndex] || 0;
+        return createDataPoint(date, value, 'number', year);
+      });
+      return createDataSeries(item.id, item.name, dataPoints, 'line', 'number', year);
     })
   };
 };
@@ -543,184 +606,209 @@ const sampleRecords = [
   }
 ];
 
-// Create the test data structure that matches the dataTransformer output
-const generateTestStatsData = async (startDate, endDate) => {
-  // Generate dates once at the top
-  const dates = generateDates(startDate, endDate);
-  // Extract year once at the top (all dates should be in the same year)
-  const year = dates.length > 0 ? new Date(dates[0]).getFullYear() : new Date().getFullYear();
-
+/** Generate a single yearly stats object for a specific year
+ * 
+ *  @param {number} year - The year to generate the stats object for
+ *  @param {Array} dates - An array of dates
+ *  @returns {Object} A yearly stats object
+ */ 
+const generateYearlyStatsObject = (year, dates) => {
   return {
-  // Record Delta Data
-  recordDeltaDataCreated: (() => {
-    const globalMetrics = createRecordMetrics(false, dates, year);
-    return {
-      global: globalMetrics,
-      filePresence: createFilePresenceMetrics(false, dates, year),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
-      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
-      languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
-      affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year),
-      funders: createSubcountSeries('funders', fundersItems, false, globalMetrics, dates, year),
-      subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
-      publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
-      periodicals: createSubcountSeries('periodicals', periodicalsItems, false, globalMetrics, dates, year),
-      rights: createSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
-      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year)
-    };
-  })(),
+    year: year,
+    recordDeltaDataCreated: (() => {
+      const globalMetrics = createRecordMetrics(false, dates, year);
+      return {
+        global: globalMetrics,
+        filePresence: createFilePresenceMetrics(false, dates, year),
+        resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
+        accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
+        languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
+        affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year),
+        funders: createSubcountSeries('funders', fundersItems, false, globalMetrics, dates, year),
+        subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
+        publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
+        periodicals: createSubcountSeries('periodicals', periodicalsItems, false, globalMetrics, dates, year),
+        rights: createSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
+        fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year)
+      };
+    })(),
 
-  recordDeltaDataAdded: (() => {
-    const globalMetrics = createRecordMetrics(false, dates, year);
-    return {
-      global: globalMetrics,
-      filePresence: createFilePresenceMetrics(false, dates, year),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
-      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
-      languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
-      affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year),
-      funders: createSubcountSeries('funders', fundersItems, false, globalMetrics, dates, year),
-      subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
-      publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
-      periodicals: createSubcountSeries('periodicals', periodicalsItems, false, globalMetrics, dates, year),
-      rights: createSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
-      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year)
-    };
-  })(),
+    recordDeltaDataAdded: (() => {
+      const globalMetrics = createRecordMetrics(false, dates, year);
+      return {
+        global: globalMetrics,
+        filePresence: createFilePresenceMetrics(false, dates, year),
+        resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
+        accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
+        languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
+        affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year),
+        funders: createSubcountSeries('funders', fundersItems, false, globalMetrics, dates, year),
+        subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
+        publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
+        periodicals: createSubcountSeries('periodicals', periodicalsItems, false, globalMetrics, dates, year),
+        rights: createSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
+        fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year)
+      };
+    })(),
 
-  recordDeltaDataPublished: (() => {
-    const globalMetrics = createRecordMetrics(false, dates, year);
-    return {
-      global: globalMetrics,
-      filePresence: createFilePresenceMetrics(false, dates, year),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
-      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
-      languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
-      affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year),
-      funders: createSubcountSeries('funders', fundersItems, false, globalMetrics, dates, year),
-      subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
-      publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
-      periodicals: createSubcountSeries('periodicals', periodicalsItems, false, globalMetrics, dates, year),
-      rights: createSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
-      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year)
-    };
-  })(),
+    recordDeltaDataPublished: (() => {
+      const globalMetrics = createRecordMetrics(false, dates, year);
+      return {
+        global: globalMetrics,
+        filePresence: createFilePresenceMetrics(false, dates, year),
+        resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
+        accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
+        languages: createSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
+        affiliations: createSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year),
+        funders: createSubcountSeries('funders', fundersItems, false, globalMetrics, dates, year),
+        subjects: createSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
+        publishers: createSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
+        periodicals: createSubcountSeries('periodicals', periodicalsItems, false, globalMetrics, dates, year),
+        rights: createSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
+        fileTypes: createSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year)
+      };
+    })(),
 
-  // Record Snapshot Data
-  recordSnapshotDataCreated: (() => {
-    const globalMetrics = createRecordMetrics(true, dates, year);
-    return {
-      global: globalMetrics,
-      filePresence: createFilePresenceMetrics(true, dates, year),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
-      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
-      languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
-      affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
-      funders: createSubcountSeries('funders', fundersItems, true, globalMetrics, dates, year),
-      subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
-      publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
-      periodicals: createSubcountSeries('periodicals', periodicalsItems, true, globalMetrics, dates, year),
-      rights: createSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
-      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates)
-    };
-  })(),
+    // Record Snapshot Data
+    recordSnapshotDataCreated: (() => {
+      const globalMetrics = createRecordMetrics(true, dates, year);
+      return {
+        global: globalMetrics,
+        filePresence: createFilePresenceMetrics(true, dates, year),
+        resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
+        accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
+        languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
+        affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
+        funders: createSubcountSeries('funders', fundersItems, true, globalMetrics, dates, year),
+        subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
+        publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
+        periodicals: createSubcountSeries('periodicals', periodicalsItems, true, globalMetrics, dates, year),
+        rights: createSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
+        fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates)
+      };
+    })(),
 
-  recordSnapshotDataAdded: (() => {
-    const globalMetrics = createRecordMetrics(true, dates, year);
-    return {
-      global: globalMetrics,
-      filePresence: createFilePresenceMetrics(true, dates, year),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
-      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
-      languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
-      affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
-      funders: createSubcountSeries('funders', fundersItems, true, globalMetrics, dates, year),
-      subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
-      publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
-      periodicals: createSubcountSeries('periodicals', periodicalsItems, true, globalMetrics, dates, year),
-      rights: createSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
-      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates)
-    };
-  })(),
+    recordSnapshotDataAdded: (() => {
+      const globalMetrics = createRecordMetrics(true, dates, year);
+      return {
+        global: globalMetrics,
+        filePresence: createFilePresenceMetrics(true, dates, year),
+        resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
+        accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
+        languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
+        affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
+        funders: createSubcountSeries('funders', fundersItems, true, globalMetrics, dates, year),
+        subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
+        publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
+        periodicals: createSubcountSeries('periodicals', periodicalsItems, true, globalMetrics, dates, year),
+        rights: createSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
+        fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates)
+      };
+    })(),
 
-  recordSnapshotDataPublished: (() => {
-    const globalMetrics = createRecordMetrics(true, dates, year);
-    return {
-      global: globalMetrics,
-      filePresence: createFilePresenceMetrics(true, dates, year),
-      resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
-      accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
-      languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
-      affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
-      funders: createSubcountSeries('funders', fundersItems, true, globalMetrics, dates, year),
-      subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
-      publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
-      periodicals: createSubcountSeries('periodicals', periodicalsItems, true, globalMetrics, dates, year),
-      rights: createSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
-      fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates)
-    };
-  })(),
+    recordSnapshotDataPublished: (() => {
+      const globalMetrics = createRecordMetrics(true, dates, year);
+      return {
+        global: globalMetrics,
+        filePresence: createFilePresenceMetrics(true, dates, year),
+        resourceTypes: createSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
+        accessStatuses: createSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
+        languages: createSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
+        affiliations: createSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
+        funders: createSubcountSeries('funders', fundersItems, true, globalMetrics, dates, year),
+        subjects: createSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
+        publishers: createSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
+        periodicals: createSubcountSeries('periodicals', periodicalsItems, true, globalMetrics, dates, year),
+        rights: createSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
+        fileTypes: createSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates)
+      };
+    })(),
 
-  // Usage Delta Data
-  usageDeltaData: (() => {
-    const globalMetrics = createUsageMetrics(false, dates, year);
-    return {
-      global: globalMetrics,
-      accessStatuses: createUsageSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
-      fileTypes: createUsageSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year),
-      languages: createUsageSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
-      resourceTypes: createUsageSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
-      // subjects: createUsageSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
-      publishers: createUsageSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
-      rights: createUsageSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
-      countries: createUsageSubcountSeries('countries', countriesItems, false, globalMetrics, dates, year),
-      // referrers: createUsageSubcountSeries('referrers', referrersItems, false, globalMetrics, dates, year),
-      affiliations: createUsageSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year)
-    };
-  })(),
+    // Usage Delta Data
+    usageDeltaData: (() => {
+      const globalMetrics = createUsageMetrics(false, dates, year);
+      return {
+        global: globalMetrics,
+        accessStatuses: createUsageSubcountSeries('accessStatuses', accessStatusesItems, false, globalMetrics, dates, year),
+        fileTypes: createUsageSubcountSeries('fileTypes', fileTypesItems, false, globalMetrics, dates, year),
+        languages: createUsageSubcountSeries('languages', languagesItems, false, globalMetrics, dates, year),
+        resourceTypes: createUsageSubcountSeries('resourceTypes', resourceTypesItems, false, globalMetrics, dates, year),
+        // subjects: createUsageSubcountSeries('subjects', subjectsItems, false, globalMetrics, dates, year),
+        publishers: createUsageSubcountSeries('publishers', publishersItems, false, globalMetrics, dates, year),
+        rights: createUsageSubcountSeries('rights', rightsItems, false, globalMetrics, dates, year),
+        countries: createUsageSubcountSeries('countries', countriesItems, false, globalMetrics, dates, year),
+        // referrers: createUsageSubcountSeries('referrers', referrersItems, false, globalMetrics, dates, year),
+        affiliations: createUsageSubcountSeries('affiliations', affiliationsItems, false, globalMetrics, dates, year)
+      };
+    })(),
 
-  // Usage Snapshot Data
-  usageSnapshotData: (() => {
-    const globalMetrics = createUsageMetrics(true, dates, year);
-    return {
-      global: globalMetrics,
-      accessStatuses: createUsageSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
-      fileTypes: createUsageSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates, year),
-      languages: createUsageSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
-      resourceTypes: createUsageSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
-      // subjects: createUsageSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
-      publishers: createUsageSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
-      rights: createUsageSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
-      countries: createUsageSubcountSeries('countries', countriesItems, true, globalMetrics, dates, year),
-      // referrers: createUsageSubcountSeries('referrers', referrersItems, true, globalMetrics, dates, year),
-      affiliations: createUsageSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
-      countriesByView: createUsageSubcountSeries('countriesByView', countriesItems, true, globalMetrics, dates, year),
-      countriesByDownload: createUsageSubcountSeries('countriesByDownload', countriesItems, true, globalMetrics, dates, year),
-      // subjectsByView: createUsageSubcountSeries('subjectsByView', subjectsItems, true, globalMetrics, dates, year),
-      // subjectsByDownload: createUsageSubcountSeries('subjectsByDownload', subjectsItems, true, globalMetrics, dates, year),
-      publishersByView: createUsageSubcountSeries('publishersByView', publishersItems, true, globalMetrics, dates, year),
-      publishersByDownload: createUsageSubcountSeries('publishersByDownload', publishersItems, true, globalMetrics, dates, year),
-      rightsByView: createUsageSubcountSeries('rightsByView', rightsItems, true, globalMetrics, dates, year),
-      rightsByDownload: createUsageSubcountSeries('rightsByDownload', rightsItems, true, globalMetrics, dates, year),
-      // referrersByView: createUsageSubcountSeries('referrersByView', referrersItems, true, globalMetrics, dates)
-    };
-  })(),
+    // Usage Snapshot Data
+    usageSnapshotData: (() => {
+      const globalMetrics = createUsageMetrics(true, dates, year);
+      return {
+        global: globalMetrics,
+        accessStatuses: createUsageSubcountSeries('accessStatuses', accessStatusesItems, true, globalMetrics, dates, year),
+        fileTypes: createUsageSubcountSeries('fileTypes', fileTypesItems, true, globalMetrics, dates, year),
+        languages: createUsageSubcountSeries('languages', languagesItems, true, globalMetrics, dates, year),
+        resourceTypes: createUsageSubcountSeries('resourceTypes', resourceTypesItems, true, globalMetrics, dates, year),
+        // subjects: createUsageSubcountSeries('subjects', subjectsItems, true, globalMetrics, dates, year),
+        publishers: createUsageSubcountSeries('publishers', publishersItems, true, globalMetrics, dates, year),
+        rights: createUsageSubcountSeries('rights', rightsItems, true, globalMetrics, dates, year),
+        countries: createUsageSubcountSeries('countries', countriesItems, true, globalMetrics, dates, year),
+        // referrers: createUsageSubcountSeries('referrers', referrersItems, true, globalMetrics, dates, year),
+        affiliations: createUsageSubcountSeries('affiliations', affiliationsItems, true, globalMetrics, dates, year),
+        countriesByView: createUsageSubcountSeries('countriesByView', countriesItems, true, globalMetrics, dates, year),
+        countriesByDownload: createUsageSubcountSeries('countriesByDownload', countriesItems, true, globalMetrics, dates, year),
+        // subjectsByView: createUsageSubcountSeries('subjectsByView', subjectsItems, true, globalMetrics, dates, year),
+        // subjectsByDownload: createUsageSubcountSeries('subjectsByDownload', subjectsItems, true, globalMetrics, dates, year),
+        publishersByView: createUsageSubcountSeries('publishersByView', publishersItems, true, globalMetrics, dates, year),
+        publishersByDownload: createUsageSubcountSeries('publishersByDownload', publishersItems, true, globalMetrics, dates, year),
+        rightsByView: createUsageSubcountSeries('rightsByView', rightsItems, true, globalMetrics, dates, year),
+        rightsByDownload: createUsageSubcountSeries('rightsByDownload', rightsItems, true, globalMetrics, dates, year),
+        // referrersByView: createUsageSubcountSeries('referrersByView', referrersItems, true, globalMetrics, dates)
+      };
+    })(),
 
-  // TODO: Implement these in the API data
-  // Most viewed/downloaded records data (for backward compatibility)
-  mostViewedRecords: sampleRecords.map(record => ({
-    title: record.title,
-    views: record.views,
-    percentage: Math.round((record.views / 4518517) * 100), // Total of all views
-    id: record.id,
-  })),
+    // mostViewedRecords: sampleRecords.map(record => ({
+    //   title: record.title,
+    //   views: record.views,
+    //   percentage: Math.round((record.views / 4518517) * 100), // Total of all views
+    //   id: record.id,
+    // })),
 
-  mostDownloadedRecords: sampleRecords.map(record => ({
-    title: record.title,
-    downloads: record.downloads,
-    percentage: Math.round((record.downloads / 918517) * 100), // Total of all downloads
-    id: record.id,
-  }))
-}};
+    // mostDownloadedRecords: sampleRecords.map(record => ({
+    //   title: record.title,
+    //   downloads: record.downloads,
+    //   percentage: Math.round((record.downloads / 918517) * 100), // Total of all downloads
+    //   id: record.id,
+    // }))
+  };
+};
+
+/** Create the test data structure that matches the dataTransformer output
+ * 
+ *  Generate a yearly stats object for each year in the range.
+ * 
+ *  @param {Date} startDate - The start date of the date range
+ *  @param {Date} endDate - The end date of the date range
+ *  @returns {Array} An array of yearly stats objects
+*/ 
+const generateTestStatsData = async (startDate, endDate) => {
+  const startYear = new Date(startDate).getFullYear();
+  const endYear = new Date(endDate).getFullYear();
+  
+  const yearlyStatsArray = [];
+  
+  for (let year = startYear; year <= endYear; year++) {
+    const dates = generateDatesForYear(startDate, endDate, year);
+
+    if (dates.length > 0) {
+      const yearlyStats = generateYearlyStatsObject(year, dates);
+      yearlyStatsArray.push(yearlyStats);
+    }
+  }
+  
+  return yearlyStatsArray;
+};
 
 export { createDataPoint, createDataSeries, createGlobalSeries, sampleRecords, generateTestStatsData };

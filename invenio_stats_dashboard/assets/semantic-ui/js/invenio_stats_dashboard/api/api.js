@@ -350,7 +350,7 @@ const fetchStats = async ({
   try {
     // Use yearly block system for efficient caching
     if (useTestData) {
-      // For test data, use legacy approach
+      // For test data, generate array of yearly stats objects (same format as backend)
       updateState(onStateChange, isMounted, "loading_started", currentStats);
 
       const rawStats = await generateTestStatsData(startDate, endDate);

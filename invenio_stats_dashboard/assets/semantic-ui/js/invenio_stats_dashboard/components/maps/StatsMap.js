@@ -12,8 +12,9 @@ import countriesGeoJson from "./data/countries.json";
 import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { Header, Segment, Loader, Message } from "semantic-ui-react";
-import { extractCountryMapData } from "../../utils/mapHelpers";
-import { formatDate } from "../../utils";
+import { extractCountryMapData, calculateMinZoom } from "../../utils/mapHelpers";
+import { formatDate, lightenAndDesaturate } from "../../utils";
+import { CHART_COLORS } from "../../constants";
 
 const StatsMap = ({
   title,
@@ -23,11 +24,14 @@ const StatsMap = ({
   center = [0, -20],
   metric = "views",
   useSnapshot = true,
+  uniformColorMode = false,
 }) => {
   const [isMapRegistered, setIsMapRegistered] = useState(false);
   const [dateRangeSubtitle, setDateRangeSubtitle] = useState(null);
+  const [minZoom, setMinZoom] = useState(Math.max(1, zoom));
   const { stats, dateRange, isLoading } = useStatsDashboard();
   const chartRef = React.useRef(null);
+  const containerRef = React.useRef(null);
 
   useEffect(() => {
     // Only register the map if it hasn't been registered yet
@@ -80,6 +84,19 @@ const StatsMap = ({
     );
   }, [isLoading, mapData]);
 
+  // Calculate minimum zoom based on actual container dimensions
+  // Ensures map fills at least one dimension (width or height)
+  useEffect(() => {
+    if (!containerRef.current || !isMapRegistered) return;
+    
+    const container = containerRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight || height;
+    
+    const calculatedMinZoom = calculateMinZoom(containerWidth, containerHeight, 2.0, zoom);
+    setMinZoom(calculatedMinZoom);
+  }, [isMapRegistered, height, zoom]);
+
   const option = {
     aria: {
       enabled: true,
@@ -94,21 +111,30 @@ const StatsMap = ({
         return `${params.data?.readableName || params.data?.originalName || params.name}: ${params.data.value}`;
       },
     },
-    visualMap: {
-      type: "continuous",
-      min: 0,
-      max: maxValue,
-      left: "5%",
-      bottom: "5%",
-      text: ["High", "Low"],
-      calculable: true,
-      inRange: {
-        color: ["#b3cde3", "#023858"],
-      },
-      textStyle: {
-        color: "#333",
-      },
-    },
+    visualMap: uniformColorMode
+      ? {
+          type: "piecewise",
+          show: false,
+          pieces: [
+            { min: 0, max: 0, color: "#b3cde3" },
+            { min: 0.0001, max: Infinity, color: lightenAndDesaturate(CHART_COLORS.secondary[1][1], 0.3, 0.05) }, // Light, desaturated orange
+          ],
+        }
+      : {
+          type: "continuous",
+          min: 0,
+          max: maxValue,
+          left: "5%",
+          bottom: "5%",
+          text: ["High", "Low"],
+          calculable: true,
+          inRange: {
+            color: ["#b3cde3", "#023858"],
+          },
+          textStyle: {
+            color: "#333",
+          },
+        },
     series: [
       {
         name:
@@ -124,6 +150,10 @@ const StatsMap = ({
         roam: true,
         zoom: zoom,
         center: center,
+        scaleLimit: {
+          min: minZoom,
+          max: 10,
+        },
         data: mapData,
         emphasis: {
           label: {
@@ -166,6 +196,7 @@ const StatsMap = ({
         attached="bottom"
         className="stats-map pb-0 pt-0 pr-0 pl-0 rel-mb-1"
         style={{ height: height, minHeight: minHeight }}
+        ref={containerRef}
       >
         {isLoading ? (
           <div className="stats-map-loading-container">
@@ -209,6 +240,7 @@ StatsMap.propTypes = {
   metric: PropTypes.oneOf(["views", "downloads", "visitors", "dataVolume"]),
   useSnapshot: PropTypes.bool,
   width: PropTypes.number,
+  uniformColorMode: PropTypes.bool,
 };
 
 export { StatsMap };
