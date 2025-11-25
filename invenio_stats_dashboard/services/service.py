@@ -202,8 +202,11 @@ class CommunityStatsService:
             record_search = record_search.query({"match_all": {}})
 
         if not community_ids:
-            communities = current_communities.service.read_all(system_identity, [])
-            community_ids = [c["id"] for c in communities]
+            # Use scan() to get all communities without size limits
+            all_communities = list(
+                current_communities.service.scan(system_identity)
+            )
+            community_ids = [c["id"] for c in all_communities]
 
         total_records = 0
         records_needing_events = 0
@@ -337,8 +340,11 @@ class CommunityStatsService:
             record_search = record_search.query({"match_all": {}})
 
         if not community_ids:
-            communities = current_communities.service.read_all(system_identity, [])
-            community_ids = [c["id"] for c in communities]
+            # Use scan() to get all communities without size limits
+            all_communities = list(
+                current_communities.service.scan(system_identity)
+            )
+            community_ids = [c["id"] for c in all_communities]
 
         for result in record_search.scan():
             record_id = result["id"]
