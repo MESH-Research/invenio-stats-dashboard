@@ -666,7 +666,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "StatsMap",
                                 "width": 16,
                                 "props": {
-                                    "title": "Country of Origin for Visits",
+                                    "title": "All Countries of Origin for Visits",
                                     "height": 400,
                                     "minHeight": 400,
                                     "zoom": 1.3,
@@ -836,7 +836,7 @@ STATS_DASHBOARD_LAYOUT = {
                                 "component": "StatsMap",
                                 "width": 16,
                                 "props": {
-                                    "title": "Top Countries by Visits",
+                                    "title": "Top Countries of Origin for Visits",
                                     "height": 400,
                                     "minHeight": 400,
                                     "zoom": 1.3,

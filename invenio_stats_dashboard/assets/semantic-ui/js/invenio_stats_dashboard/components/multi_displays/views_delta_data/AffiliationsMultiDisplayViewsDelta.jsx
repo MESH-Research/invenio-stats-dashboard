@@ -12,115 +12,117 @@ import { useStatsDashboard } from "../../../context/StatsDashboardContext";
 import { CHART_COLORS } from "../../../constants";
 import { formatDate } from "../../../utils";
 import {
-  transformMultiDisplayData,
-  assembleMultiDisplayRows,
-  extractData,
-  generateMultiDisplayChartOptions,
+	transformMultiDisplayData,
+	assembleMultiDisplayRows,
+	extractData,
+	generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
 const AffiliationsMultiDisplayViewsDelta = ({
-  title = i18next.t("Affiliations"),
-  icon: labelIcon = "university",
-  pageSize = 10,
-  headers = [i18next.t("Affiliation"), i18next.t("Views")],
-  default_view = "pie",
-  available_views = ["pie", "bar", "list"],
-  hideOtherInCharts = false,
-  ...otherProps
+	title = i18next.t("Affiliations"),
+	icon: labelIcon = "university",
+	pageSize = 10,
+	headers = [i18next.t("Affiliation"), i18next.t("Views")],
+	default_view = "pie",
+	available_views = ["pie", "bar", "list"],
+	hideOtherInCharts = false,
+	...otherProps
 }) => {
-  const { stats, dateRange, isLoading } = useStatsDashboard();
-  const [subtitle, setSubtitle] = useState(null);
+	const { stats, dateRange, isLoading } = useStatsDashboard();
+	const [subtitle, setSubtitle] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setSubtitle(
-        i18next.t("during") + " " + formatDate(dateRange.start, "day", true, dateRange.end)
-      );
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setSubtitle(
+				i18next.t("during") +
+					" " +
+					formatDate(dateRange.start, "day", true, dateRange.end),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract usage delta data for views
-  const rawData = extractData(
-    stats,
-    null,
-    "affiliations",
-    "viewUniqueRecords",
-    dateRange,
-    true,
-    true, // isUsageData = true
-  );
-  const globalData = extractData(
-    stats,
-    null,
-    "global",
-    "viewUniqueRecords",
-    dateRange,
-    true,
-    true, // isUsageData = true
-  );
+	// Extract usage delta data for views
+	const rawData = extractData(
+		stats,
+		null,
+		"affiliations",
+		"viewUniqueRecords",
+		dateRange,
+		true,
+		true, // isUsageData = true
+	);
+	const globalData = extractData(
+		stats,
+		null,
+		"global",
+		"viewUniqueRecords",
+		dateRange,
+		true,
+		true, // isUsageData = true
+	);
 
-  const {
-    transformedData,
-    otherData,
-    originalOtherData,
-    totalCount,
-    otherPercentage,
-  } = transformMultiDisplayData(
-    rawData,
-    pageSize,
-    "metadata.affiliations.affiliation",
-    CHART_COLORS.secondary,
-    hideOtherInCharts,
-    globalData,
-    true,
-  );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+	const {
+		transformedData,
+		otherData,
+		originalOtherData,
+		totalCount,
+		otherPercentage,
+	} = transformMultiDisplayData(
+		rawData,
+		pageSize,
+		"metadata.creators.affiliations.id",
+		CHART_COLORS.secondary,
+		hideOtherInCharts,
+		globalData,
+		true,
+	);
+	const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const chartOptions = generateMultiDisplayChartOptions(
-    transformedData,
-    otherData,
-    available_views,
-    otherPercentage,
-    originalOtherData,
-    hideOtherInCharts,
-  );
+	const chartOptions = generateMultiDisplayChartOptions(
+		transformedData,
+		otherData,
+		available_views,
+		otherPercentage,
+		originalOtherData,
+		hideOtherInCharts,
+	);
 
-  return (
-    <StatsMultiDisplay
-      title={title}
-      subtitle={subtitle}
-      icon={labelIcon}
-      label={"affiliations"}
-      headers={headers}
-      rows={rowsWithLinks}
-      chartOptions={chartOptions}
-      defaultViewMode={default_view}
-      isLoading={isLoading}
-      isDelta={true}
-      dateRangeEnd={dateRange?.end}
-      metricType="views"
-      onEvents={{
-        click: (params) => {
-          if (params.data && params.data.id) {
-            window.open(params.data.link, "_blank");
-          }
-        },
-      }}
-      {...otherProps}
-    />
-  );
+	return (
+		<StatsMultiDisplay
+			title={title}
+			subtitle={subtitle}
+			icon={labelIcon}
+			label={"affiliations"}
+			headers={headers}
+			rows={rowsWithLinks}
+			chartOptions={chartOptions}
+			defaultViewMode={default_view}
+			isLoading={isLoading}
+			isDelta={true}
+			dateRangeEnd={dateRange?.end}
+			metricType="views"
+			onEvents={{
+				click: (params) => {
+					if (params.data && params.data.id) {
+						window.open(params.data.link, "_blank");
+					}
+				},
+			}}
+			{...otherProps}
+		/>
+	);
 };
 
 AffiliationsMultiDisplayViewsDelta.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  headers: PropTypes.array,
-  rows: PropTypes.array,
-  default_view: PropTypes.string,
-  pageSize: PropTypes.number,
-  available_views: PropTypes.arrayOf(PropTypes.string),
-  hideOtherInCharts: PropTypes.bool,
-  width: PropTypes.number,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	headers: PropTypes.array,
+	rows: PropTypes.array,
+	default_view: PropTypes.string,
+	pageSize: PropTypes.number,
+	available_views: PropTypes.arrayOf(PropTypes.string),
+	hideOtherInCharts: PropTypes.bool,
+	width: PropTypes.number,
 };
 
 export { AffiliationsMultiDisplayViewsDelta };

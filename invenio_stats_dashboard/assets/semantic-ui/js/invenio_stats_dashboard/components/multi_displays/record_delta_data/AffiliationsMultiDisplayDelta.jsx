@@ -12,75 +12,99 @@ import { useStatsDashboard } from "../../../context/StatsDashboardContext";
 import { CHART_COLORS, RECORD_START_BASES } from "../../../constants";
 import { formatDate } from "../../../utils";
 import {
-  transformMultiDisplayData,
-  assembleMultiDisplayRows,
-  extractData,
-  generateMultiDisplayChartOptions
+	transformMultiDisplayData,
+	assembleMultiDisplayRows,
+	extractData,
+	generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
 const AffiliationsMultiDisplayDelta = ({
-  title = i18next.t("Affiliations"),
-  icon: labelIcon = "university",
-  headers = [i18next.t("Affiliation"), i18next.t("Works")],
-  default_view,
-  pageSize = 10,
-  available_views = ["list", "pie", "bar"],
-  hideOtherInCharts = false,
-  ...otherProps
+	title = i18next.t("Affiliations"),
+	icon: labelIcon = "university",
+	headers = [i18next.t("Affiliation"), i18next.t("Works")],
+	default_view,
+	pageSize = 10,
+	available_views = ["list", "pie", "bar"],
+	hideOtherInCharts = false,
+	...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
-  const [subtitle, setSubtitle] = useState(null);
+	const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
+	const [subtitle, setSubtitle] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setSubtitle(
+				i18next.t("during") +
+					" " +
+					formatDate(dateRange.start, "day", true, dateRange.end),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract and process affiliations data using DELTA data (period-restricted)
-  const rawAffiliations = extractData(stats, recordStartBasis, 'affiliations', 'records', dateRange, true, false);
+	// Extract and process affiliations data using DELTA data (period-restricted)
+	const rawAffiliations = extractData(
+		stats,
+		recordStartBasis,
+		"affiliations",
+		"records",
+		dateRange,
+		true,
+		false,
+	);
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawAffiliations,
-    pageSize,
-    'metadata.creators.affiliations.name',
-    CHART_COLORS.secondary,
-    hideOtherInCharts,
-    null,
-    true, // isDelta = true for delta data
-  );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+	const {
+		transformedData,
+		otherData,
+		originalOtherData,
+		totalCount,
+		otherPercentage,
+	} = transformMultiDisplayData(
+		rawAffiliations,
+		pageSize,
+		"metadata.creators.affiliations.id",
+		CHART_COLORS.secondary,
+		hideOtherInCharts,
+		null,
+		true, // isDelta = true for delta data
+	);
+	const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
+	const chartOptions = generateMultiDisplayChartOptions(
+		transformedData,
+		otherData,
+		available_views,
+		otherPercentage,
+		originalOtherData,
+		hideOtherInCharts,
+	);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
-
-  return (
-    <StatsMultiDisplay
-      title={title}
-      subtitle={subtitle}
-      icon={labelIcon}
-      headers={headers}
-      defaultViewMode={default_view}
-      available_views={available_views}
-      pageSize={pageSize}
-      totalCount={totalCount}
-      chartOptions={chartOptions}
-      rows={rowsWithLinks}
-      label={"affiliations"}
-      isLoading={isLoading}
-      {...otherProps}
-    />
-  );
+	return (
+		<StatsMultiDisplay
+			title={title}
+			subtitle={subtitle}
+			icon={labelIcon}
+			headers={headers}
+			defaultViewMode={default_view}
+			available_views={available_views}
+			pageSize={pageSize}
+			totalCount={totalCount}
+			chartOptions={chartOptions}
+			rows={rowsWithLinks}
+			label={"affiliations"}
+			isLoading={isLoading}
+			{...otherProps}
+		/>
+	);
 };
 
 AffiliationsMultiDisplayDelta.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  headers: PropTypes.array,
-  default_view: PropTypes.string,
-  pageSize: PropTypes.number,
-  available_views: PropTypes.arrayOf(PropTypes.string),
-  hideOtherInCharts: PropTypes.bool,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	headers: PropTypes.array,
+	default_view: PropTypes.string,
+	pageSize: PropTypes.number,
+	available_views: PropTypes.arrayOf(PropTypes.string),
+	hideOtherInCharts: PropTypes.bool,
 };
 
 export { AffiliationsMultiDisplayDelta };

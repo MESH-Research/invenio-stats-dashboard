@@ -12,113 +12,112 @@ import { useStatsDashboard } from "../../../context/StatsDashboardContext";
 import { CHART_COLORS, RECORD_START_BASES } from "../../../constants";
 import { formatDate } from "../../../utils";
 import {
-  transformMultiDisplayData,
-  assembleMultiDisplayRows,
-  extractData,
-  generateMultiDisplayChartOptions,
+	transformMultiDisplayData,
+	assembleMultiDisplayRows,
+	extractData,
+	generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
 const LanguagesMultiDisplay = ({
-  title = i18next.t("Languages"),
-  icon: labelIcon = "language",
-  headers = [i18next.t("Language"), i18next.t("Works")],
-  default_view = "pie",
-  pageSize = 10,
-  available_views = ["pie", "bar", "list"],
-  hideOtherInCharts = false,
-  ...otherProps
+	title = i18next.t("Languages"),
+	icon: labelIcon = "language",
+	headers = [i18next.t("Language"), i18next.t("Works")],
+	default_view = "pie",
+	pageSize = 10,
+	available_views = ["pie", "bar", "list"],
+	hideOtherInCharts = false,
+	...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
-  const [subtitle, setSubtitle] = useState(null);
+	const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
+	const [subtitle, setSubtitle] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setSubtitle(
-        i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
-      );
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setSubtitle(
+				i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract and process languages data
-  const rawLanguages = extractData(
-    stats,
-    recordStartBasis,
-    "languages",
-    "records",
-    dateRange,
-    false,
-    false,
-  );
-  const globalData = extractData(
-    stats,
-    recordStartBasis,
-    "global",
-    "records",
-    dateRange,
-    false,
-    false,
-  );
+	// Extract and process languages data
+	const rawLanguages = extractData(
+		stats,
+		recordStartBasis,
+		"languages",
+		"records",
+		dateRange,
+		false,
+		false,
+	);
+	const globalData = extractData(
+		stats,
+		recordStartBasis,
+		"global",
+		"records",
+		dateRange,
+		false,
+		false,
+	);
 
-  const {
-    transformedData,
-    otherData,
-    originalOtherData,
-    totalCount,
-    otherPercentage,
-  } = transformMultiDisplayData(
-    rawLanguages,
-    pageSize,
-    "metadata.language.id",
-    CHART_COLORS.secondary,
-    hideOtherInCharts,
-    globalData,
-    false, // isDelta = false for snapshot data
-  );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+	const {
+		transformedData,
+		otherData,
+		originalOtherData,
+		totalCount,
+		otherPercentage,
+	} = transformMultiDisplayData(
+		rawLanguages,
+		pageSize,
+		"metadata.languages.id",
+		CHART_COLORS.secondary,
+		hideOtherInCharts,
+		globalData,
+		false, // isDelta = false for snapshot data
+	);
+	const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const chartOptions = generateMultiDisplayChartOptions(
-    transformedData,
-    otherData,
-    available_views,
-    otherPercentage,
-    originalOtherData,
-    hideOtherInCharts,
-  );
+	const chartOptions = generateMultiDisplayChartOptions(
+		transformedData,
+		otherData,
+		available_views,
+		otherPercentage,
+		originalOtherData,
+		hideOtherInCharts,
+	);
 
-  return (
-    <StatsMultiDisplay
-      title={title}
-      subtitle={subtitle}
-      icon={labelIcon}
-      label={"languages"}
-      headers={headers}
-      rows={rowsWithLinks}
-      chartOptions={chartOptions}
-      defaultViewMode={default_view}
-      isLoading={isLoading}
-      isDelta={false}
-      dateRangeEnd={dateRange?.end}
-      onEvents={{
-        click: (params) => {
-          if (params.data && params.data.id) {
-            window.open(params.data.link, "_blank");
-          }
-        },
-      }}
-      {...otherProps}
-    />
-  );
+	return (
+		<StatsMultiDisplay
+			title={title}
+			subtitle={subtitle}
+			icon={labelIcon}
+			label={"languages"}
+			headers={headers}
+			rows={rowsWithLinks}
+			chartOptions={chartOptions}
+			defaultViewMode={default_view}
+			isLoading={isLoading}
+			isDelta={false}
+			dateRangeEnd={dateRange?.end}
+			onEvents={{
+				click: (params) => {
+					if (params.data && params.data.id) {
+						window.open(params.data.link, "_blank");
+					}
+				},
+			}}
+			{...otherProps}
+		/>
+	);
 };
 
 LanguagesMultiDisplay.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  headers: PropTypes.array,
-  default_view: PropTypes.string,
-  pageSize: PropTypes.number,
-  available_views: PropTypes.arrayOf(PropTypes.string),
-  hideOtherInCharts: PropTypes.bool,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	headers: PropTypes.array,
+	default_view: PropTypes.string,
+	pageSize: PropTypes.number,
+	available_views: PropTypes.arrayOf(PropTypes.string),
+	hideOtherInCharts: PropTypes.bool,
 };
 
 export { LanguagesMultiDisplay };
-

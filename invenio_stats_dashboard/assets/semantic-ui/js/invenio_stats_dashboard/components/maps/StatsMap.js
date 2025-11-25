@@ -105,10 +105,15 @@ const StatsMap = ({
       trigger: "item",
       fontSize: 14,
       formatter: (params) => {
-        if (!params.value || isNaN(params.value)) {
-          return `${params.data?.readableName || params.name}: 0`;
+        const countryName = params.data?.readableName || params.data?.originalName || params.name;
+        // In uniform color mode, don't show values since there's no scale
+        if (uniformColorMode) {
+          return countryName;
         }
-        return `${params.data?.readableName || params.data?.originalName || params.name}: ${params.data.value}`;
+        if (!params.value || isNaN(params.value)) {
+          return `${countryName}: 0`;
+        }
+        return `${countryName}: ${params.data.value}`;
       },
     },
     visualMap: uniformColorMode
@@ -174,6 +179,9 @@ const StatsMap = ({
         select: {
           itemStyle: {
             areaColor: "#e67e22",
+          },
+          label: {
+            show: false,
           },
         },
         defaultValue: "#b3cde3",

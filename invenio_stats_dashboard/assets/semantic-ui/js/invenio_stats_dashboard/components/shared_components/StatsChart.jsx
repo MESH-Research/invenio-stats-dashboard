@@ -84,6 +84,7 @@ const CHART_CONFIG = {
 				day: {
 					fontSize: 14,
 					lineHeight: 20,
+					padding: [-8, 0, 0, 0],
 				},
 				month: {
 					fontSize: 14,
@@ -226,10 +227,17 @@ class ChartConfigBuilder {
 			name: showAxisLabels ? xAxisLabel : undefined,
 			axisTick: {
 				...CHART_CONFIG.xAxis.axisTick,
+				length: granularity === "month" ? 6 : 5,
 				show: ["quarter", "year"].includes(granularity) ? false : true,
 			},
 			axisLabel: {
 				...CHART_CONFIG.xAxis.axisLabel,
+				rich: {
+					...CHART_CONFIG.xAxis.axisLabel.rich,
+					month: {
+						padding: [(granularity === "month" ? 4 : 16), 0, 0, 0],
+					},
+				},
 				show: ["quarter", "year"].includes(granularity) ? false : true,
 				formatter: (value) =>
 					ChartFormatter.formatXAxisLabel(value, granularity),
