@@ -168,6 +168,33 @@ def aggregate_stats_command(
     )
     click.echo(startup_message)
 
+    # Warn if ignore_bookmark is used with a date range that may be limited
+    if ignore_bookmark and (start_date or end_date):
+        catchup_interval = current_app.config.get(
+            "COMMUNITY_STATS_CATCHUP_INTERVAL", 365
+        )
+        if start_date and end_date:
+            start_dt = arrow.get(start_date)
+            end_dt = arrow.get(end_date)
+            days_requested = (end_dt - start_dt).days
+            if days_requested > catchup_interval:
+                click.echo(
+                    f"\n⚠️  WARNING: Date range ({days_requested} days) exceeds "
+                    f"COMMUNITY_STATS_CATCHUP_INTERVAL ({catchup_interval} days). "
+                    f"Aggregation will be limited to the first {catchup_interval} "
+                    f"days. Run the command again to continue processing the "
+                    f"remaining period.\n"
+                )
+        elif start_date:
+            # If only start_date is provided, we can't know the exact range,
+            # but we should still warn that it may be limited
+            click.echo(
+                f"\n⚠️  NOTE: With --ignore-bookmark, aggregation may be limited to "
+                f"COMMUNITY_STATS_CATCHUP_INTERVAL ({catchup_interval} days) from "
+                f"the start date. Run the command again to continue processing if "
+                f"needed.\n"
+            )
+
     with Halo(text="Aggregating stats...", spinner="dots"):
         result = current_community_stats_service.aggregate_stats(
             community_ids=community_ids,
@@ -972,7 +999,7 @@ def enable_dashboards_command(
 
             if verbose and len(successes) > 0:
                 print("==================================")
-                print(f"{len(successes)} communities could not be enabled")
+                print(f"{len(successes)} communities successfully enabled")
                 pprint(successes)
 
             if verbose and len(failures) > 0:
