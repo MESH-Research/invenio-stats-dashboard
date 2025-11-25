@@ -87,7 +87,6 @@ def global_stats_dashboard():
     test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", True)
     if test_data_flag in ["True", "true"]:
         test_data_flag = True
-    current_app.logger.debug(f"test_data_flag {test_data_flag}")
 
     return render_template(
         current_app.config["STATS_DASHBOARD_TEMPLATES"]["global"],
@@ -113,7 +112,7 @@ def global_stats_dashboard():
             ),
             "layout": current_app.config["STATS_DASHBOARD_LAYOUT"]["global_layout"],
             "ui_subcounts": current_app.config.get("STATS_DASHBOARD_UI_SUBCOUNTS", {}),
-            "use_test_data": True,  # FIXME: test_data_flag,
+            "use_test_data": test_data_flag,
             **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["global"],
         },
     )
