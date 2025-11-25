@@ -570,26 +570,18 @@ const FilterSelector = ({
 			{chartType === "line" && displaySeparately && (
 				<Popup
 					trigger={
-						<Button.Group size="small">
-							<Button
-								toggle
-								active={isStackedLine}
-								onClick={() => setIsStackedLine(true)}
-								aria-label="Stacked Line Chart Selector"
-								title="Stacked Line Chart Selector"
-							>
-								<Icon name="bars icon fitted" />
-							</Button>
-							<Button
-								toggle
-								active={!isStackedLine}
-								onClick={() => setIsStackedLine(false)}
-								aria-label="Overlapping Line Chart Selector"
-								title="Overlapping Line Chart Selector"
-							>
-								<Icon name="object ungroup outline icon fitted" />
-							</Button>
-						</Button.Group>
+						<Button
+							className="stats-chart-line-mode-toggle mobile only"
+							toggle
+							active={!!isStackedLine}
+							onClick={() => setIsStackedLine(!isStackedLine)}
+							aria-label="Overlapping Line Chart Selector"
+							title="Overlapping Line Chart Selector"
+						>
+							<Icon
+								name={`object ${!isStackedLine ? "bars" : "ungroup outline"} icon fitted`}
+							/>
+						</Button>
 					}
 					content={i18next.t("Choose stacked or overlapping line chart view")}
 					position="top center"

@@ -147,6 +147,14 @@
           border-radius: 4px;
         }
       }
+      button.stats-chart-line-mode-toggle {
+        @media all and (max-width: @largestMobileScreen) {
+          border-radius: 4px;
+          border-right: 1px solid @stats-border;
+          top: 1px;
+          right: 1.75rem;
+        }
+      }
     }
 
     .segment.bottom.attached {
@@ -426,7 +434,7 @@
         height ease-in-out 500ms,
         min-height ease-in-out 500ms;
     }
-    
+
     @media all and (max-width: @largestMobileScreen) {
       &.never-opened {
         height: 0px;
