@@ -676,6 +676,18 @@
     border-bottom-right-radius: 0;
   }
 
+  // FIXME: Hack to force mobile category selector dropdown menu 
+  // to always open upward (this ensures the "up" class behavior 
+  // is always applied)
+  #mobile-category-selector.ui.dropdown {
+    .menu.visible {
+      top: auto !important;
+      bottom: 100% !important;
+      margin-top: 0 !important;
+      box-shadow: none !important;
+    }
+  }
+
   .ui.menu {
     background-color: transparent;
     .item {
@@ -740,6 +752,7 @@
     }
   }
 
+  #stats-dashboard-report-label,
   #date-range-selector-label,
   #granularity-selector-label {
     font-weight: bold;

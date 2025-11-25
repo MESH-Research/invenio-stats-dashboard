@@ -75,7 +75,6 @@ const StatsDashboardLayout = ({
 	const [error, setError] = useState(null);
 	const [lastUpdated, setLastUpdated] = useState(null);
 	const [currentYearLastUpdated, setCurrentYearLastUpdated] = useState(null);
-	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const isMountedRef = useRef(true);
 
 	const handleTabChange = (_, data) => {
@@ -83,7 +82,6 @@ const StatsDashboardLayout = ({
 		const target = !!data.value ? data.value : data.name;
 		console.log("handleTabChange", target);
 		setSelectedTab(target);
-		setDropdownOpen(false); // Close dropdown on change
 	};
 
 	const [displayDateRange, setDisplayDateRange] = useState(null);
@@ -341,6 +339,7 @@ const StatsDashboardLayout = ({
 										id="mobile-category-selector"
 										className="centered"
 										selection
+										upward
 										options={availableTabs.map((tab) => ({
 											icon: tab.icon,
 											name: tab.name,
@@ -349,9 +348,6 @@ const StatsDashboardLayout = ({
 										}))}
 										value={selectedTab}
 										onChange={handleTabChange}
-										open={dropdownOpen}
-										onOpen={() => setDropdownOpen(true)}
-										onClose={() => setDropdownOpen(false)}
 										closeOnChange={true}
 										closeOnBlur={true}
 										closeOnDocumentClick={true}
