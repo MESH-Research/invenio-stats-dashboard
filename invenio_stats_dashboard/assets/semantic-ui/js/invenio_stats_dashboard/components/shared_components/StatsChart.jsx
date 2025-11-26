@@ -235,7 +235,7 @@ class ChartConfigBuilder {
 				rich: {
 					...CHART_CONFIG.xAxis.axisLabel.rich,
 					month: {
-						padding: [(granularity === "month" ? 4 : 16), 0, 0, 0],
+						padding: [granularity === "month" ? 4 : 16, 0, 0, 0],
 					},
 				},
 				show: ["quarter", "year"].includes(granularity) ? false : true,
@@ -554,7 +554,10 @@ const FilterSelector = ({
 									label={BREAKDOWN_NAMES[key] || key}
 									name={`${key}_checkbox`}
 									checked={displaySeparately === key}
-									onChange={() => setDisplaySeparately(key)}
+									onChange={() => {
+										console.log("setting displaySeparately as", key);
+										setDisplaySeparately(key);
+									}}
 								/>
 							</Form.Field>
 						))}
@@ -582,7 +585,10 @@ const FilterSelector = ({
 							className="stats-chart-line-mode-toggle mobile only"
 							toggle
 							active={!!isStackedLine}
-							onClick={() => setIsStackedLine(!isStackedLine)}
+							onClick={() => {
+								console.log("setting isStackedLine to", isStackedLine);
+								setIsStackedLine(!isStackedLine);
+							}}
 							aria-label="Overlapping Line Chart Selector"
 							title="Overlapping Line Chart Selector"
 						>
@@ -710,9 +716,10 @@ const StatsChart = ({
 	);
 
 	// Update isStackedLine when displaySeparately changes to use the new effective default
-	useEffect(() => {
-		setIsStackedLine(getEffectiveDefaultLineDisplay);
-	}, [getEffectiveDefaultLineDisplay]);
+	// useEffect(() => {
+	// 	console.log("effect fired to set isStackedLine");
+	// 	setIsStackedLine(getEffectiveDefaultLineDisplay);
+	// }, [getEffectiveDefaultLineDisplay]);
 
 	const [aggregatedData, setAggregatedData] = useState([]);
 
@@ -734,6 +741,7 @@ const StatsChart = ({
 	}, [seriesArray, isLoading]);
 
 	useEffect(() => {
+		console.log("effect fired prepare data series");
 		const preparedSeries = ChartDataProcessor.prepareDataSeries(
 			seriesArray,
 			displaySeparately,
@@ -751,6 +759,7 @@ const StatsChart = ({
 		);
 
 		setAggregatedData(aggregatedData);
+		setIsStackedLine(getEffectiveDefaultLineDisplay);
 	}, [
 		seriesArray,
 		granularity,
@@ -759,7 +768,8 @@ const StatsChart = ({
 		selectedMetric,
 		isCumulative,
 		maxSeries,
-		data, // Add data to dependencies
+		data,
+		getEffectiveDefaultLineDisplay,
 	]);
 
 	const seriesColorIndex = useMemo(
@@ -870,6 +880,7 @@ const StatsChart = ({
 
 	// Cleanup: dispose chart instance on unmount
 	useEffect(() => {
+		console.log("effect fired with unmount setup");
 		return () => {
 			if (chartRef.current) {
 				try {
@@ -990,7 +1001,7 @@ const StatsChart = ({
 					) : (
 						<ReactECharts
 							ref={chartRef}
-							key={`${selectedMetric}-${displaySeparately}-${granularity}`}
+							key={`${selectedMetric}-${granularity}`}
 							option={chartOptions}
 							notMerge={true}
 							style={{ height }}

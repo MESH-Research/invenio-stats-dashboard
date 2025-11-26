@@ -78,9 +78,7 @@ const StatsDashboardLayout = ({
 	const isMountedRef = useRef(true);
 
 	const handleTabChange = (_, data) => {
-		console.log("handleTabChange", data);
 		const target = !!data.value ? data.value : data.name;
-		console.log("handleTabChange", target);
 		setSelectedTab(target);
 	};
 
@@ -104,7 +102,6 @@ const StatsDashboardLayout = ({
 
 	const onStateChange = (state) => {
 		if (isMountedRef.current) {
-			console.log("State change received:", state);
 			setStats(state.stats);
 			setIsLoading(state.isLoading);
 			setIsUpdating(state.isUpdating);
@@ -126,8 +123,6 @@ const StatsDashboardLayout = ({
 			console.log("Skipping data fetch - no valid dates");
 			return;
 		}
-		console.log("dataFetchRange", dataFetchRange);
-		console.log("dateRange", dateRange);
 
 		isMountedRef.current = true;
 
@@ -350,7 +345,6 @@ const StatsDashboardLayout = ({
 										onChange={handleTabChange}
 										closeOnChange={true}
 										closeOnBlur={true}
-										closeOnDocumentClick={true}
 										openOnFocus={false}
 										text={
 											<>
