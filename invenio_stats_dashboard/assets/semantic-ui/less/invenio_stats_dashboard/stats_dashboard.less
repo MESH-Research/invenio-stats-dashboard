@@ -16,6 +16,8 @@
 @stats-text-accent: #547d7d; /* KCWorks verdigrisDark */
 @stats-text-light: #607972; /* KCWorks ivy70 */
 @largestMobileScreen: 767px;
+@largestTabletScreen: 991px;
+@largeMonitorBreakpoint: 1200px;
 @white: #fff;
 
 #stats-dashboard {
@@ -235,6 +237,10 @@
         padding-top: 0.75rem !important;
         padding-bottom: 0.75rem !important;
         padding-right: 1rem !important;
+
+        @media all and (min-width: @largestTabletScreen) and (max-width: @largeMonitorBreakpoint) {
+          padding-right: 0 !important;
+        }
 
         span {
           text-align: left;
