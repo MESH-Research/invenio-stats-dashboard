@@ -276,7 +276,7 @@ describe('SingleStatTrafficCumulative', () => {
       render(<SingleStatTrafficCumulative />);
 
       // Should show 0 since no data is within the date range
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle partial date ranges (only start date)', () => {
@@ -377,7 +377,7 @@ describe('SingleStatTrafficCumulative', () => {
 
       render(<SingleStatTrafficCumulative />);
 
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle empty data array', () => {
@@ -405,7 +405,7 @@ describe('SingleStatTrafficCumulative', () => {
 
       render(<SingleStatTrafficCumulative />);
 
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle missing data property', () => {
@@ -433,7 +433,7 @@ describe('SingleStatTrafficCumulative', () => {
 
       render(<SingleStatTrafficCumulative />);
 
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle no date range', () => {

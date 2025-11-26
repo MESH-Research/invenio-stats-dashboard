@@ -190,9 +190,10 @@ describe('StatsChart', () => {
       renderStatsChart();
 
       expect(screen.getByText('Test Chart')).toBeInTheDocument();
-      expect(screen.getByText('Records')).toBeInTheDocument();
-      expect(screen.getByText('Views')).toBeInTheDocument();
-      expect(screen.getByText('Data Volume')).toBeInTheDocument();
+      // These texts appear multiple times (in dropdown and buttons), use getAllByText
+      expect(screen.getAllByText('Records').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Views').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Data Volume').length).toBeGreaterThan(0);
       // Skip chart rendering test due to canvas issues
       // expect(screen.getByRole('img', { name: 'Test Chart' })).toBeInTheDocument();
     });
@@ -234,29 +235,36 @@ describe('StatsChart', () => {
     it('defaults to first series option', () => {
       renderStatsChart();
 
-      const recordsButton = screen.getByText('Records');
+      // Use getByRole to find the button
+      const recordsButton = screen.getByRole('button', { name: /Records/i });
       expect(recordsButton).toHaveClass('active');
     });
 
     it('allows switching between series', async () => {
       renderStatsChart();
 
-      const viewsButton = screen.getByText('Views');
+      // Use getByRole to find the button
+      const viewsButton = screen.getByRole('button', { name: /Views/i });
       await userEvent.click(viewsButton);
 
       expect(viewsButton).toHaveClass('active');
-      expect(screen.getByText('Records')).not.toHaveClass('active');
+      // "Records" appears multiple times, use getByRole to find the button
+      const recordsButton = screen.getByRole('button', { name: /Records/i });
+      expect(recordsButton).not.toHaveClass('active');
     });
 
     it('updates chart when series is changed', async () => {
       renderStatsChart();
 
-      const viewsButton = screen.getByText('Views');
+      // Use getByRole to find the button
+      const viewsButton = screen.getByRole('button', { name: /Views/i });
       await userEvent.click(viewsButton);
 
       // Test that the button state changes correctly
       expect(viewsButton).toHaveClass('active');
-      expect(screen.getByText('Records')).not.toHaveClass('active');
+      // "Records" appears multiple times, use getByRole to find the button
+      const recordsButton = screen.getByRole('button', { name: /Records/i });
+      expect(recordsButton).not.toHaveClass('active');
 
       // Skip chart option testing due to canvas issues
       // const chartOption = screen.getByTestId('chart-option');
@@ -364,7 +372,8 @@ describe('StatsChart', () => {
       const user = userEvent;
       renderStatsChart();
 
-      const dataVolumeButton = screen.getByText('Data Volume');
+      // "Data Volume" appears multiple times, use getByRole to find the button
+      const dataVolumeButton = screen.getByRole('button', { name: /Data Volume/i });
       await user.click(dataVolumeButton);
 
       const chartOption = screen.getByTestId('chart-option');
@@ -594,7 +603,9 @@ describe('StatsChart', () => {
     it('has proper ARIA labels for buttons', () => {
       renderStatsChart();
 
-      const recordsButton = screen.getByText('Records');
+      // "Records" appears multiple times, get the button
+      const recordsButtons = screen.getAllByText('Records');
+      const recordsButton = recordsButtons.find(btn => btn.tagName === 'BUTTON' || btn.closest('button'));
       expect(recordsButton).toHaveAttribute('aria-pressed', 'true');
     });
   });

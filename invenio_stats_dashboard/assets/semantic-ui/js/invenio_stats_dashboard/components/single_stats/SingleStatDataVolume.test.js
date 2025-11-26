@@ -138,7 +138,7 @@ describe('SingleStatDataVolume', () => {
       render(<SingleStatDataVolume />);
 
       // Should show 0 since no data is within the date range
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle partial date ranges (only start date)', () => {
@@ -266,7 +266,7 @@ describe('SingleStatDataVolume', () => {
 
       render(<SingleStatDataVolume />);
 
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle empty data array', () => {
@@ -292,7 +292,7 @@ describe('SingleStatDataVolume', () => {
 
       render(<SingleStatDataVolume />);
 
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle missing data property', () => {
@@ -318,7 +318,7 @@ describe('SingleStatDataVolume', () => {
 
       render(<SingleStatDataVolume />);
 
-      expect(screen.getByText('0 Bytes')).toBeInTheDocument();
+      expect(screen.getByText('0 B')).toBeInTheDocument();
     });
 
     it('should handle no date range', () => {

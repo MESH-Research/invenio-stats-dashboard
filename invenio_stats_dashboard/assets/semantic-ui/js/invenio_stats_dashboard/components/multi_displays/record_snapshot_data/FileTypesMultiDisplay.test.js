@@ -5,7 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { FileTypesMultiDisplay } from './FileTypesMultiDisplay';
 import { filterSeriesArrayByDate } from '../../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
@@ -389,12 +389,17 @@ describe('FileTypesMultiDisplay', () => {
   });
 
   describe('Component rendering with different display types', () => {
-    it('should render with list configuration', () => {
+    it('should render with list configuration', async () => {
       render(<FileTypesMultiDisplay default_view="list" />);
 
       // Check that the component renders
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('PDF')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // For list view, we can check for actual table content
       expect(screen.getByText('PDF')).toBeInTheDocument();
@@ -403,8 +408,13 @@ describe('FileTypesMultiDisplay', () => {
       expect(screen.getByText('75 (30%)')).toBeInTheDocument();
     });
 
-    it('should render with custom pageSize', () => {
+    it('should render with custom pageSize', async () => {
       render(<FileTypesMultiDisplay pageSize={2} default_view="list" />);
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('PDF')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Should only show top 2 items plus "Other"
       expect(screen.getByText('PDF')).toBeInTheDocument();
@@ -415,8 +425,13 @@ describe('FileTypesMultiDisplay', () => {
       expect(screen.getByText('25 (10%)')).toBeInTheDocument();
     });
 
-    it('should render with custom available_views', () => {
+    it('should render with custom available_views', async () => {
       render(<FileTypesMultiDisplay available_views={["list"]} default_view="list" />);
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('PDF')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Should still render the list view
       expect(screen.getByText('PDF')).toBeInTheDocument();
@@ -453,8 +468,13 @@ describe('FileTypesMultiDisplay', () => {
       expect(statsDisplay).toHaveAttribute('aria-label', 'Custom Title');
     });
 
-    it('should render proper table structure with headers', () => {
+    it('should render proper table structure with headers', async () => {
       render(<FileTypesMultiDisplay default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -469,8 +489,13 @@ describe('FileTypesMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Works');
     });
 
-    it('should render table rows with proper structure', () => {
+    it('should render table rows with proper structure', async () => {
       render(<FileTypesMultiDisplay default_view="list" />);
+
+      // Wait for table rows to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -486,8 +511,13 @@ describe('FileTypesMultiDisplay', () => {
       expect(firstRowCells[2]).toHaveTextContent('150 (60%)');
     });
 
-    it('should render table cells with proper data', () => {
+    it('should render table cells with proper data', async () => {
       render(<FileTypesMultiDisplay default_view="list" />);
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('PDF')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -498,8 +528,13 @@ describe('FileTypesMultiDisplay', () => {
       expect(screen.getByText('150 (60%)')).toBeInTheDocument();
     });
 
-    it('should have proper table accessibility attributes', () => {
+    it('should have proper table accessibility attributes', async () => {
       render(<FileTypesMultiDisplay default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -509,17 +544,27 @@ describe('FileTypesMultiDisplay', () => {
       expect(rowgroups).toHaveLength(2); // thead and tbody
     });
 
-    it('should render with custom headers properly', () => {
+    it('should render with custom headers properly', async () => {
       const customHeaders = ['Custom File Type', 'Custom Count'];
       render(<FileTypesMultiDisplay headers={customHeaders} default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       const headerCells = screen.getAllByRole('columnheader');
       expect(headerCells[1]).toHaveTextContent('Custom File Type');
       expect(headerCells[2]).toHaveTextContent('Custom Count');
     });
 
-    it('should maintain proper table structure with pagination', () => {
+    it('should maintain proper table structure with pagination', async () => {
       render(<FileTypesMultiDisplay pageSize={2} default_view="list" />);
+
+      // Wait for table rows to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
 
       // Should have 3 rows (2 items + Other)
       const dataRows = screen.getAllByTestId(/^row-\d+$/);

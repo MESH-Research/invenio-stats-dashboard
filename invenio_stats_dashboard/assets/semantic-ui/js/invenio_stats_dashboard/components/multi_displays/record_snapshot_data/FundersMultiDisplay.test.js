@@ -5,7 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { FundersMultiDisplay } from './FundersMultiDisplay';
 import { filterSeriesArrayByDate } from '../../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
@@ -596,7 +596,13 @@ describe('FundersMultiDisplay', () => {
       });
     });
 
-    it('should render with list configuration', () => {
+    it('should render with list configuration', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
@@ -611,7 +617,13 @@ describe('FundersMultiDisplay', () => {
       expect(screen.getByText('25 (14%)')).toBeInTheDocument();
     });
 
-    it('should render with custom pageSize', () => {
+    it('should render with custom pageSize', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
@@ -626,7 +638,13 @@ describe('FundersMultiDisplay', () => {
       expect(screen.getByText('25 (14%)')).toBeInTheDocument();
     });
 
-    it('should render with custom available_views', () => {
+    it('should render with custom available_views', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
@@ -670,7 +688,13 @@ describe('FundersMultiDisplay', () => {
       expect(statsDisplay).toHaveAttribute('aria-label', 'Custom Title');
     });
 
-    it('should render proper table structure with headers', () => {
+    it('should render proper table structure with headers', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay default_view="list" />);
 
       // Check that table exists
@@ -691,7 +715,13 @@ describe('FundersMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Works');
     });
 
-    it('should render table rows with proper structure', () => {
+    it('should render table rows with proper structure', async () => {
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
@@ -708,7 +738,13 @@ describe('FundersMultiDisplay', () => {
       expect(firstRowCells[2]).toHaveTextContent('100 (57%)');
     });
 
-    it('should render table cells with proper data', () => {
+    it('should render table cells with proper data', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay default_view="list" />);
 
       // Check specific cell content
@@ -722,7 +758,13 @@ describe('FundersMultiDisplay', () => {
       expect(screen.getByText('50 (29%)')).toBeInTheDocument();
     });
 
-    it('should have proper table accessibility attributes', () => {
+    it('should have proper table accessibility attributes', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
@@ -733,7 +775,13 @@ describe('FundersMultiDisplay', () => {
       expect(rowgroups).toHaveLength(2); // thead and tbody
     });
 
-    it('should render with custom headers properly', () => {
+    it('should render with custom headers properly', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       const customHeaders = ['Custom Funder', 'Custom Count'];
       render(<FundersMultiDisplay headers={customHeaders} default_view="list" />);
 
@@ -747,7 +795,13 @@ describe('FundersMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Custom Count');
     });
 
-    it('should maintain proper table structure with pagination', () => {
+    it('should maintain proper table structure with pagination', async () => {
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
+
+      
       render(<FundersMultiDisplay pageSize={2} default_view="list" />);
 
       // Check table structure is maintained

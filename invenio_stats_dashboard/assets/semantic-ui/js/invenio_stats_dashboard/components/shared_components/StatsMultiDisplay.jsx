@@ -89,9 +89,9 @@ const StatsMultiDisplay = ({
 	startCollapsed = false,
 }) => {
 	const [viewMode, setViewMode] = useState(defaultViewMode);
-	const [collapsed, setCollapsed] = useState(collapsed);
+	const [collapsed, setCollapsed] = useState(startCollapsed);
 	const [neverOpened, setNeverOpened] = useState(true);
-	const [showContent, setShowContent] = useState(!collapsed && !neverOpened);
+	const [showContent, setShowContent] = useState(!startCollapsed && !neverOpened);
 	const chartRef = useRef(null);
 	const availableViewModes = Object.keys(chartOptions);
 	const tableLabel = label
@@ -331,6 +331,7 @@ StatsMultiDisplay.propTypes = {
 	isDelta: PropTypes.bool,
 	dateRangeEnd: PropTypes.string,
 	metricType: PropTypes.string,
+	startCollapsed: PropTypes.bool,
 };
 
 export { StatsMultiDisplay };

@@ -87,12 +87,12 @@ describe('formatNumber', () => {
 
   describe('filesize format', () => {
     it('formats bytes < 1k', () => {
-      expect(formatNumber(512, 'filesize')).toBe('512 Bytes');
-      expect(formatNumber(0, 'filesize')).toBe('0 Bytes');
+      expect(formatNumber(512, 'filesize')).toBe('512 B');
+      expect(formatNumber(0, 'filesize')).toBe('0 B');
     });
 
     it('formats 1 byte', () => {
-      expect(formatNumber(1, 'filesize')).toBe('Bytes');
+      expect(formatNumber(1, 'filesize')).toBe('B');
     });
 
     it('formats decimal units (kB, MB, GB)', () => {

@@ -5,7 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { LanguagesMultiDisplay } from './LanguagesMultiDisplay';
 import { filterSeriesArrayByDate } from '../../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
@@ -596,11 +596,16 @@ describe('LanguagesMultiDisplay', () => {
       });
     });
 
-    it('should render with list configuration', () => {
+    it('should render with list configuration', async () => {
       render(<LanguagesMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('English')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // For list view, we can check for actual table content
       expect(screen.getByText('English')).toBeInTheDocument();
@@ -611,11 +616,16 @@ describe('LanguagesMultiDisplay', () => {
       expect(screen.getByText('25 (14%)')).toBeInTheDocument();
     });
 
-    it('should render with custom pageSize', () => {
+    it('should render with custom pageSize', async () => {
       render(<LanguagesMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('English')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Should only show top 2 items plus "Other"
       expect(screen.getByText('English')).toBeInTheDocument();
@@ -626,11 +636,16 @@ describe('LanguagesMultiDisplay', () => {
       expect(screen.getByText('25 (14%)')).toBeInTheDocument();
     });
 
-    it('should render with custom available_views', () => {
+    it('should render with custom available_views', async () => {
       render(<LanguagesMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('English')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Should still render the list view
       expect(screen.getByText('English')).toBeInTheDocument();
@@ -670,8 +685,13 @@ describe('LanguagesMultiDisplay', () => {
       expect(statsDisplay).toHaveAttribute('aria-label', 'Custom Title');
     });
 
-    it('should render proper table structure with headers', () => {
+    it('should render proper table structure with headers', async () => {
       render(<LanguagesMultiDisplay default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -691,8 +711,13 @@ describe('LanguagesMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Works');
     });
 
-    it('should render table rows with proper structure', () => {
+    it('should render table rows with proper structure', async () => {
       render(<LanguagesMultiDisplay default_view="list" />);
+
+      // Wait for table rows to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -708,8 +733,13 @@ describe('LanguagesMultiDisplay', () => {
       expect(firstRowCells[2]).toHaveTextContent('100 (57%)');
     });
 
-    it('should render table cells with proper data', () => {
+    it('should render table cells with proper data', async () => {
       render(<LanguagesMultiDisplay default_view="list" />);
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('English')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -733,9 +763,14 @@ describe('LanguagesMultiDisplay', () => {
       expect(rowgroups).toHaveLength(2); // thead and tbody
     });
 
-    it('should render with custom headers properly', () => {
+    it('should render with custom headers properly', async () => {
       const customHeaders = ['Custom Language', 'Custom Count'];
       render(<LanguagesMultiDisplay headers={customHeaders} default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -747,8 +782,13 @@ describe('LanguagesMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Custom Count');
     });
 
-    it('should maintain proper table structure with pagination', () => {
+    it('should maintain proper table structure with pagination', async () => {
       render(<LanguagesMultiDisplay pageSize={2} default_view="list" />);
+
+      // Wait for table rows to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

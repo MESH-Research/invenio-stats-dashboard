@@ -5,7 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { PeriodicalsMultiDisplay } from './PeriodicalsMultiDisplay';
 import { filterSeriesArrayByDate } from '../../../utils';
 import { transformMultiDisplayData, assembleMultiDisplayRows } from '../../../utils/multiDisplayHelpers';
@@ -389,7 +389,13 @@ describe('PeriodicalsMultiDisplay', () => {
   });
 
   describe('Component rendering with different display types', () => {
-    it('should render with list configuration', () => {
+    it('should render with list configuration', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('Journal One')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay default_view="list" />);
 
       // Check that the component renders
@@ -403,7 +409,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(screen.getByText('75 (30%)')).toBeInTheDocument();
     });
 
-    it('should render with custom pageSize', () => {
+    it('should render with custom pageSize', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('Journal One')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay pageSize={2} default_view="list" />);
 
       // Should only show top 2 items plus "Other"
@@ -415,7 +427,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(screen.getByText('25 (10%)')).toBeInTheDocument();
     });
 
-    it('should render with custom available_views', () => {
+    it('should render with custom available_views', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('Journal One')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay available_views={["list"]} default_view="list" />);
 
       // Should still render the list view
@@ -453,7 +471,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(statsDisplay).toHaveAttribute('aria-label', 'Custom Title');
     });
 
-    it('should render proper table structure with headers', () => {
+    it('should render proper table structure with headers', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay default_view="list" />);
 
       // Check that table exists
@@ -469,7 +493,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Works');
     });
 
-    it('should render table rows with proper structure', () => {
+    it('should render table rows with proper structure', async () => {
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
@@ -486,7 +516,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(firstRowCells[2]).toHaveTextContent('150 (60%)');
     });
 
-    it('should render table cells with proper data', () => {
+    it('should render table cells with proper data', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByText('Journal One')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay default_view="list" />);
 
       // Check specific cell content
@@ -498,7 +534,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(screen.getByText('150 (60%)')).toBeInTheDocument();
     });
 
-    it('should have proper table accessibility attributes', () => {
+    it('should have proper table accessibility attributes', async () => {
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
@@ -509,7 +551,7 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(rowgroups).toHaveLength(2); // thead and tbody
     });
 
-    it('should render with custom headers properly', () => {
+    it('should render with custom headers properly', async () => {
       const customHeaders = ['Custom Periodical', 'Custom Count'];
       render(<PeriodicalsMultiDisplay headers={customHeaders} default_view="list" />);
 
@@ -518,7 +560,13 @@ describe('PeriodicalsMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Custom Count');
     });
 
-    it('should maintain proper table structure with pagination', () => {
+    it('should maintain proper table structure with pagination', async () => {
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
+
+      
       render(<PeriodicalsMultiDisplay pageSize={2} default_view="list" />);
 
       // Should have 3 rows (2 items + Other)

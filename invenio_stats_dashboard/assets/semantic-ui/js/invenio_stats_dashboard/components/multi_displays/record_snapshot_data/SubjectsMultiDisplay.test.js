@@ -5,7 +5,7 @@
 // it under the terms of the MIT License; see LICENSE file for more details.
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { SubjectsMultiDisplay } from './SubjectsMultiDisplay';
 
 // Mock only the external dependencies
@@ -85,10 +85,15 @@ describe('SubjectsMultiDisplay', () => {
   });
 
   describe('Component rendering', () => {
-    it('should render with default props (list view)', () => {
+    it('should render with default props (list view)', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('Computer Science')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check for actual table content
       expect(screen.getByText('Computer Science')).toBeInTheDocument();
@@ -146,8 +151,13 @@ describe('SubjectsMultiDisplay', () => {
   });
 
   describe('Table structure and accessibility', () => {
-    it('should render proper table structure with headers', () => {
+    it('should render proper table structure with headers', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -167,8 +177,13 @@ describe('SubjectsMultiDisplay', () => {
       expect(headerCells[2]).toHaveTextContent('Works');
     });
 
-    it('should render table rows with proper structure', () => {
+    it('should render table rows with proper structure', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
+
+      // Wait for table rows to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -184,8 +199,13 @@ describe('SubjectsMultiDisplay', () => {
       expect(firstRowCells[2]).toHaveTextContent('150 (60%)');
     });
 
-    it('should render table cells with proper data', () => {
+    it('should render table cells with proper data', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('Computer Science')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -198,8 +218,13 @@ describe('SubjectsMultiDisplay', () => {
       expect(screen.getByText('75 (30%)')).toBeInTheDocument();
     });
 
-    it('should have proper table accessibility attributes', () => {
+    it('should have proper table accessibility attributes', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.queryByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -209,9 +234,14 @@ describe('SubjectsMultiDisplay', () => {
       expect(rowgroups).toHaveLength(2); // thead and tbody
     });
 
-    it('should render with custom headers properly', () => {
+    it('should render with custom headers properly', async () => {
       const customHeaders = ['Custom Subject', 'Custom Count'];
       render(<SubjectsMultiDisplay headers={customHeaders} default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -225,8 +255,14 @@ describe('SubjectsMultiDisplay', () => {
   });
 
   describe('Data transformation', () => {
-    it('should calculate percentages correctly', () => {
+    it('should calculate percentages correctly', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
+      
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('150 (60%)')).toBeInTheDocument();
+      }, { timeout: 1000 });
+      
       expect(screen.getByText('150 (60%)')).toBeInTheDocument();
       expect(screen.getByText('75 (30%)')).toBeInTheDocument();
       expect(screen.getByText('25 (10%)')).toBeInTheDocument();
@@ -258,11 +294,16 @@ describe('SubjectsMultiDisplay', () => {
   });
 
   describe('Pagination', () => {
-    it('should respect pageSize prop and aggregate remaining as "Other"', () => {
+    it('should respect pageSize prop and aggregate remaining as "Other"', async () => {
       render(<SubjectsMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
+
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByText('Computer Science')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       // Should only show top 2 items plus "Other"
       expect(screen.getByText('Computer Science')).toBeInTheDocument();
@@ -273,8 +314,13 @@ describe('SubjectsMultiDisplay', () => {
       expect(screen.getByText('25 (10%)')).toBeInTheDocument();
     });
 
-    it('should maintain proper table structure with pagination', () => {
+    it('should maintain proper table structure with pagination', async () => {
       render(<SubjectsMultiDisplay pageSize={2} default_view="list" />);
+
+      // Wait for table rows to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
 
       // Check table structure is maintained
       const table = screen.getByRole('table');
@@ -287,8 +333,14 @@ describe('SubjectsMultiDisplay', () => {
   });
 
   describe('Search links', () => {
-    it('should generate correct search URLs', () => {
+    it('should generate correct search URLs', async () => {
       render(<SubjectsMultiDisplay default_view="list" />);
+      
+      // Wait for content to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.queryAllByRole('link').length).toBeGreaterThan(0);
+      }, { timeout: 1000 });
+      
       const links = screen.getAllByRole('link');
       links.forEach(link => {
         expect(link.href).toContain('/search?q=metadata.subjects.id:');
