@@ -17,6 +17,7 @@ import {
 import { PropTypes } from "prop-types";
 import ReactECharts from "echarts-for-react";
 import { StatsTable } from "./StatsTable";
+import { disableInvalidLinks } from "../../utils/multiDisplayHelpers";
 
 const VIEW_MODE_ICON_MAP = {
 	list: "list",
@@ -303,7 +304,7 @@ const StatsMultiDisplay = ({
 							notMerge={true}
 							style={{ height: "338px" }} // 340px - 2px for border
 							className={`${tableLabel}-${viewMode}-chart`}
-							onEvents={onEvents}
+							onEvents={disableInvalidLinks(onEvents)}
 							onChartReady={handleChartReady}
 						/>
 					)

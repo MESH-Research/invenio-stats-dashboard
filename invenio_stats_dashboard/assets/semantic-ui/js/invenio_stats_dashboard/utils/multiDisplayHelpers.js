@@ -681,10 +681,45 @@ const generateMultiDisplayChartOptions = (
 	);
 };
 
+/**
+ * Wraps a click event handler to prevent navigation for "other" values
+ * This prevents clicking on "other" chart regions from navigating to about:blank
+ *
+ * @param {Function} clickHandler - The original click handler function
+ * @returns {Function} Wrapped click handler that filters out "other" clicks
+ */
+const wrapClickHandler = (clickHandler) => {
+	return (params) => {
+		if (!params.data || params.data.id === "other" || params.data.link === undefined && !params.data.id) {
+			return;
+		}
+		clickHandler(params);
+	};
+};
+
+/**
+ * Disables navigation for invalid links (e.g., "other" values) in chart click handlers
+ * This prevents clicking on "other" chart regions from navigating to about:blank
+ *
+ * @param {Object} onEvents - The original onEvents object from ECharts
+ * @returns {Object} onEvents object with click handler that filters invalid links
+ */
+const disableInvalidLinks = (onEvents) => {
+	if (!onEvents || !onEvents.click) {
+		return onEvents;
+	}
+	return {
+		...onEvents,
+		click: wrapClickHandler(onEvents.click),
+	};
+};
+
 export {
 	transformMultiDisplayData,
 	transformCountryMultiDisplayData,
 	assembleMultiDisplayRows,
 	extractData,
 	generateMultiDisplayChartOptions,
+	wrapClickHandler,
+	disableInvalidLinks,
 };
