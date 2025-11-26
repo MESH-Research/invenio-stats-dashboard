@@ -616,20 +616,45 @@
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: transform;
+  transition: bottom 500ms ease-in-out;
+
+  &.hidden {
+    bottom: -8rem;
+    transition: bottom 500ms ease-in-out;
+  }
+
+  #mobile-action-menu-toggle {
+    position: fixed;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 0 0.75rem 0 rgba(0, 0, 0, 0.4);
+    color: #fff;
+    top: -2.3rem;
+    width: 2rem;
+    float: right;
+    border-bottom: none;
+
+    .button {
+      box-shadow: none !important;
+      border-radius: 4px;
+    }
+  }
 
   .ui.grid {
     margin: 0;
     width: 100%;
     .row {
-      justify-content: space-around;
+      justify-content: center;
+      gap: 0.5rem;
 
       &:nth-child(2) {
         padding-top: 0.5rem;
         padding-bottom: 0.5rem;
       }
       &:last-child {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
       }
       .column.flex {
         justify-content: center;
@@ -676,8 +701,8 @@
     border-bottom-right-radius: 0;
   }
 
-  // FIXME: Hack to force mobile category selector dropdown menu 
-  // to always open upward (this ensures the "up" class behavior 
+  // FIXME: Hack to force mobile category selector dropdown menu
+  // to always open upward (this ensures the "up" class behavior
   // is always applied)
   #mobile-category-selector.ui.dropdown {
     .menu.visible {

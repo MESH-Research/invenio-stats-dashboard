@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import { Label, Grid, Loader, Message } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
@@ -157,7 +157,7 @@ const StatsDashboardPage = ({
 			aria-label={dashboardConfig.title || defaultTitle}
 			{...otherProps}
 		>
-			<Grid.Row className="pb-0 large monitor computer tablet only">
+			<Grid.Row className="pb-0 large-monitor computer only">
 				<Grid.Column width={16} className="centered">
 					<Label className="stats-dashboard-date-range-label" pointing="below">
 						{pageDateRangePhrase} {displayDateRange}

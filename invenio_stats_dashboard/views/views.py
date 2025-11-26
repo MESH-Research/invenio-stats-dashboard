@@ -154,6 +154,7 @@ def community_stats_dashboard(
     dashboard_enabled_override = current_app.config.get(
         "STATS_DASHBOARD_ENABLED_COMMUNITY"
     )
+    current_app.logger.debug("dashboard_enabled_override", dashboard_enabled_override)
 
     test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", True)
     if test_data_flag in ["True", "true"]:

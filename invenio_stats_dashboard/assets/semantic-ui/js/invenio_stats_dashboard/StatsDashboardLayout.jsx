@@ -76,6 +76,7 @@ const StatsDashboardLayout = ({
 	const [lastUpdated, setLastUpdated] = useState(null);
 	const [currentYearLastUpdated, setCurrentYearLastUpdated] = useState(null);
 	const isMountedRef = useRef(true);
+	const [actionMenuOpen, setActionMenuOpen] = useState(true);
 
 	const handleTabChange = (_, data) => {
 		const target = !!data.value ? data.value : data.name;
@@ -234,14 +235,20 @@ const StatsDashboardLayout = ({
 				className={`grid ${containerClassNames} ${dashboardType !== "global" ? "rel-m-2" : "rel-mb-2"} stats-dashboard-container`}
 				id={`${dashboardType}-stats-dashboard`}
 			>
+				{showTitle && (
+					<Grid.Row className="centered mobile tablet only">
+						<h2 className="stats-dashboard-header ">
+							{dashboardConfig.title || i18next.t("Statistics")}
+						</h2>
+					</Grid.Row>
+				)}
 				<Grid.Row>
 					<Grid.Column
-						computer={3}
-						tablet={16}
+						width={3}
 						className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0 computer widescreen large-monitor only`}
 					>
 						{showTitle && (
-							<h2 className="stats-dashboard-header tablet computer widescreen large-monitor only">
+							<h2 className="stats-dashboard-header computer widescreen large-monitor only">
 								{dashboardConfig.title || i18next.t("Statistics")}
 							</h2>
 						)}
@@ -320,7 +327,17 @@ const StatsDashboardLayout = ({
 				</Grid.Row>
 
 				<Grid.Row className="mb-0 mt-0 pb-0 pt-0">
-					<div className="mobile-action-menu mobile tablet only sixteen wide sticky bottom ">
+					<div
+						className={`mobile-action-menu mobile tablet only sixteen wide sticky bottom ${!actionMenuOpen ? "hidden" : ""}`}
+					>
+						<div id="mobile-action-menu-toggle">
+							<Button icon onClick={() => setActionMenuOpen(!actionMenuOpen)}>
+								<Icon
+									name={!!actionMenuOpen ? "chevron down" : "chevron up"}
+									className="fitted"
+								/>
+							</Button>
+						</div>
 						<Grid>
 							<Grid.Row className="pt-0">
 								<b className="current-date-range-label pt-10">
