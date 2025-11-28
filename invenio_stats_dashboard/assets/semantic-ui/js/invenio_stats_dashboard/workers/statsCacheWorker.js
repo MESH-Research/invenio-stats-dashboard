@@ -8,6 +8,7 @@
  * Worker manager for async, non-blocking stats cache operations
  */
 
+import { getCsrfTokenFromCookie } from "../api/apiClient";
 
 let worker = null;
 let messageIdCounter = 0;
@@ -176,6 +177,9 @@ export const getCachedStats = async (
       blockEndDate,
     });
 
+    // Get CSRF token from cookie (main thread can access cookies)
+    const csrfToken = getCsrfTokenFromCookie();
+
     const result = await sendMessage("GET_CACHED_STATS", {
       communityId: normalizedCommunityId,
       dashboardType,
@@ -184,6 +188,7 @@ export const getCachedStats = async (
       blockEndDate,
       requestCompressedJson,
       cacheCompressedJson,
+      csrfToken, // Pass token so worker can use it for background updates
     });
 
     const duration = performance.now() - startTime;

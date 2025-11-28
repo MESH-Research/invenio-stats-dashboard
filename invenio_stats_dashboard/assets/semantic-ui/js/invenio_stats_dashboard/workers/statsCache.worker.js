@@ -234,7 +234,18 @@ const handleUpdateCachedStats = async (params) => {
     dateBasis,
     requestCompressedJson,
     cacheCompressedJson,
+    csrfToken, // Token passed from main thread via GET_CACHED_STATS message
   } = params;
+
+  if (!csrfToken) {
+    console.warn("CSRF token not provided for background cache update");
+    return {
+      success: false,
+      error: "CSRF token unavailable",
+      data: null,
+      year: extractYear(blockStartDate),
+    };
+  }
 
   const transformedData = await statsApiClient.getStats(
     communityId,
@@ -243,6 +254,7 @@ const handleUpdateCachedStats = async (params) => {
     blockEndDate,
     dateBasis,
     requestCompressedJson,
+    csrfToken,
   );
   const year = extractYear(blockStartDate);
 

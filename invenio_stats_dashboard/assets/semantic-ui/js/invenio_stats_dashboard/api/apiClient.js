@@ -14,17 +14,49 @@ import { DASHBOARD_TYPES } from "../constants";
 import { kebabToCamel } from "../utils";
 
 /**
- * Create axios instance with proper CSRF token configuration
+ * Get CSRF token from cookie (works in main thread only)
+ * @returns {string|null} CSRF token or null if not found
  */
-const createAxiosWithCSRF = () => {
-  return axios.create({
+const getCsrfTokenFromCookie = () => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const name = "csrftoken";
+  const cookies = document.cookie.split(";");
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim();
+    if (cookie.startsWith(name + "=")) {
+      const parts = cookie.split("=");
+      if (parts.length >= 2) {
+        return parts.slice(1).join("=");
+      }
+    }
+  }
+  return null;
+};
+
+/**
+ * Create axios instance with proper CSRF token configuration
+ * @param {string|null} csrfToken - Optional CSRF token to use explicitly.
+ *   If provided, will be used directly (required for web workers).
+ *   If not provided, axios will automatically read from cookie (main thread only).
+ */
+const createAxiosWithCSRF = (csrfToken = null) => {
+  const config = {
     withCredentials: true,
-    xsrfCookieName: "csrftoken",
-    xsrfHeaderName: "X-CSRFToken",
     headers: {
       "Content-Type": "application/json",
     },
-  });
+  };
+
+  if (csrfToken) {
+    config.headers["X-CSRFToken"] = csrfToken;
+  } else {
+    config.xsrfCookieName = "csrftoken";
+    config.xsrfHeaderName = "X-CSRFToken";
+  }
+
+  return axios.create(config);
 };
 
 /**
@@ -72,6 +104,7 @@ const statsApiClient = {
     endDate = null,
     dateBasis = "added",
     requestCompressedJson = false,
+    csrfToken = null,
   ) => {
     if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
       communityId = "global";
@@ -85,7 +118,7 @@ const statsApiClient = {
     ];
 
     const responses = {};
-    const axiosWithCSRF = createAxiosWithCSRF();
+    const axiosWithCSRF = createAxiosWithCSRF(csrfToken);
 
     for (let i = 0; i < statCategories.length; i++) {
       const category = statCategories[i];
@@ -130,4 +163,4 @@ const statsApiClient = {
   },
 };
 
-export { createAxiosWithCSRF, statsApiClient };
+export { createAxiosWithCSRF, statsApiClient, getCsrfTokenFromCookie };

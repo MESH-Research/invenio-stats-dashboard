@@ -141,7 +141,7 @@ def community_stats_dashboard(
     if not permissions["can_read"]:
         raise PermissionDeniedError()
 
-    # Force CSRF cookie to be set for API requests made by the SPA
+    # Force CSRF cookie to be set for API requests made from client side
     request.csrf_cookie_needs_reset = True
 
     dashboard_enabled_default = not current_app.config.get(
