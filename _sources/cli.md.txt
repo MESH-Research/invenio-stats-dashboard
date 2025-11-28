@@ -523,7 +523,7 @@ The cache system uses the following configuration variables:
 
 - `STATS_CACHE_REDIS_DB`: Redis database number for stats cache (default: 7)
 - `STATS_CACHE_PREFIX`: Cache key prefix (default: "stats_dashboard")
-- `STATS_CACHE_DEFAULT_TIMEOUT`: Default cache timeout in seconds (default: None for no expiration)
+- `STATS_CACHE_DEFAULT_TTL`: Default cache TTL in seconds (default: None for no expiration)
 - `STATS_CACHE_COMPRESSION_METHOD`: Compression method (default: "brotli")
 
 #### `status`
