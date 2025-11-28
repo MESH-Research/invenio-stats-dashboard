@@ -29,6 +29,8 @@ from invenio_records_resources.services.errors import PermissionDeniedError
 from invenio_rest.views import ContentNegotiatedMethodView
 
 from ..config.component_metrics import extract_component_names_from_layout
+from ..constants import FirstRunStatus, RegistryOperation
+from ..resources.cache_utils import StatsAggregationRegistry
 from ..services.cached_response_service import CachedResponseService
 
 
@@ -144,6 +146,19 @@ def community_stats_dashboard(
     # Force CSRF cookie to be set for API requests made from client side
     request.csrf_cookie_needs_reset = True
 
+    registry = StatsAggregationRegistry()
+    active_cache_operations = registry.get_all(
+        f"{community.id}_{RegistryOperation.CACHE.replace('{year}', '*')}"
+    )
+    active_agg_operations = registry.get_all(f"{community.id}_{RegistryOperation.AGG}*")
+    first_run_records = registry.get_all(
+        f"{community.id}_{RegistryOperation.FIRST_RUN}*"
+    )
+    first_run_incomplete = (
+        len(first_run_records) == 0
+        or any(r[1] != FirstRunStatus.COMPLETED for r in first_run_records)
+    )
+
     dashboard_enabled_default = not current_app.config.get(
         "STATS_DASHBOARD_COMMUNITY_OPT_IN", True
     )
@@ -164,6 +179,8 @@ def community_stats_dashboard(
         render_template(
             current_app.config["STATS_DASHBOARD_TEMPLATES"]["community"],
             dashboard_config={
+                "agg_in_progress": True if active_agg_operations else False,
+                "caching_in_progress": True if active_cache_operations else False,
                 "client_cache_compression_enabled": current_app.config.get(
                     "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED", False
                 ),
@@ -189,6 +206,7 @@ def community_stats_dashboard(
                 "display_binary_sizes": not current_app.config.get(
                     "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES", True
                 ),
+                "first_run_incomplete": first_run_incomplete,
                 "layout": get_community_dashboard_layout(community, "community"),
                 "ui_subcounts": current_app.config.get(
                     "STATS_DASHBOARD_UI_SUBCOUNTS", {}

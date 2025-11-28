@@ -13,6 +13,8 @@ from celery import shared_task
 from celery.schedules import crontab
 from flask import current_app
 
+from ..constants import FirstRunStatus, RegistryOperation
+from ..resources.cache_utils import StatsAggregationRegistry
 from ..services.cached_response_service import CachedResponseService
 from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
 
@@ -61,8 +63,9 @@ def generate_cached_responses_task(
                 "STATS_DASHBOARD_OPTIMIZE_DATA_SERIES", True
             )
 
+        current_year = arrow.utcnow().year
         if current_year_only:
-            years = arrow.now().year
+            years = current_year
 
         # Get lock configuration
         lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
@@ -73,11 +76,38 @@ def generate_cached_responses_task(
         lock_name = caching_config.get("lock_name", "community_stats_cache_generation")
 
         service = CachedResponseService()
+        registry = StatsAggregationRegistry()
+        active_registry_keys = []
 
         if lock_enabled:
             lock = AggregationTaskLock(lock_name, timeout=lock_timeout)
             try:
                 with lock:
+                    first_runs_completing = []
+                    for community_id in community_ids:
+                        for year in years:
+                            cache_operation = RegistryOperation.CACHE.replace(
+                                "{year}", str(year)
+                            )
+                            registry_key = registry.make_registry_key(
+                                community_id, cache_operation
+                            )
+                            registry.set(
+                                registry_key,
+                                arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                                7200,
+                            )
+                            active_registry_keys.append(registry_key)
+                            if year == current_year:
+                                first_run_recs = registry.get_all(
+                                    f"{community_id}_{RegistryOperation.FIRST_RUN}*"
+                                )
+                                if (
+                                    len(first_run_recs)
+                                    and first_run_recs[0][1] == FirstRunStatus.IN_PROGRESS
+                                ):
+                                    first_runs_completing.append(first_run_recs[0][0])
+
                     current_app.logger.info(
                         "Acquired cache generation lock, starting cache generation"
                     )
@@ -88,10 +118,16 @@ def generate_cached_responses_task(
                         async_mode=async_mode,
                         optimize=optimize,
                     )
-                    current_app.logger.info(
-                        f"Cache generation completed: {result}"
-                    )
 
+                    for first_run_key in first_runs_completing:
+                        if any(
+                            response
+                            for response in result.get("responses", [])
+                            if response.get("community_id") in first_run_key
+                        ):
+                            registry.set(first_run_key, FirstRunStatus.COMPLETED, ttl=None)
+
+                    current_app.logger.info(f"Cache generation completed: {result}")
                     return result
 
             except TaskLockAcquisitionError:
@@ -100,17 +136,19 @@ def generate_cached_responses_task(
                     "another instance is already running"
                 )
                 return {
-                    'success': False,
-                    'skipped': True,
-                    'reason': 'Another cache generation task is already running',
-                    'community_ids': community_ids,
-                    'years': years
+                    "success": False,
+                    "skipped": True,
+                    "reason": "Another cache generation task is already running",
+                    "community_ids": community_ids,
+                    "years": years,
                 }
+
+            finally:
+                for key in active_registry_keys:
+                    registry.delete(key)
         else:
             # Run without locking
-            current_app.logger.info(
-                "Running cache generation without distributed lock"
-            )
+            current_app.logger.info("Running cache generation without distributed lock")
             result_no_lock: dict[str, Any] = service.create(
                 community_ids=community_ids,
                 years=years,
@@ -118,15 +156,9 @@ def generate_cached_responses_task(
                 async_mode=async_mode,
                 optimize=optimize,
             )
-            current_app.logger.info(
-                f"Cache generation completed: {result_no_lock}"
-            )
+            current_app.logger.info(f"Cache generation completed: {result_no_lock}")
 
             return result_no_lock
 
     except Exception as e:
-        current_app.logger.error(f"Cache generation task failed: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
+        return {"success": False, "error": str(e)}

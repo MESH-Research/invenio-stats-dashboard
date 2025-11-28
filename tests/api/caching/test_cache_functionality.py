@@ -114,8 +114,8 @@ def test_cache_set_with_timeout(running_app, db, stats_cache, sample_data):
     cache_key = "test_key_timeout"
     data_bytes = json.dumps(sample_data).encode('utf-8')
 
-    # Set data in cache with timeout
-    success = stats_cache.set(cache_key, data_bytes, timeout=3600)
+    # Set data in cache with ttl
+    success = stats_cache.set(cache_key, data_bytes, ttl=3600)
     assert success is True
 
     # Data should be cached

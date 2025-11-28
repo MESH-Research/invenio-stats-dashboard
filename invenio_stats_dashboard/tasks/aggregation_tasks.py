@@ -11,6 +11,7 @@ import uuid
 from datetime import timedelta
 from typing import TypedDict
 
+import arrow
 from celery import shared_task
 from celery.schedules import crontab
 from dateutil.parser import parse as dateutil_parse  # type: ignore[import-untyped]
@@ -19,11 +20,13 @@ from invenio_cache import current_cache
 from invenio_search.proxies import current_search_client
 from invenio_stats.proxies import current_stats
 
+from ..constants import FirstRunStatus, RegistryOperation
 from ..exceptions import (
     CommunityEventsNotInitializedError,
     TaskLockAcquisitionError,
     UsageEventsNotMigratedError,
 )
+from ..resources.cache_utils import StatsAggregationRegistry
 
 
 # TypedDict definitions for aggregation response objects
@@ -280,7 +283,7 @@ class AggregationTaskLock:
 
     def acquire(self):
         """Acquire the lock.
-        
+
         Returns:
             bool: True if lock was acquired, False otherwise.
         """
@@ -290,7 +293,7 @@ class AggregationTaskLock:
 
     def release(self):
         """Release the lock.
-        
+
         Returns:
             bool: True if lock was released, False otherwise.
         """
@@ -367,6 +370,9 @@ def aggregate_community_record_stats(
     lock_timeout = aggregation_config.get("lock_timeout", 86400)
     lock_name = aggregation_config.get("lock_name", "community_stats_aggregation")
 
+    registry = StatsAggregationRegistry()
+    active_registry_keys: list[str] = []
+
     if lock_enabled:
         lock = AggregationTaskLock(lock_name, timeout=lock_timeout)
         try:
@@ -374,6 +380,23 @@ def aggregate_community_record_stats(
                 current_app.logger.info(
                     "Acquired aggregation lock, starting aggregation..."
                 )
+                for community_id in list(community_ids or []):
+                    registry_key = registry.make_registry_key(community_id, RegistryOperation.AGG)
+                    registry.set(
+                        registry_key,
+                        arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                        7200,
+                    )
+                    first_run_key = registry.make_registry_key(
+                        community_id, RegistryOperation.FIRST_RUN
+                    )
+                    first_run_record = registry.get_all(
+                        f"{community_id}_{RegistryOperation.FIRST_RUN}*"
+                    )
+                    if not first_run_record:
+                        registry.set(
+                            first_run_key, FirstRunStatus.IN_PROGRESS, ttl=None
+                        )
                 return _run_aggregation(
                     aggregations,
                     start_date,
@@ -397,6 +420,9 @@ def aggregate_community_record_stats(
                     "Aggregation skipped - another instance running"
                 ),
             }
+        finally:
+            for key in active_registry_keys:
+                registry.delete(key)
     else:
         # Run without locking
         current_app.logger.info("Running aggregation without distributed lock...")

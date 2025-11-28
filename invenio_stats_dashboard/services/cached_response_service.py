@@ -33,8 +33,8 @@ class CachedResponseService:
         """Initialize the service."""
         self.cache = StatsCache()
         self.categories = self._get_available_categories()
-        self.default_timeout = current_app.config.get(
-            "STATS_CACHE_DEFAULT_TIMEOUT", None
+        self.default_ttl = current_app.config.get(
+            "STATS_CACHE_DEFAULT_TTL", None
         )
 
     def _get_available_categories(self) -> list[str]:

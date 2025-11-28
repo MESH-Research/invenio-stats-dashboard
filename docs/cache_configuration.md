@@ -21,7 +21,7 @@ current_app.config['CACHE_REDIS_URL']  # 'redis://localhost:6379/0'
 # Stats-specific configuration
 current_app.config['STATS_CACHE_REDIS_DB']  # 6 (default)
 current_app.config['STATS_CACHE_PREFIX']  # 'stats_dashboard' (default)
-current_app.config['STATS_CACHE_DEFAULT_TIMEOUT']  # 3600 (default)
+current_app.config['STATS_CACHE_DEFAULT_TTL']  # 3600 (default)
 current_app.config['STATS_CACHE_COMPRESSION_METHOD']  # 'brotli' (default)
 ```
 
@@ -52,8 +52,8 @@ INVENIO_STATS_CACHE_REDIS_DB=6
 
 INVENIO_STATS_CACHE_PREFIX=stats_dashboard
 
-# Default cache timeout in seconds (default: None - no expiration)
-INVENIO_STATS_CACHE_DEFAULT_TIMEOUT=None
+# Default cache TTL in seconds (default: None - no expiration)
+INVENIO_STATS_CACHE_DEFAULT_TTL=None
 
 INVENIO_STATS_CACHE_COMPRESSION_METHOD=brotli
 ```
@@ -63,7 +63,7 @@ INVENIO_STATS_CACHE_COMPRESSION_METHOD=brotli
 # Stats cache configuration
 STATS_CACHE_REDIS_DB = 6
 STATS_CACHE_PREFIX = "stats_dashboard"
-STATS_CACHE_DEFAULT_TIMEOUT = None
+STATS_CACHE_DEFAULT_TTL = None
 STATS_CACHE_COMPRESSION_METHOD = "brotli"
 ```
 
@@ -113,7 +113,7 @@ Where the hash is generated from:
 ## Cache Behavior
 
 - **Compression**: All cached data is compressed using gzip compression
-- **Timeout**: Default 1 hour (3600 seconds)
+- **TTL**: Default 1 hour (3600 seconds)
 - **Serialization**: Raw bytes (no pickling overhead)
 - **Storage**: Dedicated Redis database (database 6)
 - **Headers**: Cached responses include `X-Cache: HIT` header

@@ -399,7 +399,7 @@ def test_cache_command(community_id, stat_name):
     success = cache.set(
         cache_key,
         json.dumps(test_data).encode("utf-8"),
-        timeout=60,  # 1 minute timeout for test
+        ttl=60,  # 1 minute ttl for test
     )
 
     if not success:

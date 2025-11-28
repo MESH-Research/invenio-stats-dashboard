@@ -34,6 +34,8 @@ class StatsCache:
             redis_url, decode_responses=False
         )
 
+        self.stats_db_number = current_app.config.get("STATS_CACHE_REDIS_DB", 7)
+
     def _get_redis_url(self) -> str:
         """Get the Redis URL for stats cache.
 
@@ -54,13 +56,12 @@ class StatsCache:
         main_redis_url = current_app.config.get(
             "CACHE_REDIS_URL", "redis://localhost:6379/0"
         )
-        stats_db = current_app.config.get("STATS_CACHE_REDIS_DB", 7)
 
         if "/" in main_redis_url:
             base_url = main_redis_url.rsplit("/", 1)[0]
-            return f"{base_url}/{stats_db}"
+            return f"{base_url}/{self.stats_db_number}"
         else:
-            return f"{main_redis_url}/{stats_db}"
+            return f"{main_redis_url}/{self.stats_db_number}"
 
     def get(self, key: str) -> bytes | None:
         """Get cached data by key.
@@ -85,23 +86,23 @@ class StatsCache:
         self,
         key: str,
         value: bytes,
-        timeout: int | None = None,
+        ttl: int | None = None,
     ) -> bool:
         """Set cached data.
 
         Args:
             key: Cache key
             value: Data to cache (as bytes)
-            timeout: Cache timeout in seconds (None = no expiration)
+            ttl: Time to live in seconds (None = no expiration)
 
         Returns:
             True if successful, False otherwise
         """
         try:
-            if timeout is None:
+            if ttl is None:
                 self.redis_client.set(key, value)
             else:
-                self.redis_client.setex(key, timeout, value)
+                self.redis_client.setex(key, ttl, value)
             return True
         except Exception as e:
             current_app.logger.warning(f"Cache set error for key {key}: {e}")
@@ -284,3 +285,60 @@ class StatsCache:
         except Exception as e:
             current_app.logger.warning(f"Cache info error: {e}")
             return {"error": str(e)}
+
+
+class StatsAggregationRegistry(StatsCache):
+    """Registry of currently active aggregation and caching jobs.
+
+    This allows us to give users accurate feedback about a
+    community's dashboard state when no results return from the
+    server.
+    """
+
+    def __init__(self, cache_prefix: str | None = None):
+        """Initialize a StatsAggregationRegistry object."""
+        super().__init__(cache_prefix)
+
+        self.cache_prefix = cache_prefix or current_app.config.get(
+            "STATS_AGG_REGISTRY_PREFIX", "stats_agg_registry"
+        )
+
+        self.stats_db_number = current_app.config.get("STATS_AGG_REGISTRY_REDIS_DB", 8)
+
+    @staticmethod
+    def make_registry_key(community_id: str, operation: str) -> str:
+        """Build an aggregation registry key string.
+
+        Arguments:
+            community_id (str): Community UUID
+            operation(str): The task being registered. Should be a value from
+                RegistryOperation enum, optionally with suffixes (e.g., "cache_2024").
+
+        Returns:
+            str: String to be used as registry key
+        """
+        return f"{community_id}_{operation}"
+
+    def get_all(self, pattern: str) -> list[tuple[str, str]]:
+        """Get all items whose keys match the pattern.
+
+        Args:
+            pattern: Redis key pattern (defaults to all keys with cache prefix)
+
+        Returns:
+            list[tuple[str, str]]: A list of matching stored values as tuples.
+        """
+        if pattern is None:
+            pattern = f"{self.cache_prefix}:*"
+        if not pattern.startswith(self.cache_prefix):
+            pattern = f"{self.cache_prefix}:{pattern}"
+        try:
+            keys: list[str] | None = self.redis_client.keys(pattern)  # type: ignore
+            if keys in [None, []]:
+                return []
+
+            return [(k, self.redis_client.get(k)) for k in keys]
+
+        except Exception as e:
+            current_app.logger.warning(f"Cache read all error: {e}")
+            return []

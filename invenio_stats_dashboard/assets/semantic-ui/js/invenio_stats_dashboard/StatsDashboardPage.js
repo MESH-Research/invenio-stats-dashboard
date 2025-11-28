@@ -34,6 +34,15 @@ const StatsDashboardPage = ({
 	const layout = dashboardConfig.layout;
 	const { dateRange, isLoading, isUpdating, error, stats } =
 		useStatsDashboard();
+	const agg_in_progress = dashboardConfig.agg_in_progress;
+	const caching_in_progress = dashboardConfig.caching_in_progress;
+	const first_run_incomplete = dashboardConfig.first_run_incomplete;
+
+	noDataText = first_run_incomplete
+		? "Initial calculation of statistics is still in progress. Check back again in a few hours."
+		: agg_in_progress || caching_in_progress
+			? "A calculation operation is currently in progress. Check back again later."
+			: "No statistics data is available for the selected time period.";
 
 	const renderComponent = (componentConfig) => {
 		const Component = componentsMap[componentConfig.component];
@@ -98,11 +107,11 @@ const StatsDashboardPage = ({
 	) : null;
 
 	// 5 expected possible states:
-	// (a) loading + no cached + fetch in process
-	// (b) loading + cached + fetch in process
-	// (c) done loading + cached + fetch in process
-	// (d) done loading + live data + fetch finished
-	// (e) done loading + fetch finished + stats are still null
+	// (a) loading + no cached (!stats) + fetch in process
+	// (b) loading + cached (stats) + fetch in process
+	// (c) done loading + cached (stats) + fetch in process
+	// (d) done loading + live data (stats) + fetch finished
+	// (e) done loading + fetch finished + stats are still null (!stats)
 
 	console.log(
 		"StatsDashboardPage render - isLoading:",
@@ -135,11 +144,7 @@ const StatsDashboardPage = ({
 				<Grid.Column width={16}>
 					<Message info>
 						<Message.Header>{i18next.t("No Data Available")}</Message.Header>
-						<p>
-							{i18next.t(
-								"No statistics data is available for the selected time period.",
-							)}
-						</p>
+						<p>{i18next.t(noDataText)}</p>
 					</Message>
 				</Grid.Column>
 			</Grid.Row>

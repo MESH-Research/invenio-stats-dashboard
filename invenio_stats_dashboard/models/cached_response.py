@@ -354,9 +354,9 @@ class CachedResponse:
         self._bytes_data = None  # Clear bytes cache
         self._created_at = arrow.utcnow()
 
-        default_timeout = current_app.config.get("STATS_CACHE_DEFAULT_TIMEOUT", None)
-        if default_timeout:
-            self._expires_at = arrow.utcnow().shift(days=default_timeout)
+        default_ttl = current_app.config.get("STATS_CACHE_DEFAULT_TTL", None)
+        if default_ttl:
+            self._expires_at = arrow.utcnow().shift(days=default_ttl)
         else:
             self._expires_at = None
 
@@ -399,13 +399,13 @@ class CachedResponse:
             True if successful, False otherwise
         """
         cache = StatsCache()
-        default_timeout = current_app.config.get("STATS_CACHE_DEFAULT_TIMEOUT", None)
-        timeout = None
-        if default_timeout:
-            timeout = default_timeout * 86400  # Convert days to seconds
+        default_ttl = current_app.config.get("STATS_CACHE_DEFAULT_TTL", None)
+        ttl = None
+        if default_ttl:
+            ttl = default_ttl * 86400  # Convert days to seconds
 
         try:
-            cache.set(self.cache_key, self.bytes_data, timeout=timeout)
+            cache.set(self.cache_key, self.bytes_data, ttl=ttl)
             return True
         except Exception as e:
             current_app.logger.error(
