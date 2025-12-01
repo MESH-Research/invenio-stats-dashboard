@@ -13,7 +13,10 @@ import pytest
 from flask import Flask, g
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
+from invenio_records_resources.services.errors import PermissionDeniedError
 
+from invenio_stats_dashboard.constants import RegistryOperation
+from invenio_stats_dashboard.resources.cache_utils import StatsAggregationRegistry
 from invenio_stats_dashboard.views.views import (
     community_stats_dashboard,
     global_stats_dashboard,
@@ -177,6 +180,7 @@ class TestCommunityStatsDashboardView:
         db,
         minimal_community_factory: Callable,
         set_app_config_fn_scoped: Callable,
+        anon_identity,
     ) -> None:
         """Test that community dashboard view passes correct config to template."""
         app = running_app.app
@@ -251,20 +255,17 @@ class TestCommunityStatsDashboardView:
         )
         with app.test_request_context(
             path=community_route
-        ) as req_ctx:
+        ):
             # Set up g.identity for the @pass_community decorator
-            g.identity = system_identity
-
-            # Set request.view_args - Flask unpacks this as **kwargs when calling views
-            req_ctx.request.view_args = {"pid_value": community.id}
+            g.identity = anon_identity
 
             with patch(
                 "invenio_stats_dashboard.views.views.render_template"
             ) as mock_render:
                 mock_render.return_value = "rendered template"
 
-                # Flask calls views with **request.view_args unpacked as kwargs
-                community_stats_dashboard(**req_ctx.request.view_args)
+                # Call view directly with pid_value - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
 
                 # Verify render_template was called
                 assert mock_render.called
@@ -499,10 +500,6 @@ class TestCommunityStatsDashboardView:
         set_app_config_fn_scoped: Callable,
     ) -> None:
         """Test PermissionDeniedError when no read permission."""
-        from invenio_records_resources.services.errors import (
-            PermissionDeniedError,
-        )
-
         app = running_app.app
 
         # Create a community
@@ -726,3 +723,131 @@ class TestCommunityStatsDashboardView:
                     dashboard_config["layout"]["tabs"][0]["name"]
                     == "custom-community-tab"
                 )
+
+    def test_community_dashboard_agg_in_progress_flag(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test that agg_in_progress flag is True when aggregation operations exist."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        # Set up registry with an active aggregation operation
+        registry = StatsAggregationRegistry()
+        agg_key = registry.make_registry_key(
+            str(community.id), RegistryOperation.AGG
+        )
+        registry.set(agg_key, "2024-01-01T12:00:00.000", ttl=7200)
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly with pid_value - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be True when aggregation operation exists
+                assert dashboard_config["agg_in_progress"] is True
+
+        # Clean up
+        registry.delete(agg_key)
+
+    def test_community_dashboard_agg_in_progress_flag_when_no_operations(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test agg_in_progress flag is False when no aggregation operations exist."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly - decorator will handle fetching community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be False when no aggregation operations exist
+                assert dashboard_config["agg_in_progress"] is False

@@ -381,7 +381,9 @@ def aggregate_community_record_stats(
                     "Acquired aggregation lock, starting aggregation..."
                 )
                 for community_id in list(community_ids or []):
-                    registry_key = registry.make_registry_key(community_id, RegistryOperation.AGG)
+                    registry_key = registry.make_registry_key(
+                        community_id, RegistryOperation.AGG
+                    )
                     registry.set(
                         registry_key,
                         arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),

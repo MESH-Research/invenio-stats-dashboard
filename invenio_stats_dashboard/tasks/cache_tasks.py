@@ -104,7 +104,8 @@ def generate_cached_responses_task(
                                 )
                                 if (
                                     len(first_run_recs)
-                                    and first_run_recs[0][1] == FirstRunStatus.IN_PROGRESS
+                                    and first_run_recs[0][1]
+                                    == FirstRunStatus.IN_PROGRESS
                                 ):
                                     first_runs_completing.append(first_run_recs[0][0])
 
@@ -125,7 +126,9 @@ def generate_cached_responses_task(
                             for response in result.get("responses", [])
                             if response.get("community_id") in first_run_key
                         ):
-                            registry.set(first_run_key, FirstRunStatus.COMPLETED, ttl=None)
+                            registry.set(
+                                first_run_key, FirstRunStatus.COMPLETED, ttl=None
+                            )
 
                     current_app.logger.info(f"Cache generation completed: {result}")
                     return result

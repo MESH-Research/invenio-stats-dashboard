@@ -22,8 +22,19 @@ class StatsCache:
     and byte values.
     """
 
-    def __init__(self, cache_prefix: str | None = None):
-        """Initialize the cache manager with direct Redis connection."""
+    def __init__(
+        self, cache_prefix: str | None = None, stats_db_number: int | None = None
+    ):
+        """Initialize the cache manager with direct Redis connection.
+
+        Args:
+            cache_prefix: Optional prefix for cache keys
+            stats_db_number: Optional Redis DB number. If not provided, uses
+                STATS_CACHE_REDIS_DB config value (default: 7)
+        """
+        self.stats_db_number = stats_db_number or current_app.config.get(
+            "STATS_CACHE_REDIS_DB", 7
+        )
         redis_url = self._get_redis_url()
 
         self.cache_prefix = cache_prefix or current_app.config.get(
@@ -33,8 +44,6 @@ class StatsCache:
         self.redis_client: redis.Redis = redis.from_url(
             redis_url, decode_responses=False
         )
-
-        self.stats_db_number = current_app.config.get("STATS_CACHE_REDIS_DB", 7)
 
     def _get_redis_url(self) -> str:
         """Get the Redis URL for stats cache.
@@ -297,13 +306,12 @@ class StatsAggregationRegistry(StatsCache):
 
     def __init__(self, cache_prefix: str | None = None):
         """Initialize a StatsAggregationRegistry object."""
-        super().__init__(cache_prefix)
+        registry_db_number = current_app.config.get("STATS_AGG_REGISTRY_REDIS_DB", 8)
+        super().__init__(cache_prefix, stats_db_number=registry_db_number)
 
         self.cache_prefix = cache_prefix or current_app.config.get(
             "STATS_AGG_REGISTRY_PREFIX", "stats_agg_registry"
         )
-
-        self.stats_db_number = current_app.config.get("STATS_AGG_REGISTRY_REDIS_DB", 8)
 
     @staticmethod
     def make_registry_key(community_id: str, operation: str) -> str:
@@ -319,19 +327,18 @@ class StatsAggregationRegistry(StatsCache):
         """
         return f"{community_id}_{operation}"
 
-    def get_all(self, pattern: str) -> list[tuple[str, str]]:
+    def get_all(self, pattern: str | None = None) -> list[tuple[str, str]]:
         """Get all items whose keys match the pattern.
 
         Args:
-            pattern: Redis key pattern (defaults to all keys with cache prefix)
+            pattern: Redis key pattern (e.g., "community_id_agg*").
+                Defaults to "*" to match all keys.
 
         Returns:
             list[tuple[str, str]]: A list of matching stored values as tuples.
         """
         if pattern is None:
-            pattern = f"{self.cache_prefix}:*"
-        if not pattern.startswith(self.cache_prefix):
-            pattern = f"{self.cache_prefix}:{pattern}"
+            pattern = "*"
         try:
             keys: list[str] | None = self.redis_client.keys(pattern)  # type: ignore
             if keys in [None, []]:
