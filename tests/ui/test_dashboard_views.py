@@ -15,7 +15,7 @@ from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
 from invenio_records_resources.services.errors import PermissionDeniedError
 
-from invenio_stats_dashboard.constants import RegistryOperation
+from invenio_stats_dashboard.constants import FirstRunStatus, RegistryOperation
 from invenio_stats_dashboard.resources.cache_utils import StatsAggregationRegistry
 from invenio_stats_dashboard.views.views import (
     community_stats_dashboard,
@@ -851,3 +851,342 @@ class TestCommunityStatsDashboardView:
                 dashboard_config = mock_render.call_args[1]["dashboard_config"]
                 # Should be False when no aggregation operations exist
                 assert dashboard_config["agg_in_progress"] is False
+
+    def test_community_dashboard_caching_in_progress_flag(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test that caching_in_progress flag is True when cache operations exist."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        # Set up registry with an active cache operation (with year suffix)
+        registry = StatsAggregationRegistry()
+        current_year = 2024
+        cache_operation = RegistryOperation.CACHE.replace("{year}", str(current_year))
+        cache_key = registry.make_registry_key(
+            str(community.id), cache_operation
+        )
+        registry.set(cache_key, "2024-01-01T12:00:00.000", ttl=7200)
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be True when cache operation exists
+                assert dashboard_config["caching_in_progress"] is True
+
+        # Clean up
+        registry.delete(cache_key)
+
+    def test_community_dashboard_caching_in_progress_flag_when_no_operations(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test caching_in_progress flag is False when no cache operations exist."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be False when no cache operations exist
+                assert dashboard_config["caching_in_progress"] is False
+
+    def test_community_dashboard_first_run_incomplete_when_no_records(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test first_run_incomplete flag is True when no first_run records exist."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        # No first_run records set up - registry should be empty
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be True when no first_run records exist
+                assert dashboard_config["first_run_incomplete"] is True
+
+    def test_community_dashboard_first_run_incomplete_when_in_progress(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test first_run_incomplete flag is True when first_run is IN_PROGRESS."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        # Set up registry with first_run in IN_PROGRESS status
+        registry = StatsAggregationRegistry()
+        first_run_key = registry.make_registry_key(
+            str(community.id), RegistryOperation.FIRST_RUN
+        )
+        # Store as string - Redis will encode it automatically
+        registry.set(
+            first_run_key,
+            FirstRunStatus.IN_PROGRESS,
+            ttl=None,
+        )
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be True when first_run is IN_PROGRESS
+                assert dashboard_config["first_run_incomplete"] is True
+
+        # Clean up
+        registry.delete(first_run_key)
+
+    def test_community_dashboard_first_run_complete_when_completed(
+        self,
+        running_app: RunningApp,
+        db,
+        minimal_community_factory: Callable,
+        set_app_config_fn_scoped: Callable,
+        anon_identity,
+    ) -> None:
+        """Test first_run_incomplete flag is False when first_run is COMPLETED."""
+        app = running_app.app
+
+        # Create a community
+        community = minimal_community_factory(
+            slug="test-community",
+            custom_fields={"stats:dashboard_enabled": True},
+        )
+
+        # Set up temporary config
+        set_app_config_fn_scoped({
+            "STATS_DASHBOARD_ENABLED_COMMUNITY": True,
+            "STATS_DASHBOARD_ENABLED_GLOBAL": True,
+            "STATS_DASHBOARD_COMMUNITY_OPT_IN": True,
+            "STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY": "Disabled",
+            "STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL": "Global disabled",
+            "THEME_SHORT_TITLE": "Test",
+            "STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS": [],
+            "STATS_DASHBOARD_LAYOUT": {
+                "global_layout": {},
+                "community_layout": {},
+            },
+            "STATS_DASHBOARD_UI_SUBCOUNTS": {},
+            "STATS_DASHBOARD_UI_CONFIG": {"community": {}},
+            "STATS_DASHBOARD_CLIENT_CACHE_COMPRESSION_ENABLED": False,
+            "STATS_DASHBOARD_COMPRESS_JSON": True,
+            "APP_RDM_DISPLAY_DECIMAL_FILE_SIZES": True,
+            "STATS_DASHBOARD_USE_TEST_DATA": False,
+        })
+
+        # Set up registry with first_run in COMPLETED status
+        registry = StatsAggregationRegistry()
+        first_run_key = registry.make_registry_key(
+            str(community.id), RegistryOperation.FIRST_RUN
+        )
+        # Store as string - Redis will encode it automatically
+        registry.set(
+            first_run_key,
+            FirstRunStatus.COMPLETED,
+            ttl=None,
+        )
+
+        community_route_template = app.config["STATS_DASHBOARD_ROUTES"]["community"]
+        community_route = community_route_template.replace(
+            "<pid_value>", str(community.id)
+        )
+        with app.test_request_context(
+            path=community_route
+        ):
+            g.identity = anon_identity
+
+            with patch(
+                "invenio_stats_dashboard.views.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered template"
+
+                # Call view directly - decorator fetches community
+                community_stats_dashboard(pid_value=community.id)
+
+                dashboard_config = mock_render.call_args[1]["dashboard_config"]
+                # Should be False when first_run is COMPLETED
+                assert dashboard_config["first_run_incomplete"] is False
+
+        # Clean up
+        registry.delete(first_run_key)

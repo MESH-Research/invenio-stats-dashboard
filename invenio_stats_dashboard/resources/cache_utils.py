@@ -23,7 +23,10 @@ class StatsCache:
     """
 
     def __init__(
-        self, cache_prefix: str | None = None, stats_db_number: int | None = None
+        self,
+        cache_prefix: str | None = None,
+        stats_db_number: int | None = None,
+        decode_responses: bool = False,
     ):
         """Initialize the cache manager with direct Redis connection.
 
@@ -31,6 +34,8 @@ class StatsCache:
             cache_prefix: Optional prefix for cache keys
             stats_db_number: Optional Redis DB number. If not provided, uses
                 STATS_CACHE_REDIS_DB config value (default: 7)
+            decode_responses: Whether to decode responses from bytes to strings.
+                Default False for binary cache data, True for string-only registry.
         """
         self.stats_db_number = stats_db_number or current_app.config.get(
             "STATS_CACHE_REDIS_DB", 7
@@ -42,7 +47,7 @@ class StatsCache:
         )
 
         self.redis_client: redis.Redis = redis.from_url(
-            redis_url, decode_responses=False
+            redis_url, decode_responses=decode_responses
         )
 
     def _get_redis_url(self) -> str:
@@ -94,20 +99,22 @@ class StatsCache:
     def set(
         self,
         key: str,
-        value: bytes,
+        value: bytes | str,
         ttl: int | None = None,
     ) -> bool:
         """Set cached data.
 
         Args:
             key: Cache key
-            value: Data to cache (as bytes)
+            value: Data to cache (as bytes or string - strings will be encoded)
             ttl: Time to live in seconds (None = no expiration)
 
         Returns:
             True if successful, False otherwise
         """
         try:
+            # Redis client accepts both str and bytes when decode_responses=False
+            # It will automatically encode strings
             if ttl is None:
                 self.redis_client.set(key, value)
             else:
@@ -307,7 +314,10 @@ class StatsAggregationRegistry(StatsCache):
     def __init__(self, cache_prefix: str | None = None):
         """Initialize a StatsAggregationRegistry object."""
         registry_db_number = current_app.config.get("STATS_AGG_REGISTRY_REDIS_DB", 8)
-        super().__init__(cache_prefix, stats_db_number=registry_db_number)
+        # Use decode_responses=True for registry since it only stores strings
+        super().__init__(
+            cache_prefix, stats_db_number=registry_db_number, decode_responses=True
+        )
 
         self.cache_prefix = cache_prefix or current_app.config.get(
             "STATS_AGG_REGISTRY_PREFIX", "stats_agg_registry"
@@ -341,10 +351,11 @@ class StatsAggregationRegistry(StatsCache):
             pattern = "*"
         try:
             keys: list[str] | None = self.redis_client.keys(pattern)  # type: ignore
-            if keys in [None, []]:
+            if keys is None or keys == []:
                 return []
 
-            return [(k, self.redis_client.get(k)) for k in keys]
+            # With decode_responses=True, values are already strings
+            return [(str(k), str(self.redis_client.get(k))) for k in keys]
 
         except Exception as e:
             current_app.logger.warning(f"Cache read all error: {e}")
