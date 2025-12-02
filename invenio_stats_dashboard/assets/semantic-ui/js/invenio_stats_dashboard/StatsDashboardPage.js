@@ -38,7 +38,7 @@ const StatsDashboardPage = ({
 	const caching_in_progress = dashboardConfig.caching_in_progress;
 	const first_run_incomplete = dashboardConfig.first_run_incomplete;
 
-	noDataText = first_run_incomplete
+	const noDataText = first_run_incomplete
 		? "Initial calculation of statistics is still in progress. Check back again in a few hours."
 		: agg_in_progress || caching_in_progress
 			? "A calculation operation is currently in progress. Check back again later."

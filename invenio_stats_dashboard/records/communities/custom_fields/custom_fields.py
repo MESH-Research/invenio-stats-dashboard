@@ -158,8 +158,13 @@ def get_community_stats_fields_ui(app=None):
         "fields": [
             {
                 "field": "stats:dashboard_enabled",
-                "ui_widget": "BooleanCheckbox",
+                "ui_widget": "DashboardEnabledField",
+                "template": "dashboard_enabled.html",
                 "props": {
+                    "icon": config.get(
+                        "STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_ICON"
+                    )
+                    or "chart line",
                     "label": config.get(
                         "STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_LABEL"
                     )
@@ -173,6 +178,13 @@ def get_community_stats_fields_ui(app=None):
                     ),
                     "trueLabel": "Enable",
                     "falseLabel": "Disable",
+                    "helpText": config.get(
+                        "STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_HELPTEXT"
+                    )
+                    or _(
+                        "It may take several hours before initial calculations "
+                        "are complete and your dashboard is fully functional."
+                    ),
                 },
             },
             # {
