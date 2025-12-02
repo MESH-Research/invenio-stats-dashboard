@@ -10,6 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from flask import render_template
 from invenio_communities.proxies import current_communities
 from invenio_records_resources.services.custom_fields import BooleanCF
 from invenio_records_resources.services.custom_fields.validate import (
@@ -281,7 +282,19 @@ class TestCustomFieldsConfiguration:
         assert isinstance(ui_config, dict)
         assert ui_config["section"] == "Stats Dashboard Settings"
         assert len(ui_config["fields"]) > 0
-        assert ui_config["fields"][0]["field"] == "stats:dashboard_enabled"
+        
+        # Check the dashboard_enabled field configuration
+        enabled_field = ui_config["fields"][0]
+        assert enabled_field["field"] == "stats:dashboard_enabled"
+        assert enabled_field["ui_widget"] == "DashboardEnabledField"
+        assert enabled_field["template"] == "dashboard_enabled.html"
+        assert "props" in enabled_field
+        assert "icon" in enabled_field["props"]
+        assert "label" in enabled_field["props"]
+        assert "description" in enabled_field["props"]
+        assert "trueLabel" in enabled_field["props"]
+        assert "falseLabel" in enabled_field["props"]
+        assert "helpText" in enabled_field["props"]
 
     def test_communities_namespaces_defined(self):
         """Test that communities namespaces are properly defined."""
@@ -441,3 +454,94 @@ class TestCustomFieldsIntegration:
             ]["props"]["icon"]
             == "users"
         )
+
+
+class TestDashboardEnabledTemplate:
+    """Test the dashboard_enabled.html template rendering."""
+
+    def test_template_renders_with_boolean_true(
+        self, running_app: RunningApp, set_app_config_fn_scoped: Callable
+    ) -> None:
+        """Test that the template renders with boolean True value."""
+        app = running_app.app
+
+        # Get the UI config to extract props
+        ui_config = COMMUNITY_STATS_FIELDS_UI()
+        enabled_field = ui_config["fields"][0]
+        props = enabled_field["props"]
+
+        # Set up template path in config
+        set_app_config_fn_scoped({
+            "COMMUNITIES_CUSTOM_FIELDS_UI": [ui_config],
+        })
+
+        with app.app_context():
+            with app.test_request_context():
+                # field_value is the raw boolean value from custom_fields
+                field_value = True
+
+                rendered = render_template(
+                    "dashboard_enabled.html",
+                    field_value=field_value,
+                    **props,
+                )
+
+                # Verify template rendered
+                assert rendered is not None
+                assert len(rendered) > 0
+
+                # Verify the header is present
+                assert "Enable stats dashboard" in rendered
+
+                # Verify the boolean value is rendered (as "True" string)
+                assert "True" in rendered
+
+    def test_template_renders_with_boolean_false(
+        self, running_app: RunningApp, set_app_config_fn_scoped: Callable
+    ) -> None:
+        """Test that the template renders with boolean False value."""
+        app = running_app.app
+
+        # Get the UI config to extract props
+        ui_config = COMMUNITY_STATS_FIELDS_UI()
+        enabled_field = ui_config["fields"][0]
+        props = enabled_field["props"]
+
+        # Set up template path in config
+        set_app_config_fn_scoped({
+            "COMMUNITIES_CUSTOM_FIELDS_UI": [ui_config],
+        })
+
+        with app.app_context():
+            with app.test_request_context():
+                # field_value is the raw boolean value from custom_fields
+                field_value = False
+
+                rendered = render_template(
+                    "dashboard_enabled.html",
+                    field_value=field_value,
+                    **props,
+                )
+
+                # Verify template rendered (should be empty since field_value is False)
+                assert rendered is not None
+                # Template checks {% if field_value %}, so False should result in
+                # empty output
+                assert len(rendered.strip()) == 0
+
+    def test_template_handles_missing_field_value(
+        self, running_app: RunningApp
+    ) -> None:
+        """Test that template handles missing field_value gracefully."""
+        app = running_app.app
+
+        with app.app_context():
+            with app.test_request_context():
+                # Render without field_value
+                rendered = render_template(
+                    "dashboard_enabled.html",
+                    field_value=None,
+                )
+
+                # Template should handle None gracefully
+                assert rendered is not None

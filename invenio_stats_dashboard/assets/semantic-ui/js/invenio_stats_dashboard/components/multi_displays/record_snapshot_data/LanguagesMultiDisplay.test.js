@@ -752,8 +752,13 @@ describe('LanguagesMultiDisplay', () => {
       expect(screen.getByText('50 (29%)')).toBeInTheDocument();
     });
 
-    it('should have proper table accessibility attributes', () => {
+    it('should have proper table accessibility attributes', async () => {
       render(<LanguagesMultiDisplay default_view="list" />);
+
+      // Wait for table to appear (500ms delay for animation)
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      }, { timeout: 1000 });
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');

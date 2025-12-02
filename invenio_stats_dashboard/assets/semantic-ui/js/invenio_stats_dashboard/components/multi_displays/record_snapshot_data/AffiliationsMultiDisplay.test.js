@@ -601,13 +601,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render with list configuration', async () => {
+      render(<AffiliationsMultiDisplay default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('Harvard University')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -622,13 +621,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', async () => {
+      render(<AffiliationsMultiDisplay pageSize={2} default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('Harvard University')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -643,13 +641,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render with custom available_views', async () => {
+      render(<AffiliationsMultiDisplay available_views={["list"]} default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('Harvard University')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -693,13 +690,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', async () => {
+      render(<AffiliationsMultiDisplay default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -720,13 +716,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render table rows with proper structure', async () => {
+      render(<AffiliationsMultiDisplay default_view="list" />);
 
+      // Wait for rows to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -743,13 +738,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render table cells with proper data', async () => {
+      render(<AffiliationsMultiDisplay default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('Harvard University')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -763,13 +757,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', async () => {
+      render(<AffiliationsMultiDisplay default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -780,14 +773,13 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should render with custom headers properly', async () => {
+      const customHeaders = ['Custom Affiliation', 'Custom Count'];
+      render(<AffiliationsMultiDisplay headers={customHeaders} default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      const customHeaders = ['Custom Affiliation', 'Custom Count'];
-      render(<AffiliationsMultiDisplay headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -800,13 +792,12 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should maintain proper table structure with pagination', async () => {
+      render(<AffiliationsMultiDisplay pageSize={2} default_view="list" />);
 
+      // Wait for rows to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
       }, { timeout: 1000 });
-
-      
-      render(<AffiliationsMultiDisplay pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

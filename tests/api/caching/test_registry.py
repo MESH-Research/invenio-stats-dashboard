@@ -7,22 +7,12 @@
 """Tests for StatsAggregationRegistry operations."""
 
 import pytest
+import time
 
 from invenio_stats_dashboard.constants import FirstRunStatus, RegistryOperation
-from invenio_stats_dashboard.resources.cache_utils import StatsAggregationRegistry
-
-
-@pytest.fixture
-def registry(running_app):
-    """StatsAggregationRegistry instance using real Redis with automatic cleanup.
-
-    Yields:
-        StatsAggregationRegistry: The configured registry instance.
-    """
-    reg = StatsAggregationRegistry()
-    yield reg
-    # Cleanup after test completes - clear ALL keys
-    reg.clear_all("*")
+from invenio_stats_dashboard.resources.cache_utils import (
+    StatsAggregationRegistry,
+)
 
 
 def test_registry_basic_set_get(running_app, registry):

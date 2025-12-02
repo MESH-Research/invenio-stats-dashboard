@@ -597,13 +597,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render with list configuration', async () => {
+      render(<FundersMultiDisplay default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -618,13 +617,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render with custom pageSize', async () => {
+      render(<FundersMultiDisplay pageSize={2} default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -639,13 +637,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render with custom available_views', async () => {
+      render(<FundersMultiDisplay available_views={["list"]} default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -689,13 +686,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render proper table structure with headers', async () => {
+      render(<FundersMultiDisplay default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -716,13 +712,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render table rows with proper structure', async () => {
+      render(<FundersMultiDisplay default_view="list" />);
 
+      // Wait for rows to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -739,13 +734,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render table cells with proper data', async () => {
+      render(<FundersMultiDisplay default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('National Science Foundation')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -759,13 +753,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should have proper table accessibility attributes', async () => {
+      render(<FundersMultiDisplay default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -776,14 +769,13 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should render with custom headers properly', async () => {
+      const customHeaders = ['Custom Funder', 'Custom Count'];
+      render(<FundersMultiDisplay headers={customHeaders} default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      const customHeaders = ['Custom Funder', 'Custom Count'];
-      render(<FundersMultiDisplay headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -796,13 +788,12 @@ describe('FundersMultiDisplay', () => {
     });
 
     it('should maintain proper table structure with pagination', async () => {
+      render(<FundersMultiDisplay pageSize={2} default_view="list" />);
 
+      // Wait for rows to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
       }, { timeout: 1000 });
-
-      
-      render(<FundersMultiDisplay pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

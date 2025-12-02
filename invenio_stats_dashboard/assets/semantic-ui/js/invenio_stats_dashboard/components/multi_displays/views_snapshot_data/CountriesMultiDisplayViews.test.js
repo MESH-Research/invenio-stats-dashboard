@@ -711,13 +711,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should render with list configuration', async () => {
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('United States')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -732,13 +731,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should render with custom pageSize', async () => {
+      render(<CountriesMultiDisplayViews pageSize={2} default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('United States')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews pageSize={2} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -753,13 +751,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should render with custom available_views', async () => {
+      render(<CountriesMultiDisplayViews available_views={["list"]} default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('United States')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews available_views={["list"]} default_view="list" />);
 
       const statsDisplay = screen.getByRole('region');
       expect(statsDisplay).toBeInTheDocument();
@@ -802,13 +799,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should render proper table structure with headers', async () => {
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews default_view="list" />);
 
       // Check that table exists
       const table = screen.getByRole('table');
@@ -830,12 +826,12 @@ describe('CountriesMultiDisplayViews', () => {
 
     it('should render table rows with proper structure', async () => {
 
+      render(<CountriesMultiDisplayViews default_view="list" />);
+
+      // Wait for rows to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews default_view="list" />);
 
       // Check that we have the expected number of data rows
       const dataRows = screen.getAllByTestId(/^row-\d+$/);
@@ -852,13 +848,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should render table cells with proper data', async () => {
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
+      // Wait for content to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByText('United States')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews default_view="list" />);
 
       // Check specific cell content
       const cells = screen.getAllByTestId(/^cell-\d+-\d+$/);
@@ -872,13 +867,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should have proper table accessibility attributes', async () => {
+      render(<CountriesMultiDisplayViews default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews default_view="list" />);
 
       const table = screen.getByRole('table');
       expect(table).toHaveAttribute('aria-labelledby');
@@ -889,14 +883,13 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should render with custom headers properly', async () => {
+      const customHeaders = ['Custom Country', 'Custom Count'];
+      render(<CountriesMultiDisplayViews headers={customHeaders} default_view="list" />);
 
+      // Wait for table to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getByRole('table')).toBeInTheDocument();
       }, { timeout: 1000 });
-
-      
-      const customHeaders = ['Custom Country', 'Custom Count'];
-      render(<CountriesMultiDisplayViews headers={customHeaders} default_view="list" />);
 
       // Check that custom headers are rendered in the header row
       const headerRows = screen.getAllByRole('row');
@@ -909,13 +902,12 @@ describe('CountriesMultiDisplayViews', () => {
     });
 
     it('should maintain proper table structure with pagination', async () => {
+      render(<CountriesMultiDisplayViews pageSize={2} default_view="list" />);
 
+      // Wait for rows to appear (accounting for 500ms delay in component)
       await waitFor(() => {
         expect(screen.getAllByTestId(/^row-\d+$/).length).toBeGreaterThan(0);
       }, { timeout: 1000 });
-
-      
-      render(<CountriesMultiDisplayViews pageSize={2} default_view="list" />);
 
       // Check table structure is maintained
       const table = screen.getByRole('table');

@@ -389,6 +389,7 @@ def aggregate_community_record_stats(
                         arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
                         7200,
                     )
+                    active_registry_keys.append(registry_key)
                     first_run_key = registry.make_registry_key(
                         community_id, RegistryOperation.FIRST_RUN
                     )
