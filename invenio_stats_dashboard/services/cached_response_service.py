@@ -17,8 +17,9 @@ from invenio_communities.proxies import current_communities
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 
+from ..constants import FirstRunStatus, RegistryOperation
 from ..models.cached_response import CachedResponse
-from ..resources.cache_utils import StatsCache
+from ..resources.cache_utils import StatsAggregationRegistry, StatsCache
 from .community_dashboards import CommunityDashboardsService
 
 
@@ -92,27 +93,55 @@ class CachedResponseService:
         community_ids = self._normalize_community_ids(community_ids)
         years_per_community = self._normalize_years(years, community_ids)
 
-        all_responses = self._generate_all_response_objects(
-            community_ids, years_per_community, optimize=optimize
-        )
-        if not overwrite:
-            skipped_count = 0
-            responses_to_process = []
-            for response in all_responses:
-                if self.exists(response.community_id, response.year, response.category):
-                    skipped_count += 1
-                else:
-                    responses_to_process.append(response)
-            responses = responses_to_process
-        else:
-            skipped_count = 0
-            for response in all_responses:
-                self.delete(response.community_id, response.year, response.category)
-            responses = all_responses
+        # Set up registry keys for tracking cache generation
+        registry = StatsAggregationRegistry()
+        current_year = arrow.utcnow().year
+        active_registry_keys: list[str] = []
 
-        results = self._create(responses, progress_callback)
-        results["skipped"] = skipped_count
-        return results
+        try:
+            active_registry_keys, first_runs_completing = self._setup_registry_keys(
+                registry, community_ids, years_per_community, current_year
+            )
+
+            all_responses = self._generate_all_response_objects(
+                community_ids, years_per_community, optimize=optimize
+            )
+            if not overwrite:
+                skipped_count = 0
+                responses_to_process = []
+                for response in all_responses:
+                    if self.exists(
+                        response.community_id, response.year, response.category
+                    ):
+                        skipped_count += 1
+                    else:
+                        responses_to_process.append(response)
+                responses = responses_to_process
+            else:
+                skipped_count = 0
+                for response in all_responses:
+                    self.delete(response.community_id, response.year, response.category)
+                responses = all_responses
+
+            results = self._create(responses, progress_callback)
+            results["skipped"] = skipped_count
+
+            # Mark first runs as completed if cache was generated successfully
+            for first_run_key in first_runs_completing:
+                if any(
+                    response
+                    for response in results.get("responses", [])
+                    if response.get("community_id") in first_run_key
+                ):
+                    registry.set(
+                        first_run_key, FirstRunStatus.COMPLETED, ttl=None
+                    )
+
+            return results
+        finally:
+            if active_registry_keys:
+                for key in active_registry_keys:
+                    registry.delete(key)
 
     def read(
         self, community_id: str, year: int, category: str
@@ -226,6 +255,56 @@ class CachedResponseService:
                 result[community_id] = []
 
         return result
+
+    def _setup_registry_keys(
+        self,
+        registry: StatsAggregationRegistry,
+        community_ids: list[str],
+        years_per_community: dict[str, list[int]],
+        current_year: int,
+    ) -> tuple[list[str], list[str]]:
+        """Set up registry keys for tracking cache generation.
+
+        Args:
+            registry: StatsAggregationRegistry instance
+            community_ids: List of normalized community IDs
+            years_per_community: Dictionary mapping community IDs to year lists
+            current_year: Current year for first run tracking
+
+        Returns:
+            tuple: (active_registry_keys, first_runs_completing)
+        """
+        active_registry_keys: list[str] = []
+        first_runs_completing: list[str] = []
+
+        # Set registry keys for all community/year combinations being processed
+        for community_id in community_ids:
+            years_list = years_per_community.get(community_id, [])
+            for year in years_list:
+                cache_operation = RegistryOperation.CACHE.replace(
+                    "{year}", str(year)
+                )
+                registry_key = registry.make_registry_key(
+                    community_id, cache_operation
+                )
+                registry.set(
+                    registry_key,
+                    arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                    7200,
+                )
+                active_registry_keys.append(registry_key)
+                # Track first runs that are completing
+                if year == current_year:
+                    first_run_recs = registry.get_all(
+                        f"{community_id}_{RegistryOperation.FIRST_RUN}*"
+                    )
+                    if (
+                        len(first_run_recs)
+                        and first_run_recs[0][1] == FirstRunStatus.IN_PROGRESS
+                    ):
+                        first_runs_completing.append(first_run_recs[0][0])
+
+        return active_registry_keys, first_runs_completing
 
     def _get_years_for_community(self, community_id: str) -> list[int]:
         """Get valid years for a specific community based on its creation date.

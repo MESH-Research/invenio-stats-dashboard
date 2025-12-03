@@ -27,10 +27,12 @@ from opensearchpy.helpers.index import Index
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
+from ..constants import FirstRunStatus, RegistryOperation
 from ..exceptions import (
     CommunityEventsNotInitializedError,
     DeltaDataGapError,
 )
+from ..resources.cache_utils import StatsAggregationRegistry
 from ..services.community_dashboards import CommunityDashboardsService
 from .bookmarks import CommunityBookmarkAPI
 from .types import (
@@ -343,123 +345,184 @@ class CommunityAggregatorBase(StatAggregator):
                 )
             )
 
-        results = []
-        for community_id in communities_to_aggregate:
-            try:
-                first_event_date, last_event_date = self._find_first_event_date(
-                    community_id
+        # Store for external access (e.g., task reporting)
+        self.communities_to_aggregate = communities_to_aggregate
+
+        # Set up registry keys for tracking aggregation
+        registry = StatsAggregationRegistry()
+        active_registry_keys: list[str] = []
+
+        try:
+            active_registry_keys = self._setup_registry_keys(
+                registry, communities_to_aggregate
+            )
+
+            results = []
+            for community_id in communities_to_aggregate:
+                try:
+                    first_event_date, last_event_date = self._find_first_event_date(
+                        community_id
+                    )
+                except ValueError:
+                    continue
+
+                previous_bookmark = self.bookmark_api.get_bookmark(community_id)
+
+                if not ignore_bookmark:
+                    if previous_bookmark:
+                        lower_limit = arrow.get(previous_bookmark)
+                    elif start_date:
+                        lower_limit = start_date
+                    else:
+                        lower_limit = min(
+                            first_event_date or arrow.utcnow(), arrow.utcnow()
+                        )
+                else:
+                    # When ignoring bookmark, start from the earliest available data
+                    # if no start_date is provided, otherwise use the provided
+                    # start_date
+                    if start_date:
+                        lower_limit = start_date
+                    else:
+                        lower_limit = first_event_date or arrow.utcnow()
+
+                # Ensure we don't aggregate more than self.catchup_interval days
+                upper_limit = self._get_end_date(lower_limit, end_date)
+
+                first_event_date_safe = first_event_date or arrow.utcnow()
+                last_event_date_safe = last_event_date or arrow.utcnow()
+
+                agg_iter_generator = self.agg_iter(
+                    community_id,
+                    lower_limit,
+                    upper_limit,
+                    first_event_date_safe,
+                    last_event_date_safe,
                 )
-            except ValueError:
-                continue
 
-            previous_bookmark = self.bookmark_api.get_bookmark(community_id)
+                community_docs_info: list[dict] = []
 
-            if not ignore_bookmark:
-                if previous_bookmark:
-                    lower_limit = arrow.get(previous_bookmark)
-                elif start_date:
-                    lower_limit = start_date
-                else:
-                    lower_limit = min(
-                        first_event_date or arrow.utcnow(), arrow.utcnow()
-                    )
-            else:
-                # When ignoring bookmark, start from the earliest available data
-                # if no start_date is provided, otherwise use the provided start_date
-                if start_date:
-                    lower_limit = start_date
-                else:
-                    lower_limit = first_event_date or arrow.utcnow()
-
-            # Ensure we don't aggregate more than self.catchup_interval days
-            upper_limit = self._get_end_date(lower_limit, end_date)
-
-            first_event_date_safe = first_event_date or arrow.utcnow()
-            last_event_date_safe = last_event_date or arrow.utcnow()
-
-            agg_iter_generator = self.agg_iter(
-                community_id,
-                lower_limit,
-                upper_limit,
-                first_event_date_safe,
-                last_event_date_safe,
-            )
-
-            community_docs_info: list[dict] = []
-
-            # Wrapper generator that collects metadata while yielding documents
-            # so that we can return the detailed information in the result
-            def document_generator_with_metadata(docs_info_list):
-                doc_count = 0
-                for doc, doc_generation_time in agg_iter_generator:  # noqa: B023
-                    doc_count += 1
-                    doc_info = {
-                        "document_id": doc["_id"],
-                        "index_name": doc["_index"],
-                        "community_id": doc["_source"].get("community_id"),
-                        "date_info": {},
-                        "generation_time": doc_generation_time,
-                    }
-
-                    if (
-                        "period_start" in doc["_source"]
-                        and "period_end" in doc["_source"]
-                    ):
-                        doc_info["date_info"] = {
-                            "period_start": doc["_source"]["period_start"],
-                            "period_end": doc["_source"]["period_end"],
-                            "date_type": "delta",
-                        }
-                    elif "snapshot_date" in doc["_source"]:
-                        doc_info["date_info"] = {
-                            "snapshot_date": doc["_source"]["snapshot_date"],
-                            "date_type": "snapshot",
+                # Wrapper generator that collects metadata while yielding documents
+                # so that we can return the detailed information in the result
+                def document_generator_with_metadata(docs_info_list):
+                    doc_count = 0
+                    for doc, doc_generation_time in agg_iter_generator:  # noqa: B023
+                        doc_count += 1
+                        doc_info = {
+                            "document_id": doc["_id"],
+                            "index_name": doc["_index"],
+                            "community_id": doc["_source"].get("community_id"),
+                            "date_info": {},
+                            "generation_time": doc_generation_time,
                         }
 
-                    docs_info_list.append(doc_info)
+                        if (
+                            "period_start" in doc["_source"]
+                            and "period_end" in doc["_source"]
+                        ):
+                            doc_info["date_info"] = {
+                                "period_start": doc["_source"]["period_start"],
+                                "period_end": doc["_source"]["period_end"],
+                                "date_type": "delta",
+                            }
+                        elif "snapshot_date" in doc["_source"]:
+                            doc_info["date_info"] = {
+                                "snapshot_date": doc["_source"]["snapshot_date"],
+                                "date_type": "snapshot",
+                            }
 
-                    yield doc
+                        docs_info_list.append(doc_info)
 
-            docs_indexed, errors = self._adaptive_bulk_index(
-                document_generator_with_metadata(community_docs_info),
-                stats_only=False if return_results else True,
+                        yield doc
+
+                docs_indexed, errors = self._adaptive_bulk_index(
+                    document_generator_with_metadata(community_docs_info),
+                    stats_only=False if return_results else True,
+                )
+                results.append((docs_indexed, errors, community_docs_info))
+
+                if update_bookmark:
+                    if errors:
+                        error_count = (
+                            len(errors) if isinstance(errors, list) else errors
+                        )
+                        current_app.logger.error(
+                            f"Bulk indexing errors for {community_id}: "
+                            f"{error_count} errors. Skipping bookmark update."
+                        )
+                        continue
+
+                    expected_days = (upper_limit - lower_limit).days + 1
+
+                    # For snapshot aggregators, we expect at least the expected number
+                    # of days (they may index more due to catch-up processing)
+                    if docs_indexed < expected_days:
+                        current_app.logger.error(
+                            f"Insufficient documents for {community_id}: "
+                            f"expected at least {expected_days} days, indexed "
+                            f"{docs_indexed} documents. Skipping bookmark update."
+                        )
+                        continue
+
+                    if len(community_docs_info) != docs_indexed:
+                        current_app.logger.error(
+                            f"Document info count mismatch for {community_id}: "
+                            f"indexed {docs_indexed} documents, got "
+                            f"{len(community_docs_info)} document info entries. "
+                            f"Skipping bookmark update."
+                        )
+                        continue
+
+                    self._update_bookmark(community_id, community_docs_info)
+
+            self.client.indices.refresh(index=f"{self.aggregation_index}-*")
+            return results
+        finally:
+            # Clean up registry keys
+            if active_registry_keys:
+                for key in active_registry_keys:
+                    registry.delete(key)
+
+    def _setup_registry_keys(
+        self,
+        registry: StatsAggregationRegistry,
+        communities_to_aggregate: list[str],
+    ) -> list[str]:
+        """Set up registry keys for tracking aggregation.
+
+        Args:
+            registry: StatsAggregationRegistry instance
+            communities_to_aggregate: List of community IDs being processed
+
+        Returns:
+            list[str]: List of active registry keys that were set up
+        """
+        active_registry_keys: list[str] = []
+
+        # Set registry keys for all communities being processed
+        for community_id in communities_to_aggregate:
+            registry_key = registry.make_registry_key(
+                community_id, RegistryOperation.AGG
             )
-            results.append((docs_indexed, errors, community_docs_info))
+            registry.set(
+                registry_key,
+                arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+                7200,
+            )
+            active_registry_keys.append(registry_key)
+            # Track first runs that are in progress
+            first_run_key = registry.make_registry_key(
+                community_id, RegistryOperation.FIRST_RUN
+            )
+            first_run_record = registry.get_all(
+                f"{community_id}_{RegistryOperation.FIRST_RUN}*"
+            )
+            if not first_run_record:
+                registry.set(
+                    first_run_key, FirstRunStatus.IN_PROGRESS, ttl=None
+                )
 
-            if update_bookmark:
-                if errors:
-                    error_count = len(errors) if isinstance(errors, list) else errors
-                    current_app.logger.error(
-                        f"Bulk indexing errors for {community_id}: "
-                        f"{error_count} errors. Skipping bookmark update."
-                    )
-                    continue
-
-                expected_days = (upper_limit - lower_limit).days + 1
-
-                # For snapshot aggregators, we expect at least the expected number
-                # of days (they may index more due to catch-up processing)
-                if docs_indexed < expected_days:
-                    current_app.logger.error(
-                        f"Insufficient documents for {community_id}: "
-                        f"expected at least {expected_days} days, indexed "
-                        f"{docs_indexed} documents. Skipping bookmark update."
-                    )
-                    continue
-
-                if len(community_docs_info) != docs_indexed:
-                    current_app.logger.error(
-                        f"Document info count mismatch for {community_id}: "
-                        f"indexed {docs_indexed} documents, got "
-                        f"{len(community_docs_info)} document info entries. "
-                        f"Skipping bookmark update."
-                    )
-                    continue
-
-                self._update_bookmark(community_id, community_docs_info)
-
-        self.client.indices.refresh(index=f"{self.aggregation_index}-*")
-        return results
+        return active_registry_keys
 
     def _update_bookmark(
         self, community_id: str, community_docs_info: list[dict]

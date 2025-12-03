@@ -6,9 +6,6 @@
 
 """Tests for StatsAggregationRegistry operations."""
 
-import pytest
-import time
-
 from invenio_stats_dashboard.constants import FirstRunStatus, RegistryOperation
 from invenio_stats_dashboard.resources.cache_utils import (
     StatsAggregationRegistry,
@@ -212,4 +209,3 @@ def test_registry_get_all_returns_strings(running_app, registry):
     assert isinstance(key, str)
     assert isinstance(value, str)
     assert value == FirstRunStatus.COMPLETED
-
