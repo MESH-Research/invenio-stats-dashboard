@@ -19,7 +19,7 @@ from ..services.cached_response_service import CachedResponseService
 from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
 
 CachedResponsesGenerationTask = {
-    "task": "invenio_stats_dashboard.tasks.generate_cached_responses_task",
+    "task": "invenio_stats_dashboard.tasks.cache_tasks.generate_cached_responses_task",
     "schedule": crontab(minute="50", hour="*"),  # Run every hour at minute 50
     # community_ids, years, overwrite, async_mode, current_year_only, optimize
     # optimize=None means use STATS_DASHBOARD_OPTIMIZE_DATA_SERIES config

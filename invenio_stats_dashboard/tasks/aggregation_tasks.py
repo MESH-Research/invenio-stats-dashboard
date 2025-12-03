@@ -330,7 +330,10 @@ class AggregationTaskLock:
 
 
 CommunityStatsAggregationTask = {
-    "task": "invenio_stats_dashboard.tasks.aggregate_community_record_stats",
+    "task": (
+        "invenio_stats_dashboard.tasks.aggregation_tasks."
+        "aggregate_community_record_stats"
+    ),
     "schedule": crontab(minute="40", hour="*"),  # Run every hour at minute 40
     "args": (
         (
@@ -363,6 +366,7 @@ def aggregate_community_record_stats(
     Returns:
         AggregationResponse
     """
+    current_app.logger.info("Starting community stats aggregation task")
     lock_config = current_app.config.get("STATS_DASHBOARD_LOCK_CONFIG", {})
     global_enabled = lock_config.get("enabled", True)
     aggregation_config = lock_config.get("aggregation", {})
