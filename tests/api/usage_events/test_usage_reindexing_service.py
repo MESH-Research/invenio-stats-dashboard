@@ -677,7 +677,8 @@ class TestEventReindexingService:
                 results["event_types"][event_type]["processed"]
                 == self.expected_events_per_type
             ), (
-                f"Should have processed {self.expected_events_per_type} {event_type} events"
+                f"Should have processed {self.expected_events_per_type} "
+                f"{event_type} events"
             )  # noqa: E501
             assert results["event_types"][event_type]["errors"] == 0, (
                 f"Should have no {event_type} errors"
