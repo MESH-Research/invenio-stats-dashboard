@@ -8,6 +8,7 @@
 
 import traceback
 from datetime import datetime
+from uuid import UUID
 
 import arrow
 from flask import current_app
@@ -23,6 +24,25 @@ class CommunityDashboardsService:
     def __init__(self):
         """Initialize a CommunityDashboardsService instance."""
         pass
+
+    @staticmethod
+    def _is_valid_community_id(community_id: str) -> bool:
+        """Check if a string is a valid community ID (UUID format).
+        
+        Args:
+            community_id: String to validate
+            
+        Returns:
+            bool: True if the string is a valid UUID, False otherwise
+        """
+        if not community_id or not isinstance(community_id, str):
+            return False
+        
+        try:
+            UUID(community_id)
+            return True
+        except (ValueError, TypeError, AttributeError):
+            return False
 
     @staticmethod
     def _extract_community_id_and_fields(community):
@@ -176,6 +196,12 @@ class CommunityDashboardsService:
                 record_threshold=record_threshold,
                 filter_priority=filter_priority,
             )
+            if verbose:
+                current_app.logger.info(
+                    f"filter_communities_by_activity returned "
+                    f"{len(communities_to_enable)} communities: "
+                    f"{communities_to_enable}"
+                )
         elif first_active or active_since or record_threshold:
             current_app.logger.warning(
                 "Filtering criteria (first_active, active_since, record_threshold) "
@@ -194,7 +220,30 @@ class CommunityDashboardsService:
                         "Skipping 'global' since it's not a community"
                     )
                 continue
+            
+            # Validate that the community_id looks like a valid UUID
+            if not CommunityDashboardsService._is_valid_community_id(community_id):
+                error_msg = (
+                    f"Skipping invalid community ID: '{community_id}'. "
+                    "Community IDs must be in UUID format. "
+                    "This may indicate a parsing error or invalid data."
+                )
+                current_app.logger.warning(error_msg)
+                results["communities_failed"].append({
+                    "id": community_id,
+                    "error_message": (
+                        f"Invalid community ID format: expected UUID, "
+                        f"got '{community_id}'"
+                    ),
+                })
+                continue
+            
             try:
+                if verbose:
+                    current_app.logger.info(
+                        f"Attempting to read community with ID: '{community_id}' "
+                        f"(type: {type(community_id).__name__})"
+                    )
                 community_item = communities.service.read(system_identity, community_id)
                 community_dict = community_item.to_dict()
                 community_dict.setdefault("custom_fields", {})[
@@ -223,6 +272,11 @@ class CommunityDashboardsService:
                         ),
                     })
             except Exception as e:
+                error_details = (
+                    f"Failed to read community with ID '{community_id}' "
+                    f"(type: {type(community_id).__name__}): {e}"
+                )
+                current_app.logger.error(error_details)
                 current_app.logger.error(traceback.format_exc())
                 results["communities_failed"].append({
                     "id": community_id,
