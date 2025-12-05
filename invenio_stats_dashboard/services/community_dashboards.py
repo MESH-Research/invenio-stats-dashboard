@@ -187,6 +187,13 @@ class CommunityDashboardsService:
             "communities_failed": [],
         }
         for community_id in communities_to_enable:
+            # Skip "global" as it's a business-logic label, not an actual community ID
+            if community_id == "global":
+                if verbose:
+                    current_app.logger.info(
+                        "Skipping 'global' since it's not a community"
+                    )
+                continue
             try:
                 community_item = communities.service.read(system_identity, community_id)
                 community_dict = community_item.to_dict()

@@ -66,6 +66,10 @@ class CommunityRecordEventsService:
         community_info = {}
         for bucket in event_results.aggregations.by_community.buckets:
             bucket_dict = bucket.to_dict()
+            community_id = bucket_dict["key"]
+            # Skip "global" as it's a business-logic label, not an actual community ID
+            if community_id == "global":
+                continue
             record_count = bucket_dict["doc_count"]
             first_event = bucket_dict["min_event_date"].get("value")
             last_event = bucket_dict["max_event_date"].get("value")
@@ -82,7 +86,7 @@ class CommunityRecordEventsService:
                 if active_since_date > last_event_date:
                     continue
 
-            community_info[bucket_dict["key"]] = {
+            community_info[community_id] = {
                 "record_count": record_count,
                 "first_event": first_event,
                 "last_event": last_event,
