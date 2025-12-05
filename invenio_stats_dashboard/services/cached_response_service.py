@@ -34,9 +34,7 @@ class CachedResponseService:
         """Initialize the service."""
         self.cache = StatsCache()
         self.categories = self._get_available_categories()
-        self.default_ttl = current_app.config.get(
-            "STATS_CACHE_DEFAULT_TTL", None
-        )
+        self.default_ttl = current_app.config.get("STATS_CACHE_DEFAULT_TTL", None)
 
     def _get_available_categories(self) -> list[str]:
         """Get available category queries from STATS_QUERIES configuration.
@@ -75,7 +73,9 @@ class CachedResponseService:
         Args:
             community_ids: str, list, or None - Community IDs to process
             years: int, list, str, or None - Years to process
-            overwrite: bool - Overwrite existing cache
+            overwrite: bool - Overwrite existing cache. Applies only to years prior
+                to the current year. (Current year's cache objects are always
+                re-generated to capture recent data changes)
             async_mode: bool - Whether to use async Celery tasks (not implemented yet)
             progress_callback: Callable - Optional callback function for progress
                 updates. Called with (current, total, message) parameters
@@ -110,7 +110,7 @@ class CachedResponseService:
                 skipped_count = 0
                 responses_to_process = []
                 for response in all_responses:
-                    if self.exists(
+                    if response.year != current_year and self.exists(
                         response.community_id, response.year, response.category
                     ):
                         skipped_count += 1
@@ -133,9 +133,7 @@ class CachedResponseService:
                     for response in results.get("responses", [])
                     if response.get("community_id") in first_run_key
                 ):
-                    registry.set(
-                        first_run_key, FirstRunStatus.COMPLETED, ttl=None
-                    )
+                    registry.set(first_run_key, FirstRunStatus.COMPLETED, ttl=None)
 
             return results
         finally:
@@ -281,12 +279,8 @@ class CachedResponseService:
         for community_id in community_ids:
             years_list = years_per_community.get(community_id, [])
             for year in years_list:
-                cache_operation = RegistryOperation.CACHE.replace(
-                    "{year}", str(year)
-                )
-                registry_key = registry.make_registry_key(
-                    community_id, cache_operation
-                )
+                cache_operation = RegistryOperation.CACHE.replace("{year}", str(year))
+                registry_key = registry.make_registry_key(community_id, cache_operation)
                 registry.set(
                     registry_key,
                     arrow.utcnow().format("YYYY-MM-DDTHH:mm:ss.SSS"),
