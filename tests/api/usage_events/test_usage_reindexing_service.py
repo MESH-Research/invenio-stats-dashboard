@@ -156,9 +156,9 @@ class TestEventReindexingServiceFallback:
 
         # Verify the record is found but has no communities
         assert record_id in fallback_membership, "Record should be found"
-        assert (
-            len(fallback_membership[record_id]) == 0
-        ), "Record should have no communities"
+        assert len(fallback_membership[record_id]) == 0, (
+            "Record should have no communities"
+        )
 
     def test_get_community_membership_fallback_multiple_communities(
         self,
@@ -204,9 +204,9 @@ class TestEventReindexingServiceFallback:
         # Test with empty metadata
         empty_metadata = {}
         fallback_membership = service._get_community_membership_fallback(empty_metadata)
-        assert (
-            fallback_membership == {}
-        ), "Empty metadata should return empty membership"
+        assert fallback_membership == {}, (
+            "Empty metadata should return empty membership"
+        )
 
         # Test with None metadata
         fallback_membership = service._get_community_membership_fallback({})
@@ -256,9 +256,9 @@ class TestEventReindexingServiceFallback:
             # The effective_date should be at least as recent as the record creation
             community_tuple = fallback_membership[record_id][0]
             effective_date = community_tuple[1]
-            assert (
-                effective_date >= record_created
-            ), "Effective date should be >= record creation date"
+            assert effective_date >= record_created, (
+                "Effective date should be >= record creation date"
+            )
 
 
 class TestEventReindexingService:
@@ -347,7 +347,7 @@ class TestEventReindexingService:
 
     def get_event_date_range(self):
         """Get the date range for creating usage events.
-        
+
         Returns:
             dict: Dictionary containing start_date and end_date for events.
         """
@@ -359,7 +359,7 @@ class TestEventReindexingService:
 
     def get_reindexing_parameters(self):
         """Parameters for the reindexing service call.
-        
+
         Returns:
             dict: Dictionary containing event_types and other parameters.
         """
@@ -371,7 +371,7 @@ class TestEventReindexingService:
 
     def get_expected_month_counts(self, month):
         """Expected event counts for a specific month.
-        
+
         Returns:
             dict: Dictionary containing expected counts for view and download events.
         """
@@ -463,6 +463,7 @@ class TestEventReindexingService:
         celery_worker,
         requests_mock,
         search_clear,
+        reindex_resource_types,
         usage_event_factory,
         test_sample_files_folder,
     ):
@@ -537,18 +538,14 @@ class TestEventReindexingService:
 
             if metadata.get("files", {}).get("enabled", False):
                 filename = list(metadata["files"]["entries"].keys())[0]
-                file_paths = [
-                    test_sample_files_folder / filename
-                ]
+                file_paths = [test_sample_files_folder / filename]
             else:
                 # Fallback to sample.pdf if no files in metadata
                 metadata["files"] = {
                     "enabled": True,
                     "entries": {"sample.pdf": {"key": "sample.pdf", "ext": "pdf"}},
                 }
-                file_paths = [
-                    test_sample_files_folder / "sample.pdf"
-                ]
+                file_paths = [test_sample_files_folder / "sample.pdf"]
 
             record = self.minimal_published_record_factory(
                 identity=user_identity,
@@ -565,16 +562,16 @@ class TestEventReindexingService:
         )
         assert [
             arrow.get(r.to_dict()["created"]).format("YYYY-MM-DD") for r in self.records
-        ] == ["2024-01-01"] * len(
-            self.records
-        ), f"Should have {len(self.records)} records"
+        ] == ["2024-01-01"] * len(self.records), (
+            f"Should have {len(self.records)} records"
+        )
 
     def _get_community_list_for_record(self, record_index):
         """Get community list for a specific record by index.
 
         Subclasses can override this method to customize community assignment
         per record. Default implementation assigns all records to the community.
-        
+
         Returns:
             list: List of community IDs for the record.
         """
@@ -666,28 +663,30 @@ class TestEventReindexingService:
             assert view_count > 0, f"No view events found in {month} index"
             assert download_count > 0, f"No download events found in {month} index"
             event_count += view_count + download_count
-        assert (
-            event_count == self.expected_total_events
-        ), f"Should have {self.expected_total_events} events"
+        assert event_count == self.expected_total_events, (
+            f"Should have {self.expected_total_events} events"
+        )
 
     def _verify_initial_results(self, results):
         """Verify initial results of reindexing."""
         for event_type in self.event_types:
-            assert (
-                event_type in results["event_types"]
-            ), f"Should have {event_type} results"
+            assert event_type in results["event_types"], (
+                f"Should have {event_type} results"
+            )
             assert (
                 results["event_types"][event_type]["processed"]
                 == self.expected_events_per_type
-            ), f"Should have processed {self.expected_events_per_type} {event_type} events"  # noqa: E501
-            assert (
-                results["event_types"][event_type]["errors"] == 0
-            ), f"Should have no {event_type} errors"
+            ), (
+                f"Should have processed {self.expected_events_per_type} {event_type} events"
+            )  # noqa: E501
+            assert results["event_types"][event_type]["errors"] == 0, (
+                f"Should have no {event_type} errors"
+            )
             assert set(
                 list(results["event_types"][event_type]["months"].keys())
-            ) == set(
-                self.months
-            ), f"Should have {len(self.months)} months of migrated {event_type} events"
+            ) == set(self.months), (
+                f"Should have {len(self.months)} months of migrated {event_type} events"
+            )
 
     def _verify_enriched_events_created(self):
         """Verify that enriched events were created in new indices."""
@@ -730,18 +729,18 @@ class TestEventReindexingService:
 
             for enriched_event in enriched_results.hits.hits:
                 for field in expected_fields:
-                    assert (
-                        field in enriched_event["_source"]
-                    ), f"Enriched {event_type} events should have {field}"
+                    assert field in enriched_event["_source"], (
+                        f"Enriched {event_type} events should have {field}"
+                    )
 
     def _verify_old_indices_deleted(self):
         """Verify that old indices are deleted."""
         for index in ["record-view", "file-download"]:
             index_pattern = f"{prefix_index(f'events-stats-{index}')}-*"
             existing_indices = current_search_client.indices.get(index=index_pattern)
-            assert len(existing_indices) == len(
-                self.months
-            ), f"Should have {len(self.months)} new enriched indices only"
+            assert len(existing_indices) == len(self.months), (
+                f"Should have {len(self.months)} new enriched indices only"
+            )
             for month in self.months:
                 old_index = f"{prefix_index(f'events-stats-{index}')}-{month}"
                 assert old_index not in existing_indices, "Old index should be deleted"
@@ -766,9 +765,9 @@ class TestEventReindexingService:
                 if index_pattern in info.get("aliases", {}) and name.endswith("-v2.0.0")
             ]
 
-            assert (
-                len(indices_with_main_alias) > 0
-            ), f"No indices found with alias {index_pattern}"
+            assert len(indices_with_main_alias) > 0, (
+                f"No indices found with alias {index_pattern}"
+            )
 
     def _verify_current_month_write_alias(self):
         """Verify that the current month has proper write alias setup.
@@ -784,16 +783,16 @@ class TestEventReindexingService:
             alias_info = current_search_client.indices.get_alias(index=v2_index_name)
 
             alias_targets = list(alias_info[v2_index_name]["aliases"].keys())
-            assert (
-                len(alias_targets) == 2
-            ), f"Write alias {v2_index_name} should have exactly one target"
+            assert len(alias_targets) == 2, (
+                f"Write alias {v2_index_name} should have exactly one target"
+            )
 
-            assert (
-                old_index_name in alias_targets
-            ), f"Write alias {v2_index_name} should point to {old_index_name}"
-            assert (
-                index_pattern in alias_targets
-            ), f"Write alias {v2_index_name} should point to {index_pattern}"
+            assert old_index_name in alias_targets, (
+                f"Write alias {v2_index_name} should point to {old_index_name}"
+            )
+            assert index_pattern in alias_targets, (
+                f"Write alias {v2_index_name} should point to {index_pattern}"
+            )
 
     def _verify_new_fields_in_v2_indices(self):
         """Verify that new events are created and accessible via aliases."""
@@ -822,9 +821,9 @@ class TestEventReindexingService:
             }
 
             record_id = test_event["recid"]
-            metadata = current_event_reindexing_service.get_metadata_for_records(
-                [record_id]
-            )
+            metadata = current_event_reindexing_service.get_metadata_for_records([
+                record_id
+            ])
 
             enrichment_data = (
                 current_event_reindexing_service.metadata_extractor.extract_fields(
@@ -844,16 +843,16 @@ class TestEventReindexingService:
             )
 
             final_count = current_search_client.count(index=v2_index_name)["count"]
-            assert (
-                final_count == initial_count + 1
-            ), f"New events should be written to {v2_index_name}"
+            assert final_count == initial_count + 1, (
+                f"New events should be written to {v2_index_name}"
+            )
 
             # Verify the new event is accessible via the main alias
             main_alias = index_pattern
             main_alias_count = current_search_client.count(index=main_alias)["count"]
-            assert (
-                main_alias_count > 0
-            ), f"Events should be accessible via main alias {main_alias}"
+            assert main_alias_count > 0, (
+                f"Events should be accessible via main alias {main_alias}"
+            )
 
             # Verify the new event is accessible via the current month's write alias
             current_month_alias = f"{index_pattern}-{self.months[-1]}"
@@ -880,9 +879,9 @@ class TestEventReindexingService:
             assert len(results.hits.hits) == 1, "Should have 1 hit"
             source = results.hits.hits[0]["_source"]
             for field in self.enriched_fields[event_type_pattern]:
-                assert (
-                    field in source
-                ), f"New events in {v2_index_name} should have {field}"
+                assert field in source, (
+                    f"New events in {v2_index_name} should have {field}"
+                )
 
     def _verify_event_content_preserved(self):
         """Verify that event content remains identical in new indices."""
@@ -923,21 +922,21 @@ class TestEventReindexingService:
 
                     for field in self.core_fields:
                         if field in original_source:
-                            assert (
-                                field in new_event
-                            ), f"Core field {field} missing in new index"
+                            assert field in new_event, (
+                                f"Core field {field} missing in new index"
+                            )
                             assert original_source[field] == new_event[field], (
                                 f"Core field {field} value differs between old and "
                                 f"new indices"
                             )
 
                     for field in self.enriched_fields[event_type_pattern]:
-                        assert (
-                            field in new_event
-                        ), f"Enriched field {field} missing in new index"
-                        assert (
-                            new_event[field] is not None
-                        ), f"Enriched field {field} is None in new index"
+                        assert field in new_event, (
+                            f"Enriched field {field} missing in new index"
+                        )
+                        assert new_event[field] is not None, (
+                            f"Enriched field {field} is None in new index"
+                        )
 
 
 class TestEventReindexingServiceNoCommunityEventsIndex(TestEventReindexingService):
@@ -957,9 +956,9 @@ class TestEventReindexingServiceNoCommunityEventsIndex(TestEventReindexingServic
 
     def _verify_initial_results(self, results):
         """Verify initial results of reindexing."""
-        assert (
-            "Community events index does not exist" in results["health_issues"]
-        ), "Community events index should not exist"
+        assert "Community events index does not exist" in results["health_issues"], (
+            "Community events index should not exist"
+        )
         assert results["completed"] is False, "Reindexing should not be completed"
         assert (
             results["error"]
@@ -1046,7 +1045,7 @@ class TestEventReindexingServiceCustomDateRange(TestEventReindexingService):
 
     def get_event_date_range(self):
         """Override to span all 6 months for event generation.
-        
+
         Returns:
             dict: Dictionary with start_date and end_date for all test months.
         """
@@ -1062,7 +1061,7 @@ class TestEventReindexingServiceCustomDateRange(TestEventReindexingService):
 
     def get_expected_month_counts(self, month):
         """Override expected counts per month.
-        
+
         Returns:
             dict: Dictionary containing expected counts for view and download events.
         """
@@ -1120,7 +1119,7 @@ class TestEventReindexingServiceMixedCommunityMembership(TestEventReindexingServ
 
     def _get_community_list_for_record(self, record_index):
         """Override to assign only the first record to a community.
-        
+
         Returns:
             list: List of community IDs for the record.
         """
