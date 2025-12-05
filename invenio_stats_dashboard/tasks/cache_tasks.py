@@ -21,7 +21,7 @@ CachedResponsesGenerationTask = {
     "schedule": crontab(minute="50", hour="*"),  # Run every hour at minute 50
     # community_ids, years, overwrite, async_mode, current_year_only, optimize
     # optimize=None means use STATS_DASHBOARD_OPTIMIZE_DATA_SERIES config
-    "args": ("all", None, False, False, True, None),
+    "args": ("all", None, False, False, False, None),
 }
 
 
