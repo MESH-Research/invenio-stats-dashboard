@@ -86,7 +86,7 @@ def global_stats_dashboard():
     # Force CSRF cookie to be set for API requests made by the dashboard
     request.csrf_cookie_needs_reset = True
 
-    test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", True)
+    test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", False)
     if test_data_flag in ["True", "true"]:
         test_data_flag = True
 
@@ -154,9 +154,8 @@ def community_stats_dashboard(
     first_run_records = registry.get_all(
         f"{community.id}_{RegistryOperation.FIRST_RUN}*"
     )
-    first_run_incomplete = (
-        len(first_run_records) == 0
-        or any(r[1] != FirstRunStatus.COMPLETED for r in first_run_records)
+    first_run_incomplete = len(first_run_records) == 0 or any(
+        r[1] != FirstRunStatus.COMPLETED for r in first_run_records
     )
 
     dashboard_enabled_default = not current_app.config.get(
@@ -169,11 +168,8 @@ def community_stats_dashboard(
     dashboard_enabled_override = current_app.config.get(
         "STATS_DASHBOARD_ENABLED_COMMUNITY"
     )
-    current_app.logger.debug(
-        f"dashboard_enabled_override: {dashboard_enabled_override}"
-    )
 
-    test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", True)
+    test_data_flag = current_app.config.get("STATS_DASHBOARD_USE_TEST_DATA", False)
     if test_data_flag in ["True", "true"]:
         test_data_flag = True
 

@@ -29,9 +29,10 @@ const CommunityStatsDashboardLayout = ({
 	const sidebarClassNames = "communities-detail-left-sidebar";
 	const bodyClassNames = "communities-detail-body communities-detail-stats";
 
-	const disabledMessage = !dashboardConfig.dashboard_enabled_communities
-		? dashboardConfig.disabled_message_global
-		: dashboardConfig.disabled_message;
+	const disabledMessage =
+		!!dashboardConfig.dashboard_enabled_communities && !!dashboardEnabled
+			? dashboardConfig.disabled_message_global
+			: dashboardConfig.disabled_message;
 
 	const getStatsParams = (community, dashboardType) => [
 		community.id,

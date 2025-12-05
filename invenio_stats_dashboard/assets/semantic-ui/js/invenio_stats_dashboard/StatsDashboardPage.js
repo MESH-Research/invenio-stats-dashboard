@@ -4,12 +4,40 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React from "react";
+import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import { Label, Grid, Loader, Message } from "semantic-ui-react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import { componentsMap } from "./components/components_map";
 import { useStatsDashboard } from "./context/StatsDashboardContext";
+
+/**
+ *  Helper function to check that there is some data in stats.
+ *
+ *   @param {array} stats - the current stats from context
+ *   @returns {boolean} - whether or not the stats are empty.
+ *     (true if empty, false if not)
+ */
+const checkForEmptyStats = (stats) => {
+	if (!stats || !Array.isArray(stats) || stats.length === 0) {
+		return true;
+	}
+
+	for (const yearStats of stats) {
+		// yearStats is an object, iterate over its values (which are arrays)
+		if (yearStats && typeof yearStats === "object") {
+			for (const arrayValue of Object.values(yearStats)) {
+				// Check if the value is an array with elements
+				if (Array.isArray(arrayValue) && arrayValue.length > 0) {
+					return false; // Found data, stats are not empty
+				}
+			}
+		}
+	}
+
+	// No data found, stats are empty
+	return true;
+};
 
 /**
  * StatsDashboard page layout component
@@ -38,9 +66,18 @@ const StatsDashboardPage = ({
 	const caching_in_progress = dashboardConfig.caching_in_progress;
 	const first_run_incomplete = dashboardConfig.first_run_incomplete;
 
-	const noDataText = first_run_incomplete
+	const statsAreEmpty = useMemo(() => {
+		return checkForEmptyStats(stats);
+	}, [stats]);
+	console.log("statsAreEmpty", statsAreEmpty);
+
+	console.log("first_run_incomplete", first_run_incomplete);
+	console.log("agg_in_progress", agg_in_progress);
+	console.log("caching_in_progress", caching_in_progress);
+
+	const noDataText = !!first_run_incomplete
 		? "Initial calculation of statistics is still in progress. Check back again in a few hours."
-		: agg_in_progress || caching_in_progress
+		: !!agg_in_progress || !!caching_in_progress
 			? "A calculation operation is currently in progress. Check back again later."
 			: "No statistics data is available for the selected time period.";
 
@@ -139,7 +176,7 @@ const StatsDashboardPage = ({
 
 	// State (e): done loading + fetch finished + stats are still null
 	const noDataMessage =
-		!isLoading && !isUpdating && !error && !stats ? (
+		!isLoading && !isUpdating && !error && (!stats || !!statsAreEmpty) ? (
 			<Grid.Row className="rel-mt-2">
 				<Grid.Column width={16}>
 					<Message info>
