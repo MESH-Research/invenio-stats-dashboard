@@ -90,6 +90,7 @@ const StatsDashboardPage = ({
 		// Pass props to components
 		const componentProps = {
 			...componentConfig.props,
+			community,
 		};
 
 		// Get mobile and tablet widths from config, with fallback to 16

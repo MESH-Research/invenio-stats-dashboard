@@ -22,34 +22,35 @@ import { statsApiClient, createAxiosWithCSRF } from "./apiClient";
  * @returns {Promise} Promise that resolves to the API response
  */
 export const fetchRecords = async (
-  sort,
-  page = 1,
-  size = 20,
-  dateRange = null,
+	sort,
+	page = 1,
+	size = 20,
+	dateRange = null,
+	endpoint = null,
 ) => {
-  try {
-    let query = "";
+	try {
+		let query = "";
 
-    // Add date range filter if provided
-    if (dateRange && dateRange.start && dateRange.end) {
-      query = `[${dateRange.start} TO ${dateRange.end}]`;
-    }
+		// Add date range filter if provided
+		if (dateRange && dateRange.start && dateRange.end) {
+			query = `[${dateRange.start} TO ${dateRange.end}]`;
+		}
 
-    const axiosWithCSRF = createAxiosWithCSRF();
-    const response = await axiosWithCSRF.get("/api/records", {
-      params: {
-        q: query,
-        l: "list",
-        p: page,
-        s: size,
-        sort: sort,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching records with sort=${sort}:`, error);
-    throw error;
-  }
+		const axiosWithCSRF = createAxiosWithCSRF();
+		const response = await axiosWithCSRF.get(endpoint || "/api/records", {
+			params: {
+				q: query,
+				l: "list",
+				p: page,
+				s: size,
+				sort: sort,
+			},
+		});
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching records with sort=${sort}:`, error);
+		throw error;
+	}
 };
 
 /**
@@ -59,53 +60,53 @@ export const fetchRecords = async (
  *  "loading_started", "data_loaded", "stale_and_updating", "error"
  */
 const updateState = (
-  onStateChange,
-  isMounted,
-  stateName,
-  stats,
-  additionalProps = {},
+	onStateChange,
+	isMounted,
+	stateName,
+	stats,
+	additionalProps = {},
 ) => {
-  if (onStateChange && (!isMounted || isMounted())) {
-    const baseState = {
-      stats,
-      error: null,
-      ...additionalProps,
-    };
+	if (onStateChange && (!isMounted || isMounted())) {
+		const baseState = {
+			stats,
+			error: null,
+			...additionalProps,
+		};
 
-    switch (stateName) {
-      case "loading_started":
-        onStateChange({
-          ...baseState,
-          isLoading: true,
-          isUpdating: false,
-        });
-        break;
-      case "data_loaded":
-        onStateChange({
-          ...baseState,
-          isLoading: false,
-          isUpdating: false,
-          // lastUpdated will be set in the return value if data was actually fetched
-          // Don't set it here - let the caller decide based on whether data was fetched
-        });
-        break;
-      case "stale_and_updating":
-        onStateChange({
-          ...baseState,
-          isLoading: false,
-          isUpdating: true,
-        });
-      case "error":
-        onStateChange({
-          ...baseState,
-          isLoading: false,
-          isUpdating: false,
-        });
-        break;
-      default:
-        onStateChange(baseState);
-    }
-  }
+		switch (stateName) {
+			case "loading_started":
+				onStateChange({
+					...baseState,
+					isLoading: true,
+					isUpdating: false,
+				});
+				break;
+			case "data_loaded":
+				onStateChange({
+					...baseState,
+					isLoading: false,
+					isUpdating: false,
+					// lastUpdated will be set in the return value if data was actually fetched
+					// Don't set it here - let the caller decide based on whether data was fetched
+				});
+				break;
+			case "stale_and_updating":
+				onStateChange({
+					...baseState,
+					isLoading: false,
+					isUpdating: true,
+				});
+			case "error":
+				onStateChange({
+					...baseState,
+					isLoading: false,
+					isUpdating: false,
+				});
+				break;
+			default:
+				onStateChange(baseState);
+		}
+	}
 };
 
 /**
@@ -133,188 +134,188 @@ const updateState = (
  *   - error: Error object if fetch failed
  */
 const fetchStatsWithYearlyBlocks = async ({
-  communityId,
-  dashboardType,
-  startDate = null,
-  endDate = null,
-  dateBasis = "added",
-  currentStats = [],
-  onStateChange = null,
-  isMounted = null,
-  dashboardConfig = {},
+	communityId,
+	dashboardType,
+	startDate = null,
+	endDate = null,
+	dateBasis = "added",
+	currentStats = [],
+	onStateChange = null,
+	isMounted = null,
+	dashboardConfig = {},
 }) => {
-  try {
-    updateState(onStateChange, isMounted, "loading_started", currentStats, {
-      isUpdating: currentStats.length > 0,
-    });
+	try {
+		updateState(onStateChange, isMounted, "loading_started", currentStats, {
+			isUpdating: currentStats.length > 0,
+		});
 
-    const missingBlocks = findMissingBlocks(startDate, endDate, currentStats);
-    let blocksAreStale = false;
+		const missingBlocks = findMissingBlocks(startDate, endDate, currentStats);
+		let blocksAreStale = false;
 
-    if (missingBlocks.length === 0) {
-      // All data already in memory, nothing fetched - don't update timestamps
-      updateState(onStateChange, isMounted, "data_loaded", currentStats);
-      return {
-        stats: currentStats,
-        // Don't include lastUpdated or currentYearLastUpdated - we didn't fetch anything,
-        // so UI should preserve existing timestamp values
-        error: null,
-      };
-    }
+		if (missingBlocks.length === 0) {
+			// All data already in memory, nothing fetched - don't update timestamps
+			updateState(onStateChange, isMounted, "data_loaded", currentStats);
+			return {
+				stats: currentStats,
+				// Don't include lastUpdated or currentYearLastUpdated - we didn't fetch anything,
+				// so UI should preserve existing timestamp values
+				error: null,
+			};
+		}
 
-    // Try to load missing blocks from IndexedDB cache first
-    const blocksToFetch = [];
-    const cachedBlocks = [];
-    let currentYearLastUpdated = null;
-    const currentYear = new Date().getUTCFullYear();
-    const requestCompressedJson = dashboardConfig?.compress_json === true;
-    const cacheCompressedJson =
-      dashboardConfig?.client_cache_compression_enabled === true;
+		// Try to load missing blocks from IndexedDB cache first
+		const blocksToFetch = [];
+		const cachedBlocks = [];
+		let currentYearLastUpdated = null;
+		const currentYear = new Date().getUTCFullYear();
+		const requestCompressedJson = dashboardConfig?.compress_json === true;
+		const cacheCompressedJson =
+			dashboardConfig?.client_cache_compression_enabled === true;
 
-    for (const block of missingBlocks) {
-      const blockStartDate = block.startDate.toISOString().split("T")[0];
-      const blockEndDate = block.endDate.toISOString().split("T")[0];
+		for (const block of missingBlocks) {
+			const blockStartDate = block.startDate.toISOString().split("T")[0];
+			const blockEndDate = block.endDate.toISOString().split("T")[0];
 
-      const cacheStartTime = performance.now();
-      const cacheResult = await getCachedStats(
-        communityId,
-        dashboardType,
-        dateBasis,
-        blockStartDate,
-        blockEndDate,
-        requestCompressedJson,
-        cacheCompressedJson,
-      );
-      const cacheDuration = performance.now() - cacheStartTime;
+			const cacheStartTime = performance.now();
+			const cacheResult = await getCachedStats(
+				communityId,
+				dashboardType,
+				dateBasis,
+				blockStartDate,
+				blockEndDate,
+				requestCompressedJson,
+				cacheCompressedJson,
+			);
+			const cacheDuration = performance.now() - cacheStartTime;
 
-      if (cacheResult && cacheResult.data) {
-        const expiredNote = cacheResult.isExpired
-          ? " (expired - background update queued)"
-          : "";
-        console.log(
-          `Year ${block.year}: Loaded from cache in ${cacheDuration.toFixed(2)}ms (vs ~10-20s from server)${expiredNote}`,
-        );
+			if (cacheResult && cacheResult.data) {
+				const expiredNote = cacheResult.isExpired
+					? " (expired - background update queued)"
+					: "";
+				console.log(
+					`Year ${block.year}: Loaded from cache in ${cacheDuration.toFixed(2)}ms (vs ~10-20s from server)${expiredNote}`,
+				);
 
-        if (cacheResult.isExpired) {
-          blocksAreStale = true;
-        }
+				if (cacheResult.isExpired) {
+					blocksAreStale = true;
+				}
 
-        // Track current year's server fetch time from cache
-        // Only use serverFetchTimestamp if data is not expired (for accurate "last updated" display)
-        if (
-          block.year === currentYear &&
-          cacheResult.serverFetchTimestamp &&
-          !cacheResult.isExpired
-        ) {
-          if (
-            !currentYearLastUpdated ||
-            cacheResult.serverFetchTimestamp > currentYearLastUpdated
-          ) {
-            currentYearLastUpdated = cacheResult.serverFetchTimestamp;
-          }
-        }
+				// Track current year's server fetch time from cache
+				// Only use serverFetchTimestamp if data is not expired (for accurate "last updated" display)
+				if (
+					block.year === currentYear &&
+					cacheResult.serverFetchTimestamp &&
+					!cacheResult.isExpired
+				) {
+					if (
+						!currentYearLastUpdated ||
+						cacheResult.serverFetchTimestamp > currentYearLastUpdated
+					) {
+						currentYearLastUpdated = cacheResult.serverFetchTimestamp;
+					}
+				}
 
-        // Add year property to cached data
-        cachedBlocks.push({
-          ...cacheResult.data,
-          year: block.year,
-        });
-      } else {
-        console.log(`Year ${block.year}: Not in cache, will fetch from server`);
-        // Mark for API fetch
-        blocksToFetch.push(block);
-      }
-    }
+				// Add year property to cached data
+				cachedBlocks.push({
+					...cacheResult.data,
+					year: block.year,
+				});
+			} else {
+				console.log(`Year ${block.year}: Not in cache, will fetch from server`);
+				// Mark for API fetch
+				blocksToFetch.push(block);
+			}
+		}
 
-    // Fetch missing blocks from API
-    const newYearlyStats = await Promise.all(
-      blocksToFetch.map(async (block) => {
-        const blockStartDate = block.startDate.toISOString().split("T")[0];
-        const blockEndDate = block.endDate.toISOString().split("T")[0];
+		// Fetch missing blocks from API
+		const newYearlyStats = await Promise.all(
+			blocksToFetch.map(async (block) => {
+				const blockStartDate = block.startDate.toISOString().split("T")[0];
+				const blockEndDate = block.endDate.toISOString().split("T")[0];
 
-        const fetchStartTime = performance.now();
-        const stats = await statsApiClient.getStats(
-          communityId,
-          dashboardType,
-          blockStartDate,
-          blockEndDate,
-          dateBasis,
-          requestCompressedJson,
-        );
-        const fetchDuration = performance.now() - fetchStartTime;
-        const serverFetchTime = Date.now();
+				const fetchStartTime = performance.now();
+				const stats = await statsApiClient.getStats(
+					communityId,
+					dashboardType,
+					blockStartDate,
+					blockEndDate,
+					dateBasis,
+					requestCompressedJson,
+				);
+				const fetchDuration = performance.now() - fetchStartTime;
+				const serverFetchTime = Date.now();
 
-        console.log(
-          `Year ${block.year}: Fetched from server in ${(fetchDuration / 1000).toFixed(2)}s`,
-        );
+				console.log(
+					`Year ${block.year}: Fetched from server in ${(fetchDuration / 1000).toFixed(2)}s`,
+				);
 
-        // Track current year's server fetch time
-        if (block.year === currentYear) {
-          if (
-            !currentYearLastUpdated ||
-            serverFetchTime > currentYearLastUpdated
-          ) {
-            currentYearLastUpdated = serverFetchTime;
-          }
-        }
+				// Track current year's server fetch time
+				if (block.year === currentYear) {
+					if (
+						!currentYearLastUpdated ||
+						serverFetchTime > currentYearLastUpdated
+					) {
+						currentYearLastUpdated = serverFetchTime;
+					}
+				}
 
-        // Cache the fetched data in IndexedDB for future use (async, non-blocking)
-        // Include dateBasis and year for proper identification
-        // Pass compression config from dashboardConfig
-        setCachedStats(
-          communityId,
-          dashboardType,
-          stats,
-          dateBasis,
-          blockStartDate,
-          blockEndDate,
-          block.year,
-          cacheCompressedJson,
-        ).catch((err) => {
-          console.warn(`Failed to cache year ${block.year}:`, err);
-        });
+				// Cache the fetched data in IndexedDB for future use (async, non-blocking)
+				// Include dateBasis and year for proper identification
+				// Pass compression config from dashboardConfig
+				setCachedStats(
+					communityId,
+					dashboardType,
+					stats,
+					dateBasis,
+					blockStartDate,
+					blockEndDate,
+					block.year,
+					cacheCompressedJson,
+				).catch((err) => {
+					console.warn(`Failed to cache year ${block.year}:`, err);
+				});
 
-        return stats;
-      }),
-    );
+				return stats;
+			}),
+		);
 
-    // Combine cached and newly fetched blocks
-    const allNewYearlyStats = [
-      ...cachedBlocks,
-      ...newYearlyStats.map((stats, index) => ({
-        ...stats,
-        year: blocksToFetch[index].year,
-      })),
-    ];
+		// Combine cached and newly fetched blocks
+		const allNewYearlyStats = [
+			...cachedBlocks,
+			...newYearlyStats.map((stats, index) => ({
+				...stats,
+				year: blocksToFetch[index].year,
+			})),
+		];
 
-    const updatedStats = mergeYearlyStats(currentStats, allNewYearlyStats);
+		const updatedStats = mergeYearlyStats(currentStats, allNewYearlyStats);
 
-    // We actually fetched/retrieved blocks, so update timestamps
-    const fetchTimestamp = Date.now();
-    const resultState = !!blocksAreStale ? "stale_and_updating" : "data_loaded";
-    updateState(onStateChange, isMounted, resultState, updatedStats, {
-      lastUpdated: fetchTimestamp,
-      currentYearLastUpdated: currentYearLastUpdated,
-    });
+		// We actually fetched/retrieved blocks, so update timestamps
+		const fetchTimestamp = Date.now();
+		const resultState = !!blocksAreStale ? "stale_and_updating" : "data_loaded";
+		updateState(onStateChange, isMounted, resultState, updatedStats, {
+			lastUpdated: fetchTimestamp,
+			currentYearLastUpdated: currentYearLastUpdated,
+		});
 
-    return {
-      stats: updatedStats,
-      lastUpdated: fetchTimestamp,
-      currentYearLastUpdated: currentYearLastUpdated, // Last server fetch time for current year
-      error: null,
-    };
-  } catch (error) {
-    console.error("Error fetching stats with yearly blocks:", error);
+		return {
+			stats: updatedStats,
+			lastUpdated: fetchTimestamp,
+			currentYearLastUpdated: currentYearLastUpdated, // Last server fetch time for current year
+			error: null,
+		};
+	} catch (error) {
+		console.error("Error fetching stats with yearly blocks:", error);
 
-    updateState(onStateChange, isMounted, "error", currentStats, { error });
+		updateState(onStateChange, isMounted, "error", currentStats, { error });
 
-    return {
-      stats: currentStats,
-      lastUpdated: null,
-      currentYearLastUpdated: null,
-      error,
-    };
-  }
+		return {
+			stats: currentStats,
+			lastUpdated: null,
+			currentYearLastUpdated: null,
+			error,
+		};
+	}
 };
 
 /**
@@ -336,71 +337,71 @@ const fetchStatsWithYearlyBlocks = async ({
  *   - error: Error object if fetch failed
  */
 const fetchStats = async ({
-  communityId,
-  dashboardType,
-  startDate = null,
-  endDate = null,
-  dateBasis = "added",
-  onStateChange = null,
-  isMounted = null,
-  useTestData = false,
-  dashboardConfig = {},
-  currentStats = [], // NEW: Array of yearly stats for yearly block system
+	communityId,
+	dashboardType,
+	startDate = null,
+	endDate = null,
+	dateBasis = "added",
+	onStateChange = null,
+	isMounted = null,
+	useTestData = false,
+	dashboardConfig = {},
+	currentStats = [], // NEW: Array of yearly stats for yearly block system
 }) => {
-  try {
-    // Use yearly block system for efficient caching
-    if (useTestData) {
-      // For test data, generate array of yearly stats objects (same format as backend)
-      updateState(onStateChange, isMounted, "loading_started", currentStats);
+	try {
+		// Use yearly block system for efficient caching
+		if (useTestData) {
+			// For test data, generate array of yearly stats objects (same format as backend)
+			updateState(onStateChange, isMounted, "loading_started", currentStats);
 
-      const rawStats = await generateTestStatsData(startDate, endDate);
+			const rawStats = await generateTestStatsData(startDate, endDate);
 
-      updateState(onStateChange, isMounted, "data_loaded", rawStats);
+			updateState(onStateChange, isMounted, "data_loaded", rawStats);
 
-      return {
-        stats: rawStats,
-        lastUpdated: Date.now(),
-        error: null,
-      };
-    } else {
-      // Use yearly block system for real data
-      return await fetchStatsWithYearlyBlocks({
-        communityId,
-        dashboardType,
-        startDate,
-        endDate,
-        dateBasis,
-        currentStats,
-        onStateChange,
-        isMounted,
-        useTestData: false,
-        dashboardConfig,
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching stats:", error);
+			return {
+				stats: rawStats,
+				lastUpdated: Date.now(),
+				error: null,
+			};
+		} else {
+			// Use yearly block system for real data
+			return await fetchStatsWithYearlyBlocks({
+				communityId,
+				dashboardType,
+				startDate,
+				endDate,
+				dateBasis,
+				currentStats,
+				onStateChange,
+				isMounted,
+				useTestData: false,
+				dashboardConfig,
+			});
+		}
+	} catch (error) {
+		console.error("Error fetching stats:", error);
 
-    // Set ui fetching error state
-    updateState(onStateChange, isMounted, "error", currentStats, { error });
+		// Set ui fetching error state
+		updateState(onStateChange, isMounted, "error", currentStats, { error });
 
-    return {
-      stats: currentStats,
-      lastUpdated: null,
-      error,
-    };
-  }
+		return {
+			stats: currentStats,
+			lastUpdated: null,
+			error,
+		};
+	}
 };
 
 /**
  * Serialization format constants for download requests
  */
 const SERIALIZATION_FORMATS = {
-  JSON: "application/json",
-  JSON_GZIP: "application/json+gzip",
-  JSON_BROTLI: "application/json+br",
-  CSV: "text/csv",
-  XML: "application/xml",
-  EXCEL: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	JSON: "application/json",
+	JSON_GZIP: "application/json+gzip",
+	JSON_BROTLI: "application/json+br",
+	CSV: "text/csv",
+	XML: "application/xml",
+	EXCEL: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 
 /**
@@ -419,88 +420,88 @@ const SERIALIZATION_FORMATS = {
  * @returns {Promise<Blob>} - The downloaded file as a Blob
  */
 const downloadStatsSeries = async (
-  communityId,
-  dashboardType,
-  format,
-  startDate = null,
-  endDate = null,
-  dateBasis = "added",
+	communityId,
+	dashboardType,
+	format,
+	startDate = null,
+	endDate = null,
+	dateBasis = "added",
 ) => {
-  if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
-    communityId = "global";
-  }
+	if (dashboardType === DASHBOARD_TYPES.GLOBAL) {
+		communityId = "global";
+	}
 
-  // Validate format
-  const validFormats = Object.values(SERIALIZATION_FORMATS);
-  if (!validFormats.includes(format)) {
-    throw new Error(
-      `Invalid format: ${format}. Valid formats are: ${validFormats.join(", ")}`,
-    );
-  }
+	// Validate format
+	const validFormats = Object.values(SERIALIZATION_FORMATS);
+	if (!validFormats.includes(format)) {
+		throw new Error(
+			`Invalid format: ${format}. Valid formats are: ${validFormats.join(", ")}`,
+		);
+	}
 
-  // Build request body for category-wide queries (which return data series sets)
-  const requestBody = {
-    "usage-snapshot-category": {
-      stat: "usage-snapshot-category",
-      params: {
-        community_id: communityId,
-        date_basis: dateBasis,
-      },
-    },
-    "usage-delta-category": {
-      stat: "usage-delta-category",
-      params: {
-        community_id: communityId,
-        date_basis: dateBasis,
-      },
-    },
-    "record-snapshot-category": {
-      stat: "record-snapshot-category",
-      params: {
-        community_id: communityId,
-        date_basis: dateBasis,
-      },
-    },
-    "record-delta-category": {
-      stat: "record-delta-category",
-      params: {
-        community_id: communityId,
-        date_basis: dateBasis,
-      },
-    },
-  };
+	// Build request body for category-wide queries (which return data series sets)
+	const requestBody = {
+		"usage-snapshot-category": {
+			stat: "usage-snapshot-category",
+			params: {
+				community_id: communityId,
+				date_basis: dateBasis,
+			},
+		},
+		"usage-delta-category": {
+			stat: "usage-delta-category",
+			params: {
+				community_id: communityId,
+				date_basis: dateBasis,
+			},
+		},
+		"record-snapshot-category": {
+			stat: "record-snapshot-category",
+			params: {
+				community_id: communityId,
+				date_basis: dateBasis,
+			},
+		},
+		"record-delta-category": {
+			stat: "record-delta-category",
+			params: {
+				community_id: communityId,
+				date_basis: dateBasis,
+			},
+		},
+	};
 
-  if (startDate) {
-    Object.values(requestBody).forEach((query) => {
-      query.params.start_date = startDate;
-    });
-  }
-  if (endDate) {
-    Object.values(requestBody).forEach((query) => {
-      query.params.end_date = endDate;
-    });
-  }
+	if (startDate) {
+		Object.values(requestBody).forEach((query) => {
+			query.params.start_date = startDate;
+		});
+	}
+	if (endDate) {
+		Object.values(requestBody).forEach((query) => {
+			query.params.end_date = endDate;
+		});
+	}
 
-  const headers = {
-    Accept: format,
-  };
+	const headers = {
+		Accept: format,
+	};
 
-  try {
-    const axiosWithCSRF = createAxiosWithCSRF();
-    const response = await axiosWithCSRF.post(
-      `/api/stats-dashboard`,
-      requestBody,
-      {
-        headers,
-        responseType: "blob", // Important for binary file downloads
-      },
-    );
+	try {
+		const axiosWithCSRF = createAxiosWithCSRF();
+		const response = await axiosWithCSRF.post(
+			`/api/stats-dashboard`,
+			requestBody,
+			{
+				headers,
+				responseType: "blob", // Important for binary file downloads
+			},
+		);
 
-    return response.data;
-  } catch (error) {
-    console.error("Error downloading stats series:", error);
-    throw error;
-  }
+		return response.data;
+	} catch (error) {
+		console.error("Error downloading stats series:", error);
+		throw error;
+	}
 };
 
 /**
@@ -521,50 +522,50 @@ const downloadStatsSeries = async (
  * @returns {Promise<void>} - Triggers browser download
  */
 const downloadStatsSeriesWithFilename = async ({
-  communityId,
-  dashboardType,
-  format,
-  startDate = null,
-  endDate = null,
-  dateBasis = "added",
-  filename = null,
+	communityId,
+	dashboardType,
+	format,
+	startDate = null,
+	endDate = null,
+	dateBasis = "added",
+	filename = null,
 }) => {
-  try {
-    const blob = await downloadStatsSeries(
-      communityId,
-      dashboardType,
-      format,
-      startDate,
-      endDate,
-      dateBasis,
-    );
+	try {
+		const blob = await downloadStatsSeries(
+			communityId,
+			dashboardType,
+			format,
+			startDate,
+			endDate,
+			dateBasis,
+		);
 
-    // Generate filename if not provided
-    if (!filename) {
-      const communityPrefix =
-        dashboardType === DASHBOARD_TYPES.GLOBAL ? "global" : communityId;
-      const datePrefix =
-        startDate && endDate ? `_${startDate}_to_${endDate}` : "";
-      const formatExtension = getFormatExtension(format);
+		// Generate filename if not provided
+		if (!filename) {
+			const communityPrefix =
+				dashboardType === DASHBOARD_TYPES.GLOBAL ? "global" : communityId;
+			const datePrefix =
+				startDate && endDate ? `_${startDate}_to_${endDate}` : "";
+			const formatExtension = getFormatExtension(format);
 
-      filename = `stats_series_${communityPrefix}${datePrefix}${formatExtension}`;
-    }
+			filename = `stats_series_${communityPrefix}${datePrefix}${formatExtension}`;
+		}
 
-    // Create download link and trigger download
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+		// Create download link and trigger download
+		const url = window.URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		window.URL.revokeObjectURL(url);
 
-    console.log(`Downloaded stats series: ${filename}`);
-  } catch (error) {
-    console.error("Error downloading stats series with filename:", error);
-    throw error;
-  }
+		console.log(`Downloaded stats series: ${filename}`);
+	} catch (error) {
+		console.error("Error downloading stats series with filename:", error);
+		throw error;
+	}
 };
 
 /**
@@ -574,20 +575,20 @@ const downloadStatsSeriesWithFilename = async ({
  * @returns {string} - File extension with leading dot
  */
 const getFormatExtension = (format) => {
-  switch (format) {
-    case SERIALIZATION_FORMATS.JSON:
-    case SERIALIZATION_FORMATS.JSON_GZIP:
-    case SERIALIZATION_FORMATS.JSON_BROTLI:
-      return ".json.gz";
-    case SERIALIZATION_FORMATS.CSV:
-      return ".tar.gz";
-    case SERIALIZATION_FORMATS.XML:
-      return ".xml";
-    case SERIALIZATION_FORMATS.EXCEL:
-      return ".tar.gz";
-    default:
-      return ".bin";
-  }
+	switch (format) {
+		case SERIALIZATION_FORMATS.JSON:
+		case SERIALIZATION_FORMATS.JSON_GZIP:
+		case SERIALIZATION_FORMATS.JSON_BROTLI:
+			return ".json.gz";
+		case SERIALIZATION_FORMATS.CSV:
+			return ".tar.gz";
+		case SERIALIZATION_FORMATS.XML:
+			return ".xml";
+		case SERIALIZATION_FORMATS.EXCEL:
+			return ".tar.gz";
+		default:
+			return ".bin";
+	}
 };
 
 /**
@@ -600,30 +601,30 @@ const getFormatExtension = (format) => {
  * @returns {Array} Updated stats array with merged data
  */
 const updateStatsFromCache = (currentStats, updatedData, year) => {
-  if (!updatedData || !year) {
-    return currentStats;
-  }
+	if (!updatedData || !year) {
+		return currentStats;
+	}
 
-  // Add year property to the updated data
-  const updatedYearlyStats = [
-    {
-      ...updatedData,
-      year,
-    },
-  ];
+	// Add year property to the updated data
+	const updatedYearlyStats = [
+		{
+			...updatedData,
+			year,
+		},
+	];
 
-  // Merge the updated data into current stats
-  return mergeYearlyStats(currentStats, updatedYearlyStats);
+	// Merge the updated data into current stats
+	return mergeYearlyStats(currentStats, updatedYearlyStats);
 };
 
 export {
-  statsApiClient,
-  fetchStats,
-  fetchStatsWithYearlyBlocks,
-  downloadStatsSeries,
-  downloadStatsSeriesWithFilename,
-  SERIALIZATION_FORMATS,
-  getFormatExtension,
-  updateStatsFromCache,
-  updateState,
+	statsApiClient,
+	fetchStats,
+	fetchStatsWithYearlyBlocks,
+	downloadStatsSeries,
+	downloadStatsSeriesWithFilename,
+	SERIALIZATION_FORMATS,
+	getFormatExtension,
+	updateStatsFromCache,
+	updateState,
 };
