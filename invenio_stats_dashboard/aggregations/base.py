@@ -970,7 +970,9 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
         # Search all snapshot indices using the alias, not just a specific year
         index_name = prefix_index(self.aggregation_index)
 
-        # Query for the most recent snapshot on or before the current date
+        # Query for the most recent snapshot strictly before the current date.
+        # This ensures we get the snapshot from the previous day, not the current day,
+        # which is needed to avoid accumulating duplicate counts when reprocessing.
         try:
             snapshot_search = Search(using=self.client, index=index_name)
             snapshot_search = snapshot_search.query(
@@ -980,7 +982,7 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
                     {
                         "range": {
                             "snapshot_date": {
-                                "lte": current_date.format("YYYY-MM-DDTHH:mm:ss")
+                                "lt": current_date.format("YYYY-MM-DDTHH:mm:ss")
                             }
                         }
                     },
@@ -1314,8 +1316,11 @@ class CommunitySnapshotAggregatorBase(CommunityAggregatorBase):
             else None
         )
 
-        if previous_snapshot_date and previous_snapshot_date <= end_date:
-            current_iteration_date = previous_snapshot_date
+        if previous_snapshot_date and previous_snapshot_date < end_date:
+            # Start from the day AFTER the previous snapshot to ensure we process
+            # the next day that needs aggregation (or reprocess the current day if
+            # needed)
+            current_iteration_date = previous_snapshot_date.shift(days=1)
             # Apply catchup limit to prevent processing too many days at once
             end_date = min(
                 end_date, previous_snapshot_date.shift(days=self.catchup_interval + 1)
