@@ -64,6 +64,7 @@ describe('CommunityStatsDashboardLayout', () => {
 
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true,
         disabled_message: 'Community dashboard is disabled',
         disabled_message_global: 'Global community dashboard is disabled',
         layout: {
@@ -102,6 +103,7 @@ describe('CommunityStatsDashboardLayout', () => {
         'The global statistics dashboard must be enabled by the administrators.';
       const dashboardConfig = {
         dashboard_enabled_communities: false,
+        dashboard_enabled_global: false, // Global feature disabled
         disabled_message: 'Community dashboard is disabled',
         disabled_message_global: globalDisabledMessage,
         layout: {
@@ -145,6 +147,7 @@ describe('CommunityStatsDashboardLayout', () => {
         'Community managers and administrators can enable the dashboard from the community settings page';
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true, // Both global features enabled
         disabled_message: communityDisabledMessage,
         disabled_message_global:
           'The global statistics dashboard must be enabled by the administrators.',
@@ -187,6 +190,7 @@ describe('CommunityStatsDashboardLayout', () => {
       const globalDisabledMessage = 'Global dashboard disabled';
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true, // Both global features enabled
         disabled_message: communityDisabledMessage,
         disabled_message_global: globalDisabledMessage,
         layout: {
@@ -210,6 +214,43 @@ describe('CommunityStatsDashboardLayout', () => {
         globalDisabledMessage
       );
     });
+
+    it('should use global disabled message when dashboard_enabled_communities is true but dashboard_enabled_global is false', () => {
+      const community = {
+        ...mockCommunity,
+        custom_fields: {
+          'stats:dashboard_enabled': false,
+        },
+      };
+
+      const communityDisabledMessage = 'Enable dashboard from settings';
+      const globalDisabledMessage = 'Global dashboard disabled';
+      const dashboardConfig = {
+        dashboard_enabled_communities: true,
+        dashboard_enabled_global: false, // Global dashboard disabled
+        disabled_message: communityDisabledMessage,
+        disabled_message_global: globalDisabledMessage,
+        layout: {
+          tabs: [],
+        },
+      };
+
+      render(
+        <CommunityStatsDashboardLayout
+          community={community}
+          dashboardConfig={dashboardConfig}
+          stats={mockStats}
+        />
+      );
+
+      // Should use disabled_message_global when global dashboard is disabled
+      expect(screen.getByTestId('disabled-message')).toHaveTextContent(
+        globalDisabledMessage
+      );
+      expect(screen.getByTestId('disabled-message')).not.toHaveTextContent(
+        communityDisabledMessage
+      );
+    });
   });
 
   describe('Edge cases', () => {
@@ -221,6 +262,7 @@ describe('CommunityStatsDashboardLayout', () => {
 
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true,
         disabled_message: 'Community dashboard is disabled',
         disabled_message_global: 'Global community dashboard is disabled',
         layout: {
@@ -252,6 +294,7 @@ describe('CommunityStatsDashboardLayout', () => {
 
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true,
         disabled_message: 'Community dashboard is disabled',
         disabled_message_global: 'Global community dashboard is disabled',
         layout: {
@@ -283,6 +326,7 @@ describe('CommunityStatsDashboardLayout', () => {
 
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true,
         disabled_message: 'Community dashboard is disabled',
         disabled_message_global: 'Global community dashboard is disabled',
         layout: {

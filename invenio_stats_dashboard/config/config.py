@@ -105,7 +105,8 @@ STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY = _(
 )
 
 STATS_DASHBOARD_DISABLED_MESSAGE_GLOBAL = (
-    "The global statistics dashboard must be enabled by the {title} administrators."
+    "The global and community statistics dashboards must be enabled "
+    "by the {title} administrators."
 )
 
 STATS_DASHBOARD_SETTINGS_COMMUNITY_ENABLED_LABEL = _("Enable Dashboard")

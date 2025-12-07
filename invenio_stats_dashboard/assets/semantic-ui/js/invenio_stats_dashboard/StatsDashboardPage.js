@@ -12,6 +12,50 @@ import { componentsMap } from "./components/components_map";
 import { useStatsDashboard } from "./context/StatsDashboardContext";
 
 /**
+ *  Helper function to recursively check if an object contains any non-empty arrays.
+ *
+ *   @param {*} value - the value to check (can be any type)
+ *   @returns {boolean} - true if a non-empty array is found, false otherwise
+ */
+const hasNonEmptyArray = (value) => {
+	if (Array.isArray(value)) {
+		// If it's an array, check if it has any elements
+		if (value.length > 0) {
+			// Check if any element in the array contains data
+			for (const item of value) {
+				if (item && typeof item === "object" && !Array.isArray(item)) {
+					// For objects in arrays (e.g., filePresence items), recursively check their properties
+					// Only count as data if the object contains non-empty data arrays
+					if (hasNonEmptyArray(item)) {
+						return true;
+					}
+				} else if (Array.isArray(item)) {
+					// Nested array - recursively check
+					if (hasNonEmptyArray(item)) {
+						return true;
+					}
+				} else if (typeof item === "number") {
+					// Numbers in arrays are considered data
+					return true;
+				}
+				// Other primitives (strings, booleans) in arrays are typically metadata, not data
+			}
+		}
+		return false;
+	} else if (value && typeof value === "object") {
+		// If it's an object, recursively check all its values
+		for (const nestedValue of Object.values(value)) {
+			if (hasNonEmptyArray(nestedValue)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	// Primitive values don't count as data
+	return false;
+};
+
+/**
  *  Helper function to check that there is some data in stats.
  *
  *   @param {array} stats - the current stats from context
@@ -24,18 +68,18 @@ const checkForEmptyStats = (stats) => {
 	}
 
 	for (const yearStats of stats) {
-		// yearStats is an object, iterate over its values (which are arrays)
+		// yearStats is an object, recursively check all nested values
 		if (yearStats && typeof yearStats === "object") {
-			for (const arrayValue of Object.values(yearStats)) {
-				// Check if the value is an array with elements
-				if (Array.isArray(arrayValue) && arrayValue.length > 0) {
-					return false; // Found data, stats are not empty
-				}
+			if (!hasNonEmptyArray(yearStats)) {
+				// This year has no data, continue to next year
+				continue;
 			}
+			// Found data in this year, stats are not empty
+			return false;
 		}
 	}
 
-	// No data found, stats are empty
+	// No data found in any year, stats are empty
 	return true;
 };
 
@@ -70,6 +114,7 @@ const StatsDashboardPage = ({
 		return checkForEmptyStats(stats);
 	}, [stats]);
 	console.log("statsAreEmpty", statsAreEmpty);
+	console.log("stats", stats);
 
 	console.log("first_run_incomplete", first_run_incomplete);
 	console.log("agg_in_progress", agg_in_progress);
@@ -231,4 +276,4 @@ StatsDashboardPage.propTypes = {
 	variant: PropTypes.string.isRequired,
 };
 
-export { StatsDashboardPage };
+export { StatsDashboardPage, checkForEmptyStats };

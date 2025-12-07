@@ -60,6 +60,7 @@ describe('CommunityStatsDashboardLayout Integration Tests', () => {
         'The global statistics dashboard must be enabled by the administrators.';
       const dashboardConfig = {
         dashboard_enabled_communities: false,
+        dashboard_enabled_global: false, // Global feature disabled
         disabled_message: 'Community dashboard is disabled',
         disabled_message_global: globalDisabledMessage,
         layout: {
@@ -107,6 +108,7 @@ describe('CommunityStatsDashboardLayout Integration Tests', () => {
         'Community managers and administrators can enable the dashboard from the community settings page';
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true, // Both global features enabled
         disabled_message: communityDisabledMessage,
         disabled_message_global:
           'The global statistics dashboard must be enabled by the administrators.',
@@ -148,6 +150,7 @@ describe('CommunityStatsDashboardLayout Integration Tests', () => {
 
       const dashboardConfig = {
         dashboard_enabled_communities: true,
+        dashboard_enabled_global: true, // Both global features enabled
         disabled_message: 'Enable dashboard from settings',
         disabled_message_global: 'Global dashboard disabled',
         layout: {
