@@ -9,6 +9,7 @@
 from functools import wraps
 
 import arrow
+from flask import current_app
 from invenio_search.utils import prefix_index
 from invenio_stats.bookmark import BookmarkAPI
 from opensearchpy.helpers.index import Index
@@ -65,7 +66,31 @@ class CommunityBookmarkAPI(BookmarkAPI):
 
         This method upserts the bookmark, ensuring only one bookmark exists
         per community/aggregation type combination.
+
+        Args:
+            community_id: The community ID
+            value: The bookmark date as a string (ISO format)
+
+        Note:
+            If the provided date is in the future, it will be capped at the
+            current date to prevent aggregation issues.
         """
+        try:
+            bookmark_date = arrow.get(value)
+            current_date = arrow.utcnow()
+            
+            if bookmark_date > current_date:
+                current_app.logger.warning(
+                    f"Bookmark date for {community_id} ({bookmark_date}) is in the "
+                    f"future. Capping at current date ({current_date})."
+                )
+                value = current_date.format("YYYY-MM-DDTHH:mm:ss.SSS")
+        except (arrow.parser.ParserError, ValueError):
+            current_app.logger.warning(
+                f"Failed to parse bookmark date '{value}' for {community_id}. "
+                f"Storing as-is (may cause errors if invalid)."
+            )
+
         doc_id = f"{self.agg_type}_{community_id}"
 
         self.client.index(

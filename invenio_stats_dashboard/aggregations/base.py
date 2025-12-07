@@ -568,6 +568,15 @@ class CommunityAggregatorBase(StatAggregator):
             )
             return False
 
+        # Guard: Cap bookmark at current date to prevent future dates
+        current_date = arrow.utcnow()
+        if latest_date > current_date:
+            current_app.logger.warning(
+                f"Document date for {community_id} ({latest_date}) is in the future. "
+                f"Capping bookmark at current date ({current_date})."
+            )
+            latest_date = current_date
+
         next_bookmark = latest_date.format("YYYY-MM-DDTHH:mm:ss.SSS")
         self.bookmark_api.set_bookmark(community_id, next_bookmark)
         return True
