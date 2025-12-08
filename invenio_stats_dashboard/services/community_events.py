@@ -9,6 +9,7 @@
 from datetime import datetime
 
 import arrow
+from flask import current_app
 from invenio_search.proxies import current_search_client
 from invenio_search.utils import prefix_index
 from opensearchpy.exceptions import NotFoundError
@@ -52,8 +53,15 @@ class CommunityRecordEventsService:
 
         event_search = event_search.extra(size=0)
 
+        # Get aggregation size from config to avoid truncation
+        # OpenSearch/Elasticsearch has a default limit (typically 10,000)
+        # for Terms aggregations
+        aggregation_size = current_app.config.get(
+            "COMMUNITY_STATS_FILTER_AGGREGATION_SIZE", 10000
+        )
+
         by_community = event_search.aggs.bucket(
-            "by_community", Terms(field="community_id")
+            "by_community", Terms(field="community_id", size=aggregation_size)
         )
         by_community.metric("min_event_date", Min(field="event_date"))
         by_community.metric("max_event_date", Max(field="event_date"))

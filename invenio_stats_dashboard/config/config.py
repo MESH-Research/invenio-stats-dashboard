@@ -99,6 +99,18 @@ COMMUNITY_STATS_AGGREGATIONS = register_aggregations()
 
 COMMUNITY_STATS_CATCHUP_INTERVAL = 365
 
+COMMUNITY_STATS_FILTER_AGGREGATION_SIZE = 10000
+"""Maximum number of buckets to return from Terms aggregation.
+
+This setting controls the size parameter for the Terms aggregation used in
+filter_communities_by_activity(). OpenSearch/Elasticsearch has a default limit
+(typically 10,000) for Terms aggregations. Setting this to a higher value
+ensures all communities are included when filtering by activity criteria.
+
+If you have more than this number of communities, you may need to increase
+this value or use composite aggregations for pagination.
+"""
+
 STATS_DASHBOARD_DISABLED_MESSAGE_COMMUNITY = _(
     "Community managers and administrators can enable the "
     "dashboard from the community settings page"
