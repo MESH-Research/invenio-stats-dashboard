@@ -1003,8 +1003,11 @@ class CommunityUsageSnapshotAggregator(CommunitySnapshotAggregatorBase):
             else None
         )
 
-        if previous_snapshot_date and previous_snapshot_date <= end_date:
-            current_iteration_date = previous_snapshot_date
+        if previous_snapshot_date and previous_snapshot_date < end_date:
+            # Start from the day AFTER the previous snapshot to ensure we process
+            # the next day that needs aggregation (or reprocess the current day if
+            # needed)
+            current_iteration_date = previous_snapshot_date.shift(days=1)
             # Apply catchup limit to prevent processing too many days at once
             end_date = min(
                 end_date, previous_snapshot_date.shift(days=self.catchup_interval + 1)
