@@ -317,6 +317,40 @@ class CachedResponseService:
                 creation_year = self._get_first_record_creation_year()
             return list(range(creation_year, current_year + 1))
 
+    def _resolve_community_id_or_slug(self, community_id: str) -> str:
+        """Resolve community ID from slug or return as-is if already UUID.
+
+        Args:
+            community_id(str): The community ID (UUID), slug, or 'global' to resolve.
+
+        Returns:
+            str: Resolved community UUID or 'global'. Returns original if resolution 
+                 failed.
+        """
+        if community_id == "global":
+            return "global"
+
+        # If it looks like a UUID, return as-is
+        if len(community_id) == 36 and community_id.count("-") == 4:
+            return community_id
+
+        try:
+            communities_result = current_communities.service.search(
+                system_identity,
+                params={"q": f"slug:{community_id}"},
+                size=1,
+            )
+            result_dict = communities_result.to_dict()
+            hits = result_dict.get("hits", {}).get("hits", [])
+            if hits:
+                return str(hits[0]["id"])
+        except Exception as e:
+            current_app.logger.warning(
+                f"Could not resolve community slug '{community_id}': {e}"
+            )
+
+        return community_id
+
     def _get_all_community_ids(self) -> list[str]:
         """Get all community IDs from communities service.
 
@@ -607,3 +641,98 @@ class CachedResponseService:
         """
         size_info: dict[str, Any] = self.cache.get_cache_size_info()
         return size_info
+
+    def list_cached_responses(
+        self,
+        community_id: str | None = None,
+        include_sizes: bool = False,
+        include_ages: bool = False,
+    ) -> list[dict[str, Any]]:
+        """List all cached responses with human-readable identifiers.
+
+        This method reconstructs the human-readable information (community_id,
+        year, category) for each cached response by checking all possible
+        combinations against the actual cache keys.
+
+        Args:
+            community_id: Optional community ID or slug to filter by. If None,
+                lists all communities including "global". Slugs will be
+                automatically resolved to UUIDs.
+            include_sizes: If True, include size in bytes for each entry.
+                Uses batched Redis pipelining for efficiency.
+            include_ages: If True, include age in seconds for each entry.
+                Age is calculated from TTL if available. Uses batched Redis
+                pipelining for efficiency.
+
+        Returns:
+            List of dictionaries with keys: community_id, year, category,
+            cache_key, and optionally size_bytes and age_seconds
+        """
+        all_cache_keys = set(self.cache.keys())
+
+        if community_id:
+            # Resolve slug to ID if needed
+            resolved_id = self._resolve_community_id_or_slug(community_id)
+            community_ids = [resolved_id]
+        else:
+            community_ids = ["global"] + self._get_all_community_ids()
+
+        results = []
+        cache_keys_to_size = []
+        cache_keys_to_age = []
+
+        for comm_id in community_ids:
+            years = self._get_years_for_community(comm_id)
+
+            for year in years:
+                for category in self.categories:
+                    response = CachedResponse(comm_id, year, category)
+                    cache_key = response.cache_key
+
+                    if cache_key in all_cache_keys:
+                        result = {
+                            "community_id": comm_id,
+                            "year": year,
+                            "category": category,
+                            "cache_key": cache_key,
+                        }
+                        results.append(result)
+                        if include_sizes:
+                            cache_keys_to_size.append(cache_key)
+                        if include_ages:
+                            cache_keys_to_age.append(cache_key)
+
+        # Batch fetch sizes if requested
+        if include_sizes and cache_keys_to_size:
+            sizes = self.cache.get_key_sizes_batch(cache_keys_to_size)
+            for result in results:
+                cache_key = result["cache_key"]
+                result["size_bytes"] = sizes.get(cache_key)
+
+        # Batch fetch ages if requested
+        if include_ages and cache_keys_to_age:
+            default_ttl = current_app.config.get("STATS_CACHE_DEFAULT_TTL", None)
+            default_ttl_seconds = (
+                default_ttl * 86400 if default_ttl else None
+            )
+
+            ttls = self.cache.get_key_ttls_batch(cache_keys_to_age)
+            for result in results:
+                cache_key = result["cache_key"]
+                ttl = ttls.get(cache_key)
+                # Age can only be calculated if:
+                # 1. TTL is available from Redis
+                # 2. Default TTL is configured
+                # 3. TTL is not -1 (no expiration)
+                if ttl is not None and default_ttl_seconds is not None:
+                    if ttl == -1:
+                        result["age_seconds"] = None
+                    elif ttl >= 0:
+                        age = default_ttl_seconds - ttl
+                        result["age_seconds"] = max(0, age)  # Ensure non-negative
+                    else:
+                        result["age_seconds"] = None
+                else:
+                    result["age_seconds"] = None
+
+        return results

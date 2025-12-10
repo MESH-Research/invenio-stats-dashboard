@@ -23,6 +23,7 @@ from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
 from ..services.cached_response_service import CachedResponseService
 from ..tasks.cache_tasks import generate_cached_responses_task
+from ..utils.utils import format_age, format_bytes
 
 
 def check_scheduled_tasks_enabled(command="cache"):
@@ -302,50 +303,208 @@ def cache_info_command(detailed):
     type=str,
     help="Filter keys by pattern (e.g., '*global*')",
 )
+@click.option(
+    "--human-readable",
+    "human_readable",
+    is_flag=True,
+    help=(
+        "Show human-readable identifiers (community, year, category) "
+        "instead of hashed keys"
+    ),
+)
+@click.option(
+    "--community-id",
+    type=str,
+    help=(
+        "Filter by community ID or slug (only works with --human-readable). "
+        "Slugs will be automatically resolved to UUIDs."
+    ),
+)
+@click.option(
+    "--include-sizes",
+    "include_sizes",
+    is_flag=True,
+    help="Include size in bytes for each cached item (uses batched Redis calls)",
+)
+@click.option(
+    "--include-ages",
+    "include_ages",
+    is_flag=True,
+    help=(
+        "Include age in human-readable format for each cached item "
+        "(uses batched Redis calls)"
+    ),
+)
 @with_appcontext
-def list_cache_keys_command(limit, pattern):
+def list_cache_keys_command(
+    limit, pattern, human_readable, community_id, include_sizes, include_ages
+):
     """List all cached statistics keys.
 
     This command displays all cached statistics keys, optionally filtered
     by a pattern. Keys are shown with their full names and can be used
     to identify specific cache entries for clearing.
 
+    With --human-readable, shows community_id, year, and category
+    instead of hashed keys, making it easier to identify cache entries.
+
+    Returns:
+        None: This is a CLI command function.
+
     Examples:
     - invenio community-stats cache list
     - invenio community-stats cache list --limit 20
     - invenio community-stats cache list --pattern "*global*"
+    - invenio community-stats cache list --human-readable
+    - invenio community-stats cache list --human-readable --community-id global
     """
-    cache = StatsCache()
+    if human_readable:
 
-    keys = cache.keys()
+        try:
+            service = CachedResponseService()
+        except Exception as e:
+            click.echo(f"Failed to initialize cache service: {e}")
+            return 1
 
-    if not keys:
-        click.echo("No cache entries found")
-        return
+        responses = service.list_cached_responses(
+            community_id=community_id,
+            include_sizes=include_sizes,
+            include_ages=include_ages,
+        )
 
-    # Apply pattern filter if provided
-    if pattern:
-        import fnmatch
+        if not responses:
+            click.echo("No cached responses found")
+            if community_id:
+                click.echo(f"(filtered by community_id: {community_id})")
+            return
 
-        keys = [key for key in keys if fnmatch.fnmatch(key, pattern)]
+        # Apply limit
+        total_responses = len(responses)
+        if limit > 0:
+            responses = responses[:limit]
 
-    # Apply limit
-    if limit > 0:
-        keys = keys[:limit]
+        click.echo(
+            f"Cached Responses (showing {len(responses)} of {total_responses}):"
+        )
 
-    total_keys = len(cache.keys())
-    click.echo(f"Cache Keys (showing {len(keys)} of {total_keys}):")
-    click.echo("=" * 60)
+        # Determine table width and columns based on what's included
+        has_extra_info = include_sizes or include_ages
+        if has_extra_info:
+            # Calculate column widths
+            width = 120 if (include_sizes and include_ages) else 100
+            click.echo("=" * width)
 
-    for i, key in enumerate(keys, 1):
-        # Remove the prefix for cleaner display
-        display_key = key.replace(f"{cache.cache_prefix}:", "")
-        click.echo(f"{i:3d}. {display_key}")
+            # Build header
+            header_parts = ["#", "Community ID", "Year", "Category"]
+            if include_sizes:
+                header_parts.append("Size")
+            if include_ages:
+                header_parts.append("Age")
 
-    if limit > 0 and len(keys) >= limit:
-        remaining = total_keys - len(keys)
-        click.echo(f"\n... and {remaining} more entries")
-        click.echo("Use --limit to show more entries")
+            # Build format string
+            if include_sizes and include_ages:
+                header = (
+                    f"{'#':<4} {'Community ID':<32} {'Year':<6} "
+                    f"{'Category':<24} {'Size':<12} {'Age':<20}"
+                )
+            elif include_sizes:
+                header = (
+                    f"{'#':<4} {'Community ID':<36} {'Year':<6} "
+                    f"{'Category':<28} {'Size':<12}"
+                )
+            else:  # include_ages only
+                header = (
+                    f"{'#':<4} {'Community ID':<36} {'Year':<6} "
+                    f"{'Category':<28} {'Age':<20}"
+                )
+
+            click.echo(header)
+            click.echo("-" * width)
+
+            for i, response in enumerate(responses, 1):
+                comm_id = response["community_id"]
+                year = response["year"]
+                category = response["category"]
+
+                if include_sizes and include_ages:
+                    size_bytes = response.get("size_bytes")
+                    age_seconds = response.get("age_seconds")
+                    size_str = format_bytes(size_bytes)
+                    age_str = format_age(age_seconds)
+                    click.echo(
+                        f"{i:<4} {comm_id:<32} {year:<6} {category:<24} "
+                        f"{size_str:<12} {age_str:<20}"
+                    )
+                elif include_sizes:
+                    size_bytes = response.get("size_bytes")
+                    size_str = format_bytes(size_bytes)
+                    click.echo(
+                        f"{i:<4} {comm_id:<36} {year:<6} {category:<28} "
+                        f"{size_str:<12}"
+                    )
+                else:  # include_ages only
+                    age_seconds = response.get("age_seconds")
+                    age_str = format_age(age_seconds)
+                    click.echo(
+                        f"{i:<4} {comm_id:<36} {year:<6} {category:<28} "
+                        f"{age_str:<20}"
+                    )
+        else:
+            click.echo("=" * 80)
+            # Display in a table-like format without extra info
+            click.echo(
+                f"{'#':<4} {'Community ID':<40} {'Year':<6} {'Category':<30}"
+            )
+            click.echo("-" * 80)
+
+            for i, response in enumerate(responses, 1):
+                comm_id = response["community_id"]
+                year = response["year"]
+                category = response["category"]
+                click.echo(f"{i:<4} {comm_id:<40} {year:<6} {category:<30}")
+
+        if limit > 0 and len(responses) >= limit:
+            remaining = total_responses - len(responses)
+            click.echo(f"\n... and {remaining} more entries")
+            click.echo("Use --limit to show more entries")
+
+        if community_id:
+            click.echo(f"\nFiltered by community_id: {community_id}")
+
+    else:
+        # show hashed keys
+        try:
+            service = CachedResponseService()
+        except Exception as e:
+            click.echo(f"Failed to initialize cache service: {e}")
+            return 1
+
+        # Get all keys (with optional pattern filter)
+        all_keys = service.list_cache_keys(pattern=pattern)
+
+        if not all_keys:
+            click.echo("No cache entries found")
+            return
+
+        # Apply limit
+        keys = all_keys
+        if limit > 0:
+            keys = keys[:limit]
+
+        total_keys = len(all_keys)
+        click.echo(f"Cache Keys (showing {len(keys)} of {total_keys}):")
+        click.echo("=" * 60)
+
+        cache = StatsCache()
+        for i, key in enumerate(keys, 1):
+            # Remove the prefix for cleaner display
+            display_key = key.replace(f"{cache.cache_prefix}:", "")
+            click.echo(f"{i:3d}. {display_key}")
+
+        if limit > 0 and len(keys) >= limit:
+            remaining = total_keys - len(keys)
+            click.echo(f"\n... and {remaining} more entries")
+            click.echo("Use --limit to show more entries")
 
 
 @cache_cli.command(name="test")

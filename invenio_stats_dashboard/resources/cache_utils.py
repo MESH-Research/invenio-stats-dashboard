@@ -13,6 +13,8 @@ import arrow
 import redis
 from flask import current_app
 
+from ..utils.utils import format_bytes
+
 
 class StatsCache:
     """Low-level Redis cache manager for statistics data.
@@ -231,26 +233,21 @@ class StatsCache:
             all_keys = self.keys("*")
             key_count = len(all_keys)
 
-            # Calculate total memory usage
             total_memory = 0
             if all_keys:
-                for key in all_keys:
-                    try:
-                        # type: ignore
-                        memory_usage: int | None = self.redis_client.memory_usage(key)
-                        if memory_usage:
-                            total_memory += int(memory_usage)
-                    except Exception:
-                        # Some Redis versions don't support memory_usage
-                        pass
+                sizes = self.get_key_sizes_batch(all_keys)
+                for size in sizes.values():
+                    if size is not None:
+                        total_memory += size
 
-            # type: ignore
-            redis_info: dict[str, Any] = self.redis_client.info()
+            redis_info: dict[str, Any] = (
+                self.redis_client.info()  # type: ignore
+            )
 
             return {
                 "key_count": key_count,
                 "total_memory_bytes": total_memory,
-                "total_memory_human": self._format_bytes(total_memory),
+                "total_memory_human": format_bytes(total_memory),
                 "redis_used_memory": redis_info.get("used_memory", 0),
                 "redis_used_memory_human": redis_info.get(
                     "used_memory_human", "unknown"
@@ -262,18 +259,97 @@ class StatsCache:
             current_app.logger.warning(f"Cache size info error: {e}")
             return {"error": str(e)}
 
-    def _format_bytes(self, bytes_value: int) -> str:
-        """Format bytes into human readable format.
+    def get_key_size(self, key: str) -> int | None:
+        """Get the size in bytes of a specific cache key.
+
+        Args:
+            key: Cache key
 
         Returns:
-            str: Bytes size in human readable format.
+            Size in bytes, or None if key doesn't exist or memory_usage
+            is not supported
         """
-        value = float(bytes_value)
-        for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if value < 1024.0:
-                return f"{value:.2f} {unit}"
-            value /= 1024.0
-        return f"{value:.2f} PB"
+        try:
+            memory_usage: int | None = (
+                self.redis_client.memory_usage(key)  # type: ignore
+            )
+            return int(memory_usage) if memory_usage else None
+        except Exception:
+            # Some Redis versions don't support memory_usage
+            return None
+
+    def get_key_sizes_batch(self, keys: list[str]) -> dict[str, int | None]:
+        """Get sizes in bytes for multiple cache keys using pipelining.
+
+        This is more efficient than calling get_key_size() multiple times
+        as it batches the requests into a single round trip.
+
+        Args:
+            keys: List of cache keys
+
+        Returns:
+            Dictionary mapping keys to their sizes (or None if unavailable)
+        """
+        if not keys:
+            return {}
+
+        results: dict[str, int | None] = {}
+        try:
+            pipe = self.redis_client.pipeline()
+            for key in keys:
+                pipe.memory_usage(key)  # type: ignore
+            responses = pipe.execute()
+
+            for key, memory_usage in zip(keys, responses, strict=True):
+                if memory_usage is not None:
+                    results[key] = int(memory_usage)
+                else:
+                    results[key] = None
+        except Exception:
+            # Some Redis versions don't support memory_usage or pipelining
+            # Fall back to None for all keys
+            for key in keys:
+                results[key] = None
+
+        return results
+
+    def get_key_ttls_batch(self, keys: list[str]) -> dict[str, int | None]:
+        """Get TTLs (time to live) for multiple cache keys using pipelining.
+
+        This is more efficient than calling get_ttl() multiple times
+        as it batches the requests into a single round trip.
+
+        Args:
+            keys: List of cache keys
+
+        Returns:
+            Dictionary mapping keys to their TTLs in seconds:
+            - Positive number: seconds until expiration
+            - -1: key exists but has no expiration
+            - None: key doesn't exist or error occurred
+        """
+        if not keys:
+            return {}
+
+        results: dict[str, int | None] = {}
+        try:
+            # Use pipeline to batch all TTL commands
+            pipe = self.redis_client.pipeline()
+            for key in keys:
+                pipe.ttl(key)
+            responses = pipe.execute()
+
+            for key, ttl in zip(keys, responses, strict=True):
+                if ttl == -2:  # Key doesn't exist
+                    results[key] = None
+                else:
+                    results[key] = int(ttl) if ttl is not None else None
+        except Exception:
+            # Fall back to None for all keys
+            for key in keys:
+                results[key] = None
+
+        return results
 
     def get_cache_info(self) -> dict[str, Any]:
         """Get information about the cache.
@@ -282,8 +358,9 @@ class StatsCache:
             Dictionary with cache information
         """
         try:
-            # type: ignore
-            redis_info: dict[str, Any] | None = self.redis_client.info()
+            redis_info: dict[str, Any] | None = (
+                self.redis_client.info()  # type: ignore
+            )
             if isinstance(redis_info, dict):
                 return {
                     "cache_type": "Redis (Direct)",
