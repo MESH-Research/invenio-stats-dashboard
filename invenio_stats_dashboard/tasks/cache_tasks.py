@@ -19,9 +19,9 @@ from .aggregation_tasks import AggregationTaskLock, TaskLockAcquisitionError
 CachedResponsesGenerationTask = {
     "task": "invenio_stats_dashboard.tasks.cache_tasks.generate_cached_responses_task",
     "schedule": crontab(minute="50", hour="*"),  # Run every hour at minute 50
-    # community_ids, years, overwrite, async_mode, current_year_only, optimize
+    # community_ids, years, overwrite, current_year_only, optimize
     # optimize=None means use STATS_DASHBOARD_OPTIMIZE_DATA_SERIES config
-    "args": ("all", None, False, False, False, None),
+    "args": ("all", None, False, False, None),
 }
 
 
@@ -30,7 +30,6 @@ def generate_cached_responses_task(
     community_ids: str | list[str] | None = None,
     years: int | list[int] | str | None = None,
     overwrite: bool = False,
-    async_mode: bool = False,
     current_year_only: bool = False,
     optimize: bool | None = None,
 ) -> dict[str, Any]:
@@ -47,7 +46,6 @@ def generate_cached_responses_task(
         community_ids: Community IDs to process ('all', list, or None for all)
         years: Years to process (int, list, or None for auto)
         overwrite: Whether to overwrite existing cache
-        async_mode: Whether to use async Celery tasks (not used in scheduled runs)
         current_year_only: Whether to override years with current year only
         optimize: If True, only include metrics used by UI components.
                  If None, uses STATS_DASHBOARD_OPTIMIZE_DATA_SERIES config value.
@@ -85,7 +83,6 @@ def generate_cached_responses_task(
                         community_ids=community_ids,
                         years=years,
                         overwrite=overwrite,
-                        async_mode=async_mode,
                         optimize=optimize,
                     )
                     current_app.logger.info(f"Cache generation completed: {result}")
@@ -110,7 +107,6 @@ def generate_cached_responses_task(
                 community_ids=community_ids,
                 years=years,
                 overwrite=overwrite,
-                async_mode=async_mode,
                 optimize=optimize,
             )
             current_app.logger.info(f"Cache generation completed: {result_no_lock}")

@@ -64,7 +64,6 @@ class CachedResponseService:
         community_ids: str | list[str] | None = None,
         years: int | list[int] | str | None = None,
         overwrite: bool = False,
-        async_mode: bool = False,
         progress_callback: Callable | None = None,
         optimize: bool | None = None,
     ) -> dict[str, Any]:
@@ -76,7 +75,6 @@ class CachedResponseService:
             overwrite: bool - Overwrite existing cache. Applies only to years prior
                 to the current year. (Current year's cache objects are always
                 re-generated to capture recent data changes)
-            async_mode: bool - Whether to use async Celery tasks (not implemented yet)
             progress_callback: Callable - Optional callback function for progress
                 updates. Called with (current, total, message) parameters
             optimize: If True, only include metrics used by UI components.
@@ -93,7 +91,6 @@ class CachedResponseService:
         community_ids = self._normalize_community_ids(community_ids)
         years_per_community = self._normalize_years(years, community_ids)
 
-        # Set up registry keys for tracking cache generation
         registry = StatsAggregationRegistry()
         current_year = arrow.utcnow().year
         active_registry_keys: list[str] = []
@@ -103,37 +100,62 @@ class CachedResponseService:
                 registry, community_ids, years_per_community, current_year
             )
 
+            # Check for community/year combinations that need cache updates
+            # due to recent aggregations and merge them into years_per_community
+            updated_combinations, years_per_community = (
+                self._get_updated_aggregation_combinations(
+                    registry, years_per_community, community_ids
+                )
+            )
+            
             all_responses = self._generate_all_response_objects(
                 community_ids, years_per_community, optimize=optimize
             )
-            if not overwrite:
-                skipped_count = 0
-                responses_to_process = []
-                for response in all_responses:
-                    if response.year != current_year and self.exists(
-                        response.community_id, response.year, response.category
-                    ):
-                        skipped_count += 1
-                    else:
-                        responses_to_process.append(response)
-                responses = responses_to_process
-            else:
-                skipped_count = 0
-                for response in all_responses:
+            
+            # Overwrite responses if:
+            # 1. overwrite=True (explicit request)
+            # 2. Current year (always regenerate)
+            # 3. In updated_combinations (recent aggregation)
+            skipped_count = 0
+            responses_to_process = []
+            registry_keys_to_cleanup: list[str] = []
+            
+            for response in all_responses:
+                should_overwrite = (
+                    overwrite
+                    or response.year == current_year
+                    or (response.community_id, response.year) in updated_combinations
+                )
+                
+                if should_overwrite:
                     self.delete(response.community_id, response.year, response.category)
-                responses = all_responses
-
-            results = self._create(responses, progress_callback)
+                    responses_to_process.append(response)
+                    
+                    # Track registry keys to clean up after processing
+                    if (response.community_id, response.year) in updated_combinations:
+                        operation = RegistryOperation.AGG_UPDATED.replace(
+                            "{year}", str(response.year)
+                        )
+                        registry_key = registry.make_registry_key(
+                            response.community_id, operation
+                        )
+                        registry_keys_to_cleanup.append(registry_key)
+                elif response.year != current_year and self.exists(
+                    response.community_id, response.year, response.category
+                ):
+                    skipped_count += 1
+                else:
+                    responses_to_process.append(response)
+            
+            results = self._create(responses_to_process, progress_callback)
             results["skipped"] = skipped_count
 
-            # Mark first runs as completed if cache was generated successfully
-            for first_run_key in first_runs_completing:
-                if any(
-                    response
-                    for response in results.get("responses", [])
-                    if response.get("community_id") in first_run_key
-                ):
-                    registry.set(first_run_key, FirstRunStatus.COMPLETED, ttl=None)
+            self._mark_first_runs_completed(
+                first_runs_completing, results, current_year, registry
+            )
+
+            for registry_key in registry_keys_to_cleanup:
+                registry.delete(registry_key)
 
             return results
         finally:
@@ -260,7 +282,7 @@ class CachedResponseService:
         community_ids: list[str],
         years_per_community: dict[str, list[int]],
         current_year: int,
-    ) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[str], dict[str, str]]:
         """Set up registry keys for tracking cache generation.
 
         Args:
@@ -271,9 +293,11 @@ class CachedResponseService:
 
         Returns:
             tuple: (active_registry_keys, first_runs_completing)
+                where first_runs_completing is a dict mapping community_id to
+                first_run_key
         """
         active_registry_keys: list[str] = []
-        first_runs_completing: list[str] = []
+        first_runs_completing: dict[str, str] = {}
 
         # Set registry keys for all community/year combinations being processed
         for community_id in community_ids:
@@ -296,7 +320,7 @@ class CachedResponseService:
                         len(first_run_recs)
                         and first_run_recs[0][1] == FirstRunStatus.IN_PROGRESS
                     ):
-                        first_runs_completing.append(first_run_recs[0][0])
+                        first_runs_completing[community_id] = first_run_recs[0][0]
 
         return active_registry_keys, first_runs_completing
 
@@ -391,6 +415,73 @@ class CachedResponseService:
         )
         created_date = first_record["hits"]["hits"][0]["_source"]["created"]
         return int(arrow.get(created_date).year)
+
+    def _get_updated_aggregation_combinations(
+        self,
+        registry: StatsAggregationRegistry,
+        years_per_community: dict[str, list[int]],
+        community_ids: list[str],
+    ) -> tuple[set[tuple[str, int]], dict[str, list[int]]]:
+        """Get community/year combinations that need cache updates and merge them.
+
+        Checks the registry for AGG_UPDATED entries that indicate recent
+        aggregations for historical years. Merges these combinations into
+        years_per_community and adds communities to community_ids as needed.
+
+        Args:
+            registry: StatsAggregationRegistry instance
+            years_per_community: Dictionary mapping community IDs to year lists
+            community_ids: List of community IDs being processed
+
+        Returns:
+            Tuple of:
+            - Set of (community_id, year) tuples that need cache updates
+            - Updated years_per_community dict with merged combinations
+        """
+        combinations: set[tuple[str, int]] = set()
+        updated_years_per_community = years_per_community.copy()
+        updated_community_ids = community_ids.copy()
+        
+        try:
+            # Get all AGG_UPDATED registry entries
+            pattern = "*_agg_updated_*"
+            entries = registry.get_all(pattern)
+            
+            for key, _value in entries:
+                # Parse key format: {community_id}_agg_updated_{year}
+                # Extract community_id and year
+                if "_agg_updated_" in key:
+                    parts = key.split("_agg_updated_")
+                    if len(parts) == 2:
+                        community_id = parts[0]
+                        try:
+                            year = int(parts[1])
+                            combinations.add((community_id, year))
+                            
+                            # Merge into years_per_community
+                            if community_id not in updated_years_per_community:
+                                updated_years_per_community[community_id] = []
+                            if year not in updated_years_per_community[community_id]:
+                                updated_years_per_community[community_id].append(year)
+                            
+                            # Add community to community_ids if not already present
+                            if community_id not in updated_community_ids:
+                                updated_community_ids.append(community_id)
+                                
+                        except ValueError:
+                            current_app.logger.warning(
+                                f"Could not parse year from registry key: {key}"
+                            )
+        except Exception as e:
+            current_app.logger.warning(
+                f"Error reading updated aggregation combinations: {e}"
+            )
+        
+        # Update community_ids in place (since it's a list reference)
+        community_ids.clear()
+        community_ids.extend(updated_community_ids)
+        
+        return combinations, updated_years_per_community
 
     def _get_community_creation_year(self, community_id: str) -> int | None:
         """Get the creation year for a community.
@@ -543,6 +634,44 @@ class CachedResponseService:
             return cast(  # type: ignore[redundant-cast]
                 dict | list, response.object_data
             )
+
+    def _mark_first_runs_completed(
+        self,
+        first_runs_completing: dict[str, str],
+        results: dict[str, Any],
+        current_year: int,
+        registry: StatsAggregationRegistry,
+    ) -> None:
+        """Mark first runs as completed if all categories were processed.
+        
+        Args:
+            first_runs_completing: Dictionary mapping community_id to first_run_key
+            results: Results dictionary from _create with "responses" key
+            current_year: The current year
+            registry: StatsAggregationRegistry instance
+        """
+        for community_id, first_run_key in first_runs_completing.items():
+            expected_category_count = len(self.categories)
+            
+            processed_responses = [
+                response
+                for response in results.get("responses", [])
+                if (
+                    response.get("community_id") == community_id
+                    and response.get("year") == current_year
+                )
+            ]
+            processed_count = len(processed_responses)
+            
+            if processed_count == expected_category_count:
+                registry.set(first_run_key, FirstRunStatus.COMPLETED, ttl=None)
+            else:
+                skipped_count = expected_category_count - processed_count
+                current_app.logger.info(
+                    f"Not marking first_run as COMPLETED for {community_id}: "
+                    f"{processed_count}/{expected_category_count} "
+                    f"categories processed, {skipped_count} skipped"
+                )
 
     def _create(
         self,

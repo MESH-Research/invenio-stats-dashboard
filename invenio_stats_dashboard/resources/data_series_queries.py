@@ -368,7 +368,7 @@ class DataSeriesQueryBase(Query):
         return mapping.get(base_name)
 
     def _check_aggregation_completeness(
-        self, community_id: str, end_date: str | None = None
+        self, community_id: str, end_date: str | None = None, year: int | None = None
     ) -> bool:
         """Check if aggregations are complete up to the required date.
         
@@ -378,6 +378,7 @@ class DataSeriesQueryBase(Query):
         Args:
             community_id: Community ID to check
             end_date: End date of the query period (YYYY-MM-DD format)
+            year: The year being queried (used to determine if current year)
             
         Returns:
             True if aggregation is complete, False otherwise
@@ -398,10 +399,24 @@ class DataSeriesQueryBase(Query):
             if bookmark is None:
                 return False
             
-            if end_date:
-                required_date = arrow.get(end_date).floor("day")
+            # Determine the year being queried
+            current_year = arrow.utcnow().year
+            if year is not None:
+                query_year = year
+            elif end_date:
+                query_year = arrow.get(end_date).year
             else:
+                query_year = current_year
+            
+            if query_year == current_year:
+                # For current year, aggregation should be complete up to yesterday
                 required_date = arrow.utcnow().floor("day").shift(days=-1)
+            else:
+                # For historical years, aggregation should be complete up to year end
+                if end_date:
+                    required_date = arrow.get(end_date).floor("day")
+                else:
+                    required_date = arrow.get(f"{query_year}-12-31").floor("day")
             
             bookmark_floor = bookmark.floor("day")
             is_complete: bool = bookmark_floor >= required_date

@@ -384,7 +384,7 @@ class CachedResponse:
                 end_date = f"{self.year}-12-31"
             
             self._aggregation_complete = query_instance._check_aggregation_completeness(
-                community_id, end_date
+                community_id, end_date, self.year
             )
         else:
             # For non-data-series queries (e.g., CommunityStatsResultsQuery),

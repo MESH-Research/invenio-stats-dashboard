@@ -11,6 +11,7 @@ import uuid
 from datetime import timedelta
 from typing import TypedDict
 
+import arrow
 from celery import shared_task
 from celery.schedules import crontab
 from dateutil.parser import parse as dateutil_parse  # type: ignore[import-untyped]
@@ -19,11 +20,13 @@ from invenio_cache import current_cache
 from invenio_search.proxies import current_search_client
 from invenio_stats.proxies import current_stats
 
+from ..constants import RegistryOperation
 from ..exceptions import (
     CommunityEventsNotInitializedError,
     TaskLockAcquisitionError,
     UsageEventsNotMigratedError,
 )
+from ..resources.cache_utils import StatsAggregationRegistry
 
 
 # TypedDict definitions for aggregation response objects
@@ -763,6 +766,9 @@ def _run_aggregation(
     current_app.logger.info("Aggregation completed successfully")
     current_app.logger.info(f"Total aggregation time: {total_duration}")
 
+    # Record which community/year combinations were updated for cache invalidation
+    _record_aggregation_updates(results)
+
     result_dict: AggregationResponse = {
         "results": results,
         "total_duration": total_duration,
@@ -784,3 +790,72 @@ def _run_aggregation(
     )
 
     return result_dict
+
+
+def _record_aggregation_updates(results: list[AggregatorResult]) -> None:
+    """Record which community/year combinations were updated during aggregation.
+
+    This creates registry entries that the cache task will check to determine
+    which historical cache entries need to be overwritten. We don't need to track
+    the current year because its cached responses are always overwritten by the 
+    cache task.
+
+    Extracts date ranges from the aggregation results to determine which years
+    were affected.
+
+    Registry entries are created with a TTL of 7 days - the cache task should process
+    these within that time.
+
+    Args:
+        results: List of aggregator results containing community details and
+            date ranges
+    """
+    registry = StatsAggregationRegistry()
+    current_year = arrow.utcnow().year
+
+    updated_combinations: set[tuple[str, int]] = set()
+
+    for result in results:
+        community_details = result.get("community_details", [])
+        
+        for detail in community_details:
+            community_id = detail.get("community_id", "")
+            if not community_id:
+                continue
+                
+            date_range = detail.get("date_range_requested", {})
+            start_date_str = date_range.get("start_date")
+            end_date_str = date_range.get("end_date")
+            
+            if not start_date_str or not end_date_str:
+                continue
+            
+            try:
+                start_date = arrow.get(start_date_str)
+                end_date = arrow.get(end_date_str)
+                
+                start_year = start_date.year
+                end_year = end_date.year
+                
+                for year in range(start_year, end_year + 1):
+                    if year < current_year:
+                        updated_combinations.add((community_id, year))
+            except (arrow.parser.ParserError, ValueError) as e:
+                current_app.logger.warning(
+                    f"Could not parse date range for community {community_id}: {e}"
+                )
+                continue
+
+    ttl_seconds = 7 * 24 * 60 * 60  # 7 days
+    timestamp = arrow.utcnow().isoformat()
+
+    for community_id, year in updated_combinations:
+        operation = RegistryOperation.AGG_UPDATED.replace("{year}", str(year))
+        registry_key = registry.make_registry_key(community_id, operation)
+        registry.set(registry_key, timestamp, ttl=ttl_seconds)
+
+    if updated_combinations:
+        current_app.logger.info(
+            f"Recorded {len(updated_combinations)} community/year combinations "
+            "for cache update"
+        )
