@@ -459,10 +459,14 @@ class CachedResponse:
     def get_or_generate(self) -> "CachedResponse":
         """Load from cache or generate new data.
 
+        Only saves to cache if aggregations are complete.
+        This prevents caching incomplete data during catch-up aggregations.
+
         Returns:
             Self with data loaded (for method chaining)
         """
         if not self.load_from_cache():
             self.generate()
-            self.save_to_cache()
+            if self.aggregation_complete:
+                self.save_to_cache()
         return self
