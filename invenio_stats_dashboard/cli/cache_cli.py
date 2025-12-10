@@ -16,6 +16,7 @@ import click
 from flask import current_app
 from flask.cli import with_appcontext
 from invenio_access.permissions import system_identity
+from invenio_communities.communities.services.results import CommunityListResult
 from invenio_communities.proxies import current_communities
 
 from ..models.cached_response import CachedResponse
@@ -637,11 +638,13 @@ def resolve_slug_to_id(slug: str) -> str:
             searching for the community.
     """
     try:
-        communities_result = current_communities.service.search(
+        communities_result: CommunityListResult = current_communities.service.search(
             system_identity, params={"q": f"slug:{slug}"}, size=1
         )
-        if communities_result.hits:
-            return str(communities_result.hits[0]["id"])
+        result_dict: dict[str, Any] = communities_result.to_dict()
+        hits: list[dict[str, Any]] = result_dict.get("hits", {}).get("hits", [])
+        if hits:
+            return str(hits[0]["id"])
     except Exception as e:
         raise ValueError(
             f"Error searching for community with slug '{slug}': {e}"

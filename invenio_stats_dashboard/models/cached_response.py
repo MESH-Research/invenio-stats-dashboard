@@ -15,6 +15,7 @@ import arrow
 import orjson
 from flask import current_app
 from invenio_access.permissions import system_identity
+from invenio_communities.communities.services.results import CommunityListResult
 from invenio_communities.proxies import current_communities
 
 from ..resources.cache_utils import StatsCache
@@ -131,14 +132,18 @@ class CachedResponse:
 
         # Otherwise, treat as slug and resolve to UUID
         try:
-            communities_result = current_communities.service.search(
-                system_identity,
-                params={"q": f"slug:{community_id}"},
-                size=1
+            communities_result: CommunityListResult = (
+                current_communities.service.search(
+                    system_identity,
+                    params={"q": f"slug:{community_id}"},
+                    size=1,
+                )
             )
 
-            if communities_result.hits:
-                return str(communities_result.hits[0]["id"])
+            result_dict: dict[str, Any] = communities_result.to_dict()
+            hits: list[dict[str, Any]] = result_dict.get("hits", {}).get("hits", [])
+            if hits:
+                return str(hits[0]["id"])
             else:
                 return community_id
 
