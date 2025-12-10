@@ -545,19 +545,27 @@ class CachedResponseService:
             )
 
     def _create(
-        self, responses: list[CachedResponse], progress_callback: Callable | None = None
+        self,
+        responses: list[CachedResponse],
+        progress_callback: Callable | None = None,
     ) -> dict[str, Any]:
         """Create responses synchronously.
 
         Returns:
-            dict[str, Any]: Results dictionary with success/failed counts and errors.
+            dict[str, Any]: Results dictionary with success/failed/skipped
+                counts and errors.
         """
-        results = {"success": 0, "failed": 0, "errors": [], "responses": []}
+        results = {
+            "success": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": [],
+            "responses": [],
+        }
         total_responses = len(responses)
 
         for i, response in enumerate(responses):
             try:
-                # Call progress callback before processing
                 if progress_callback:
                     message = (
                         f"Processing {response.community_id}/"
@@ -565,18 +573,29 @@ class CachedResponseService:
                     )
                     progress_callback(i, total_responses, message)
 
-                # Generate and save in one go
                 response.generate()
-                response.save_to_cache()
 
-                results["success"] += 1  # type:ignore
-                results["responses"].append(  # type:ignore
-                    {
-                        "community_id": response.community_id,
-                        "year": response.year,
-                        "category": response.category,
-                    }
-                )
+                # Only cache if aggregations are complete
+                if response.aggregation_complete:
+                    response.save_to_cache()
+                    results["success"] += 1  # type:ignore
+                    results["responses"].append(  # type:ignore
+                        {
+                            "community_id": response.community_id,
+                            "year": response.year,
+                            "category": response.category,
+                        }
+                    )
+                else:
+                    # Aggregation incomplete - skip caching but don't count as error
+                    current_app.logger.info(
+                        f"Skipping cache for {response.community_id}/"
+                        f"{response.year}/{response.category} - "
+                        "aggregation incomplete"
+                    )
+                    # Type: ignore needed because results dict is typed as Any
+                    current_skipped = results.get("skipped", 0)  # type: ignore
+                    results["skipped"] = current_skipped + 1  # type: ignore
             except Exception as e:
                 results["failed"] += 1  # type:ignore
                 results["errors"].append({  # type:ignore
@@ -588,7 +607,6 @@ class CachedResponseService:
             finally:
                 response.clear_data()
 
-        # Call progress callback for completion
         if progress_callback:
             progress_callback(total_responses, total_responses, "Completed")
 

@@ -63,6 +63,9 @@ class CachedResponse:
         self._created_at: arrow.Arrow | None = None
         self._expires_at: arrow.Arrow | None = None
 
+        # Default to True for backward compatibility
+        self._aggregation_complete: bool = True
+
         self.request_data: dict[str, Any] = {
             "stat": self.category,
             "params": {
@@ -223,6 +226,20 @@ class CachedResponse:
         """Check if the cached response is expired."""
         return self._expires_at is not None and arrow.utcnow() > self._expires_at
 
+    @property
+    def aggregation_complete(self) -> bool:
+        """Check if aggregations are complete for this cached response.
+
+        Returns:
+            True if aggregations are complete, False if still catching up
+        """
+        return self._aggregation_complete
+
+    @aggregation_complete.setter
+    def aggregation_complete(self, value: bool) -> None:
+        """Set the aggregation completeness flag."""
+        self._aggregation_complete = value
+
     @staticmethod
     def generate_cache_key(
         content_type: str,
@@ -358,6 +375,21 @@ class CachedResponse:
         self._object_data = query_result
         self._bytes_data = None  # Clear bytes cache
         self._created_at = arrow.utcnow()
+
+        # Check aggregation completeness for all data series queries
+        if hasattr(query_instance, "_check_aggregation_completeness"):
+            community_id = query_params.get("community_id", "global")
+            end_date = query_params.get("end_date")
+            if not end_date:
+                end_date = f"{self.year}-12-31"
+            
+            self._aggregation_complete = query_instance._check_aggregation_completeness(
+                community_id, end_date
+            )
+        else:
+            # For non-data-series queries (e.g., CommunityStatsResultsQuery),
+            # assume complete
+            self._aggregation_complete = True
 
         default_ttl = current_app.config.get("STATS_CACHE_DEFAULT_TTL", None)
         if default_ttl:

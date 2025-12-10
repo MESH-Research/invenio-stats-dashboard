@@ -19,6 +19,7 @@ from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
 from opensearchpy.helpers.search import Search
 
+from ..aggregations.bookmarks import CommunityBookmarkAPI
 from ..transformers.base import DataSeriesSet
 from ..transformers.record_deltas import RecordDeltaDataSeriesSet
 from ..transformers.record_snapshots import RecordSnapshotDataSeriesSet
@@ -332,6 +333,94 @@ class DataSeriesQueryBase(Query):
     ):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
+
+    def _derive_aggregator_type_from_index(self, index: str) -> str | None:
+        """Derive aggregator type name from aggregation index name.
+        
+        Maps index names like:
+        - stats-community-usage-delta -> community-usage-delta-agg
+        - stats-community-usage-snapshot -> community-usage-snapshot-agg
+        - stats-community-records-delta -> community-records-delta-added-agg
+        - stats-community-records-snapshot -> community-records-snapshot-added-agg
+        
+        Args:
+            index: The aggregation index name
+            
+        Returns:
+            Aggregator type name or None if mapping not found
+        """
+        if index.startswith("stats-"):
+            base_name = index[6:]  # Remove "stats-"
+        else:
+            base_name = index
+        
+        for date_basis in ["added", "created", "published"]:
+            if base_name.endswith(f"-{date_basis}"):
+                base_name = base_name[: -len(f"-{date_basis}")]
+        
+        mapping = {
+            "community-usage-delta": "community-usage-delta-agg",
+            "community-usage-snapshot": "community-usage-snapshot-agg",
+            "community-records-delta": "community-records-delta-added-agg",
+            "community-records-snapshot": "community-records-snapshot-added-agg",
+        }
+        
+        return mapping.get(base_name)
+
+    def _check_aggregation_completeness(
+        self, community_id: str, end_date: str | None = None
+    ) -> bool:
+        """Check if aggregations are complete up to the required date.
+        
+        For current year: checks if bookmark >= yesterday
+        For historical years: checks if bookmark >= end of that year
+        
+        Args:
+            community_id: Community ID to check
+            end_date: End date of the query period (YYYY-MM-DD format)
+            
+        Returns:
+            True if aggregation is complete, False otherwise
+        """
+        aggregator_type = self._derive_aggregator_type_from_index(self.index)
+        if not aggregator_type:
+            # If we can't determine aggregator type, assume incomplete to be safe
+            current_app.logger.warning(
+                f"Could not derive aggregator type from index {self.index}, "
+                "assuming aggregation incomplete"
+            )
+            return False
+        
+        try:
+            bookmark_api = CommunityBookmarkAPI(self.client, aggregator_type, "day")
+            bookmark = bookmark_api.get_bookmark(community_id)
+            
+            if bookmark is None:
+                return False
+            
+            if end_date:
+                required_date = arrow.get(end_date).floor("day")
+            else:
+                required_date = arrow.utcnow().floor("day").shift(days=-1)
+            
+            bookmark_floor = bookmark.floor("day")
+            is_complete: bool = bookmark_floor >= required_date
+            
+            if not is_complete:
+                current_app.logger.debug(
+                    f"Aggregation incomplete for {community_id}: "
+                    f"bookmark={bookmark.format('YYYY-MM-DD')}, "
+                    f"required={required_date.format('YYYY-MM-DD')}"
+                )
+            
+            return is_complete
+            
+        except Exception as e:
+            current_app.logger.warning(
+                f"Error checking aggregation completeness for {community_id}: {e}, "
+                "assuming incomplete"
+            )
+            return False
 
     def _get_page_size(self) -> int:
         """Get the configured page size for paginated queries.
