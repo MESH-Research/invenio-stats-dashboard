@@ -361,8 +361,13 @@ class CachedResponseService:
     def _get_community_creation_year(self, community_id: str) -> int | None:
         """Get the creation year for a community.
 
-        Because of issues with migrated community creation dates we base this on the
-        earliest stats-community-events records for each community.
+        Uses the minimum of:
+        1. The earliest stats-community-events event_date (for migrated communities
+           where created dates may be incorrect)
+        2. The actual community created date (for new communities or as fallback)
+
+        This ensures we get the earliest possible year even if events don't exist
+        yet or were created later than the community itself.
 
         Args:
             community_id: The ID of the community to get the creation year for
@@ -370,24 +375,46 @@ class CachedResponseService:
         Returns:
             The creation year for the community, or None if no creation year is found
         """
+        event_year = None
         try:
             earliest_event = current_search_client.search(
                 index=prefix_index("stats-community-events"),
                 body={
                     "query": {"term": {"community_id": community_id}},
                     "size": 1,
-                    "sort": [{"timestamp": {"order": "asc"}}],
+                    "sort": [{"event_date": {"order": "asc"}}],
                 },
             )
 
             if earliest_event["hits"]["total"]["value"] > 0:
-                timestamp = earliest_event["hits"]["hits"][0]["_source"]["timestamp"]
-                return int(arrow.get(timestamp).year)
+                event_date = earliest_event["hits"]["hits"][0]["_source"]["event_date"]
+                event_year = int(arrow.get(event_date).year)
         except Exception as e:
             current_app.logger.warning(
                 f"Could not find earliest event for community {community_id}: {e}"
             )
-        return None
+
+        # Also check the actual community created date
+        community_year = None
+        try:
+            community = current_communities.service.read(
+                system_identity, id_=community_id
+            )
+            community_year = arrow.get(community.data.get("created", "")).year
+        except Exception as e:
+            current_app.logger.warning(
+                f"Could not read community {community_id}: {e}"
+            )
+
+        # Return the minimum (earliest) year, or whichever is available
+        if event_year is not None and community_year is not None:
+            return int(min(event_year, community_year))
+        elif event_year is not None:
+            return int(event_year)
+        elif community_year is not None:
+            return int(community_year)
+        else:
+            return None
 
     def _generate_all_response_objects(
         self,
