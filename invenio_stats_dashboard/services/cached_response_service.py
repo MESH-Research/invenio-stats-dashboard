@@ -824,7 +824,7 @@ class CachedResponseService:
         else:
             community_ids = ["global"] + self._get_all_community_ids()
 
-        results = []
+        results: list[dict[str, Any]] = []
         cache_keys_to_size = []
         cache_keys_to_age = []
 
@@ -853,7 +853,7 @@ class CachedResponseService:
         if include_sizes and cache_keys_to_size:
             sizes = self.cache.get_key_sizes_batch(cache_keys_to_size)
             for result in results:
-                cache_key = result["cache_key"]
+                cache_key = cast(str, result["cache_key"])
                 result["size_bytes"] = sizes.get(cache_key)
 
         # Batch fetch ages if requested
@@ -865,7 +865,7 @@ class CachedResponseService:
 
             ttls = self.cache.get_key_ttls_batch(cache_keys_to_age)
             for result in results:
-                cache_key = result["cache_key"]
+                cache_key = cast(str, result["cache_key"])
                 ttl = ttls.get(cache_key)
                 # Age can only be calculated if:
                 # 1. TTL is available from Redis
