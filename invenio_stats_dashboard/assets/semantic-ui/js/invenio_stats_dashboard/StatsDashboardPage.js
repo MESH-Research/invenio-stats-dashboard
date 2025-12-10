@@ -221,14 +221,37 @@ const StatsDashboardPage = ({
 		) : null;
 
 	// State (e): done loading + fetch finished + stats are still null
+	// Also show message when first_run_incomplete is true, even if some data exists
 	const noDataMessage =
-		!isLoading && !isUpdating && !error && (!stats || !!statsAreEmpty) ? (
+		!isLoading && !isUpdating && !error && 
+		((!stats || !!statsAreEmpty) || !!first_run_incomplete) ? (
 			<Grid.Row className="rel-mt-2">
 				<Grid.Column width={16}>
 					<Message info>
-						<Message.Header>{i18next.t("No Data Available")}</Message.Header>
+						<Message.Header>
+							{!!first_run_incomplete && (!stats || !!statsAreEmpty)
+								? i18next.t("No Data Available")
+								: !!first_run_incomplete
+									? i18next.t("Statistics Calculation In Progress")
+									: i18next.t("No Data Available")}
+						</Message.Header>
 						<p>{i18next.t(noDataText)}</p>
 					</Message>
+				</Grid.Column>
+			</Grid.Row>
+		) : null;
+
+	const aggInProgressMessage =
+		!isLoading && !isUpdating && !error &&
+		!!stats && !statsAreEmpty && (!!agg_in_progress || !!caching_in_progress) &&
+		!first_run_incomplete ? (
+			<Grid.Row className="rel-mt-2">
+				<Grid.Column width={16}>
+					<span className="stats-agg-in-progress-message">
+						{i18next.t(
+							"Update calculation in progress. Check back soon for updated data.",
+						)}
+					</span>
 				</Grid.Column>
 			</Grid.Row>
 		) : null;
@@ -255,6 +278,7 @@ const StatsDashboardPage = ({
 			{errorMessage}
 			{loadingMessage}
 			{noDataMessage}
+			{aggInProgressMessage}
 			{currentTab.rows.map((row, index) => (
 				<Grid.Row
 					key={row.name}

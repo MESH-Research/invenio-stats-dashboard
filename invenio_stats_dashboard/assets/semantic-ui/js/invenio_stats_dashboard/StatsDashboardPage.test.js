@@ -1630,6 +1630,423 @@ describe("StatsDashboardPage", () => {
 		});
 	});
 
+	describe("Aggregation In Progress Message", () => {
+		it("should show agg in progress message when stats exist, first_run is complete, and agg_in_progress is true", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.getByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).toBeInTheDocument();
+			expect(screen.queryByText("No Data Available")).not.toBeInTheDocument();
+		});
+
+		it("should show agg in progress message when stats exist, first_run is complete, and caching_in_progress is true", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: false,
+				caching_in_progress: true,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.getByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).toBeInTheDocument();
+			expect(screen.queryByText("No Data Available")).not.toBeInTheDocument();
+		});
+
+		it("should show agg in progress message when stats exist, first_run is complete, and both agg_in_progress and caching_in_progress are true", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: true,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.getByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).toBeInTheDocument();
+			expect(screen.queryByText("No Data Available")).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when first_run_incomplete is true, even with stats and agg_in_progress", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: true,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when stats are empty, even with first_run complete and agg_in_progress", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: [],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when stats are null, even with first_run complete and agg_in_progress", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: null,
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when neither agg_in_progress nor caching_in_progress is true", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: false,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when isLoading is true", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: true,
+				isUpdating: false,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when isUpdating is true", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: true,
+				error: null,
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+
+		it("should NOT show agg in progress message when error is present", () => {
+			const dashboardConfig = {
+				...baseDashboardConfig,
+				first_run_incomplete: false,
+				agg_in_progress: true,
+				caching_in_progress: false,
+			};
+
+			mockUseStatsDashboard.mockReturnValue({
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+				isUpdating: false,
+				error: new Error("Test error"),
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {
+							global: {
+								views: [1, 2, 3],
+							},
+						},
+					},
+				],
+			});
+
+			render(
+				<StatsDashboardPage
+					dashboardConfig={dashboardConfig}
+					community={mockCommunity}
+					variant="content"
+				/>,
+			);
+
+			expect(
+				screen.queryByText(
+					"Update calculation in progress. Check back soon for updated data.",
+				),
+			).not.toBeInTheDocument();
+		});
+	});
+
 	describe("Component Rendering", () => {
 		it("should render components from layout configuration", () => {
 			mockUseStatsDashboard.mockReturnValue({
