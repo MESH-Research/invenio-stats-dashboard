@@ -13,50 +13,50 @@ import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { extractRecordDeltaValue } from "../../utils/singleStatHelpers";
 
 const SingleStatRecordCount = ({
-  title = i18next.t("Records"),
-  icon = "file",
-  compactThreshold = 1_000_000,
+	title = i18next.t("Records"),
+	icon = "file",
+	compactThreshold = 1_000_000,
 }) => {
-  const { stats, dateRange, recordStartBasis, isLoading } = useStatsDashboard();
-  const [description, setDescription] = useState(null);
+	const { stats, dateRange, recordStartBasis, isLoading } = useStatsDashboard();
+	const [description, setDescription] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setDescription(
-        i18next.t("from") +
-          " " +
-          formatDate(dateRange.start, "day", true, dateRange.end),
-      );
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setDescription(
+				i18next.t("from") +
+					" " +
+					formatDate(dateRange.start, "day", true, dateRange.end),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract record count value using the new helper function
-  const value = useMemo(() => {
-    return extractRecordDeltaValue(
-      stats,
-      recordStartBasis,
-      "records",
-      "global",
-      dateRange,
-    );
-  }, [stats, recordStartBasis, dateRange]);
+	const value = useMemo(() => {
+		return extractRecordDeltaValue(
+			stats,
+			recordStartBasis,
+			"records",
+			"global",
+			dateRange,
+		);
+	}, [stats, recordStartBasis, dateRange]);
 
-  return (
-    <SingleStatBox
-      title={title}
-      value={formatNumber(value, "compact", { compactThreshold })}
-      icon={icon}
-      isLoading={isLoading}
-      {...(description && { description })}
-    />
-  );
+	return (
+		<SingleStatBox
+			title={title}
+			value={formatNumber(value, "compact", { compactThreshold })}
+			rawValue={value}
+			icon={icon}
+			isLoading={isLoading}
+			{...(description && { description })}
+		/>
+	);
 };
 
 SingleStatRecordCount.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  compactThreshold: PropTypes.number,
-  width: PropTypes.number,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	compactThreshold: PropTypes.number,
+	width: PropTypes.number,
 };
 
 export { SingleStatRecordCount };

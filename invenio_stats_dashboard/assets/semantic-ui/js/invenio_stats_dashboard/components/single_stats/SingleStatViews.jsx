@@ -13,43 +13,49 @@ import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { extractUsageDeltaValue } from "../../utils/singleStatHelpers";
 
 const SingleStatViews = ({
-  title = i18next.t("Views"),
-  icon = "eye",
-  compactThreshold = 1_000_000,
+	title = i18next.t("Views"),
+	icon = "eye",
+	compactThreshold = 1_000_000,
 }) => {
-  const { stats, dateRange, isLoading } = useStatsDashboard();
-  const [description, setDescription] = useState(null);
+	const { stats, dateRange, isLoading } = useStatsDashboard();
+	const [description, setDescription] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setDescription(
-        i18next.t("from") +
-          " " +
-          formatDate(dateRange.start, "day", true, dateRange.end),
-      );
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setDescription(
+				i18next.t("from") +
+					" " +
+					formatDate(dateRange.start, "day", true, dateRange.end),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract views value using the helper function
-  const value = useMemo(() => {
-    return extractUsageDeltaValue(stats, "viewUniqueRecords", "global", dateRange);
-  }, [stats, dateRange]);
+	// Extract views value using the helper function
+	const value = useMemo(() => {
+		return extractUsageDeltaValue(
+			stats,
+			"viewUniqueRecords",
+			"global",
+			dateRange,
+		);
+	}, [stats, dateRange]);
 
-  return (
-    <SingleStatBox
-      title={title}
-      value={formatNumber(value, "compact", { compactThreshold })}
-      icon={icon}
-      isLoading={isLoading}
-      {...(description && { description })}
-    />
-  );
+	return (
+		<SingleStatBox
+			title={title}
+			value={formatNumber(value, "compact", { compactThreshold })}
+			rawValue={value}
+			icon={icon}
+			isLoading={isLoading}
+			{...(description && { description })}
+		/>
+	);
 };
 
 SingleStatViews.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  compactThreshold: PropTypes.number,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	compactThreshold: PropTypes.number,
 };
 
 export { SingleStatViews };

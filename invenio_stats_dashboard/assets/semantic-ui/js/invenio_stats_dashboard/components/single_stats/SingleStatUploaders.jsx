@@ -13,50 +13,51 @@ import { useStatsDashboard } from "../../context/StatsDashboardContext";
 import { extractRecordDeltaValue } from "../../utils/singleStatHelpers";
 
 const SingleStatUploaders = ({
-  title = i18next.t("Uploaders"),
-  icon = "users",
-  compactThreshold = 1_000_000,
+	title = i18next.t("Uploaders"),
+	icon = "users",
+	compactThreshold = 1_000_000,
 }) => {
-  const { stats, dateRange, recordStartBasis, isLoading } = useStatsDashboard();
-  const [description, setDescription] = useState(null);
+	const { stats, dateRange, recordStartBasis, isLoading } = useStatsDashboard();
+	const [description, setDescription] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setDescription(
-        i18next.t("from") +
-          " " +
-          formatDate(dateRange.start, "day", true, dateRange.end),
-      );
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setDescription(
+				i18next.t("from") +
+					" " +
+					formatDate(dateRange.start, "day", true, dateRange.end),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract uploaders value using the helper function
-  const value = useMemo(() => {
-    return extractRecordDeltaValue(
-      stats,
-      recordStartBasis,
-      "uploaders",
-      "global",
-      dateRange,
-    );
-  }, [stats, recordStartBasis, dateRange]);
+	// Extract uploaders value using the helper function
+	const value = useMemo(() => {
+		return extractRecordDeltaValue(
+			stats,
+			recordStartBasis,
+			"uploaders",
+			"global",
+			dateRange,
+		);
+	}, [stats, recordStartBasis, dateRange]);
 
-  return (
-    <SingleStatBox
-      title={title}
-      value={formatNumber(value, "compact", { compactThreshold })}
-      icon={icon}
-      isLoading={isLoading}
-      {...(description && { description })}
-    />
-  );
+	return (
+		<SingleStatBox
+			title={title}
+			value={formatNumber(value, "compact", { compactThreshold })}
+			rawValue={value}
+			icon={icon}
+			isLoading={isLoading}
+			{...(description && { description })}
+		/>
+	);
 };
 
 SingleStatUploaders.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  compactThreshold: PropTypes.number,
-  width: PropTypes.number,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	compactThreshold: PropTypes.number,
+	width: PropTypes.number,
 };
 
 export { SingleStatUploaders };
