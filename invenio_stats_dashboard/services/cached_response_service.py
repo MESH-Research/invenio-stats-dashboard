@@ -128,7 +128,6 @@ class CachedResponseService:
                 )
                 
                 if should_overwrite:
-                    self.delete(response.community_id, response.year, response.category)
                     responses_to_process.append(response)
                     
                     # Track registry keys to clean up after processing
@@ -680,6 +679,10 @@ class CachedResponseService:
     ) -> dict[str, Any]:
         """Create responses synchronously.
 
+        Args:
+            responses: List of CachedResponse objects to generate
+            progress_callback: Optional callback for progress updates
+
         Returns:
             dict[str, Any]: Results dictionary with success/failed/skipped
                 counts and errors.
@@ -704,8 +707,10 @@ class CachedResponseService:
 
                 response.generate()
 
-                # Only cache if aggregations are complete
                 if response.aggregation_complete:
+                    self.delete(
+                        response.community_id, response.year, response.category
+                    )
                     response.save_to_cache()
                     results["success"] += 1  # type:ignore
                     results["responses"].append(  # type:ignore
