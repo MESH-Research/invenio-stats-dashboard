@@ -300,6 +300,11 @@ const StatsDashboardLayout = ({
 							lastUpdated={currentYearLastUpdated || lastUpdated}
 							className="rel-mt-2"
 						/>
+						<section className="stats-sidebar-links-container rel-pt-1 rel-mt-1">
+							<a href="/help/statistics" target="_blank">
+								How do we track views and downloads?
+							</a>
+						</section>
 					</Grid.Column>
 					<Grid.Column
 						computer={13}

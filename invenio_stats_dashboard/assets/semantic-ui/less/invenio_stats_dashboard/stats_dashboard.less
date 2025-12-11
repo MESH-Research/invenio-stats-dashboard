@@ -95,12 +95,20 @@
         color: @stats-accent;
         font-size: 1.5rem;
         position: absolute;
-        top: 1.65rem;
+        top: 1.75rem;
         left: 0;
 
         @media all and (max-width: @largestMobileScreen) {
           top: 0.25rem;
           left: 0.25rem;
+        }
+
+        &.affiliations-multidisplay-info-popup {
+          font-size: 1rem;
+          position: relative;
+          display: inline;
+          top: -0.05rem;
+          margin-left: 0.25rem;
         }
       }
       .buttons {
@@ -472,6 +480,11 @@
     position: relative;
   }
 
+  .ui.top.attached.header.stats-map > .icon {
+    top: -0.1rem;
+    margin-left: 0.5rem;
+  }
+
   .stats-no-data-container {
     display: flex;
     justify-content: center;
@@ -584,6 +597,12 @@
       color: @stats-text;
     }
   }
+}
+
+// info links styles
+.stats-sidebar-links-container {
+  border-top: 1px solid @stats-border;
+  text-align: center;
 }
 
 // Fix z-index issue for dropdowns
@@ -808,5 +827,14 @@
       background-color: darken(@stats-background, 5%) !important;
       color: @stats-secondary !important;
     }
+  }
+}
+
+.full-value-popup {
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01rem;
+  span {
+    letter-spacing: 0;
   }
 }

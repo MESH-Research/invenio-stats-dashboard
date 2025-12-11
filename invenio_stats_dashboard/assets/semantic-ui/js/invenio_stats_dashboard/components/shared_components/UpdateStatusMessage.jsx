@@ -17,51 +17,59 @@ import PropTypes from "prop-types";
  * Shows "last updated" with timestamp, and "updating" message while updating
  */
 const UpdateStatusMessage = ({
-  isUpdating,
-  lastUpdated,
-  isLoading,
-  className = "",
-  size = "small"
+	isUpdating,
+	lastUpdated,
+	isLoading,
+	className = "",
+	size = "small",
 }) => {
-  if (!isUpdating && !lastUpdated) {
-    return null;
-  }
+	if (!isUpdating && !lastUpdated) {
+		return null;
+	}
 
-  const showUpdating = !isLoading && isUpdating;
+	const showUpdating = !isLoading && isUpdating;
 
-  return (
-    <div
-      className={`stats-update-status ${className}`}
-      data-testid="update-status-message"
-    >
-      {lastUpdated && (
-        <div className="stats-last-updated-container">
-          <Icon name="clock outline" />
-          <span className="stats-last-updated-text">
-            {i18next.t("Last updated: {{timestamp}}", {
-              timestamp: formatCacheTimestamp(lastUpdated)
-            })}
-          </span>
-        </div>
-      )}
-      {showUpdating && (
-        <div className="stats-updating-container">
-          <Loader active inline size="mini" />
-          <span className="stats-updating-text">
-            {i18next.t("Updating data...")}
-          </span>
-        </div>
-      )}
-    </div>
-  );
+	return (
+		<section
+			className={`stats-update-status ${className}`}
+			data-testid="update-status-message"
+		>
+			{lastUpdated && (
+				<div className="stats-last-updated-container">
+					<Icon name="clock outline" />
+					<span className="stats-last-updated-text">
+						{i18next.t("Last updated: {{timestamp}}", {
+							timestamp: formatCacheTimestamp(lastUpdated),
+						})}
+					</span>
+				</div>
+			)}
+			{showUpdating && (
+				<div className="stats-updating-container">
+					<Loader active inline size="mini" />
+					<span className="stats-updating-text">
+						{i18next.t("Updating data...")}
+					</span>
+				</div>
+			)}
+		</section>
+	);
 };
 
 UpdateStatusMessage.propTypes = {
-  isUpdating: PropTypes.bool,
-  isLoading: PropTypes.bool,
-  lastUpdated: PropTypes.number,
-  className: PropTypes.string,
-  size: PropTypes.oneOf(["mini", "tiny", "small", "large", "big", "huge", "massive"])
+	isUpdating: PropTypes.bool,
+	isLoading: PropTypes.bool,
+	lastUpdated: PropTypes.number,
+	className: PropTypes.string,
+	size: PropTypes.oneOf([
+		"mini",
+		"tiny",
+		"small",
+		"large",
+		"big",
+		"huge",
+		"massive",
+	]),
 };
 
 export { UpdateStatusMessage };

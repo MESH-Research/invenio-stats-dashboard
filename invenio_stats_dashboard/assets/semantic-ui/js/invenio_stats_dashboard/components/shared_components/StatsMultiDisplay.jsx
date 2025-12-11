@@ -7,12 +7,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
-	Header,
-	Segment,
-	Icon,
 	Button,
+	Header,
+	Icon,
 	Loader,
 	Message,
+	Popup,
+	Segment,
 } from "semantic-ui-react";
 import { PropTypes } from "prop-types";
 import ReactECharts from "echarts-for-react";
@@ -91,7 +92,9 @@ const StatsMultiDisplay = ({
 	const [viewMode, setViewMode] = useState(defaultViewMode);
 	const [collapsed, setCollapsed] = useState(startCollapsed);
 	const [neverOpened, setNeverOpened] = useState(true);
-	const [showContent, setShowContent] = useState(!startCollapsed && !neverOpened);
+	const [showContent, setShowContent] = useState(
+		!startCollapsed && !neverOpened,
+	);
 	const chartRef = useRef(null);
 	const availableViewModes = Object.keys(chartOptions);
 	const tableLabel = label
@@ -248,8 +251,8 @@ const StatsMultiDisplay = ({
 							size="small"
 						/>
 					)}
-					{availableViewModes.length > 1 &&
-						!isLoading &&
+
+					{!isLoading &&
 						availableViewModes.map((mode) => (
 							<Button
 								key={mode}
@@ -263,6 +266,22 @@ const StatsMultiDisplay = ({
 							</Button>
 						))}
 					{title}
+					{!!title.toLowerCase().includes("affiliation") && (
+						<Popup
+							trigger={
+								<Icon
+									className="affiliations-multidisplay-info-popup"
+									name="info circle"
+								/>
+							}
+							content={
+								"Only includes contributor affiliations that were chosen from the ROR list. Does " +
+								"not include affiliations entered as free text."
+							}
+							hoverable
+							offset={[-14, 0]}
+						/>
+					)}
 					{subtitle && <Header.Subheader>{subtitle}</Header.Subheader>}
 				</Header>
 			)}
@@ -303,7 +322,7 @@ const StatsMultiDisplay = ({
 							option={enhancedChartOptions[viewMode]}
 							notMerge={true}
 							style={{ height: "338px" }} // 340px - 2px for border
-							className={`${tableLabel}-${viewMode}-chart`}
+							className={`${tableLabel}-${viewMode}-chart pl-0 pr-0 pt-0 pb-0`}
 							onEvents={disableInvalidLinks(onEvents)}
 							onChartReady={handleChartReady}
 						/>

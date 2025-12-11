@@ -547,10 +547,10 @@ const generateMultiDisplayChartOptions = (
 		list: {},
 		pie: {
 			grid: {
-				top: hideOtherInCharts && otherPercentage > 30 ? "2%" : "7%",
-				right: "5%",
-				bottom: hideOtherInCharts && otherPercentage > 30 ? "15%" : "5%",
-				left: "2%",
+				top: hideOtherInCharts && otherPercentage > 30 ? "6%" : "11%",
+				right: "9%",
+				bottom: hideOtherInCharts && otherPercentage > 30 ? "19%" : "9%",
+				left: "6%",
 				containLabel: true,
 			},
 			tooltip: {
@@ -604,10 +604,10 @@ const generateMultiDisplayChartOptions = (
 		},
 		bar: {
 			grid: {
-				top: hideOtherInCharts && otherPercentage > 30 ? "2%" : "2%",
-				right: "5%",
-				bottom: hideOtherInCharts && otherPercentage > 30 ? "15%" : "2%",
-				left: "2%",
+				top: hideOtherInCharts && otherPercentage > 30 ? "6%" : "6%",
+				right: "9%",
+				bottom: hideOtherInCharts && otherPercentage > 30 ? "19%" : "6%",
+				left: "6%",
 				containLabel: true,
 			},
 			tooltip: {
