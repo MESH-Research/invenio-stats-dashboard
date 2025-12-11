@@ -18,6 +18,7 @@ from flask.cli import with_appcontext
 from invenio_access.permissions import system_identity
 from invenio_communities.communities.services.results import CommunityListResult
 from invenio_communities.proxies import current_communities
+from tqdm import tqdm
 
 from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
@@ -764,20 +765,27 @@ def generate_cache_command(
                     click.echo("No cache entries to generate.")
                     return 0
 
+                bar = tqdm(
+                    total=total_responses,
+                    desc="Generating cache",
+                    unit="item",
+                    dynamic_ncols=True,
+                )
+
                 # Create progress callback function
                 def progress_callback(current, total, message):
+                    bar.set_description_str(f"Generating cache: {message}")
                     bar.update(1)
-                    bar.label = message
 
-                with click.progressbar(
-                    length=total_responses, label="Generating cache..."
-                ) as bar:
+                try:
                     results = service.create(
                         community_ids=community_ids,
                         years=years_param,
                         overwrite=overwrite,
                         progress_callback=progress_callback,
                     )
+                finally:
+                    bar.close()
 
                 report_results(results)
 
