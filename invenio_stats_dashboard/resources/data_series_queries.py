@@ -340,6 +340,7 @@ class DataSeriesQueryBase(Query):
         Maps index names like:
         - stats-community-usage-delta -> community-usage-delta-agg
         - stats-community-usage-snapshot -> community-usage-snapshot-agg
+        - myinstance-stats-community-usage-snapshot -> community-usage-snapshot-agg
         - stats-community-records-delta -> community-records-delta-added-agg
         - stats-community-records-snapshot -> community-records-snapshot-added-agg
         
@@ -349,8 +350,10 @@ class DataSeriesQueryBase(Query):
         Returns:
             Aggregator type name or None if mapping not found
         """
-        if index.startswith("stats-"):
-            base_name = index[6:]  # Remove "stats-"
+        if "-stats-" in index:
+            base_name = index.split("-stats-", 1)[1]
+        elif index.startswith("stats-"):
+            base_name = index[6:]
         else:
             base_name = index
         
