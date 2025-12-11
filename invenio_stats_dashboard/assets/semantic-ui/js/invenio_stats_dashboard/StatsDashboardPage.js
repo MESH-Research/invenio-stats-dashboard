@@ -223,8 +223,10 @@ const StatsDashboardPage = ({
 	// State (e): done loading + fetch finished + stats are still null
 	// Also show message when first_run_incomplete is true, even if some data exists
 	const noDataMessage =
-		!isLoading && !isUpdating && !error && 
-		((!stats || !!statsAreEmpty) || !!first_run_incomplete) ? (
+		!isLoading &&
+		!isUpdating &&
+		!error &&
+		(!stats || !!statsAreEmpty || !!first_run_incomplete) ? (
 			<Grid.Row className="rel-mt-2">
 				<Grid.Column width={16}>
 					<Message info>
@@ -242,11 +244,15 @@ const StatsDashboardPage = ({
 		) : null;
 
 	const aggInProgressMessage =
-		!isLoading && !isUpdating && !error &&
-		!!stats && !statsAreEmpty && (!!agg_in_progress || !!caching_in_progress) &&
+		!isLoading &&
+		!isUpdating &&
+		!error &&
+		!!stats &&
+		!statsAreEmpty &&
+		(!!agg_in_progress || !!caching_in_progress) &&
 		!first_run_incomplete ? (
-			<Grid.Row className="rel-mt-2">
-				<Grid.Column width={16}>
+			<Grid.Row className="rel-mt-0 rel-mb-0 pt-0 pb-0">
+				<Grid.Column width={16} className="centered">
 					<span className="stats-agg-in-progress-message">
 						{i18next.t(
 							"Update calculation in progress. Check back soon for updated data.",
