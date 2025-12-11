@@ -305,6 +305,8 @@ class DataSeriesCSVSerializer:
 
             series_id = data_series.get("id", "unknown")
             series_label = data_series.get("label", "")
+            if not series_label:
+                series_label = data_series.get("name", "")
 
             # Handle label which might be a dict
             # (e.g., {"en": "English"})
@@ -354,22 +356,25 @@ class DataSeriesCSVSerializer:
             Unit string or None
         """
         unit_mapping = {
-            "data_volume": "bytes",
+            "datavolume": "bytes",
             "downloads": "unique downloads",
             "views": "unique views",
-            "download_unique_files": "unique files downloaded",
-            "download_unique_parents": "unique parents of downloaded files",
-            "download_unique_records": "unique records downloaded",
-            "view_unique_parents": "unique parents of viewed records",
-            "view_unique_records": "unique records viewed",
-            "download_visitors": "unique visitors who downloaded",
-            "view_visitors": "unique visitors who viewed",
+            "downloaduniquefiles": "unique files downloaded",
+            "downloaduniqueparents": "unique parents of downloaded files",
+            "downloaduniquerecords": "unique records downloaded",
+            "viewuniqueparents": "unique parents of viewed records",
+            "viewuniquerecords": "unique records viewed",
+            "downloadvisitors": "unique visitors who downloaded",
+            "viewvisitors": "unique visitors who viewed",
             "records": "records",
-            "file_count": "files",
+            "filecount": "files",
             "parents": "parent records",
             "uploaders": "unique uploaders",
         }
-        return unit_mapping.get(metric_name.lower())
+        unit = unit_mapping.get(metric_name.lower())
+        current_app.logger.error(f"DEBUG: metric_name: {metric_name}")
+        current_app.logger.error(f"DEBUG: unit: {unit}")
+        return unit
 
 
 class DataSeriesExcelSerializer:
@@ -537,6 +542,8 @@ class DataSeriesExcelSerializer:
 
             series_id = data_series.get("id", "unknown")
             series_label = data_series.get("label", "")
+            if not series_label:
+                series_label = data_series.get("name", "")
 
             # Handle label which might be a dict
             # (e.g., {"en": "English"})
@@ -907,6 +914,8 @@ class DataSeriesXMLSerializer:
                             # Add semantic attributes
                             if "label" in series_obj:
                                 series_elem.set("label", str(series_obj["label"]))
+                            elif "name" in series_obj:
+                                series_elem.set("label", str(series_obj["name"]))
 
                             description = self._get_series_description(series_obj)
                             if description:
@@ -925,9 +934,7 @@ class DataSeriesXMLSerializer:
                                         point_elem.set("value", str(point[1]))
 
                                         # Add semantic attributes
-                                        unit = self._get_metric_unit(
-                                            str(metric_name)
-                                        )
+                                        unit = self._get_metric_unit(str(metric_name))
                                         if unit:
                                             point_elem.set("unit", unit)
 
