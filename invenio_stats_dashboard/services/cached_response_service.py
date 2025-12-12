@@ -711,18 +711,36 @@ class CachedResponseService:
                 response.generate()
 
                 if response.aggregation_complete:
-                    self.delete(
-                        response.community_id, response.year, response.category
-                    )
-                    response.save_to_cache()
-                    results["success"] += 1  # type:ignore
-                    results["responses"].append(  # type:ignore
-                        {
-                            "community_id": response.community_id,
-                            "year": response.year,
-                            "category": response.category,
-                        }
-                    )
+                    # Use the same response object's cache key for both delete and save
+                    # to ensure we're operating on the exact same cache entry
+                    cache_key = response.cache_key
+                    self.cache.delete(cache_key)
+                    if response.save_to_cache():
+                        results["success"] += 1  # type:ignore
+                        results["responses"].append(  # type:ignore
+                            {
+                                "community_id": response.community_id,
+                                "year": response.year,
+                                "category": response.category,
+                                "cache_key": response.cache_key,
+                            }
+                        )
+                    else:
+                        results["failed"] += 1  # type:ignore
+                        results["errors"].append(  # type:ignore
+                            {
+                                "community_id": response.community_id,
+                                "year": response.year,
+                                "category": response.category,
+                                "cache_key": response.cache_key,
+                                "error": "Failed to save to cache after delete",
+                            }
+                        )
+                        current_app.logger.error(
+                            f"Failed to save to cache for {response.community_id}/"
+                            f"{response.year}/{response.category}: key "
+                            f"{response.cache_key}"
+                        )
                 else:
                     # Aggregation incomplete - skip caching but don't count as error
                     current_app.logger.info(
