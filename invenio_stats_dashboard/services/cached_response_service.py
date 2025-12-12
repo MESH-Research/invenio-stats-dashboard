@@ -711,10 +711,7 @@ class CachedResponseService:
                 response.generate()
 
                 if response.aggregation_complete:
-                    # Use the same response object's cache key for both delete and save
-                    # to ensure we're operating on the exact same cache entry
-                    cache_key = response.cache_key
-                    self.cache.delete(cache_key)
+                    # Redis SET operation atomically overwrites existing keys
                     if response.save_to_cache():
                         results["success"] += 1  # type:ignore
                         results["responses"].append(  # type:ignore
@@ -733,7 +730,7 @@ class CachedResponseService:
                                 "year": response.year,
                                 "category": response.category,
                                 "cache_key": response.cache_key,
-                                "error": "Failed to save to cache after delete",
+                                "error": "Failed to save to cache",
                             }
                         )
                         current_app.logger.error(
