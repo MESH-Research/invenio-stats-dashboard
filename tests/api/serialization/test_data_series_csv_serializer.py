@@ -17,7 +17,7 @@ class TestDataSeriesCSVSerializer:
         test_data = {
             "usage-delta-category": {
                 "access_statuses": {
-                    "data_volume": [
+                    "dataVolume": [
                         {
                             "data": [["06-01", 3072.0], ["06-02", 4096.0]],
                             "year": 2025,
@@ -81,7 +81,7 @@ class TestDataSeriesCSVSerializer:
 
             # Check if consolidated CSV files were created (NOT subdirectories)
             data_volume_csv = os.path.join(
-                temp_dir, "usage-delta-category", "access_statuses", "data_volume.csv"
+                temp_dir, "usage-delta-category", "access_statuses", "dataVolume.csv"
             )
             downloads_csv = os.path.join(
                 temp_dir, "usage-delta-category", "access_statuses", "downloads.csv"
@@ -94,10 +94,10 @@ class TestDataSeriesCSVSerializer:
             assert os.path.exists(downloads_csv)
             assert os.path.exists(views_csv)
 
-            # Check data_volume CSV content - should have all columns
+            # Check dataVolume CSV content - should have all columns
             with open(data_volume_csv) as f:
                 content = f.read()
-                assert "id,label,date,value,units" in content  # Header
+                assert "id,label,date,value,units" in content
                 assert "metadata-only,Metadata Only,06-01,3072.0,bytes" in content
                 assert "metadata-only,Metadata Only,06-02,4096.0,bytes" in content
 
