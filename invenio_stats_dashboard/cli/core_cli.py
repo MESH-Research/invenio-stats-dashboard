@@ -86,10 +86,9 @@ def check_scheduled_tasks_enabled(command="aggregate"):
     ),
 )
 @click.option(
-    "--update-bookmark",
-    is_flag=True,
+    "--update-bookmark/--no-update-bookmark",
     default=True,
-    help="Update the bookmark after aggregation",
+    help="Update the bookmark after aggregation (default: True)",
 )
 @click.option(
     "--ignore-bookmark",
@@ -240,10 +239,9 @@ def aggregate_stats_command(
     help="The end date to aggregate stats for (YYYY-MM-DD)",
 )
 @click.option(
-    "--update-bookmark",
-    is_flag=True,
+    "--update-bookmark/--no-update-bookmark",
     default=True,
-    help="Update the bookmark after aggregation",
+    help="Update the bookmark after aggregation (default: True)",
 )
 @click.option(
     "--ignore-bookmark",

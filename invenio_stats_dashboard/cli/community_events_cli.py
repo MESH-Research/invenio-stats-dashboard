@@ -59,10 +59,9 @@ def community_events_cli():
     ),
 )
 @click.option(
-    "--show-progress",
-    is_flag=True,
+    "--show-progress/--no-show-progress",
     default=True,
-    help=("Show progress information during processing (default: True)."),
+    help="Show progress information during processing (default: True)",
 )
 @with_appcontext
 def generate_community_events_command(

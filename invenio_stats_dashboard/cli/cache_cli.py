@@ -24,6 +24,7 @@ from ..models.cached_response import CachedResponse
 from ..resources.cache_utils import StatsCache
 from ..services.cached_response_service import CachedResponseService
 from ..tasks.cache_tasks import generate_cached_responses_task
+from ..utils.process_manager import ProcessManager
 from ..utils.utils import format_age, format_bytes
 
 
@@ -738,7 +739,6 @@ def generate_cache_command(
                     community_ids=community_ids,
                     years=years_param,
                     overwrite=overwrite,
-                    async_mode=True,
                     current_year_only=False,
                 )
 
@@ -792,6 +792,140 @@ def generate_cache_command(
         except Exception as e:
             click.echo(f"Cache generation failed: {e}")
             return 1
+
+
+@cache_cli.command(name="generate-background")
+@click.option(
+    "--community-id",
+    multiple=True,
+    help=(
+        "Community ID(s) to generate cache for (can be specified multiple times). "
+        "If not specified, generates for all communities plus global."
+    ),
+)
+@click.option(
+    "--community-slug", multiple=True, help="Community slug(s) to generate cache for"
+)
+@click.option(
+    "--year",
+    type=str,
+    multiple=True,
+    help=(
+        "Single year or year range to generate cache for (can be specified "
+        "multiple times)"
+    ),
+)
+@click.option(
+    "--force", is_flag=True, help="Override config setting for enabling tasks."
+)
+@click.option("--overwrite", is_flag=True, help="Overwrite existing cache entries")
+@click.option(
+    "--pid-dir",
+    type=str,
+    default="/tmp",
+    help="Directory to store PID and status files.",
+)
+@with_appcontext
+def generate_cache_background_command(
+    community_id, community_slug, year, force, overwrite, pid_dir
+):
+    r"""Start cache generation in the background with process management.
+
+    This command provides the same functionality as `cache generate` but runs in the
+    background with full process management capabilities. It allows you to start
+    long-running cache generation processes without blocking the terminal.
+
+    The cache generation runs synchronously within the background process, not as a
+    Celery task.
+
+    Examples:
+    \b
+    - invenio community-stats cache generate-background
+    - invenio community-stats cache generate-background --year 2023
+    - invenio community-stats cache generate-background --community-id 123 --year 2023
+    - invenio community-stats cache generate-background --community-id 123 \\
+        --community-id 456 --year 2023
+    - invenio community-stats cache generate-background --community-slug my-community \\
+        --year 2020-2023
+    - invenio community-stats cache generate-background --overwrite --pid-dir \\
+        /var/run/invenio-community-stats
+
+    Process management:
+    \b
+    - Monitor progress: invenio community-stats processes status cache-generation
+    - Cancel process: invenio community-stats processes cancel cache-generation
+    - View logs: invenio community-stats processes status cache-generation --show-log
+
+    Returns:
+        None: This is a CLI command function.
+    """
+    if not force:
+        check_scheduled_tasks_enabled(command="cache")
+    else:
+        current_app.logger.info(
+            "Bypassing scheduled caching tasks check due to --force flag. "
+            "Running cache generation directly."
+        )
+
+    # Resolve community slugs to IDs
+    community_ids = list(community_id) if community_id else []
+    for slug in community_slug:
+        try:
+            community_id_resolved = resolve_slug_to_id(slug)
+            community_ids.append(community_id_resolved)
+        except Exception as e:
+            click.echo(f"Failed to resolve community slug '{slug}': {e}")
+            return 1
+
+    # Build the command to run
+    cmd = [
+        "invenio",
+        "community-stats",
+        "cache",
+        "generate",
+    ]
+
+    # Add multi-value options
+    if community_ids:
+        for cid in community_ids:
+            cmd.extend(["--community-id", cid])
+
+    if year:
+        for y in year:
+            cmd.extend(["--year", y])
+
+    # Add flag options
+    if force:
+        cmd.append("--force")
+    if overwrite:
+        cmd.append("--overwrite")
+
+    process_manager = ProcessManager(
+        "cache-generation", pid_dir, package_prefix="invenio-community-stats"
+    )
+
+    try:
+        pid = process_manager.start_background_process(cmd)
+        click.echo("\nBackground cache generation started successfully!")
+        click.echo(f"Process ID: {pid}")
+        click.echo(f"Command: {' '.join(cmd)}")
+
+        click.echo("\nMonitor progress:")
+        click.echo("  invenio community-stats processes status cache-generation")
+        click.echo(
+            "  invenio community-stats processes status cache-generation --show-log"
+        )
+
+        click.echo("\nCancel if needed:")
+        click.echo("  invenio community-stats processes cancel cache-generation")
+
+    except RuntimeError as e:
+        click.echo(f"Failed to start background cache generation: {e}")
+        return 1
+
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}")
+        return 1
 
 
 def resolve_slug_to_id(slug: str) -> str:
