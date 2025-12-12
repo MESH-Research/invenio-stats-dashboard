@@ -424,7 +424,8 @@ class CachedResponseService:
         """Get community/year combinations that need cache updates and merge them.
 
         Checks the registry for AGG_UPDATED entries that indicate recent
-        aggregations for historical years. Merges these combinations into
+        aggregations for historical years. Only includes combinations that are
+        in the current batch being processed. Merges these combinations into
         years_per_community and adds communities to community_ids as needed.
 
         Args:
@@ -440,19 +441,21 @@ class CachedResponseService:
         combinations: set[tuple[str, int]] = set()
         updated_years_per_community = years_per_community.copy()
         updated_community_ids = community_ids.copy()
+        communities_in_batch = set(community_ids)
         
         try:
-            # Get all AGG_UPDATED registry entries
             pattern = "*_agg_updated_*"
             entries = registry.get_all(pattern)
             
             for key, _value in entries:
-                # Parse key format: {community_id}_agg_updated_{year}
-                # Extract community_id and year
                 if "_agg_updated_" in key:
                     parts = key.split("_agg_updated_")
                     if len(parts) == 2:
                         community_id = parts[0]
+                        
+                        if community_id not in communities_in_batch:
+                            continue
+                        
                         try:
                             year = int(parts[1])
                             combinations.add((community_id, year))
