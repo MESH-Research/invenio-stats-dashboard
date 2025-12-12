@@ -196,6 +196,7 @@ const StatsDashboardLayout = ({
 	const contextValue = {
 		binary_sizes,
 		community,
+		dashboardType,
 		dateRange,
 		dataFetchRange,
 		displaySeparately,

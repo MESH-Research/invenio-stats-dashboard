@@ -16,7 +16,7 @@ const ReportSelector = ({ defaultFormat }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Get current dashboard context
-  const { communityId, dashboardType, dateRange, dateBasis, stats } =
+  const { community, dashboardType, dateRange, recordStartBasis, stats } =
     useStatsDashboard();
 
   const handleReportChange = (e, { value }) => {
@@ -46,9 +46,9 @@ const ReportSelector = ({ defaultFormat }) => {
 
         await packageStatsAsCompressedJson(
           stats,
-          communityId || "global",
+          community?.id || "global",
           dashboardType || DASHBOARD_TYPES.GLOBAL,
-          dateBasis || "added",
+          recordStartBasis || "added",
           startDate,
           endDate
         );
@@ -70,12 +70,12 @@ const ReportSelector = ({ defaultFormat }) => {
       }
 
       await downloadStatsSeriesWithFilename({
-        communityId: communityId || "global",
+        communityId: community?.id || "global",
         dashboardType: dashboardType || DASHBOARD_TYPES.GLOBAL,
         format,
         startDate,
         endDate,
-        dateBasis: dateBasis || "added",
+        dateBasis: recordStartBasis || "added",
       });
 
       console.log(`Successfully downloaded ${selectedReport} report`);
