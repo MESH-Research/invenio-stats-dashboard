@@ -403,7 +403,6 @@ class DataSeriesExcelSerializer:
         if not isinstance(data, dict):
             raise ValueError("Cannot serialize non-dictionary content")
 
-        # Create temporary directory for the Excel workbooks
         with tempfile.TemporaryDirectory() as temp_dir:
             self._create_excel_workbooks(data, temp_dir)
 
@@ -458,7 +457,6 @@ class DataSeriesExcelSerializer:
             query_path: Path to the query folder
         """
         wb = Workbook()
-        # Keep track of whether we created any sheets
         sheets_created = 0
 
         # Create one sheet per metric
@@ -521,8 +519,7 @@ class DataSeriesExcelSerializer:
             metric_name: Name of the metric
             data_series_list: List of data series objects
         """
-        # Get the unit for this metric
-        unit = self._get_metric_unit(metric_name)
+        unit = self._get_metric_unit(metric_name.lower())
         if unit is None:
             unit = ""
 
@@ -694,18 +691,18 @@ class DataSeriesExcelSerializer:
             Unit string or None
         """
         unit_mapping = {
-            "data_volume": "bytes",
+            "datavolume": "bytes",
             "downloads": "unique downloads",
             "views": "unique views",
-            "download_unique_files": "unique files downloaded",
-            "download_unique_parents": "unique parents of downloaded files",
-            "download_unique_records": "unique records downloaded",
-            "view_unique_parents": "unique parents of viewed records",
-            "view_unique_records": "unique records viewed",
-            "download_visitors": "unique visitors who downloaded",
-            "view_visitors": "unique visitors who viewed",
+            "downloaduniquefiles": "unique files downloaded",
+            "downloaduniqueparents": "unique parents of downloaded files",
+            "downloaduniquerecords": "unique records downloaded",
+            "viewuniqueparents": "unique parents of viewed records",
+            "viewuniquerecords": "unique records viewed",
+            "downloadvisitors": "unique visitors who downloaded",
+            "viewvisitors": "unique visitors who viewed",
             "records": "records",
-            "file_count": "files",
+            "filecount": "files",
             "parents": "parent records",
             "uploaders": "unique uploaders",
         }
