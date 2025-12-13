@@ -11,7 +11,7 @@
 
 import axios from "axios";
 import { DASHBOARD_TYPES } from "../constants";
-import { kebabToCamel } from "../utils";
+import { convertCategoryKey } from "../utils/nameTransformHelpers";
 
 /**
  * Get CSRF token from cookie (works in main thread only)
@@ -57,23 +57,6 @@ const createAxiosWithCSRF = (csrfToken = null) => {
   }
 
   return axios.create(config);
-};
-
-/**
- * Convert API stat name to ui category name.
- *
- * @param {string} str - The API stat name to convert
- * @param {string} dateBasis - The kind of date being used to
- *   determine the search index to query for the data.
- *
- * @returns {string} The ui category name
- **/
-const convertCategoryKey = (str, dateBasis) => {
-  let newKey = kebabToCamel(str).replace("Category", "Data");
-  if (str.startsWith("record")) {
-    newKey = newKey + dateBasis.charAt(0).toUpperCase() + dateBasis.slice(1);
-  }
-  return newKey;
 };
 
 /**

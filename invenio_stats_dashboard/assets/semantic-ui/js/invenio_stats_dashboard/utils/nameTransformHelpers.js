@@ -7,6 +7,32 @@
  */
 
 /**
+ * Convert kebab-case string to camelCase
+ * @param {string} str - The kebab-case string to convert
+ * @returns {string} The camelCase string
+ */
+function kebabToCamel(str) {
+	return str.replace(/-./g, (x) => x[1].toUpperCase());
+}
+
+/**
+ * Convert API stat name to ui category name.
+ *
+ * @param {string} str - The API stat name to convert
+ * @param {string} dateBasis - The kind of date being used to
+ *   determine the search index to query for the data.
+ *
+ * @returns {string} The ui category name
+ */
+function convertCategoryKey(str, dateBasis) {
+	let newKey = kebabToCamel(str).replace("Category", "Data");
+	if (str.startsWith("record")) {
+		newKey = newKey + dateBasis.charAt(0).toUpperCase() + dateBasis.slice(1);
+	}
+	return newKey;
+}
+
+/**
  * Transform license ID to display-friendly short form
  * @param {string} id - The license ID
  * @returns {string} - The transformed short form
@@ -60,7 +86,7 @@ const shouldUseShortForm = (id) => {
  * @param {string} label - The full license label
  * @returns {Object} - Object with short and long forms
  */
-export const getLicenseLabelForms = (id, label) => {
+const getLicenseLabelForms = (id, label) => {
   if (shouldUseShortForm(id)) {
     const shortForm = transformLicenseId(id);
     return {
@@ -85,7 +111,7 @@ export const getLicenseLabelForms = (id, label) => {
  * @param {Function} extractLocalizedLabel - Function to extract localized labels
  * @returns {Object} - Object with transformed name data
  */
-export const transformItemForChart = (item, searchField, currentLanguage, extractLocalizedLabel) => {
+const transformItemForChart = (item, searchField, currentLanguage, extractLocalizedLabel) => {
   const itemName = item.name || item.id;
   const localizedName = extractLocalizedLabel(itemName, currentLanguage);
 
@@ -101,4 +127,11 @@ export const transformItemForChart = (item, searchField, currentLanguage, extrac
     id: item.id,
     originalName: localizedName
   };
+};
+
+export {
+  kebabToCamel,
+  convertCategoryKey,
+  getLicenseLabelForms,
+  transformItemForChart,
 };

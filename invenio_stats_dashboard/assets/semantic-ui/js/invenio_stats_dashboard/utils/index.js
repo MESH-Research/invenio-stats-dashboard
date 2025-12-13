@@ -10,13 +10,7 @@ export * from "./dates";
 export * from "./filters";
 export * from "./chartHelpers";
 export * from "./multiDisplayHelpers";
-export * from "./jsonDownloadSerializer";
 export * from "./i18n";
 export * from "./colorHelpers";
-
-function kebabToCamel(str) {
-	return str.replace(/-./g, (x) => x[1].toUpperCase());
-}
-
-export { kebabToCamel };
+export * from "./nameTransformHelpers";
 
