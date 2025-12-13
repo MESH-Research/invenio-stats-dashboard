@@ -229,6 +229,14 @@
           color: @stats-secondary !important;
         }
       }
+
+      &.stats-dashboard-report-selector {
+        .button .icon {
+          @media all and (max-width: @largeMonitorBreakpoint) {
+            display: none;
+          }
+        }
+      }
     }
     .ui.menu {
       // width: auto;

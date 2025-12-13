@@ -4,7 +4,6 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import axios from "axios";
 import { DASHBOARD_TYPES } from "../constants";
 import { generateTestStatsData } from "../components/test_data";
 import { findMissingBlocks, mergeYearlyStats } from "./yearlyBlockManager";
@@ -346,10 +345,9 @@ const fetchStats = async ({
 	isMounted = null,
 	useTestData = false,
 	dashboardConfig = {},
-	currentStats = [], // NEW: Array of yearly stats for yearly block system
+	currentStats = [],
 }) => {
 	try {
-		// Use yearly block system for efficient caching
 		if (useTestData) {
 			// For test data, generate array of yearly stats objects (same format as backend)
 			updateState(onStateChange, isMounted, "loading_started", currentStats);

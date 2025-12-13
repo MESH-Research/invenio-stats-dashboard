@@ -26,7 +26,7 @@ const ReportSelector = ({ defaultFormat }) => {
 	const { community, dashboardType, dateRange, recordStartBasis, stats } =
 		useStatsDashboard();
 
-	const handleReportChange = (e, { value }) => {
+	const handleReportChange = (_, { value }) => {
 		setSelectedReport(value);
 	};
 
@@ -205,6 +205,7 @@ const ReportSelector = ({ defaultFormat }) => {
 						icon={"download"}
 						labelPosition="right"
 						disabled={isDownloading}
+            fluid
 					/>
 					{isDownloading && (
 						<>
