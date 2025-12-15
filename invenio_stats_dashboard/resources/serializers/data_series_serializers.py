@@ -519,7 +519,7 @@ class DataSeriesExcelSerializer:
             metric_name: Name of the metric
             data_series_list: List of data series objects
         """
-        unit = self._get_metric_unit(metric_name.lower())
+        unit = self._get_metric_unit(metric_name)
         if unit is None:
             unit = ""
 
@@ -706,7 +706,7 @@ class DataSeriesExcelSerializer:
             "parents": "parent records",
             "uploaders": "unique uploaders",
         }
-        return unit_mapping.get(metric_name.lower())
+        return unit_mapping.get(metric_name.lower().replace("_", ""))
 
 
 class DataSeriesXMLSerializer:
@@ -1217,18 +1217,18 @@ class DataSeriesXMLSerializer:
             Unit string or None
         """
         unit_mapping = {
-            "data_volume": "bytes",
+            "datavolume": "bytes",
             "downloads": "count",
             "views": "count",
-            "download_unique_files": "count",
-            "download_unique_parents": "count",
-            "download_unique_records": "count",
-            "view_unique_parents": "count",
-            "view_unique_records": "count",
-            "download_visitors": "count",
-            "view_visitors": "count",
+            "downloaduniquefiles": "count",
+            "downloaduniqueparents": "count",
+            "downloaduniquerecords": "count",
+            "viewuniqueparents": "count",
+            "viewuniquerecords": "count",
+            "downloadvisitors": "count",
+            "viewvisitors": "count",
         }
-        return unit_mapping.get(metric_name.lower())
+        return unit_mapping.get(metric_name.lower().replace("_", ""))
 
     def _get_measurement_type(self, metric_name: str) -> str | None:
         """Get measurement type for metric based on name.

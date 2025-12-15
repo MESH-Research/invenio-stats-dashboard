@@ -36,7 +36,7 @@ class TestDataSeriesXMLSerializer:
                             "type": "line",
                             "valueType": "number",
                         }
-                    ]
+                    ],
                 },
                 "countries": {
                     "views": [
@@ -49,7 +49,7 @@ class TestDataSeriesXMLSerializer:
                             "valueType": "number",
                         }
                     ]
-                }
+                },
             }
         }
 
@@ -58,7 +58,7 @@ class TestDataSeriesXMLSerializer:
 
         # Check that we get XML string data
         assert isinstance(xml_data, str)
-        assert xml_data.startswith('<?xml version=\'1.0\' encoding=\'utf-8\'?>')
+        assert xml_data.startswith("<?xml version='1.0' encoding='utf-8'?>")
         # Parse XML and verify structure
         root = ET.fromstring(xml_data)
 
@@ -71,17 +71,17 @@ class TestDataSeriesXMLSerializer:
 
         # Check metadata
         metadata = root.find(
-            "{https://github.com/MESH-Research/"
-            "invenio-stats-dashboard}metadata"
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
         )
         assert metadata is not None
-        assert metadata.find(
-            "{https://github.com/MESH-Research/"
-            "invenio-stats-dashboard}generatedAt"
-        ) is not None
+        assert (
+            metadata.find(
+                "{https://github.com/MESH-Research/invenio-stats-dashboard}generatedAt"
+            )
+            is not None
+        )
         total_categories_elem = metadata.find(
-            "{https://github.com/MESH-Research/"
-            "invenio-stats-dashboard}totalCategories"
+            "{https://github.com/MESH-Research/invenio-stats-dashboard}totalCategories"
         )
         assert total_categories_elem is not None
         assert total_categories_elem.text == "1"
@@ -225,9 +225,12 @@ class TestDataSeriesXMLSerializer:
             "{https://github.com/MESH-Research/"
             "invenio-stats-dashboard}dataSeriesCollection"
         )
-        assert root.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
-        ) is not None
+        assert (
+            root.find(
+                "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
+            )
+            is not None
+        )
         total_categories_elem = root.find(
             "{https://github.com/MESH-Research/"
             "invenio-stats-dashboard}metadata/"
@@ -240,8 +243,7 @@ class TestDataSeriesXMLSerializer:
         assert (
             len(
                 root.findall(
-                    "{https://github.com/MESH-Research/"
-                    "invenio-stats-dashboard}category"
+                    "{https://github.com/MESH-Research/invenio-stats-dashboard}category"
                 )
             )
             == 0
@@ -259,9 +261,12 @@ class TestDataSeriesXMLSerializer:
             "{https://github.com/MESH-Research/"
             "invenio-stats-dashboard}dataSeriesCollection"
         )
-        assert root.find(
-            "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
-        ) is not None
+        assert (
+            root.find(
+                "{https://github.com/MESH-Research/invenio-stats-dashboard}metadata"
+            )
+            is not None
+        )
         total_categories_elem = root.find(
             "{https://github.com/MESH-Research/"
             "invenio-stats-dashboard}metadata/"
