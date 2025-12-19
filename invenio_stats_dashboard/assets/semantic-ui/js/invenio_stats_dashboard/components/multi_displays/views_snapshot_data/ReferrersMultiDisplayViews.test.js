@@ -84,7 +84,7 @@ describe('ReferrersMultiDisplayViews', () => {
 
   describe('transformMultiDisplayData (helper function)', () => {
     it('should return empty data when input is null', () => {
-      const result = transformMultiDisplayData(null, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(null, null, 10, 'metadata.referrer.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -96,7 +96,7 @@ describe('ReferrersMultiDisplayViews', () => {
     });
 
     it('should return empty data when input is undefined', () => {
-      const result = transformMultiDisplayData(undefined, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(undefined, null, 10, 'metadata.referrer.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -108,7 +108,7 @@ describe('ReferrersMultiDisplayViews', () => {
     });
 
     it('should return empty data when input is not an array', () => {
-      const result = transformMultiDisplayData('not an array', 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData('not an array', null, 10, 'metadata.referrer.id');
 
       expect(result).toEqual({
         transformedData: [],
@@ -138,7 +138,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 2, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(250);
       expect(result.transformedData).toHaveLength(2);
@@ -167,7 +167,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
       expect(result.transformedData).toHaveLength(2); // Zero value items are filtered out
@@ -189,7 +189,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(100);
       expect(result.transformedData[0].percentage).toBe(80); // 80/100 * 100
@@ -205,7 +205,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.referrer.id');
 
       expect(result.transformedData[0].link).toBe('/search?q=metadata.referrer.id:"google"');
     });
@@ -224,7 +224,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.referrer.id');
 
       expect(result.transformedData).toHaveLength(2);
 
@@ -270,7 +270,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 2, 'metadata.referrer.id');
 
       expect(result.otherData).toBeTruthy();
       expect(result.otherData).toHaveProperty('id', 'other');
@@ -296,7 +296,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.referrer.id');
 
       expect(result.otherData).toBeNull();
     });
@@ -310,7 +310,7 @@ describe('ReferrersMultiDisplayViews', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(0);
       expect(result.transformedData).toHaveLength(0); // Zero value items are filtered out
@@ -531,7 +531,7 @@ describe('ReferrersMultiDisplayViews', () => {
       const filteredData = filterSeriesArrayByDate(mockReferrersData, dateRange, true);
 
       // Then transform the filtered data using our helper function
-      const result = transformMultiDisplayData(filteredData, 10, 'metadata.referrer.id');
+      const result = transformMultiDisplayData(filteredData, null, 10, 'metadata.referrer.id');
 
       expect(result.totalCount).toBe(225); // 150 + 75
       expect(result.transformedData).toHaveLength(2);

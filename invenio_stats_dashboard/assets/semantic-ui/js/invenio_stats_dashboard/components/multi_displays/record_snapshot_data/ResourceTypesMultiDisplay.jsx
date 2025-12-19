@@ -102,10 +102,7 @@ const ResourceTypesMultiDisplay = ({
 			onEvents={{
 				click: (params) => {
 					if (params.data && params.data.id) {
-						window.open(
-							`/search?q=metadata.resource_type.id:${params.data.id}`,
-							"_blank",
-						);
+						window.open(params.data.link, "_blank");
 					}
 				},
 			}}

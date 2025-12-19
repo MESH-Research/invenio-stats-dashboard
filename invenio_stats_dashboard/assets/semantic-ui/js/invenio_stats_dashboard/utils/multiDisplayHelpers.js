@@ -126,9 +126,10 @@ const transformMultiDisplayData = (
 			extractLocalizedLabel,
 		);
 
-		const q_param = ["file_type", "metadata.languages.id"].includes(searchField)
-			? "f"
-			: "q";
+		const q_param =
+			["file_type", "metadata.languages.id"].includes(searchField) && !community
+				? "f"
+				: "q";
 		const q_term = ["file_type", "metadata.languages.id"].includes(searchField)
 			? item.id
 			: `"${item.id}"`;

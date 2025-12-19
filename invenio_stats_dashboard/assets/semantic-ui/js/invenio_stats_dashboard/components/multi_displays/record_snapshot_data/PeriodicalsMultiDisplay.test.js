@@ -61,7 +61,7 @@ describe('PeriodicalsMultiDisplay', () => {
 
   describe('transformMultiDisplayData (helper function)', () => {
     it('should return empty data when input is null', () => {
-      const result = transformMultiDisplayData(null, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(null, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result).toEqual({
         transformedData: [],
@@ -73,7 +73,7 @@ describe('PeriodicalsMultiDisplay', () => {
     });
 
     it('should return empty data when input is undefined', () => {
-      const result = transformMultiDisplayData(undefined, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(undefined, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result).toEqual({
         transformedData: [],
@@ -85,7 +85,7 @@ describe('PeriodicalsMultiDisplay', () => {
     });
 
     it('should return empty data when input is not an array', () => {
-      const result = transformMultiDisplayData('not an array', 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData('not an array', null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result).toEqual({
         transformedData: [],
@@ -118,7 +118,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 2, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(250);
       expect(result.transformedData).toHaveLength(2);
@@ -150,7 +150,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(150);
       expect(result.transformedData).toHaveLength(2); // Zero value items are filtered out
@@ -174,7 +174,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.transformedData[0].percentage).toBe(67); // 100/150 * 100
       expect(result.transformedData[1].percentage).toBe(33); // 50/150 * 100
@@ -190,7 +190,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.transformedData[0].link).toContain('custom_fields.journal\\:journal.title:"periodical-1"');
     });
@@ -205,7 +205,7 @@ describe('PeriodicalsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.transformedData[0]).toHaveProperty('id');
       expect(result.transformedData[0]).toHaveProperty('name');
@@ -225,7 +225,7 @@ describe('PeriodicalsMultiDisplay', () => {
                 data: [['01-01', 25]] }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 2, 'custom_fields.journal\\:journal.title');
 
       expect(result.otherData).toHaveProperty('id');
       expect(result.otherData).toHaveProperty('name');
@@ -242,7 +242,7 @@ describe('PeriodicalsMultiDisplay', () => {
                 data: [['01-01', 50]] }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.otherData).toBeNull();
     });
@@ -255,7 +255,7 @@ describe('PeriodicalsMultiDisplay', () => {
                 data: [['01-01', 0]] }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(mockData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(0);
       expect(result.transformedData).toHaveLength(0); // Zero value items are filtered out
@@ -381,7 +381,7 @@ describe('PeriodicalsMultiDisplay', () => {
       ];
 
       const filteredData = filterSeriesArrayByDate(mockData, { start: new Date('2024-01-01'), end: new Date('2024-01-31') }, true);
-      const result = transformMultiDisplayData(filteredData, 10, 'custom_fields.journal\\:journal.title');
+      const result = transformMultiDisplayData(filteredData, null, 10, 'custom_fields.journal\\:journal.title');
 
       expect(result.totalCount).toBe(100);
       expect(result.transformedData).toHaveLength(1);

@@ -89,7 +89,7 @@ describe('AffiliationsMultiDisplay', () => {
 
   describe('transformMultiDisplayData (helper function)', () => {
     it('should return empty data when input is null', () => {
-      const result = transformMultiDisplayData(null, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(null, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result).toEqual({
         transformedData: [],
@@ -101,7 +101,7 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should return empty data when input is undefined', () => {
-      const result = transformMultiDisplayData(undefined, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(undefined, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result).toEqual({
         transformedData: [],
@@ -113,7 +113,7 @@ describe('AffiliationsMultiDisplay', () => {
     });
 
     it('should return empty data when input is not an array', () => {
-      const result = transformMultiDisplayData('not an array', 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData('not an array', null, 10, 'metadata.affiliations.affiliation');
 
       expect(result).toEqual({
         transformedData: [],
@@ -146,7 +146,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 2, 'metadata.affiliations.affiliation');
 
       expect(result.totalCount).toBe(250);
       expect(result.transformedData).toHaveLength(2);
@@ -178,7 +178,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.totalCount).toBe(150); // 100 + 0 + 50
       expect(result.transformedData).toHaveLength(2);
@@ -202,7 +202,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.totalCount).toBe(100);
       expect(result.transformedData[0].percentage).toBe(80); // 80/100 * 100
@@ -219,7 +219,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.transformedData[0].link).toBe('/search?q=metadata.affiliations.affiliation:"harvard-university"');
     });
@@ -240,7 +240,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.transformedData).toHaveLength(2);
 
@@ -289,7 +289,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 2, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 2, 'metadata.affiliations.affiliation');
 
       expect(result.otherData).toBeTruthy();
       expect(result.otherData).toHaveProperty('id', 'other');
@@ -317,7 +317,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.otherData).toBeNull();
     });
@@ -332,7 +332,7 @@ describe('AffiliationsMultiDisplay', () => {
         }
       ];
 
-      const result = transformMultiDisplayData(mockData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(mockData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.totalCount).toBe(0);
       expect(result.transformedData).toHaveLength(0);
@@ -553,7 +553,7 @@ describe('AffiliationsMultiDisplay', () => {
       const filteredData = filterSeriesArrayByDate(mockAffiliationsData, dateRange, true);
 
       // Then transform the filtered data using our helper function
-      const result = transformMultiDisplayData(filteredData, 10, 'metadata.affiliations.affiliation');
+      const result = transformMultiDisplayData(filteredData, null, 10, 'metadata.affiliations.affiliation');
 
       expect(result.totalCount).toBe(225); // 150 + 75
       expect(result.transformedData).toHaveLength(2);
