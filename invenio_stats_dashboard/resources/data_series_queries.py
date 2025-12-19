@@ -342,6 +342,12 @@ class DataSeriesQueryBase(Query):
         but these queries must also use the prefixed names when calling OpenSearch
         APIs (`exists_alias`, `get`, `Search(index=...)`). Tests often use an empty
         prefix, which can hide this bug.
+
+        Args:
+            index_name (str): The index name to be prefixed.
+
+        Returns:
+            str: The index name with prefix.
         """
         prefix = str(current_app.config.get("SEARCH_INDEX_PREFIX", "") or "")
         if prefix and index_name.startswith(prefix):
@@ -356,17 +362,17 @@ class DataSeriesQueryBase(Query):
 
     def _derive_aggregator_type_from_index(self, index: str) -> str | None:
         """Derive aggregator type name from aggregation index name.
-        
+
         Maps index names like:
         - stats-community-usage-delta -> community-usage-delta-agg
         - stats-community-usage-snapshot -> community-usage-snapshot-agg
         - myinstance-stats-community-usage-snapshot -> community-usage-snapshot-agg
         - stats-community-records-delta -> community-records-delta-added-agg
         - stats-community-records-snapshot -> community-records-snapshot-added-agg
-        
+
         Args:
             index: The aggregation index name
-            
+
         Returns:
             Aggregator type name or None if mapping not found
         """
@@ -376,33 +382,33 @@ class DataSeriesQueryBase(Query):
             base_name = index[6:]
         else:
             base_name = index
-        
+
         for date_basis in ["added", "created", "published"]:
             if base_name.endswith(f"-{date_basis}"):
                 base_name = base_name[: -len(f"-{date_basis}")]
-        
+
         mapping = {
             "community-usage-delta": "community-usage-delta-agg",
             "community-usage-snapshot": "community-usage-snapshot-agg",
             "community-records-delta": "community-records-delta-added-agg",
             "community-records-snapshot": "community-records-snapshot-added-agg",
         }
-        
+
         return mapping.get(base_name)
 
     def _check_aggregation_completeness(
         self, community_id: str, end_date: str | None = None, year: int | None = None
     ) -> bool:
         """Check if aggregations are complete up to the required date.
-        
+
         For current year: checks if bookmark >= yesterday
         For historical years: checks if bookmark >= end of that year
-        
+
         Args:
             community_id: Community ID to check
             end_date: End date of the query period (YYYY-MM-DD format)
             year: The year being queried (used to determine if current year)
-            
+
         Returns:
             True if aggregation is complete, False otherwise
         """
@@ -414,14 +420,14 @@ class DataSeriesQueryBase(Query):
                 "assuming aggregation incomplete"
             )
             return False
-        
+
         try:
             bookmark_api = CommunityBookmarkAPI(self.client, aggregator_type, "day")
             bookmark = bookmark_api.get_bookmark(community_id)
-            
+
             if bookmark is None:
                 return False
-            
+
             # Determine the year being queried
             current_year = arrow.utcnow().year
             if year is not None:
@@ -430,7 +436,7 @@ class DataSeriesQueryBase(Query):
                 query_year = arrow.get(end_date).year
             else:
                 query_year = current_year
-            
+
             if query_year == current_year:
                 # For current year, aggregation should be complete up to yesterday
                 required_date = arrow.utcnow().floor("day").shift(days=-1)
@@ -440,19 +446,19 @@ class DataSeriesQueryBase(Query):
                     required_date = arrow.get(end_date).floor("day")
                 else:
                     required_date = arrow.get(f"{query_year}-12-31").floor("day")
-            
+
             bookmark_floor = bookmark.floor("day")
             is_complete: bool = bookmark_floor >= required_date
-            
+
             if not is_complete:
                 current_app.logger.debug(
                     f"Aggregation incomplete for {community_id}: "
                     f"bookmark={bookmark.format('YYYY-MM-DD')}, "
                     f"required={required_date.format('YYYY-MM-DD')}"
                 )
-            
+
             return is_complete
-            
+
         except Exception as e:
             current_app.logger.warning(
                 f"Error checking aggregation completeness for {community_id}: {e}, "
