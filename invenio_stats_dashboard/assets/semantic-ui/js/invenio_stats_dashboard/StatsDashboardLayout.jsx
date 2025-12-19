@@ -334,7 +334,7 @@ const StatsDashboardLayout = ({
 
 				<Grid.Row className="mb-0 mt-0 pb-0 pt-0">
 					<div
-						className={`mobile-action-menu mobile tablet only sixteen wide sticky bottom ${!actionMenuOpen ? "hidden" : ""}`}
+						className={`mobile-action-menu mobile tablet only sixteen wide sticky bottom ${!actionMenuOpen ? "out-of-view" : ""}`}
 					>
 						<div id="mobile-action-menu-toggle">
 							<Button icon onClick={() => setActionMenuOpen(!actionMenuOpen)}>

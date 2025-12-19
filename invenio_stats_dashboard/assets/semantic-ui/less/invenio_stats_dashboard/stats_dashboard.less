@@ -660,7 +660,7 @@
   will-change: transform;
   transition: bottom 500ms ease-in-out;
 
-  &.hidden {
+  &.out-of-view {
     bottom: -8rem;
     transition: bottom 500ms ease-in-out;
     display: block;
@@ -677,6 +677,7 @@
     width: 2rem;
     float: right;
     border-bottom: none;
+    border-top-left-radius: 4px;
 
     .button {
       box-shadow: none !important;
