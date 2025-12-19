@@ -28,7 +28,7 @@ const LanguagesMultiDisplayViewsDelta = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, dateRange, isLoading } = useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -69,6 +69,7 @@ const LanguagesMultiDisplayViewsDelta = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawData,
+		community,
 		pageSize,
 		"metadata.languages.id",
 		CHART_COLORS.secondary,

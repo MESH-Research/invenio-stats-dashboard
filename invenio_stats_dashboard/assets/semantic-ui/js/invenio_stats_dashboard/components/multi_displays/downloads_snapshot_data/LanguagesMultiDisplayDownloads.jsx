@@ -28,7 +28,7 @@ const LanguagesMultiDisplayDownloads = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, dateRange, isLoading } = useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -67,6 +67,7 @@ const LanguagesMultiDisplayDownloads = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawData,
+		community,
 		pageSize,
 		"metadata.languages.id",
 		CHART_COLORS.secondary,

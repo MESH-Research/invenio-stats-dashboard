@@ -31,6 +31,7 @@ import { getOtherIdsForCategory } from "./chartHelpers";
 
 const transformMultiDisplayData = (
 	rawData,
+	community = null,
 	pageSize = 10,
 	searchField,
 	colorPalette = CHART_COLORS.secondary,
@@ -48,6 +49,10 @@ const transformMultiDisplayData = (
 			otherPercentage: 0,
 		};
 	}
+
+	const searchUrl = !!community
+		? `/collections/${community.id}/records`
+		: "/search";
 
 	// Get IDs that should be treated as "other" for this category
 	// If categoryName is not provided, try to infer it from searchField for backward compatibility
@@ -135,7 +140,9 @@ const transformMultiDisplayData = (
 			value: value,
 			percentage: percentage,
 			id: item.id,
-			link: searchField ? `/search?${q_param}=${searchField}:${q_term}` : null,
+			link: searchField
+				? `${searchUrl}?${q_param}=${searchField}:${q_term}`
+				: null,
 			// Color will be assigned after sorting
 		};
 	});
@@ -690,7 +697,11 @@ const generateMultiDisplayChartOptions = (
  */
 const wrapClickHandler = (clickHandler) => {
 	return (params) => {
-		if (!params.data || params.data.id === "other" || params.data.link === undefined && !params.data.id) {
+		if (
+			!params.data ||
+			params.data.id === "other" ||
+			(params.data.link === undefined && !params.data.id)
+		) {
 			return;
 		}
 		clickHandler(params);

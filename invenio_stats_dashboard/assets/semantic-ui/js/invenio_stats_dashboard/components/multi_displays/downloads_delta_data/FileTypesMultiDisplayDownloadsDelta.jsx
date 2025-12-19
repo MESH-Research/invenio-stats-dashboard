@@ -28,7 +28,7 @@ const FileTypesMultiDisplayDownloadsDelta = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, dateRange, isLoading } = useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -69,6 +69,7 @@ const FileTypesMultiDisplayDownloadsDelta = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawData,
+		community,
 		pageSize,
 		"file_types",
 		CHART_COLORS.secondary,

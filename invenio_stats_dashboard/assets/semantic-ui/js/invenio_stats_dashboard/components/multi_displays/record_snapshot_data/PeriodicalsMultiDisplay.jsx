@@ -12,82 +12,116 @@ import { useStatsDashboard } from "../../../context/StatsDashboardContext";
 import { CHART_COLORS } from "../../../constants";
 import { formatDate } from "../../../utils";
 import {
-  transformMultiDisplayData,
-  assembleMultiDisplayRows,
-  extractData,
-  generateMultiDisplayChartOptions
+	transformMultiDisplayData,
+	assembleMultiDisplayRows,
+	extractData,
+	generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
 const PeriodicalsMultiDisplay = ({
-  title = i18next.t("Periodicals"),
-  icon: labelIcon = "newspaper",
-  headers = [i18next.t("Periodical"), i18next.t("Works")],
-  default_view = "pie",
-  pageSize = 10,
-  available_views = ["pie", "bar", "list"],
-  hideOtherInCharts = false,
-  ...otherProps
+	title = i18next.t("Periodicals"),
+	icon: labelIcon = "newspaper",
+	headers = [i18next.t("Periodical"), i18next.t("Works")],
+	default_view = "pie",
+	pageSize = 10,
+	available_views = ["pie", "bar", "list"],
+	hideOtherInCharts = false,
+	...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
-  const [subtitle, setSubtitle] = useState(null);
+	const { community, stats, recordStartBasis, dateRange, isLoading } =
+		useStatsDashboard();
+	const [subtitle, setSubtitle] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setSubtitle(i18next.t("as of") + " " + formatDate(dateRange.end, 'day', true));
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setSubtitle(
+				i18next.t("as of") + " " + formatDate(dateRange.end, "day", true),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract and process periodicals data
-  const rawPeriodicals = extractData(stats, recordStartBasis, 'periodicals', 'records', dateRange, false, false);
-  const globalData = extractData(stats, recordStartBasis, 'global', 'records', dateRange, false, false);
+	// Extract and process periodicals data
+	const rawPeriodicals = extractData(
+		stats,
+		recordStartBasis,
+		"periodicals",
+		"records",
+		dateRange,
+		false,
+		false,
+	);
+	const globalData = extractData(
+		stats,
+		recordStartBasis,
+		"global",
+		"records",
+		dateRange,
+		false,
+		false,
+	);
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawPeriodicals,
-    pageSize,
-    'custom_fields.journal\\:journal.title',
-    CHART_COLORS.secondary,
-    hideOtherInCharts,
-    globalData,
-    false // isDelta = false for snapshot data
-  );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+	const {
+		transformedData,
+		otherData,
+		originalOtherData,
+		totalCount,
+		otherPercentage,
+	} = transformMultiDisplayData(
+		rawPeriodicals,
+		community,
+		pageSize,
+		"custom_fields.journal\\:journal.title",
+		CHART_COLORS.secondary,
+		hideOtherInCharts,
+		globalData,
+		false, // isDelta = false for snapshot data
+	);
+	const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
+	const chartOptions = generateMultiDisplayChartOptions(
+		transformedData,
+		otherData,
+		available_views,
+		otherPercentage,
+		originalOtherData,
+		hideOtherInCharts,
+	);
 
-  return (
-    <StatsMultiDisplay
-      title={title}
-      subtitle={subtitle}
-      icon={labelIcon}
-      label={"periodicals"}
-      headers={headers}
-      rows={rowsWithLinks}
-        chartOptions={chartOptions}
-      defaultViewMode={default_view}
-      isLoading={isLoading}
-      isDelta={false}
-      dateRangeEnd={dateRange?.end}
-      onEvents={{
-        click: (params) => {
-          if (params.data && params.data.id) {
-            window.open(params.data.link, '_blank');
-          }
-        }
-      }}
-      {...otherProps}
-    />
-  );
+	return (
+		<StatsMultiDisplay
+			title={title}
+			subtitle={subtitle}
+			icon={labelIcon}
+			label={"periodicals"}
+			headers={headers}
+			rows={rowsWithLinks}
+			chartOptions={chartOptions}
+			defaultViewMode={default_view}
+			isLoading={isLoading}
+			isDelta={false}
+			dateRangeEnd={dateRange?.end}
+			onEvents={{
+				click: (params) => {
+					if (params.data && params.data.id) {
+						window.open(params.data.link, "_blank");
+					}
+				},
+			}}
+			{...otherProps}
+		/>
+	);
 };
 
 PeriodicalsMultiDisplay.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  headers: PropTypes.array,
-  rows: PropTypes.array,
-  default_view: PropTypes.string,
-  pageSize: PropTypes.number,
-  available_views: PropTypes.arrayOf(PropTypes.string),
-  hideOtherInCharts: PropTypes.bool,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	headers: PropTypes.array,
+	rows: PropTypes.array,
+	default_view: PropTypes.string,
+	pageSize: PropTypes.number,
+	available_views: PropTypes.arrayOf(PropTypes.string),
+	hideOtherInCharts: PropTypes.bool,
 };
 
 export { PeriodicalsMultiDisplay };
+

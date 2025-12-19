@@ -28,7 +28,8 @@ const ResourceTypesMultiDisplay = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, recordStartBasis, dateRange, isLoading } =
+		useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -67,6 +68,7 @@ const ResourceTypesMultiDisplay = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawResourceTypes,
+		community,
 		pageSize,
 		"metadata.resource_type.id",
 		CHART_COLORS.secondary,

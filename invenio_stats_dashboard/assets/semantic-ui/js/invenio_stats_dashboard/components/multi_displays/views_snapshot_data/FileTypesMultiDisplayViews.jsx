@@ -28,7 +28,7 @@ const FileTypesMultiDisplayViews = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, dateRange, isLoading } = useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -67,6 +67,7 @@ const FileTypesMultiDisplayViews = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawData,
+		community,
 		pageSize,
 		"file_type",
 		CHART_COLORS.secondary,

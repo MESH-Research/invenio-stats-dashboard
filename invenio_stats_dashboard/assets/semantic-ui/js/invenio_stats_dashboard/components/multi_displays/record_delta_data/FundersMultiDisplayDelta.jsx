@@ -12,75 +12,101 @@ import { useStatsDashboard } from "../../../context/StatsDashboardContext";
 import { CHART_COLORS } from "../../../constants";
 import { formatDate } from "../../../utils";
 import {
-  transformMultiDisplayData,
-  assembleMultiDisplayRows,
-  extractData,
-  generateMultiDisplayChartOptions
+	transformMultiDisplayData,
+	assembleMultiDisplayRows,
+	extractData,
+	generateMultiDisplayChartOptions,
 } from "../../../utils/multiDisplayHelpers";
 
 const FundersMultiDisplayDelta = ({
-  title = i18next.t("Funders"),
-  icon: labelIcon = "money bill",
-  headers = [i18next.t("Funder"), i18next.t("Works")],
-  default_view = "pie",
-  pageSize = 10,
-  available_views = ["pie", "bar", "list"],
-  hideOtherInCharts = false,
-  ...otherProps
+	title = i18next.t("Funders"),
+	icon: labelIcon = "money bill",
+	headers = [i18next.t("Funder"), i18next.t("Works")],
+	default_view = "pie",
+	pageSize = 10,
+	available_views = ["pie", "bar", "list"],
+	hideOtherInCharts = false,
+	...otherProps
 }) => {
-  const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
-  const [subtitle, setSubtitle] = useState(null);
+	const { community, stats, recordStartBasis, dateRange, isLoading } =
+		useStatsDashboard();
+	const [subtitle, setSubtitle] = useState(null);
 
-  useEffect(() => {
-    if (dateRange) {
-      setSubtitle(i18next.t("during") + " " + formatDate(dateRange.start, 'day', true, dateRange.end));
-    }
-  }, [dateRange]);
+	useEffect(() => {
+		if (dateRange) {
+			setSubtitle(
+				i18next.t("during") +
+					" " +
+					formatDate(dateRange.start, "day", true, dateRange.end),
+			);
+		}
+	}, [dateRange]);
 
-  // Extract and process funders data using DELTA data (period-restricted)
-  const rawFunders = extractData(stats, recordStartBasis, 'funders', 'records', dateRange, true, false);
+	// Extract and process funders data using DELTA data (period-restricted)
+	const rawFunders = extractData(
+		stats,
+		recordStartBasis,
+		"funders",
+		"records",
+		dateRange,
+		true,
+		false,
+	);
 
-  const { transformedData, otherData, originalOtherData, totalCount, otherPercentage } = transformMultiDisplayData(
-    rawFunders,
-    pageSize,
-    'metadata.funding.funder.name',
-    CHART_COLORS.secondary,
-    hideOtherInCharts,
-    null,
-    true, // isDelta = true for delta data
-  );
-  const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
+	const {
+		transformedData,
+		otherData,
+		originalOtherData,
+		totalCount,
+		otherPercentage,
+	} = transformMultiDisplayData(
+		rawFunders,
+		community,
+		pageSize,
+		"metadata.funding.funder.name",
+		CHART_COLORS.secondary,
+		hideOtherInCharts,
+		null,
+		true, // isDelta = true for delta data
+	);
+	const rowsWithLinks = assembleMultiDisplayRows(transformedData, otherData);
 
+	const chartOptions = generateMultiDisplayChartOptions(
+		transformedData,
+		otherData,
+		available_views,
+		otherPercentage,
+		originalOtherData,
+		hideOtherInCharts,
+	);
 
-  const chartOptions = generateMultiDisplayChartOptions(transformedData, otherData, available_views, otherPercentage, originalOtherData, hideOtherInCharts);
-
-  return (
-    <StatsMultiDisplay
-      title={title}
-      subtitle={subtitle}
-      icon={labelIcon}
-      headers={headers}
-      defaultViewMode={default_view}
-      available_views={available_views}
-      pageSize={pageSize}
-      totalCount={totalCount}
-      chartOptions={chartOptions}
-      rows={rowsWithLinks}
-      label={"funders"}
-      isLoading={isLoading}
-      {...otherProps}
-    />
-  );
+	return (
+		<StatsMultiDisplay
+			title={title}
+			subtitle={subtitle}
+			icon={labelIcon}
+			headers={headers}
+			defaultViewMode={default_view}
+			available_views={available_views}
+			pageSize={pageSize}
+			totalCount={totalCount}
+			chartOptions={chartOptions}
+			rows={rowsWithLinks}
+			label={"funders"}
+			isLoading={isLoading}
+			{...otherProps}
+		/>
+	);
 };
 
 FundersMultiDisplayDelta.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  headers: PropTypes.array,
-  default_view: PropTypes.string,
-  pageSize: PropTypes.number,
-  available_views: PropTypes.arrayOf(PropTypes.string),
-  hideOtherInCharts: PropTypes.bool,
+	title: PropTypes.string,
+	icon: PropTypes.string,
+	headers: PropTypes.array,
+	default_view: PropTypes.string,
+	pageSize: PropTypes.number,
+	available_views: PropTypes.arrayOf(PropTypes.string),
+	hideOtherInCharts: PropTypes.bool,
 };
 
 export { FundersMultiDisplayDelta };

@@ -28,7 +28,8 @@ const AffiliationsMultiDisplay = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, recordStartBasis, dateRange, isLoading } =
+		useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -67,6 +68,7 @@ const AffiliationsMultiDisplay = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawAffiliations,
+		community,
 		pageSize,
 		"metadata.creators.affiliations.id",
 		CHART_COLORS.secondary,
@@ -123,4 +125,3 @@ AffiliationsMultiDisplay.propTypes = {
 };
 
 export { AffiliationsMultiDisplay };
-

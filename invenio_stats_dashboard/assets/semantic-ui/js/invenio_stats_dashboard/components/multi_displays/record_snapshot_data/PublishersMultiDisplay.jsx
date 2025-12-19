@@ -28,7 +28,8 @@ const PublishersMultiDisplay = ({
 	hideOtherInCharts = false,
 	...otherProps
 }) => {
-	const { stats, recordStartBasis, dateRange, isLoading } = useStatsDashboard();
+	const { community, stats, recordStartBasis, dateRange, isLoading } =
+		useStatsDashboard();
 	const [subtitle, setSubtitle] = useState(null);
 
 	useEffect(() => {
@@ -67,6 +68,7 @@ const PublishersMultiDisplay = ({
 		otherPercentage,
 	} = transformMultiDisplayData(
 		rawPublishers,
+		community,
 		pageSize,
 		"metadata.publisher",
 		CHART_COLORS.secondary,
