@@ -15,6 +15,45 @@ import { getCountryNames } from "./mapHelpers";
 import { transformItemForChart } from "./nameTransformHelpers";
 import { getOtherIdsForCategory } from "./chartHelpers";
 
+const FILTER_PATHS = {
+	"metadata.languages.id": "language",
+	"metadata.resource_type.id": "resource_type",
+	"access.status": "access_status",
+	"files.entries.ext": "file_type",
+};
+
+const COMPOUND_FILTERS = ["resource_type"];
+
+function makeLinkURL(searchPath, community, item) {
+	if (!searchPath) {
+		return null;
+	}
+
+	const searchUrl = !!community
+		? `/collections/${community.id}/records`
+		: "/search";
+
+	const isFilterField = Object.keys(FILTER_PATHS).includes(searchPath);
+
+	const isFilterName = Object.values(FILTER_PATHS).includes(searchPath);
+
+	let searchField =
+		isFilterName || !isFilterField ? searchPath : FILTER_PATHS[searchPath];
+
+	let itemValue = item;
+
+	if (COMPOUND_FILTERS.includes(searchField)) {
+		const itemValueStem = itemValue?.split("-")[0];
+		itemValue = `${itemValueStem}%2Binner:${item}`;
+	}
+
+	const q_param = !!isFilterField || !!isFilterName ? "q=&f" : "q";
+	const q_term =
+		!!isFilterField || !!isFilterName ? itemValue : `"${itemValue}"`;
+
+	return `${searchUrl}?${q_param}=${searchField}:${q_term}`;
+}
+
 /**
  * Transform multi-display data into chart-ready format
  *
@@ -49,10 +88,6 @@ const transformMultiDisplayData = (
 			otherPercentage: 0,
 		};
 	}
-
-	const searchUrl = !!community
-		? `/collections/${community.id}/records`
-		: "/search";
 
 	// Get IDs that should be treated as "other" for this category
 	// If categoryName is not provided, try to infer it from searchField for backward compatibility
@@ -126,14 +161,6 @@ const transformMultiDisplayData = (
 			extractLocalizedLabel,
 		);
 
-		const q_param =
-			["file_type", "metadata.languages.id"].includes(searchField) && !community
-				? "f"
-				: "q";
-		const q_term = ["file_type", "metadata.languages.id"].includes(searchField)
-			? item.id
-			: `"${item.id}"`;
-
 		return {
 			name: transformedItem.name,
 			fullName: transformedItem.fullName,
@@ -141,9 +168,7 @@ const transformMultiDisplayData = (
 			value: value,
 			percentage: percentage,
 			id: item.id,
-			link: searchField
-				? `${searchUrl}?${q_param}=${searchField}:${q_term}`
-				: null,
+			link: makeLinkURL(searchField, community, item.id),
 			// Color will be assigned after sorting
 		};
 	});
