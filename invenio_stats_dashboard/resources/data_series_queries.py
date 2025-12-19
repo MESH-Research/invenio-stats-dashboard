@@ -346,7 +346,7 @@ class DataSeriesQueryBase(Query):
         prefix = str(current_app.config.get("SEARCH_INDEX_PREFIX", "") or "")
         if prefix and index_name.startswith(prefix):
             return index_name
-        return prefix_index(index_name)
+        return str(prefix_index(index_name))
 
     def _prefixed_search_targets(self, base_index: str) -> tuple[str, str]:
         """Return (alias_name, wildcard_pattern) with SEARCH_INDEX_PREFIX applied."""
