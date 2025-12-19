@@ -225,7 +225,7 @@ def clear_item_cache_command(
             "start_date": start_date or "",
             "end_date": end_date or "",
             "date_basis": date_basis,
-        }
+        },
     }
 
     # Generate the cache key to show what will be cleared
@@ -361,7 +361,6 @@ def list_cache_keys_command(
     - invenio community-stats cache list --human-readable --community-id global
     """
     if human_readable:
-
         try:
             service = CachedResponseService()
         except Exception as e:
@@ -385,9 +384,7 @@ def list_cache_keys_command(
         if limit > 0:
             responses = responses[:limit]
 
-        click.echo(
-            f"Cached Responses (showing {len(responses)} of {total_responses}):"
-        )
+        click.echo(f"Cached Responses (showing {len(responses)} of {total_responses}):")
 
         # Determine table width and columns based on what's included
         has_extra_info = include_sizes or include_ages
@@ -441,22 +438,18 @@ def list_cache_keys_command(
                     size_bytes = response.get("size_bytes")
                     size_str = format_bytes(size_bytes)
                     click.echo(
-                        f"{i:<4} {comm_id:<36} {year:<6} {category:<28} "
-                        f"{size_str:<12}"
+                        f"{i:<4} {comm_id:<36} {year:<6} {category:<28} {size_str:<12}"
                     )
                 else:  # include_ages only
                     age_seconds = response.get("age_seconds")
                     age_str = format_age(age_seconds)
                     click.echo(
-                        f"{i:<4} {comm_id:<36} {year:<6} {category:<28} "
-                        f"{age_str:<20}"
+                        f"{i:<4} {comm_id:<36} {year:<6} {category:<28} {age_str:<20}"
                     )
         else:
             click.echo("=" * 80)
             # Display in a table-like format without extra info
-            click.echo(
-                f"{'#':<4} {'Community ID':<40} {'Year':<6} {'Category':<30}"
-            )
+            click.echo(f"{'#':<4} {'Community ID':<40} {'Year':<6} {'Category':<30}")
             click.echo("-" * 80)
 
             for i, response in enumerate(responses, 1):
@@ -541,7 +534,7 @@ def test_cache_command(community_id, stat_name):
 
     test_request_data = {
         "stat": "test_stat",
-        "params": {"community_id": "global", "stat_name": "test"}
+        "params": {"community_id": "global", "stat_name": "test"},
     }
 
     # Test data
@@ -702,7 +695,10 @@ def generate_cache_command(
             return 1
 
     if not community_ids:
-        community_ids = ["global"] + service._get_all_community_ids()
+        # Scheduled + CLI default behavior is "all enabled communities plus global".
+        # `_get_all_community_ids()` already includes "global" when opt-in filtering
+        # is enabled, so avoid duplicating it here.
+        community_ids = list(set(service._get_all_community_ids()))
 
     years_param: list[int] | str = "auto"
     if year:
@@ -1060,7 +1056,7 @@ def show_dry_run_results(
         click.echo(f"  New entries to create: {total_combinations - existing_count}")
         click.echo("")
         click.echo(f"⚠️  {existing_count} entries already exist in cache.")
-        click.echo("   Use --force to overwrite existing entries.")
+        click.echo("   Use --overwrite to overwrite existing entries.")
     else:
         click.echo(f"  All {total_combinations} entries are new.")
 
@@ -1087,7 +1083,7 @@ def report_results(results: dict[str, Any]) -> None:
             click.echo(
                 f"{skipped} entries were skipped because they already exist in cache."
             )
-            click.echo("   Use --force to overwrite existing entries.")
+            click.echo("   Use --overwrite to overwrite existing entries.")
         else:
             click.echo(f"Success: {results['success']}, Failed: {results['failed']}")
         if results.get("errors"):

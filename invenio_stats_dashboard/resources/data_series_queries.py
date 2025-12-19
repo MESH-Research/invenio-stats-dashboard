@@ -14,6 +14,7 @@ import psutil
 from flask import Response, current_app
 from invenio_access.permissions import system_identity
 from invenio_communities.proxies import current_communities
+from invenio_search.utils import prefix_index
 from invenio_stats.queries import Query
 from opensearchpy import OpenSearch
 from opensearchpy.helpers.query import Q
@@ -333,6 +334,25 @@ class DataSeriesQueryBase(Query):
     ):
         """Initialize the query."""
         super().__init__(name, index, client, *args, **kwargs)
+
+    def _prefix_index_if_needed(self, index_name: str) -> str:
+        """Prefix an index/alias name unless it already appears prefixed.
+
+        Aggregators index into prefixed indices (e.g. "kcworks-stats-community-..."),
+        but these queries must also use the prefixed names when calling OpenSearch
+        APIs (`exists_alias`, `get`, `Search(index=...)`). Tests often use an empty
+        prefix, which can hide this bug.
+        """
+        prefix = str(current_app.config.get("SEARCH_INDEX_PREFIX", "") or "")
+        if prefix and index_name.startswith(prefix):
+            return index_name
+        return prefix_index(index_name)
+
+    def _prefixed_search_targets(self, base_index: str) -> tuple[str, str]:
+        """Return (alias_name, wildcard_pattern) with SEARCH_INDEX_PREFIX applied."""
+        alias_name = self._prefix_index_if_needed(base_index)
+        wildcard_pattern = self._prefix_index_if_needed(f"{base_index}-*")
+        return alias_name, wildcard_pattern
 
     def _derive_aggregator_type_from_index(self, index: str) -> str | None:
         """Derive aggregator type name from aggregation index name.
@@ -724,16 +744,16 @@ class DataSeriesQueryBase(Query):
         if range_clauses:
             must_clauses.append({"range": range_clauses})
 
-        index_pattern = f"{search_index}-*"
+        alias_name, index_pattern = self._prefixed_search_targets(str(search_index))
 
         try:
-            if self.client.indices.exists_alias(name=search_index):
-                final_search_index = search_index
+            if self.client.indices.exists_alias(name=alias_name):
+                final_search_index = alias_name
             else:
                 indices = self.client.indices.get(index_pattern)
                 if not indices:
                     raise AssertionError(
-                        f"No indices found for alias '{search_index}' or pattern "
+                        f"No indices found for alias '{alias_name}' or pattern "
                         f"{index_pattern}'"
                     )
                 final_search_index = index_pattern
@@ -953,17 +973,17 @@ class CategoryDataSeriesQueryBase(DataSeriesQueryBase):
         if range_clauses:
             must_clauses.append({"range": range_clauses})
 
-        # Execute search
-        index_pattern = f"{search_index}-*"
+        # Execute search (prefix-aware)
+        alias_name, index_pattern = self._prefixed_search_targets(str(search_index))
 
         try:
-            if self.client.indices.exists_alias(name=search_index):
-                final_search_index = search_index
+            if self.client.indices.exists_alias(name=alias_name):
+                final_search_index = alias_name
             else:
                 indices = self.client.indices.get(index_pattern)
                 if not indices:
                     raise AssertionError(
-                        f"No indices found for alias '{search_index}' or pattern "
+                        f"No indices found for alias '{alias_name}' or pattern "
                         f"{index_pattern}'"
                     )
                 final_search_index = index_pattern
