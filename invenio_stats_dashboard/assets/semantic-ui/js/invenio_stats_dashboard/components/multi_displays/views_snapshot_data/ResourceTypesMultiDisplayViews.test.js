@@ -4,120 +4,189 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { ResourceTypesMultiDisplayViews } from './ResourceTypesMultiDisplayViews';
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { ResourceTypesMultiDisplayViews } from "./ResourceTypesMultiDisplayViews";
+import { transformMultiDisplayData } from "../../../utils/multiDisplayHelpers";
 
 // Mock only the external dependencies
-jest.mock('@translations/invenio_stats_dashboard/i18next', () => ({
-  i18next: {
-    t: (key) => key
-  }
+jest.mock("@translations/invenio_stats_dashboard/i18next", () => ({
+	i18next: {
+		t: (key) => key,
+	},
 }));
 
-jest.mock('../../../context/StatsDashboardContext', () => ({
-  useStatsDashboard: jest.fn()
+jest.mock("../../../context/StatsDashboardContext", () => ({
+	useStatsDashboard: jest.fn(),
 }));
 
-jest.mock('../../../constants', () => ({
-  CHART_COLORS: {
-    secondary: [
-      ['#1f77b4', '#1f77b4'],
-      ['#ff7f0e', '#ff7f0e'],
-      ['#2ca02c', '#2ca02c'],
-      ['#d62728', '#d62728'],
-      ['#9467bd', '#9467bd']
-    ],
-    primary: [
-      ['#1f77b4', '#1f77b4'],
-      ['#ff7f0e', '#ff7f0e'],
-      ['#2ca02c', '#2ca02c'],
-      ['#d62728', '#d62728'],
-      ['#9467bd', '#9467bd']
-    ]
-  },
-  RECORD_START_BASES: {
-    ADDED: "added",
-    CREATED: "created",
-    PUBLISHED: "published"
-  }
+jest.mock("../../../constants", () => ({
+	CHART_COLORS: {
+		secondary: [
+			["#1f77b4", "#1f77b4"],
+			["#ff7f0e", "#ff7f0e"],
+			["#2ca02c", "#2ca02c"],
+			["#d62728", "#d62728"],
+			["#9467bd", "#9467bd"],
+		],
+		primary: [
+			["#1f77b4", "#1f77b4"],
+			["#ff7f0e", "#ff7f0e"],
+			["#2ca02c", "#2ca02c"],
+			["#d62728", "#d62728"],
+			["#9467bd", "#9467bd"],
+		],
+	},
+	RECORD_START_BASES: {
+		ADDED: "added",
+		CREATED: "created",
+		PUBLISHED: "published",
+	},
 }));
 
-describe('ResourceTypesMultiDisplayViews', () => {
-  const mockUseStatsDashboard = require('../../../context/StatsDashboardContext').useStatsDashboard;
+describe("ResourceTypesMultiDisplayViews", () => {
+	const mockUseStatsDashboard =
+		require("../../../context/StatsDashboardContext").useStatsDashboard;
 
-  beforeEach(() => {
-    mockUseStatsDashboard.mockReturnValue({
-      stats: [{
-        year: 2024,
-        usageSnapshotData: {
-          resourceTypesByViews: {
-            records: [
-              {
-                id: 'item-1',
-                name: 'Item 1',
-                year: 2024,
-                data: [['01-01', 150]]
-              },
-              {
-                id: 'item-2',
-                name: 'Item 2',
-                year: 2024,
-                data: [['01-01', 75]]
-              }
-            ]
-          }
-        }
-      }],
-      dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
-      isLoading: false
-    });
-  });
+	beforeEach(() => {
+		mockUseStatsDashboard.mockReturnValue({
+			stats: [
+				{
+					year: 2024,
+					usageSnapshotData: {
+						resourceTypesByViews: {
+							records: [
+								{
+									id: "item-1",
+									name: "Item 1",
+									year: 2024,
+									data: [["01-01", 150]],
+								},
+								{
+									id: "item-2",
+									name: "Item 2",
+									year: 2024,
+									data: [["01-01", 75]],
+								},
+							],
+						},
+					},
+				},
+			],
+			dateRange: { start: new Date("2024-01-01"), end: new Date("2024-01-31") },
+			isLoading: false,
+		});
+	});
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+	afterEach(() => {
+		jest.clearAllMocks();
+	});
 
-  describe('Component rendering', () => {
-    it('should render with default props (list view)', () => {
-      render(<ResourceTypesMultiDisplayViews default_view="list" />);
-      const statsDisplay = screen.getByRole('region');
-      expect(statsDisplay).toBeInTheDocument();
-    });
+	describe("Component rendering", () => {
+		it("should render with default props (list view)", () => {
+			render(<ResourceTypesMultiDisplayViews default_view="list" />);
+			const statsDisplay = screen.getByRole("region");
+			expect(statsDisplay).toBeInTheDocument();
+		});
 
-    it('should render with custom title and headers', () => {
-      render(<ResourceTypesMultiDisplayViews title="Custom Title" headers={["Custom Header", "Custom Count"]} default_view="list" />);
-      const statsDisplay = screen.getByRole('region');
-      expect(statsDisplay).toBeInTheDocument();
-      expect(statsDisplay).toHaveAttribute('aria-label', 'Custom Title');
-    });
+		it("should render with custom title and headers", () => {
+			render(
+				<ResourceTypesMultiDisplayViews
+					title="Custom Title"
+					headers={["Custom Header", "Custom Count"]}
+					default_view="list"
+				/>,
+			);
+			const statsDisplay = screen.getByRole("region");
+			expect(statsDisplay).toBeInTheDocument();
+			expect(statsDisplay).toHaveAttribute("aria-label", "Custom Title");
+		});
 
-    it('should handle empty data', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [{
-          year: 2024,
-          usageSnapshotData: {}
-        }],
-        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
-        isLoading: false
-      });
-      render(<ResourceTypesMultiDisplayViews default_view="list" />);
-      const statsDisplay = screen.getByRole('region');
-      expect(statsDisplay).toBeInTheDocument();
-    });
+		it("should handle empty data", () => {
+			mockUseStatsDashboard.mockReturnValue({
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {},
+					},
+				],
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+			});
+			render(<ResourceTypesMultiDisplayViews default_view="list" />);
+			const statsDisplay = screen.getByRole("region");
+			expect(statsDisplay).toBeInTheDocument();
+		});
 
-    it('should handle missing data', () => {
-      mockUseStatsDashboard.mockReturnValue({
-        stats: [{
-          year: 2024,
-          usageSnapshotData: {}
-        }],
-        dateRange: { start: new Date('2024-01-01'), end: new Date('2024-01-31') },
-        isLoading: false
-      });
-      render(<ResourceTypesMultiDisplayViews default_view="list" />);
-      const statsDisplay = screen.getByRole('region');
-      expect(statsDisplay).toBeInTheDocument();
-    });
-  });
+		it("should handle missing data", () => {
+			mockUseStatsDashboard.mockReturnValue({
+				stats: [
+					{
+						year: 2024,
+						usageSnapshotData: {},
+					},
+				],
+				dateRange: {
+					start: new Date("2024-01-01"),
+					end: new Date("2024-01-31"),
+				},
+				isLoading: false,
+			});
+			render(<ResourceTypesMultiDisplayViews default_view="list" />);
+			const statsDisplay = screen.getByRole("region");
+			expect(statsDisplay).toBeInTheDocument();
+		});
+
+		it("should create correct links for each resource type", () => {
+			const mockData = [
+				{
+					id: "textDocument-essay",
+					name: "Essay",
+					year: 2024,
+					data: [["01-01", 100]],
+				},
+			];
+
+			const result = transformMultiDisplayData(
+				mockData,
+				null,
+				10,
+				"metadata.resource_type.id",
+			);
+
+			expect(result.transformedData[0].link).toContain(
+				"/search?q=&f=resource_type:textDocument%2Binner:textDocument-essay",
+			);
+		});
+
+		it("should create correct links for each resource type with community endpoint", () => {
+			const mockData = [
+				{
+					id: "textDocument-essay",
+					name: "Essay",
+					year: 2024,
+					data: [["01-01", 100]],
+				},
+			];
+
+			const result = transformMultiDisplayData(
+				mockData,
+				{
+					id: "12345",
+					links: {
+						self_html: "https://invenio.org/communities/test-community",
+					},
+				},
+				10,
+				"metadata.resource_type.id",
+			);
+
+			expect(result.transformedData[0].link).toContain(
+				"https://invenio.org/communities/test-community/records?q=&f=resource_type:textDocument%2Binner:textDocument-essay",
+			);
+		});
+	});
 });

@@ -29,8 +29,10 @@ function makeLinkURL(searchPath, community, item) {
 		return null;
 	}
 
+	console.log("debug community links", community?.links);
+
 	const searchUrl = !!community
-		? `/collections/${community.id}/records`
+		? `${community.links.self_html}/records`
 		: "/search";
 
 	const isFilterField = Object.keys(FILTER_PATHS).includes(searchPath);
