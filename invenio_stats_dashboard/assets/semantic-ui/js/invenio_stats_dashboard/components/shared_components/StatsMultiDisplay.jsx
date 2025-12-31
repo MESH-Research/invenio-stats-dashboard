@@ -4,7 +4,7 @@
 // Invenio-Stats-Dashboard is free software; you can redistribute it and/or modify
 // it under the terms of the MIT License; see LICENSE file for more details.
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { i18next } from "@translations/invenio_stats_dashboard/i18next";
 import {
 	Button,
@@ -215,6 +215,11 @@ const StatsMultiDisplay = ({
 		}, 0);
 	};
 
+	// Memoize processed onEvents to prevent creating duplicate handlers on every render
+	const processedOnEvents = useMemo(() => {
+		return disableInvalidLinks(onEvents);
+	}, [onEvents]);
+
 	// Add aria.enabled to all chart options
 	const enhancedChartOptions = Object.fromEntries(
 		Object.entries(chartOptions).map(([key, value]) => [
@@ -323,7 +328,7 @@ const StatsMultiDisplay = ({
 							notMerge={true}
 							style={{ height: "338px" }} // 340px - 2px for border
 							className={`${tableLabel}-${viewMode}-chart pl-0 pr-0 pt-0 pb-0`}
-							onEvents={disableInvalidLinks(onEvents)}
+							onEvents={processedOnEvents}
 							onChartReady={handleChartReady}
 						/>
 					)
