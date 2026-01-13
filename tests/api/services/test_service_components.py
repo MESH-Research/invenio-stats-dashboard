@@ -64,11 +64,11 @@ class TestCommunitiesEventsComponentsIncluded:
         Returns:
             tuple: A tuple containing (user_id, user_email, user_id2, user_email2).
         """
-        u = user_factory(email="test@example.com", saml_id=None)
+        u = user_factory(email="test@example.com", oauth_id=None)
         user_id = u.user.id
         user_email = u.user.email
 
-        u2 = user_factory(email="test2@example.com", saml_id=None)
+        u2 = user_factory(email="test2@example.com", oauth_id=None)
         user_id2 = u2.user.id
         user_email2 = u2.user.email
 
