@@ -1811,9 +1811,6 @@ class TestAPIRequestCommunityStats:
         task_config = CommunityStatsAggregationTask
         task_aggs = task_config["args"]
 
-        # Debug: check what aggregators are being run
-        self.app.logger.error(f"Running aggregators: {task_aggs}")
-
         # Extract the inner tuple of aggregation names from the task args
         aggregations = task_aggs[0] if task_aggs else ()
 
@@ -1827,24 +1824,6 @@ class TestAPIRequestCommunityStats:
         # Refresh all stats indices to ensure they're available for queries
         client = current_search_client
         client.indices.refresh(index="*stats-community-*")
-
-        # Debug: check what indices exist
-        indices = client.cat.indices(format="json")
-        stats_indices = [
-            idx["index"] for idx in indices if "stats-community" in idx["index"]
-        ]
-        self.app.logger.error(f"Available stats indices: {stats_indices}")
-
-        # Debug: check usage event indices
-        usage_indices = [
-            idx
-            for idx in indices
-            if "stats-record-view" in idx["index"]
-            or "stats-file-download" in idx["index"]
-        ]
-        self.app.logger.error(
-            f"Available usage indices: {[idx['index'] for idx in usage_indices]}"
-        )
 
         return results
 
@@ -2053,6 +2032,8 @@ class TestAPIRequestGlobalStats(TestAPIRequestCommunityStats):
         self,
         running_app,
         db,
+        nested_unit_of_work,
+        monkeypatch,
         minimal_community_factory,
         minimal_published_record_factory,
         user_factory,
@@ -2064,6 +2045,9 @@ class TestAPIRequestGlobalStats(TestAPIRequestCommunityStats):
         test_sample_files_folder,
     ):
         """Test the global-stats API request."""
+        monkeypatch.setattr(
+            "invenio_records_resources.services.uow.UnitOfWork", nested_unit_of_work
+        )
         self.app = running_app.app
         _, synthetic_records = self.setup_community_and_records(
             minimal_community_factory,

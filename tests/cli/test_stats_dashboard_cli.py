@@ -16,20 +16,6 @@ from invenio_stats_dashboard.cli import cli
 pytest.skip("Skipping CLI tests for now", allow_module_level=True)
 
 
-@pytest.fixture(scope="module")
-def cli_runner(base_app):
-    """Create a CLI runner for testing CLI commands.
-    
-    Returns:
-        function: CLI runner function.
-    """
-
-    def cli_invoke(command, *args, input=None):
-        return base_app.test_cli_runner().invoke(command, args, input=input)
-
-    return cli_invoke
-
-
 class TestCommunityEventsGenerateCommand:
     """Test the community-events generate CLI command."""
 

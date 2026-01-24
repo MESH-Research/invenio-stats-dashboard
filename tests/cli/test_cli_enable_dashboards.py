@@ -30,7 +30,6 @@ def test_enable_dashboards_with_community_ids(
 
     result = cli_runner(
         cli,
-        None,
         "enable-dashboards",
         community1.id,
         community2.id,
@@ -72,7 +71,6 @@ def test_enable_dashboards_with_first_active(
 
     result = cli_runner(
         cli,
-        None,
         "enable-dashboards",
         "--first-active",
         "2024-01-18",
@@ -113,7 +111,6 @@ def test_enable_dashboards_with_active_since(
 
     result = cli_runner(
         cli,
-        None,
         "enable-dashboards",
         "--active-since",
         "2024-01-18",
@@ -155,7 +152,6 @@ def test_enable_dashboards_with_record_threshold(
 
     result = cli_runner(
         cli,
-        None,
         "enable-dashboards",
         "--record-threshold",
         "2",
@@ -179,7 +175,6 @@ def test_enable_dashboards_with_verbose(
 
     result = cli_runner(
         cli,
-        None,
         "enable-dashboards",
         "--verbose",
         community1.id,
@@ -196,7 +191,7 @@ def test_enable_dashboards_no_parameters(
     cli_runner,
 ):
     """Test enable-dashboards command with no parameters."""
-    result = cli_runner(cli, None, "enable-dashboards")
+    result = cli_runner(cli, "enable-dashboards")
 
     assert result.exit_code == 0
     assert "No community ids or selection criteria provided" in result.output
@@ -219,11 +214,9 @@ def test_enable_dashboards_service_error(
 
         result = cli_runner(
             cli,
-            None,
             "enable-dashboards",
             "test-community-id",
         )
 
         assert result.exit_code == 0  # Command catches exceptions
         assert "Something went wrong" in result.output
-

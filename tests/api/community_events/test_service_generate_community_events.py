@@ -89,8 +89,7 @@ def test_generate_record_community_events_with_recids(
         app.logger.info(f"Deleted events index: {events_index}")
     except Exception as e:
         app.logger.info(
-            f"Events index {events_index} did not exist or could not be deleted: "
-            f"{e}"
+            f"Events index {events_index} did not exist or could not be deleted: {e}"
         )
 
     # Create service instance
@@ -161,8 +160,10 @@ def test_generate_record_community_events_with_recids(
 def test_generate_record_community_events_all_records(
     running_app,
     db,
+    nested_unit_of_work,
     minimal_community_factory,
     minimal_published_record_factory,
+    monkeypatch,
     user_factory,
     create_stats_indices,
     celery_worker,
@@ -173,113 +174,9 @@ def test_generate_record_community_events_all_records(
     app = running_app.app
     client = current_search_client
 
-    # DEBUG: Check what's in the search indices at the start of this test
-    print("\n" + "=" * 50)
-    print("DEBUG: Search indices at start of second test")
-    print("=" * 50)
-
-    # Check what indices exist
-    try:
-        indices = client.indices.get("*")
-        print(f"Existing indices: {list(indices.keys())}")
-    except Exception as e:
-        print(f"Error getting indices: {e}")
-
-    # Check communities index
-    try:
-        communities = client.search(
-            index="*communities*", body={"query": {"match_all": {}}, "size": 10}
-        )
-        print(f"\nCommunities in search index: {communities['hits']['total']['value']}")
-        for hit in communities["hits"]["hits"]:
-            print(f"  ID: {hit['_id']}, Slug: {hit['_source'].get('slug', 'N/A')}")
-    except Exception as e:
-        print(f"Error searching communities: {e}")
-
-    # Check members index
-    try:
-        members = client.search(
-            index="*members*", body={"query": {"match_all": {}}, "size": 10}
-        )
-        print(f"\nMembers in search index: {members['hits']['total']['value']}")
-        for hit in members["hits"]["hits"]:
-            print(f"  ID: {hit['_id']}, Source: {hit['_source']}")
-    except Exception as e:
-        print(f"Error searching members: {e}")
-
-    print("=" * 50 + "\n")
-
-    # DEBUG: Clear caches before checking service configuration
-    print("DEBUG: Clearing caches")
-    print("=" * 50)
-    from invenio_cache import current_cache
-    from invenio_communities.proxies import current_identities_cache
-
-    current_cache.clear()
-    current_identities_cache.flush()
-    print("Caches cleared")
-    print("=" * 50 + "\n")
-
-    # DEBUG: Check communities service configuration
-    print("DEBUG: Communities service configuration")
-    print("=" * 50)
-    from invenio_communities.proxies import current_communities
-
-    service = current_communities.service
-    print(f"Service class: {service.__class__}")
-    print(f"Service config: {service.config}")
-    print(f"Permission policy class: {service.config.permission_policy_cls}")
-    print(
-        f"Service components: "
-        f"{[comp.__class__.__name__ for comp in service.components]}"
-    )
-
-    # Check if OwnershipComponent is present and its configuration
-    ownership_component = None
-    for comp in service.components:
-        if comp.__class__.__name__ == "OwnershipComponent":
-            ownership_component = comp
-            break
-
-    if ownership_component:
-        print(f"OwnershipComponent found: {ownership_component}")
-        print(f"OwnershipComponent service: {ownership_component.service}")
-    else:
-        print("OwnershipComponent NOT found!")
-
-    print("=" * 50 + "\n")
-
-    # DEBUG: Check system_identity provides
-    print("DEBUG: system_identity provides")
-    print("=" * 50)
-    from invenio_access.permissions import system_identity, system_process
-
-    print(f"system_identity provides: {list(system_identity.provides)}")
-    print(
-        f"system_process in system_identity.provides: "
-        f"{system_process in system_identity.provides}"
-    )
-    print("=" * 50 + "\n")
-
     # Create a user and community
     u = user_factory(email="test@example.com")
     user_id = u.user.id
-    # DEBUG: Check system_identity and communities service before the failing call
-    print(
-        f"DEBUG: system_identity before community creation: "
-        f"{list(system_identity.provides)}"
-    )
-    print(
-        f"DEBUG: system_process in system_identity.provides: "
-        f"{system_process in system_identity.provides}"
-    )
-    print(
-        f"DEBUG: current_communities.service object: {id(current_communities.service)}"
-    )
-    print(
-        f"DEBUG: current_communities.service.config: "
-        f"{id(current_communities.service.config)}"
-    )
 
     community = minimal_community_factory(slug="test-community2", owner=user_id)
     community_id = community.id
@@ -290,6 +187,11 @@ def test_generate_record_community_events_all_records(
         deepcopy(sample_metadata_book_pdf),
         deepcopy(sample_metadata_journal_article_pdf),
     ]
+
+    # Prevent interference between UnitOfWork operations in test
+    monkeypatch.setattr(
+        "invenio_records_resources.services.uow.UnitOfWork", nested_unit_of_work
+    )
 
     for i, sample_data in enumerate(sample_records):
         metadata = deepcopy(sample_data)
