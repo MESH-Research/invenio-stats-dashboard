@@ -125,7 +125,6 @@ class CommunityStatsResultsQueryBase(Query):
             agg_search.sort(self.date_field)
 
             count = agg_search.count()
-            current_app.logger.error(f"Count: {count}")
             if count == 0:
                 raise ValueError(
                     f"No results found for community {community_id}"

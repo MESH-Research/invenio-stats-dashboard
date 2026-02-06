@@ -79,7 +79,7 @@ def time_operation(func):
 
     Expects the decorated method to return a dict with results.
     Adds timing fields: total_time_seconds, total_time_minutes, total_time_hours
-    
+
     Returns:
         Callable: The wrapped function with timing functionality.
     """
@@ -104,12 +104,12 @@ def time_operation(func):
 
                 # Log timing info
                 if results.get("completed"):
-                    current_app.logger.error(
+                    current_app.logger.debug(
                         f"Operation completed in {total_time:.2f} seconds "
                         f"({total_time / 60:.2f} minutes)"
                     )
                 elif results.get("interrupted"):
-                    current_app.logger.error(
+                    current_app.logger.debug(
                         f"Operation interrupted after {total_time:.2f} seconds "
                         f"({total_time / 60:.2f} minutes)"
                     )

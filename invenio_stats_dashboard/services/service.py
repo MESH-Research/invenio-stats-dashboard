@@ -74,7 +74,6 @@ class CommunityStatsService:
             ValueError: If invalid parameters are provided.
         """
         agg_args = CommunityStatsAggregationTask["args"]
-        current_app.logger.debug(f"agg_type_args: {agg_args}")
         if aggregation_types is not None and len(aggregation_types) > 0:
             disallowed = [a for a in aggregation_types if a not in agg_args[0]]
             if len(disallowed) > 0:
@@ -85,12 +84,9 @@ class CommunityStatsService:
             agg_args = (agg_type_args, *agg_args[1:])
 
         if eager:
-            current_app.logger.error(
-                f"Aggregating stats eagerly for communities: {community_ids}"
-            )
             try:
                 # For eager execution, call the function directly
-                current_app.logger.error(
+                current_app.logger.debug(
                     f"Calling aggregate_community_record_stats with args: {agg_args}"
                 )
                 results = aggregate_community_record_stats(
@@ -113,7 +109,7 @@ class CommunityStatsService:
                 )
                 raise
         else:
-            current_app.logger.info(
+            current_app.logger.debug(
                 f"Aggregating stats asynchronously for communities: {community_ids}"
             )
             # For async execution, use the Celery task
@@ -203,9 +199,7 @@ class CommunityStatsService:
 
         if not community_ids:
             # Use scan() to get all communities without size limits
-            all_communities = list(
-                current_communities.service.scan(system_identity)
-            )
+            all_communities = list(current_communities.service.scan(system_identity))
             community_ids = [c["id"] for c in all_communities]
 
         total_records = 0
@@ -341,9 +335,7 @@ class CommunityStatsService:
 
         if not community_ids:
             # Use scan() to get all communities without size limits
-            all_communities = list(
-                current_communities.service.scan(system_identity)
-            )
+            all_communities = list(current_communities.service.scan(system_identity))
             community_ids = [c["id"] for c in all_communities]
 
         for result in record_search.scan():
@@ -360,8 +352,8 @@ class CommunityStatsService:
                     record_data.get("parent", {}).get("communities", {}).get("ids", [])
                 )
 
-                current_app.logger.info(f"Generating events for record: {record_id}")
-                current_app.logger.info(
+                current_app.logger.debug(f"Generating events for record: {record_id}")
+                current_app.logger.debug(
                     f"Record {record_id} belongs to communities: {record_communities}"
                 )
 
@@ -369,7 +361,7 @@ class CommunityStatsService:
                 # actually belongs to
                 communities_to_process = ["global"] + record_communities
 
-                current_app.logger.info(
+                current_app.logger.debug(
                     f"Processing communities for record {record_id}: "
                     f"{communities_to_process}"
                 )
@@ -404,7 +396,7 @@ class CommunityStatsService:
                     event["community_id"] for event in existing_events
                 }
 
-                current_app.logger.info(
+                current_app.logger.debug(
                     f"Found {len(existing_events)} existing events for "
                     f"record {record_id}"
                 )
@@ -415,7 +407,7 @@ class CommunityStatsService:
                     if community_id not in existing_community_ids
                 ]
 
-                current_app.logger.info(
+                current_app.logger.debug(
                     f"Will create events for communities: {communities_to_add}"
                 )
 
@@ -429,7 +421,7 @@ class CommunityStatsService:
                         record_published_date=record_published_date,
                         client=self.client,
                     )
-                    current_app.logger.info(
+                    current_app.logger.debug(
                         f"Created {len(communities_to_add)} events for "
                         f"record {record_id}"
                     )
@@ -523,7 +515,8 @@ class CommunityStatsService:
                     empty_response: dict[str, Any] = {}
                     for query_name in COMMUNITY_STATS_QUERIES.keys():
                         key = (
-                            query_name.replace("community-record-", "")
+                            query_name
+                            .replace("community-record-", "")
                             .replace("community-", "")
                             .replace("-", "_")
                         )

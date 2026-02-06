@@ -807,7 +807,7 @@ class DataSeriesQueryBase(Query):
                 )
 
         except AssertionError as e:
-            current_app.logger.error(f"Index does not exist: {self.index} {e}")
+            current_app.logger.info(f"Index does not exist: {self.index} {e}")
             # Create empty data series set
             if category == "global":
                 series_keys = ["global"]

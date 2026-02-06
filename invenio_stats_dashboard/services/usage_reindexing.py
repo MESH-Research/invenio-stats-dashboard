@@ -1424,7 +1424,7 @@ class EventReindexingService:
             if hasattr(community_results, "aggregations") and hasattr(
                 community_results.aggregations, "by_record"
             ):
-                current_app.logger.error(
+                current_app.logger.info(
                     f"Found {len(community_results.aggregations.by_record.buckets)} "
                     f"record buckets in aggregations"
                 )
@@ -2960,8 +2960,7 @@ class EventReindexingService:
 
                 # Find backup indices with old naming convention
                 backup_indices = [
-                    idx for idx in indices.keys()
-                    if idx.endswith("-backup")
+                    idx for idx in indices.keys() if idx.endswith("-backup")
                 ]
 
                 for backup_index in backup_indices:
@@ -3034,13 +3033,13 @@ class EventReindexingService:
                 indices = self.client.indices.get(index=f"{pattern}-*")
 
                 old_indices = [
-                    idx for idx in indices.keys()
+                    idx
+                    for idx in indices.keys()
                     if not idx.endswith("-v2.0.0") and not idx.startswith("backup-")
                 ]
 
                 migrated_indices = [
-                    idx for idx in indices.keys()
-                    if idx.endswith("-v2.0.0")
+                    idx for idx in indices.keys() if idx.endswith("-v2.0.0")
                 ]
 
                 results[event_type] = {
@@ -3048,7 +3047,7 @@ class EventReindexingService:
                     "migrated_indices": migrated_indices,
                     "cleanup_candidates": [],
                     "validation_results": {},
-                    "deletion_results": {}
+                    "deletion_results": {},
                 }
 
                 # Find cleanup candidates (old indices with corresponding
@@ -3065,7 +3064,7 @@ class EventReindexingService:
                             results[event_type]["cleanup_candidates"].append({
                                 "old_index": old_index,
                                 "migrated_index": expected_migrated,
-                                "month": month
+                                "month": month,
                             })
 
                 # Validate each cleanup candidate
@@ -3075,33 +3074,27 @@ class EventReindexingService:
 
                     try:
                         # Check if migration bookmark indicates completion
-                        bookmark_key = (
-                            f"{event_type}-{candidate['month']}-reindexing"
-                        )
+                        bookmark_key = f"{event_type}-{candidate['month']}-reindexing"
                         bookmark = self.reindexing_bookmark_api.get_bookmark(
                             bookmark_key
                         )
 
                         if bookmark and bookmark.get("completed", False):
                             # Additional validation: check document counts
-                            old_count = self.client.count(
-                                index=old_index
-                            )["count"]
-                            migrated_count = self.client.count(
-                                index=migrated_index
-                            )["count"]
+                            old_count = self.client.count(index=old_index)["count"]
+                            migrated_count = self.client.count(index=migrated_index)[
+                                "count"
+                            ]
 
                             # Allow for some variance
                             # (e.g., new events during migration)
                             count_ratio = (
-                                migrated_count / old_count
-                                if old_count > 0
-                                else 0
+                                migrated_count / old_count if old_count > 0 else 0
                             )
 
                             validation_passed = (
-                                count_ratio >= 0.95 and  # At least 95% migrated
-                                migrated_count > 0      # Some events migrated
+                                count_ratio >= 0.95  # At least 95% migrated
+                                and migrated_count > 0  # Some events migrated
                             )
 
                             results[event_type]["validation_results"][old_index] = {
@@ -3109,67 +3102,58 @@ class EventReindexingService:
                                 "old_count": old_count,
                                 "migrated_count": migrated_count,
                                 "count_ratio": count_ratio,
-                                "bookmark_completed": True
+                                "bookmark_completed": True,
                             }
 
                             # If validation passed and not dry run, delete the old index
                             if validation_passed and not dry_run:
-                                deletion_success = self.delete_old_index(
-                                    old_index
+                                deletion_success = self.delete_old_index(old_index)
+                                results[event_type]["deletion_results"][old_index] = (
+                                    deletion_success
                                 )
-                                results[event_type]["deletion_results"][
-                                    old_index
-                                ] = deletion_success
 
                                 if deletion_success:
                                     current_app.logger.info(
-                                        f"Successfully deleted old index: "
-                                        f"{old_index}"
+                                        f"Successfully deleted old index: {old_index}"
                                     )
                                 else:
                                     current_app.logger.error(
-                                        f"Failed to delete old index: "
-                                        f"{old_index}"
+                                        f"Failed to delete old index: {old_index}"
                                     )
                             elif validation_passed and dry_run:
-                                results[event_type]["deletion_results"][
-                                    old_index
-                                ] = "would_delete"
+                                results[event_type]["deletion_results"][old_index] = (
+                                    "would_delete"
+                                )
                             else:
-                                results[event_type]["deletion_results"][
-                                    old_index
-                                ] = "validation_failed"
+                                results[event_type]["deletion_results"][old_index] = (
+                                    "validation_failed"
+                                )
 
                         else:
                             results[event_type]["validation_results"][old_index] = {
                                 "passed": False,
                                 "reason": (
-                                    "Migration not marked as completed "
-                                    "in bookmark"
+                                    "Migration not marked as completed in bookmark"
                                 ),
-                                "bookmark_completed": False
+                                "bookmark_completed": False,
                             }
-                            results[event_type]["deletion_results"][
-                                old_index
-                            ] = "not_completed"
+                            results[event_type]["deletion_results"][old_index] = (
+                                "not_completed"
+                            )
 
                     except Exception as e:
-                        current_app.logger.error(
-                            f"Error validating {old_index}: {e}"
-                        )
+                        current_app.logger.error(f"Error validating {old_index}: {e}")
                         results[event_type]["validation_results"][old_index] = {
                             "passed": False,
                             "reason": f"Validation error: {e}",
-                            "bookmark_completed": False
+                            "bookmark_completed": False,
                         }
-                        results[event_type]["deletion_results"][
-                            old_index
-                        ] = "validation_error"
+                        results[event_type]["deletion_results"][old_index] = (
+                            "validation_error"
+                        )
 
             except Exception as e:
-                current_app.logger.error(
-                    f"Error processing {event_type} indices: {e}"
-                )
+                current_app.logger.error(f"Error processing {event_type} indices: {e}")
                 results[event_type] = {"error": str(e)}
 
         return results

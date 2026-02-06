@@ -372,8 +372,6 @@ class DataSeriesCSVSerializer:
             "uploaders": "unique uploaders",
         }
         unit = unit_mapping.get(metric_name.lower())
-        current_app.logger.error(f"DEBUG: metric_name: {metric_name}")
-        current_app.logger.error(f"DEBUG: unit: {unit}")
         return unit
 
 

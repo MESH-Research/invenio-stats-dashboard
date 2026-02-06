@@ -386,10 +386,6 @@ def update_community_events_index(
         if deleted_date:
             event_doc["deleted_date"] = deleted_date
 
-        current_app.logger.error(
-            f"Creating new community event for record {record_id}, "
-            f"community {community_id}: {event_doc}"
-        )
         try:
             client.index(index=write_index, body=event_doc)
         except Exception as e:
@@ -545,7 +541,6 @@ class RecordCommunityEventComponent(ServiceComponent):
         Find any changes to the communities field and update the community events
         accordingly on the record.
         """
-        current_app.logger.error(f"RecordCommunityEventComponent publish: {record}")
         new_community_ids = {
             c
             for c in (
@@ -611,9 +606,6 @@ class RecordCommunityEventComponent(ServiceComponent):
         Clear the deletion fields for all community events for this record
         when it is restored from a deleted state.
         """
-        current_app.logger.error(
-            f"RecordCommunityEventComponent restore_record: {record}"
-        )
         update_community_events_deletion_fields(
             record_id=str(record.pid.pid_value),  # type: ignore
             is_deleted=False,
@@ -635,9 +627,6 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         uow: UnitOfWork,
     ):
         """Record addition of a record in the record metadata."""
-        current_app.logger.error(
-            f"RecordCommunityEventTrackingComponent add: {communities}"
-        )
         community_ids = [community["id"] for community in communities]
 
         record_published_date = record.metadata.get("publication_date")  # type: ignore
@@ -690,9 +679,6 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
                 to None.
             **kwargs (Any): Additional keyword arguments
         """
-        current_app.logger.error(
-            f"RecordCommunityEventTrackingComponent remove_community: {community}"
-        )
         community_id = community["id"]
 
         record_published_date = record.metadata.get("publication_date")  # type: ignore
