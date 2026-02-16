@@ -1,12 +1,11 @@
 # Invenio Stats Dashboard
 
-{bdg-warning}`Pre-alpha`
+{bdg-warning}`Beta`
 
-**Pre-alpha version. Not ready for production use. Some things currently don't work!**
+**Beta version. Not ready for production use.**
 
-Copyright 2025, MESH Research
+Copyright 2025-2026, MESH Research
 
 Licensed under the MIT License. See LICENSE file for details.
 
-{bdg-dark}`Code style: black`
-
+{bdg-dark}`Code style: ruff`

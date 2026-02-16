@@ -52,12 +52,42 @@ from ..tasks.cache_tasks import CachedResponsesGenerationTask
 from .component_metrics import COMPONENT_METRICS_REGISTRY
 
 COMMUNITY_STATS_ENABLED = True
-COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
-COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
+"""Enable or disable all invenio-stats-dashboard features."""
 
-STATS_DASHBOARD_ENABLED_GLOBAL = True
-STATS_DASHBOARD_ENABLED_COMMUNITY = True
+COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
+"""Enable or disable the execution of scheduled aggregation tasks."""
+COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
+"""Enable or disable the execution of scheduled JSON response caching tasks."""
+
+STATS_DASHBOARD_ENABLED_GLOBAL = False
+"""Enable display of the global stats dashboard."""
+STATS_DASHBOARD_ENABLED_COMMUNITY = False
+"""Enable display of community stats dashboards."""
+
 STATS_DASHBOARD_COMMUNITY_OPT_IN = True
+"""Only display dashboards for communities that have enabled them on their
+settings page. `False` means that community dashboards (if enabled globally) will
+appear for all communities."""
+
+STATS_DASHBOARD_MENU_ENABLED = False
+"""Enable or disable the stats menu item."""
+
+STATS_DASHBOARD_MENU_TEXT = _("Statistics")
+"""Text for the stats menu item."""
+
+STATS_DASHBOARD_MENU_ORDER = 1
+"""Order of the stats menu item in the menu."""
+
+STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
+"""Endpoint for the stats menu item."""
+
+STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the menu item. If None, uses default registration.
+Should be a callable that takes the Flask app as its only argument."""
+
+STATS_DASHBOARD_USE_TEST_DATA = False
+"""Enable or disable test data mode. When True, the dashboard will use sample data
+instead of making API calls."""
 
 STATS_DASHBOARD_OPTIMIZE_DATA_SERIES = True
 """Whether to optimize data series by default.
@@ -203,27 +233,6 @@ STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
     "quarter": "yearToDate",
     "year": "2years",
 }
-
-# Menu configuration
-STATS_DASHBOARD_MENU_ENABLED = True
-"""Enable or disable the stats menu item."""
-
-STATS_DASHBOARD_MENU_TEXT = _("Statistics")
-"""Text for the stats menu item."""
-
-STATS_DASHBOARD_MENU_ORDER = 1
-"""Order of the stats menu item in the menu."""
-
-STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
-"""Endpoint for the stats menu item."""
-
-STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
-"""Custom function to register the menu item. If None, uses default registration.
-Should be a callable that takes the Flask app as its only argument."""
-
-STATS_DASHBOARD_USE_TEST_DATA = False
-"""Enable or disable test data mode. When True, the dashboard will use sample data
-instead of making API calls."""
 
 STATS_DASHBOARD_LAYOUT = {
     "global_layout": {
