@@ -251,51 +251,69 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="setup-and-migration">
+          <section class="tex2jax_ignore mathjax_ignore" id="setup-and-migration">
 <h1>Setup and Migration<a class="headerlink" href="#setup-and-migration" title="Link to this heading">¶</a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>This package is waiting for two pull requests to be merged in invenio-requests and invenio-rdm-records (see <a class="reference internal" href="known_issues.html"><span class="std std-doc">Known Issues</span></a>). In the meantime, a provided bash script is provided to patch the required files in your local site-packages directory. Simply run <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">apply_patches.sh</span> <span class="pre">[environment_path]</span></code> from the root of the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> package directory, where <code class="docutils literal notranslate"><span class="pre">[environment_path]</span></code> is the path to your python environment folder (the parent folder of <code class="docutils literal notranslate"><span class="pre">site-packages</span></code>). You can view the contents of the patched files in the <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard/patches</span></code> directory.</p>
+<p>This package depends on pull requests that were merged into invenio-requests and invenio-rdm-records for InvenioRDM version 13. For version 12 instances, a bash script is provided to patch the required files in your local site-packages directory. Simply run <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">apply_patches.sh</span> <span class="pre">[environment_path]</span></code> from the root of the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> package directory, where <code class="docutils literal notranslate"><span class="pre">[environment_path]</span></code> is the path to your python environment folder (the parent folder of <code class="docutils literal notranslate"><span class="pre">site-packages</span></code>). You can view the contents of the patched files in the <code class="docutils literal notranslate"><span class="pre">invenio_stats_dashboard/patches</span></code> directory.</p>
 </div>
-<p>In future the plan is that setup of <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> will involve simply installing the python package and restarting the InvenioRDM instance. For now, however, two initial setup tasks are required <strong>only for existing InvenioRDM instances</strong> that already have records and view/download statistics:</p>
-<ul class="simple">
-<li><p>index community addition events for all existing records</p></li>
-<li><p>migrate the existing view and download events to the new index templates and enrich them with community and record metadata</p></li>
-</ul>
-<p>These tasks can be performed manually via CLI commands detailed below. They require zero downtime and can be performed in the background on a running InvenioRDM instance.</p>
-<p>After these tasks are completed, the extension will be ready to use as normal. The catch-up aggregation of historical statistics will then be performed automatically as part of the scheduled aggregation tasks. Since this can, however, be a long process, especially for large instances, a utility CLI command to perform the catch-up aggregation manually is also provided.</p>
-<p>So the full setup process is currently:</p>
+<section id="setup-overview">
+<h2>Setup overview<a class="headerlink" href="#setup-overview" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
-<li><p>Install the python package</p></li>
-<li><p>Set config variables for the setup period:</p></li>
-</ol>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">False</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">False</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">False</span></code></p></li>
-</ul>
-<ol class="arabic simple" start="3">
-<li><p>Restart the InvenioRDM instance</p></li>
-<li><p>Initialize the community custom field (via CLI command)</p></li>
-<li><p>Index community addition events for all existing records (via CLI command)</p></li>
-<li><p>Migrate and enrich the existing view and download events (via CLI command)</p></li>
-<li><p>OPTIONAL: Manually run the catch-up aggregation (via CLI command)</p></li>
-<li><p>Set config variables for normal operation:</p></li>
-</ol>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code> (if desired)</p></li>
-</ul>
-<ol class="arabic simple" start="9">
-<li><p>Set up other configuration and community page templates as desired</p></li>
+<li><p>Install the python package.</p></li>
+<li><p>Set initial config variables for the setup period (and restart the InvenioRDM instance).</p></li>
+<li><p>Execute manual CLI commands
+a. Initialize the community custom field (via CLI command).
+b. Index community addition events for all existing records (via CLI command)
+c. Migrate and enrich the existing view and download events (via CLI command)</p></li>
+<li><p>OPTIONAL: Manually run the catch-up aggregations (via CLI command)</p></li>
+<li><p>Configure package settings and page templates as desired.</p></li>
+<li><p>Set config variables to begin normal operation</p></li>
 <li><p>Restart the InvenioRDM instance</p></li>
 </ol>
-<section id="community-custom-field-initialization">
-<h2>Community Custom Field Initialization<a class="headerlink" href="#community-custom-field-initialization" title="Link to this heading">¶</a></h2>
-<p>The extension provides a custom field (<code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code>) for communities to store dashboard layout configurations. This field must be initialized in the search index before it can be used:</p>
+</section>
+<section id="install-the-python-package">
+<h2>1. Install the python package.<a class="headerlink" href="#install-the-python-package" title="Link to this heading">¶</a></h2>
+<p>In your InvenioRDM instance directory run one of the following commands, depending on whether you are using <code class="docutils literal notranslate"><span class="pre">pipenv</span></code> or <code class="docutils literal notranslate"><span class="pre">uv</span></code> for environment management:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pipenv<span class="w"> </span>install<span class="w"> </span>invenio-stats-dashboard
+</pre></div>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>invenio-stats-dashboard
+</pre></div>
+</div>
+</section>
+<section id="initial-configuration-for-setup">
+<h2>2. Initial configuration for setup<a class="headerlink" href="#initial-configuration-for-setup" title="Link to this heading">¶</a></h2>
+<p>The first step is to ensure that the following config variables are set to their default settings as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span> <span class="pre">=</span> <span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span> <span class="pre">=</span> <span class="pre">False</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span> <span class="pre">=</span> <span class="pre">False</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span> <span class="pre">=</span> <span class="pre">False</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ENABLED_GLOBAL</span> <span class="pre">=</span> <span class="pre">False</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ENABLED_COMMUNITY</span> <span class="pre">=</span> <span class="pre">False</span></code></p></li>
+</ul>
+<p>These settings allow the initial setup to proceed without yet displaying the dashboards or their menu links.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Since the included search index tamplates all use the new-style index templates, you must ensure that STATS_REGISTER_INDEX_TEMPLATES is set to True. This is currently <em>not</em> the default for InvenioRDM instances, but it should not interfere with any other packages. The only other index templates currently registered are those from the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, which are overridden by the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension.</p>
+</div>
+</section>
+<section id="manual-cli-steps">
+<h2>3. Manual CLI steps<a class="headerlink" href="#manual-cli-steps" title="Link to this heading">¶</a></h2>
+<p>Three setup tasks must be performed manually via CLI commands. The first must be performed for any installation. The second and third are necessary <strong>only for existing InvenioRDM instances</strong> that already have records and view/download statistics:</p>
+<p>a. initialize the stats-dashboard custom fields
+b. index community addition events for all existing records
+c. migrate the existing view and download events to the new index templates and enrich them with community and record metadata</p>
+<p>These tasks must be performed manually via CLI commands detailed below. They require zero downtime and can be performed in the background on a running InvenioRDM instance.</p>
+<section id="initialize-community-custom-fields">
+<h3>Initialize community custom fields<a class="headerlink" href="#initialize-community-custom-fields" title="Link to this heading">¶</a></h3>
+<p>The extension adds two custom fields to the community metadata schema:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code> allows communities to store dashboard layout configurations to override instance-wide defaults.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats:dashboard_enabled</span></code> allows communities to enable or disable their dashboards on an individual basis (if the package is configured to allow it).</p></li>
+</ul>
+<p>These fields must be initialized in the search index before they can be used:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the custom field</span>
 invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>init<span class="w"> </span>stats:dashboard_layout
 
@@ -303,25 +321,44 @@ invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<
 invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>exists<span class="w"> </span>stats:dashboard_layout
 </pre></div>
 </div>
-<p><strong>Note</strong>: This step is required for both new and existing InvenioRDM instances. The custom field provides community-specific dashboard customization capabilities and is automatically integrated into community creation and editing forms.</p>
-</section>
-<section id="search-index-template-registration">
-<h2>Search index template registration<a class="headerlink" href="#search-index-template-registration" title="Link to this heading">¶</a></h2>
-<p>If the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension is installed on a new InvenioRDM instance, the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module will automatically register the extension’s search index templates with the OpenSearch domain. But <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension will check at application startup to ensure that the extension’s search index templates are registered with the OpenSearch domain. If they are not, it registers them with the <code class="docutils literal notranslate"><span class="pre">invenio-search</span></code> module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.</p>
-<p>Registration of the expanded index templates for view and download events happens automatically as part of the usage event migration process.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Since the included search index tamplates all use the new-style index templates, you must ensure that STATS_REGISTER_INDEX_TEMPLATES is set to True. This is currently <em>not</em> the default for InvenioRDM instances, but it should not interfere with any other packages. The only other index templates currently registered are those from the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module, which are overridden by the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension.</p>
-</div>
+<p>The toggle for enabling and disabling a community’s dashboard is automatically integrated into community creation and editing forms <em>if</em> you have configured community dashboards to be opt-in (<code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_COMMUNITY_OPT_IN</span> <span class="pre">=</span> <span class="pre">True</span></code>). ???</p>
 </section>
 <section id="initial-indexing-of-community-addition-events">
-<h2>Initial indexing of community addition events<a class="headerlink" href="#initial-indexing-of-community-addition-events" title="Link to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> requires a dedicated search index to store data about when each record was added to or removed from a community. The <code class="docutils literal notranslate"><span class="pre">CommunityStatsService.generate_record_community_events</span></code> method will create community add/remove events for all records in the instance that do not already have events. This method can be run manually via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">generate-community-events</span></code> CLI command. For details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
+<h3>Initial indexing of community addition events<a class="headerlink" href="#initial-indexing-of-community-addition-events" title="Link to this heading">¶</a></h3>
+<p>When the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension is loaded, it registers a template for a dedicated search index to store data about when each record was added to or removed from a community. From that point on, new add/remove events are indexed automatically by service components. But if an InvenioRDM instance already includes records, past add/remove events must be created retroactively for existing records. Inside the ui app container, run this CLI command:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>community-events<span class="w"> </span>generate
+</pre></div>
+</div>
+<p>For details on this command’s use, see the section on <a class="reference internal" href="#./cli.html#community-events-generate"><span class="xref myst">CLI community-event commands</span></a>.</p>
+<p>This back-filling of add/remove events is usually relatively fast, but can still take several minutes on a large instance. So the <code class="docutils literal notranslate"><span class="pre">community-evenst</span> <span class="pre">status</span></code> CLI command is available (<a class="reference internal" href="#./cli.html#community-events-status"><span class="xref myst">detailed here</span></a>) to check the progress of the operation and ensure that it has completed successfully.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Note that this command must be run even if the existing records are not yet placed in communities. The statistics aggregations for the instance as a whole also rely on “add” events to the “global” corpus recorded in this index.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This command by default runs as a live process in the container (usually the ui container) in which it is executed. The <code class="docutils literal notranslate"><span class="pre">generate-background</span></code> command runs the migration as a background process, detached from the user’s shell session, with output recorded in a log file. It does <em>not</em>, however, run the operation as a celery task in the <code class="docutils literal notranslate"><span class="pre">worker</span></code> app. It is still run by the ui app.</p>
+</div>
 </section>
 <section id="initial-migration-of-existing-view-download-events">
-<h2>Initial migration of existing view/download events<a class="headerlink" href="#initial-migration-of-existing-view-download-events" title="Link to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension also depends on an expanded field schema for the view and download events, adding to the core <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> schema additional fields for community and for any configured record metadata that are to be made available as subcount breakdowns in statistics.</p>
-<p>A dedicated CLI command is provided to (a) register the new index templates and (b) migrate and enrich any existing view and download events. For details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
+<h3>Initial migration of existing view/download events<a class="headerlink" href="#initial-migration-of-existing-view-download-events" title="Link to this heading">¶</a></h3>
+<p>Before any statistics can be aggregated, the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> package must also migrate all existing view and download events in the search index to new indices, using expanded field mappings. These schemas provided by the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> package (and customized by the <code class="docutils literal notranslate"><span class="pre">invenio-app-rdm</span></code> package ???) are expanded with additional fields for</p>
+<ul class="simple">
+<li><p>record community inclusion (at the time of the event), and</p></li>
+<li><p>record metadata to be made available as subcount breakdowns in statistics (as configured).</p></li>
+</ul>
+<p>This index migration and enrichment is performed by running the following command inside the instance’s running ui app container:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>usage-events<span class="w"> </span>migrate
+</pre></div>
+</div>
+<p>For details, see the section on <a class="reference internal" href="#./cli.html#usage-events-migrate"><span class="xref myst">CLI usage event commands</span></a>.</p>
+<p>This reindexing process can take a signficant amount of time for large instances. So it is again accompanied by CLI commands to check the status of the operation, clear the migration bookmarks, and clean up old duplicate indices if necessary.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This command by default runs as a live process in the container (usually the ui container) in which it is executed. The <code class="docutils literal notranslate"><span class="pre">migrate-background</span></code> command runs the migration as a background process, detached from the user’s shell session, with output recorded in a log file.</p>
+</div>
+<section id="the-index-migration-process">
+<h4>The index migration process<a class="headerlink" href="#the-index-migration-process" title="Link to this heading">¶</a></h4>
 <p>The migration and enrichment process are handled by the <code class="docutils literal notranslate"><span class="pre">EventReindexingService</span></code>. If there are no existing view or download events, the service’s <code class="docutils literal notranslate"><span class="pre">reindex_events</span></code> method will simply register the new index templates and usage events can be indexed normally. If there are existing view or download events, the <code class="docutils literal notranslate"><span class="pre">reindex_events</span></code> method will perform the following steps:</p>
 <ol class="arabic simple">
 <li><p>Verify that the new index templates are registered with the OpenSearch domain and register them if they are not.</p></li>
@@ -339,39 +376,62 @@ invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<
 </ul>
 </li>
 </ol>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Currently, the <code class="docutils literal notranslate"><span class="pre">EventReindexingService.reindex_events</span></code> method must be run manually to perform the migration. It can be run via the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">migrate-events</span></code> CLI command and its associated helper commands. In future, the migration will be integrated automatically as part of the scheduled aggregation tasks, to be completed in the background over a series of scheduled runs before the first aggregations are actually performed.</p>
-</div>
-<p>TODO: set up check and automatic migration in aggregator tasks</p>
+</section>
 <section id="preventing-overload-of-opensearch-or-memory">
-<h3>Preventing overload of OpenSearch or memory<a class="headerlink" href="#preventing-overload-of-opensearch-or-memory" title="Link to this heading">¶</a></h3>
+<h4>Preventing overload of OpenSearch or memory<a class="headerlink" href="#preventing-overload-of-opensearch-or-memory" title="Link to this heading">¶</a></h4>
 <p>The reindexing service is configured to run in batches, to avoid overwhelming the OpenSearch domain with too many concurrent requests. The batch size and maximum number of batches can be configured via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_BATCH_SIZE</span></code> and <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_MAX_BATCHES</span></code> configuration variables.</p>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
 <p>OpenSearch has a hard limit of 10,000 documents for search results. This means <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_BATCH_SIZE</span></code> cannot exceed 10,000, and any attempt to count documents after a search_after position will be limited to 10,000 results maximum.</p>
 </div>
-<p>The service will also check the memory usage of the OpenSearch domain on starting each batch and exit if the memory usage exceeds the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span></code> configuration variable. The service will also check the health of the OpenSearch domain on starting each batch and exit if the health is not good.</p>
+<p>The service will check the memory usage of the OpenSearch domain on starting each batch and exit if the memory usage exceeds the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span></code> configuration variable. The service will also check the health of the OpenSearch domain on starting each batch and exit if the health is not good.</p>
 </section>
 <section id="handling-failures">
-<h3>Handling failures<a class="headerlink" href="#handling-failures" title="Link to this heading">¶</a></h3>
+<h4>Handling failures<a class="headerlink" href="#handling-failures" title="Link to this heading">¶</a></h4>
 <p>If the reindexing of a particular month fails, the service will leave the original index in place and continue with the next month. It will log a warning and report the failure in the service’s output report. The service will reset that index’s bookmark to the beginning and try to reindex the month again on the next run. Alternately, you may manually retry the migration of a particular month by running the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">migrate</span></code> CLI command with its <code class="docutils literal notranslate"><span class="pre">--months</span></code> option set to the month in question and its <code class="docutils literal notranslate"><span class="pre">--event-types</span></code> option set to the event type in question.</p>
 <p>For more information about failed migrations and how to retry them, you can use the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">status</span></code> CLI command.</p>
 </section>
 <section id="handling-progress-across-migration-runs">
-<h3>Handling progress across migration runs<a class="headerlink" href="#handling-progress-across-migration-runs" title="Link to this heading">¶</a></h3>
+<h4>Handling progress across migration runs<a class="headerlink" href="#handling-progress-across-migration-runs" title="Link to this heading">¶</a></h4>
 <p>If the service hits the maximum number of batches before a monthly index is completely migrated, it will log a warning and report the progress in the service’s output report. The service will set a bookmark to record the last processed event id, so that the next reindexing service run can continue from that point. These bookmarks are stored in the <code class="docutils literal notranslate"><span class="pre">stats-community-events-reindexing</span></code> index and are set independently for each monthly index.</p>
 <p>If you wish to clear the bookmarks for a particular month, you can use the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">clear-bookmarks</span></code> CLI command with its <code class="docutils literal notranslate"><span class="pre">--months</span></code> option set to the month in question, and its <code class="docutils literal notranslate"><span class="pre">--event-types</span></code> option set to the event type in question, and the <code class="docutils literal notranslate"><span class="pre">--fresh-start</span></code> flag.</p>
 <p>To clear the bookmarks for all months, you can use the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">clear-bookmarks</span></code> CLI command.</p>
 </section>
 </section>
+</section>
 <section id="initial-aggregation-of-historical-data">
-<h2>Initial aggregation of historical data<a class="headerlink" href="#initial-aggregation-of-historical-data" title="Link to this heading">¶</a></h2>
-<p>The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually is also provided: <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">aggregate</span></code>. This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
+<h2>4. Initial aggregation of historical data<a class="headerlink" href="#initial-aggregation-of-historical-data" title="Link to this heading">¶</a></h2>
+<p>???configure subcounts firstkk</p>
+<p>The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually. In the ui app container, one may run</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>invenio<span class="w"> </span>community-stats<span class="w"> </span>aggregate
+</pre></div>
+</div>
+<p>This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Monitoring Progress</strong>: You can monitor the progress of the catch-up aggregation using the <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">status</span></code> command. This command shows the current state of all aggregation indices, including bookmark dates, document counts, and visual completeness bars. For more details, see the <a class="reference internal" href="#cli-commands"><span class="xref myst">CLI commands</span></a> section below.</p>
 </div>
+</section>
+<section id="configuration">
+<h2>5. Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h2>
+</section>
+<section id="enable-the-tasks-and-dashboards">
+<h2>6. Enable the tasks and dashboards<a class="headerlink" href="#enable-the-tasks-and-dashboards" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_MENU_ENABLED</span></code> = <code class="docutils literal notranslate"><span class="pre">True</span></code> (if desired)</p></li>
+</ul>
+</section>
+<section id="automated-setup">
+<h2>Automated setup<a class="headerlink" href="#automated-setup" title="Link to this heading">¶</a></h2>
+<p>After these tasks are completed, the extension will be ready to perform the remaining setup actions automatically. The catch-up aggregation of historical statistics will then be performed automatically as part of the scheduled aggregation tasks. Since this can, however, be a long process, especially for large instances, a utility CLI command to perform the catch-up aggregation manually is also provided.</p>
+</section>
+<section id="search-index-template-registration">
+<h2>Search index template registration<a class="headerlink" href="#search-index-template-registration" title="Link to this heading">¶</a></h2>
+<p>If the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension is installed on a new InvenioRDM instance, the <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> module will automatically register the extension’s search index templates with the OpenSearch domain. But <code class="docutils literal notranslate"><span class="pre">invenio-stats</span></code> does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension will check at application startup to ensure that the extension’s search index templates are registered with the OpenSearch domain. If they are not, it registers them with the <code class="docutils literal notranslate"><span class="pre">invenio-search</span></code> module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.</p>
+<p>Registration of the expanded index templates for view and download events happens automatically as part of the usage event migration process.</p>
 </section>
 </section>
 
@@ -438,16 +498,26 @@ invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Setup and Migration</a><ul>
-<li><a class="reference internal" href="#community-custom-field-initialization">Community Custom Field Initialization</a></li>
-<li><a class="reference internal" href="#search-index-template-registration">Search index template registration</a></li>
+<li><a class="reference internal" href="#setup-overview">Setup overview</a></li>
+<li><a class="reference internal" href="#install-the-python-package">1. Install the python package.</a></li>
+<li><a class="reference internal" href="#initial-configuration-for-setup">2. Initial configuration for setup</a></li>
+<li><a class="reference internal" href="#manual-cli-steps">3. Manual CLI steps</a><ul>
+<li><a class="reference internal" href="#initialize-community-custom-fields">Initialize community custom fields</a></li>
 <li><a class="reference internal" href="#initial-indexing-of-community-addition-events">Initial indexing of community addition events</a></li>
 <li><a class="reference internal" href="#initial-migration-of-existing-view-download-events">Initial migration of existing view/download events</a><ul>
+<li><a class="reference internal" href="#the-index-migration-process">The index migration process</a></li>
 <li><a class="reference internal" href="#preventing-overload-of-opensearch-or-memory">Preventing overload of OpenSearch or memory</a></li>
 <li><a class="reference internal" href="#handling-failures">Handling failures</a></li>
 <li><a class="reference internal" href="#handling-progress-across-migration-runs">Handling progress across migration runs</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#initial-aggregation-of-historical-data">Initial aggregation of historical data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#initial-aggregation-of-historical-data">4. Initial aggregation of historical data</a></li>
+<li><a class="reference internal" href="#configuration">5. Configuration</a></li>
+<li><a class="reference internal" href="#enable-the-tasks-and-dashboards">6. Enable the tasks and dashboards</a></li>
+<li><a class="reference internal" href="#automated-setup">Automated setup</a></li>
+<li><a class="reference internal" href="#search-index-template-registration">Search index template registration</a></li>
 </ul>
 </li>
 </ul>

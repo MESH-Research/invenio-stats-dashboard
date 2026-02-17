@@ -262,37 +262,14 @@
 <li><p>It can be performed manually via a series of CLI commands. See the <a class="reference internal" href="cli.html"><span class="std std-doc">CLI Commands</span></a> section for details.</p></li>
 </ul>
 </li>
-<li><p>catch-up aggregation will be <strong>very slow for large instances</strong>.</p>
-<ul>
-<li><p>We need to speed this up by reducing the number of queries made per aggregation document.</p></li>
-</ul>
-</li>
-<li><p><strong>initial server-side data series caching</strong> needs to be more graceful.</p>
-<ul>
-<li><p>Currently each request for a community’s data series will be extremely slow (&gt; 2 minutes). After that the dashboard will load quickly from the server-side cache.</p></li>
-<li><p>We need a scheduled task to update the cache.</p></li>
-<li><p>We need automated creation of the cache documents after setup, immediately after the initial catch-up aggregation.</p></li>
-</ul>
-</li>
 </ul>
 </section>
 <section id="ui">
 <h2>UI<a class="headerlink" href="#ui" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Selecting of <strong>date ranges beyond the current year</strong> is not working.</p>
-<ul>
-<li><p>We need to make incremental API calls in fixed 1-year chunks to take advantage of the server-side data series caching.</p></li>
-</ul>
-</li>
-<li><p><strong>Quarter granularity</strong> is not working properly.</p></li>
-<li><p>Some subcount views are <strong>displaying too many items</strong> to be readable.</p></li>
 <li><p>Ring charts with a <strong>large “other” category</strong> are problematic.</p></li>
 <li><p>The <strong>stacked bar charts</strong> are not very readable for some data sets.</p></li>
 <li><p>The <strong>map view</strong> is not displaying the data properly.</p></li>
-<li><p>Some bar charts are displaying with <strong>overlapping regions</strong> in multi-series views.</p></li>
-<li><p>The <strong>y-axis labels</strong> are sometimes shifted left out of view.</p></li>
-<li><p>The <strong>date range picker</strong> doesn’t have a custom range option yet.</p></li>
-<li><p>The <strong>report download UI</strong> needs to be finished.</p></li>
 <li><p>The <strong>mobile</strong> view needs to be improved</p>
 <ul>
 <li><p>especially for the charts</p></li>

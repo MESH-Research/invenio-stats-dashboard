@@ -178,7 +178,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -246,14 +246,16 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="overview">
+          <section class="tex2jax_ignore mathjax_ignore" id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides a highly configurable dashboard for viewing and analyzing statistics for the instance and each of its communities. The extension makes available time-series data for each community and the instance as a whole, including:</p>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides responsive, performant, and highly configurable dashboards for viewing statistics. Separate dashboards are provided for the InvenioRDM instance as a whole as well as for each of its communities. The extension makes available time-series data for each community and the instance as a whole, including:</p>
 <ul class="simple">
 <li><p>running cumulative totals and delta changes for a given date range</p>
 <ul>
@@ -276,48 +278,106 @@
 <li><p>file type</p></li>
 </ul>
 </li>
-<li><p>subcounts for view/download metrics broken down by</p>
-<ul>
-<li><p>referrer domain</p></li>
-<li><p>visitor country</p></li>
+<li><p>subcounts for view/download metrics broken down by visitor country</p></li>
 </ul>
-</li>
-</ul>
+</section>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
 <p>The extension provides:</p>
-<div class="table-wrapper colwidths-auto docutils container">
+<div class="table-wrapper docutils container">
 <table class="docutils align-default">
 <thead>
-<tr class="row-odd"><th class="head"><p>Layer</p></th>
-<th class="head"><p>Component</p></th>
+<tr class="row-odd"><th class="head"><p><strong>Layer</strong></p></th>
+<th class="head"><p><strong>Component</strong></p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>data-layer</p></td>
-<td><p>storage of pre-aggregated statistics (daily cumulative snapshots and deltas) for each community and for the instance as a whole</p></td>
+<td><p>storage of pre-aggregated statistics (daily cumulative
+snapshots and deltas) for each community and for the
+instance as a whole</p>
+<ul class="simple">
+<li><p>search templates and indices to store pre-compiled
+stats</p></li>
+<li><p>search template and indices to store log of record
+additions to/removals from communities</p></li>
+<li><p>redis store to hold pre-transformed JSON responses
+for client requests</p></li>
+</ul>
+</td>
 </tr>
 <tr class="row-odd"><td><p>service-layer</p></td>
-<td><p>aggregation of the community and global statistics on a regular schedule, along with service components to record community add/remove events</p></td>
+<td><p>aggregation of the community and global statistics on
+a regular schedule (hourly by default)</p>
+<ul class="simple">
+<li><p>configurable aggregators to pre-compile aggregated
+stats</p></li>
+<li><p>data transformers to prepare requested statistics
+for chart display or reports (JSON, CSV, XML, XLSX)</p></li>
+<li><p>scheduled celery tasks for pre-calculating
+aggregated stats</p></li>
+<li><p>scheduled celery tasks for pre-compiling JSON
+responses for front-end dashboards</p></li>
+<li><p>service components to record record additions to/
+removalfrom communities</p></li>
+</ul>
+</td>
 </tr>
 <tr class="row-even"><td><p>presentation-layer</p></td>
-<td><p>API access to the aggregated daily statistics via the <code class="docutils literal notranslate"><span class="pre">/api/stats</span></code> endpoint</p></td>
+<td><p>Configurable dashboards as well as api endpoints for
+community and instance stats data</p>
+<ul class="simple">
+<li><p>API access to the aggregated daily statistics via the
+<cite>/api/stats-dashboard</cite> endpoint</p></li>
+<li><p>API access to pre-compiled JSON responses suitable
+for chart display</p></li>
+<li><p>API access to reports in JSON, CSV, XML, or Excel
+formats</p></li>
+<li><p>Jinja2 templates to display React-based global and
+community statistics dashboards</p></li>
+<li><p>menu configuration options to add the global
+statistics dashboard to site-wide navigation</p></li>
+</ul>
+</td>
 </tr>
-<tr class="row-odd"><td><p></p></td>
-<td><p>Jinja2 templates to display React-based global and community statistics dashboards</p></td>
-</tr>
-<tr class="row-even"><td><p></p></td>
-<td><p>menu configuration options to add the global statistics dashboard to site-wide navigation</p></td>
+<tr class="row-odd"><td><p>configuration</p></td>
+<td><p>full configuration control, including variables for</p>
+<ul class="simple">
+<li><p>API and ui routes</p></li>
+<li><p>Global and community dashboard layouts and widgets
+(configurable by community)</p></li>
+<li><p>Metadata breakdowns for stats aggregations</p></li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>Most initial setup of the statistics infrastructure is handled automatically when the module is installed. In existing InvenioRDM instances, this includes not only setup of the necessary search indices, but also:</p>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
+<p>For a new InvenioRDM instance all of the initial setup of the back-end statistics infrastructure is handled automatically when the module is installed. This includes</p>
 <ul class="simple">
-<li><p>migration of historical indexed usage events to the expanded mappings with added community and record metadata</p></li>
-<li><p>initial indexing of the community membership events for existing records (when a record is added to or removed from a community)</p></li>
-<li><p>progressive aggregation of historical statistics
-This initial setup is handled by the background tasks that run on a regular schedule to aggregate the statistics. If the instance has a large number of records, this may up to a day or more to complete.</p></li>
+<li><p>registration of automated celery tasks</p></li>
+<li><p>registration of new stats search templates</p></li>
+<li><p>progressive aggregation of any historical statistics</p></li>
+<li><p>pre-preparation of JSON response objects for any historical statistics</p></li>
+</ul>
+<p>This initial setup is handled by the background tasks that run on a regular schedule to aggregate the statistics. If the instance has a large number of records and/or communities, this may up to a day or more to complete.</p>
+<p>In existing InvenioRDM instances, two steps needing to be performed first via CLI commands:</p>
+<ul class="simple">
+<li><p>initial indexing of the community add/remove events for existing records</p></li>
+<li><p>migration of existing view and download indices to an expanded schema (with added community and record metadata)</p></li>
 </ul>
 <p>The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.</p>
+</section>
+<section id="faqs">
+<h2>FAQs<a class="headerlink" href="#faqs" title="Link to this heading">¶</a></h2>
+<section id="do-i-need-to-enable-all-of-the-different-kinds-of-statistics">
+<h3>Do I need to enable all of the different kinds of statistics?<a class="headerlink" href="#do-i-need-to-enable-all-of-the-different-kinds-of-statistics" title="Link to this heading">¶</a></h3>
+<p>No. ???</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -370,8 +430,33 @@ This initial setup is handled by the background tasks that run on a regular sche
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Overview</a><ul>
+<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#architecture">Architecture</a></li>
+<li><a class="reference internal" href="#setup">Setup</a></li>
+<li><a class="reference internal" href="#faqs">FAQs</a><ul>
+<li><a class="reference internal" href="#do-i-need-to-enable-all-of-the-different-kinds-of-statistics">Do I need to enable all of the different kinds of statistics?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
