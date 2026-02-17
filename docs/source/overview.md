@@ -94,3 +94,9 @@ In existing InvenioRDM instances, two steps needing to be performed first via CL
 - migration of existing view and download indices to an expanded schema (with added community and record metadata)
 
 The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.
+
+## FAQs
+
+### Do I need to enable all of the different kinds of statistics?
+
+No. ???

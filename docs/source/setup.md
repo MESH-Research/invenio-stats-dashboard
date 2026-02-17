@@ -60,7 +60,7 @@ These tasks must be performed manually via CLI commands detailed below. They req
 
 The extension adds two custom fields to the community metadata schema:
 
-- `stats:dashboard_layout` allows communities to store dashboard layout configurations.
+- `stats:dashboard_layout` allows communities to store dashboard layout configurations to override instance-wide defaults.
 - `stats:dashboard_enabled` allows communities to enable or disable their dashboards on an individual basis (if the package is configured to allow it).
 
 These fields must be initialized in the search index before they can be used:
@@ -73,27 +73,26 @@ invenio custom-fields communities init stats:dashboard_layout
 invenio custom-fields communities exists stats:dashboard_layout
 ```
 
-The toggle for enabling and disabling a community's dashboard is automatically integrated into community creation and editing forms _if_ you have configured community dashboards to be opt-in (
-`STATS_DASHBOARD_COMMUNITY_OPT_IN = True`). ???
+The toggle for enabling and disabling a community's dashboard is automatically integrated into community creation and editing forms _if_ you have configured community dashboards to be opt-in (`STATS_DASHBOARD_COMMUNITY_OPT_IN = True`). ???
 
 ### Initial indexing of community addition events
 
-The `invenio-stats-dashboard` requires a dedicated search index to store data about when each record was added to or removed from a community. If an InvenioRDM instance already has records included, these community add/remove events must be created retroactively for existing records by running this CLI command inside the instance's running ui app container:
+When the `invenio-stats-dashboard` extension is loaded, it registers a template for a dedicated search index to store data about when each record was added to or removed from a community. From that point on, new add/remove events are indexed automatically by service components. But if an InvenioRDM instance already includes records, past add/remove events must be created retroactively for existing records. Inside the ui app container, run this CLI command:
 
 ```shell
 invenio community-stats community-events generate
 ```
 
-For details, see the section on [CLI community-event commands](./cli.html#community-events-generate).
+For details on this command's use, see the section on [CLI community-event commands](./cli.html#community-events-generate).
 
-This process is usually relatively fast, but can still take several minutes on a large instance. So the `community-evenst status` CLI command is available to check the progress of the operation and ensure that it has completed successfully.
+This back-filling of add/remove events is usually relatively fast, but can still take several minutes on a large instance. So the `community-evenst status` CLI command is available ([detailed here](./cli.html#community-events-status)) to check the progress of the operation and ensure that it has completed successfully.
 
 ```{warning}
-Note that this command must be run even if the existing records are not yet placed in communities. The global instance statistics aggregations also rely on "add" events from this index.
+Note that this command must be run even if the existing records are not yet placed in communities. The statistics aggregations for the instance as a whole also rely on "add" events to the "global" corpus recorded in this index.
 ```
 
 ```{note}
-This command by default runs as a live process in the container (usually the ui container) in which it is executed. The `generate-background` command runs the migration as a background process, detached from the user's shell session, with output recorded in a log file.
+This command by default runs as a live process in the container (usually the ui container) in which it is executed. The `generate-background` command runs the migration as a background process, detached from the user's shell session, with output recorded in a log file. It does *not*, however, run the operation as a celery task in the `worker` app. It is still run by the ui app.
 ```
 
 ### Initial migration of existing view/download events
@@ -159,7 +158,7 @@ To clear the bookmarks for all months, you can use the `invenio community-stats 
 
 ## 4. Initial aggregation of historical data
 
-???configure subcounts first
+???configure subcounts firstkk
 
 The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually. In the ui app container, one may run
 
