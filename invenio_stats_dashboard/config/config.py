@@ -221,6 +221,28 @@ STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
 """Custom function to register the menu item. If None, uses default registration.
 Should be a callable that takes the Flask app as its only argument."""
 
+# Community header menu (community details page submenu)
+STATS_DASHBOARD_COMMUNITY_MENU_ENABLED = True
+"""Enable or disable the Statistics tab in the community details header menu."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_TEXT = _("Statistics")
+"""Text for the community stats menu item in the community details header."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_ORDER = 35
+"""Order of the community stats item in the community details menu 
+(e.g. 35 = after Members in the default community details menu)."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT = (
+    "invenio_stats_dashboard.community_stats_dashboard"
+)
+"""Endpoint for the community stats menu item (must accept pid_value)."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the community details menu item. If None, uses
+default registration. Should be a callable that takes the Flask app as its only
+argument. When registering the item, the callable must pass 
+expected_args=['pid_value'], and it should pass icon and permissions."""
+
 STATS_DASHBOARD_USE_TEST_DATA = False
 """Enable or disable test data mode. When True, the dashboard will use sample data
 instead of making API calls."""
