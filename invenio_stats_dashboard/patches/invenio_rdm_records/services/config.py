@@ -100,7 +100,7 @@ from .sort import VerifiedRecordsSortParam
 
 def is_draft_and_has_review(record, ctx):
     """Determine if draft has doi.
-    
+
     Returns:
         bool: True if draft has review, False otherwise.
     """
@@ -109,7 +109,7 @@ def is_draft_and_has_review(record, ctx):
 
 def is_record_and_has_doi(record, ctx):
     """Determine if record has doi.
-    
+
     Returns:
         bool: True if record has DOI, False otherwise.
     """
@@ -118,7 +118,7 @@ def is_record_and_has_doi(record, ctx):
 
 def is_record_or_draft_and_has_parent_doi(record, ctx):
     """Determine if draft or record has parent doi.
-    
+
     Returns:
         bool: True if record/draft has parent DOI, False otherwise.
     """
@@ -129,7 +129,7 @@ def is_record_or_draft_and_has_parent_doi(record, ctx):
 
 def has_doi(record, ctx):
     """Determine if a record has a DOI.
-    
+
     Returns:
         bool: True if record has DOI, False otherwise.
     """
@@ -139,7 +139,7 @@ def has_doi(record, ctx):
 
 def is_iiif_compatible(file_, ctx):
     """Determine if a file is IIIF compatible.
-    
+
     Returns:
         bool: True if file is IIIF compatible, False otherwise.
     """
@@ -185,7 +185,7 @@ def record_thumbnail_sizes():
 
 def get_record_thumbnail_file(record, **kwargs):
     """Generate the URL for a record's thumbnail.
-    
+
     Returns:
         str | None: URL for the thumbnail file, or None if not found.
     """
@@ -273,18 +273,13 @@ class RecordPIDLink(ExternalLink):
 
     def vars(self, record, vars):
         """Add record PID to vars."""
-        vars.update(
-            {
-                f"pid_{scheme}": pid["identifier"]
-                for (scheme, pid) in record.pids.items()
-            }
-        )
-        vars.update(
-            {
-                f"parent_pid_{scheme}": pid["identifier"]
-                for (scheme, pid) in record.parent.pids.items()
-            }
-        )
+        vars.update({
+            f"pid_{scheme}": pid["identifier"] for (scheme, pid) in record.pids.items()
+        })
+        vars.update({
+            f"parent_pid_{scheme}": pid["identifier"]
+            for (scheme, pid) in record.parent.pids.items()
+        })
 
 
 class ThumbnailLinks:
@@ -305,7 +300,7 @@ class ThumbnailLinks:
 
     def should_render(self, obj, context):
         """Determine if the dictionary of links should be rendered.
-        
+
         Returns:
             bool: True if links should be rendered, False otherwise.
         """
@@ -316,7 +311,7 @@ class ThumbnailLinks:
 
     def expand(self, obj, context):
         """Expand the thumbs size dictionary of URIs.
-        
+
         Returns:
             dict: Expanded dictionary of URIs.
         """
@@ -325,15 +320,13 @@ class ThumbnailLinks:
         record = obj
         pid_value = record.pid.pid_value
         file_key = get_record_thumbnail_file(record=record)
-        vars.update(
-            {
-                "uuid": f"record:{pid_value}:{file_key}",
-                "region": "full",
-                "rotation": "0",
-                "quality": "default",
-                "image_format": "jpg",
-            }
-        )
+        vars.update({
+            "uuid": f"record:{pid_value}:{file_key}",
+            "region": "full",
+            "rotation": "0",
+            "quality": "default",
+            "image_format": "jpg",
+        })
         links = {}
         for size in self._sizes:
             vars["size"] = f"^{size},"  # IIIF syntax
@@ -343,7 +336,7 @@ class ThumbnailLinks:
 
 record_doi_link = ConditionalLink(
     cond=is_datacite_test,
-    if_=RecordPIDLink("https://handle.stage.datacite.org/{+pid_doi}", when=has_doi),
+    if_=RecordPIDLink("https://handle.test.datacite.org/{+pid_doi}", when=has_doi),
     else_=RecordPIDLink("https://doi.org/{+pid_doi}", when=has_doi),
 )
 
@@ -356,7 +349,7 @@ def vars_preview_html(drafcord, vars):
 
 def get_pid_value(drafcord):
     """Get the pid_value or None of draft or record.
-    
+
     Returns:
         str | None: PID value if available, None otherwise.
     """
@@ -492,30 +485,28 @@ class WithFileLinks(type):
                 "iiif.canvas",
                 params=["uuid", "file_name"],
                 when=is_iiif_compatible,
-                vars=lambda file_drafcord, vars: vars.update(
-                    {
-                        "uuid": get_iiif_uuid_of_drafcord_from_file_drafcord(
-                            file_drafcord, vars
-                        ),
-                        "file_name": vars["key"],  # Because of FileEndpointLink
-                    }
-                ),
+                vars=lambda file_drafcord, vars: vars.update({
+                    "uuid": get_iiif_uuid_of_drafcord_from_file_drafcord(
+                        file_drafcord, vars
+                    ),
+                    "file_name": vars["key"],  # Because of FileEndpointLink
+                }),
             ),
             "iiif_base": EndpointLink(
                 "iiif.base",
                 params=["uuid"],
                 when=is_iiif_compatible,
-                vars=lambda file_drafcord, vars: vars.update(
-                    {"uuid": get_iiif_uuid_of_file_drafcord(file_drafcord, vars)}
-                ),
+                vars=lambda file_drafcord, vars: vars.update({
+                    "uuid": get_iiif_uuid_of_file_drafcord(file_drafcord, vars)
+                }),
             ),
             "iiif_info": EndpointLink(
                 "iiif.info",
                 params=["uuid"],
                 when=is_iiif_compatible,
-                vars=lambda file_drafcord, vars: vars.update(
-                    {"uuid": get_iiif_uuid_of_file_drafcord(file_drafcord, vars)}
-                ),
+                vars=lambda file_drafcord, vars: vars.update({
+                    "uuid": get_iiif_uuid_of_file_drafcord(file_drafcord, vars)
+                }),
             ),
             "iiif_api": EndpointLink(
                 "iiif.image_api",
@@ -528,16 +519,14 @@ class WithFileLinks(type):
                     "image_format",
                 ],
                 when=is_iiif_compatible,
-                vars=lambda file_drafcord, vars: vars.update(
-                    {
-                        "uuid": get_iiif_uuid_of_file_drafcord(file_drafcord, vars),
-                        "region": "full",
-                        "size": "full",
-                        "rotation": "0",
-                        "quality": "default",
-                        "image_format": "png",
-                    }
-                ),
+                vars=lambda file_drafcord, vars: vars.update({
+                    "uuid": get_iiif_uuid_of_file_drafcord(file_drafcord, vars),
+                    "region": "full",
+                    "size": "full",
+                    "rotation": "0",
+                    "quality": "default",
+                    "image_format": "png",
+                }),
             ),
         }
 
@@ -688,12 +677,10 @@ class RDMRecordServiceConfig(RecordServiceConfig, ConfiguratorMixin):
             "invenio_app_rdm_records.record_from_pid",
             params=["pid_value", "pid_scheme"],
             when=is_record_and_has_doi,
-            vars=lambda record, vars: vars.update(
-                {
-                    "pid_scheme": "doi",
-                    "pid_value": record.pids["doi"]["identifier"],
-                }
-            ),
+            vars=lambda record, vars: vars.update({
+                "pid_scheme": "doi",
+                "pid_value": record.pids["doi"]["identifier"],
+            }),
         ),
         # TODO: only include link when DOI support is enabled.
         "reserve_doi": RecordEndpointLink(
@@ -706,22 +693,22 @@ class RDMRecordServiceConfig(RecordServiceConfig, ConfiguratorMixin):
             "records.read",
             params=["pid_value"],
             when=is_record,
-            vars=lambda record, vars: vars.update(
-                {"pid_value": record.parent.pid.pid_value}
-            ),
+            vars=lambda record, vars: vars.update({
+                "pid_value": record.parent.pid.pid_value
+            }),
         ),
         "parent_html": EndpointLink(
             "invenio_app_rdm_records.record_detail",
             params=["pid_value"],
             when=is_record,
-            vars=lambda record, vars: vars.update(
-                {"pid_value": record.parent.pid.pid_value}
-            ),
+            vars=lambda record, vars: vars.update({
+                "pid_value": record.parent.pid.pid_value
+            }),
         ),
         "parent_doi": ConditionalLink(
             cond=is_datacite_test,
             if_=RecordPIDLink(
-                "https://handle.stage.datacite.org/{+parent_pid_doi}",
+                "https://handle.test.datacite.org/{+parent_pid_doi}",
                 when=is_record_or_draft_and_has_parent_doi,
             ),
             else_=RecordPIDLink(
@@ -733,12 +720,10 @@ class RDMRecordServiceConfig(RecordServiceConfig, ConfiguratorMixin):
             "invenio_app_rdm_records.record_from_pid",
             params=["pid_value", "pid_scheme"],
             when=is_record_or_draft_and_has_parent_doi,
-            vars=lambda record, vars: vars.update(
-                {
-                    "pid_scheme": "doi",
-                    "pid_value": record.parent.pids["doi"]["identifier"],
-                }
-            ),
+            vars=lambda record, vars: vars.update({
+                "pid_scheme": "doi",
+                "pid_value": record.parent.pids["doi"]["identifier"],
+            }),
         ),
         # IIIF
         "self_iiif_manifest": EndpointLink(
