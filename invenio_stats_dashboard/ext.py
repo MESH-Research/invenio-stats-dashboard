@@ -152,13 +152,18 @@ class InvenioStatsDashboard:
         description props in the UI widgets. But if the instance has
         overridden this we respect the overrides.
 
+        The stats dashboard "Enable Dashboard" control is only added when
+        STATS_DASHBOARD_COMMUNITY_OPT_IN is True, since in opt-out mode the
+        setting has no effect on visibility.
+
         Returns:
             list[dict]: Configuration dictionary for communities custom fields ui
         """
         custom_fields_ui: list[dict] = app.config.get(
             "COMMUNITIES_CUSTOM_FIELDS_UI", []
         )
-        if not any(
+        opt_in = app.config.get("STATS_DASHBOARD_COMMUNITY_OPT_IN", True)
+        if opt_in and not any(
             u
             for u in custom_fields_ui
             if any(
@@ -328,29 +333,44 @@ def finalize_app(app):
 
 def _register_menus(app):
     """Register menu."""
-    # Check if stats and menu entry are enabled
-    if not app.config.get("COMMUNITY_STATS_ENABLED", True) or not app.config.get(
-        "STATS_DASHBOARD_MENU_ENABLED", True
-    ):
+    # Check if stats and menu entry are enabled (unchanged from original)
+    if not app.config.get("COMMUNITY_STATS_ENABLED", True):
         return
 
-    # Check for custom registration function
-    custom_func = app.config.get("STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION")
-    if custom_func is not None:
-        if callable(custom_func):
-            custom_func(app)
+    # Check for custom registration functions
+    if app.config.get("STATS_DASHBOARD_MENU_ENABLED", True):
+        custom_func = app.config.get("STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION")
+        if custom_func is not None:
+            if callable(custom_func):
+                custom_func(app)
+            else:
+                app.logger.warning(
+                    "STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION is not callable, "
+                    "using default menu registration"
+                )
+                _register_default_menu(app)
         else:
-            app.logger.warning(
-                "STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION is not callable, "
-                "using default menu registration"
-            )
             _register_default_menu(app)
-    else:
-        _register_default_menu(app)
+
+    if app.config.get("STATS_DASHBOARD_COMMUNITY_MENU_ENABLED", True):
+        custom_func = app.config.get(
+            "STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION"
+        )
+        if custom_func is not None:
+            if callable(custom_func):
+                custom_func(app)
+            else:
+                app.logger.warning(
+                    "STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION is not callable, "
+                    "using default community menu registration"
+                )
+                _register_default_community_menu(app)
+        else:
+            _register_default_community_menu(app)
 
 
 def _register_default_menu(app):
-    """Register the default stats menu item."""
+    """Register the default stats menu item (main nav)."""
     current_menu.submenu("main.stats").register(
         endpoint=app.config.get(
             "STATS_DASHBOARD_MENU_ENDPOINT",
@@ -366,4 +386,26 @@ def _register_default_menu(app):
             ),
         ),
         order=app.config.get("STATS_DASHBOARD_MENU_ORDER", 1),
+    )
+
+
+def _register_default_community_menu(app):
+    """Register the Statistics tab on the community details header menu."""
+    current_menu.submenu("communities").submenu("stats").register(
+        endpoint=app.config.get(
+            "STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT",
+            "invenio_stats_dashboard.community_stats_dashboard",
+        ),
+        text=app.config.get(
+            "STATS_DASHBOARD_COMMUNITY_MENU_TEXT",
+            _("Statistics"),
+        ),
+        order=app.config.get("STATS_DASHBOARD_COMMUNITY_MENU_ORDER", 35),
+        # expected_args: URL args the endpoint needs; used by flask-menu to build
+        # item.url (e.g. url_for(endpoint, pid_value=...)) when rendering the menu.
+        expected_args=["pid_value"],
+        icon="chart line",
+        # permissions: key in the community details permissions dict; item is shown
+        # only if permissions[permissions] is truthy.
+        permissions="can_read",
     )
