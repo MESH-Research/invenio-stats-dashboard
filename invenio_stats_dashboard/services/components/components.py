@@ -710,7 +710,7 @@ class CommunityCustomFieldsDefaultsComponent(ServiceComponent):
         """
         # Handle stats:dashboard_enabled field
         if cf.name == "stats:dashboard_enabled":
-            config_value = current_app.config.get("STATS_DASHBOARD_OPT_IN")
+            config_value = current_app.config.get("STATS_DASHBOARD_COMMUNITY_OPT_IN")
             if config_value is not None:
                 if isinstance(config_value, bool):
                     bool_value = config_value
