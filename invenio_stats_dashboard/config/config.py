@@ -948,6 +948,9 @@ STATS_DASHBOARD_LAYOUT = {
 
 
 COMMUNITY_STATS_QUERIES = {
+    # NOTE: stats based on created and published dates are deprecated
+    # for the time being.
+    #
     # "community-record-delta-created": {
     #     "cls": CommunityRecordDeltaResultsQuery,
     #     "permission_factory": CommunityStatsPermissionFactory,
@@ -1517,11 +1520,8 @@ COMMUNITY_STATS_SUBCOUNTS = {
 }
 
 # JSON compression configuration
-# When True: Frontend requests compressed JSON (application/json+gzip) from the API
-# When False: Frontend requests plain JSON (application/json) and lets server
-#   handle compression
-# Set to False when server-level compression (nginx, Apache) is enabled to avoid
-#   double compression
+# DEPRECATED: We always rely on server-level compression after the response
+# has been returned by the app.
 STATS_DASHBOARD_COMPRESS_JSON = False
 
 # Client-side IndexedDB cache compression configuration
