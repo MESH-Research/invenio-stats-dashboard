@@ -9,7 +9,7 @@
 project = "Invenio Stats Dashboard"
 copyright = "2025, MESH Research"
 author = "MESH Research"
-release = "0.1.0-alpha1"
+release = "0.5.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
