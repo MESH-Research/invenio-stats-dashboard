@@ -1168,13 +1168,48 @@ STATS_EVENTS = {
     },
 }
 
+# Number of top records to collect for "top" type subcounts
+COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
+
+# View/download event reindexing
 STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000
 STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 5000
 STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 85
 
-# Number of top records to collect for "top" type subcounts
-COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
+# Adaptive chunking for aggregation (base aggregator)
+# These variables are part of the adaptive protection against
+# out-of-memory errors and bulk indexing errors.
+# DO NOT CHANGE THESE WITHOUT UNDERSTANDING THE CODE THAT USES THEM
+COMMUNITY_STATS_INITIAL_CHUNK_SIZE = 50
+"""Initial bulk-index chunk size. Reduced on timeout, grown on success."""
+COMMUNITY_STATS_MIN_CHUNK_SIZE = 1
+COMMUNITY_STATS_MAX_CHUNK_SIZE = 100
+COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR = 0.7
+"""Factor to reduce chunk size after a timeout (e.g. 0.7 = 30% reduction)."""
+COMMUNITY_STATS_CHUNK_GROWTH_FACTOR = 1.05
+"""Factor to increase chunk size after successful bulk index."""
+COMMUNITY_STATS_BULK_INDEX_TIMEOUT = 300
+"""Bulk index and search timeout in seconds."""
 
+# Usage snapshot aggregation memory and tuning (usage_snapshot_aggs.py)
+# These variables are part of the adaptive protection against
+# out-of-memory errors in usage snapshot aggregations particularly.
+# DO NOT CHANGE THESE WITHOUT UNDERSTANDING THE CODE THAT USES THEM
+COMMUNITY_STATS_WS_OVERHEAD = 1.1
+"""Overhead factor for working-set size estimates."""
+COMMUNITY_STATS_SCAN_OVERHEAD = 0.85
+COMMUNITY_STATS_BULK_OVERHEAD = 1.3
+COMMUNITY_STATS_DELTA_OVERHEAD = 1.2
+COMMUNITY_STATS_MEM_SAFETY_FACTOR = 1.2
+"""Safety factor for memory threshold checks."""
+COMMUNITY_STATS_TOP_GROWTH_FACTOR = 3.0
+COMMUNITY_STATS_TOP_GROWTH_FLOOR_FACTOR = 5.0
+COMMUNITY_STATS_TOP_HARD_CAP_PER_KEY = 10000
+COMMUNITY_STATS_TOP_DISCOVERY_DECAY = 0.3
+COMMUNITY_STATS_AVG_DELTA_BYTES = 10240
+"""Average bytes per delta document for size estimates."""
+COMMUNITY_STATS_INMEMORY_MULTIPLIER = 4.0
+"""Multiplier for serialized size to approximate in-memory footprint."""
 
 COMMUNITY_STATS_SUBCOUNTS = {
     "resource_types": {

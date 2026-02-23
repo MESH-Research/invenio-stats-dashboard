@@ -49,7 +49,7 @@ html_theme = "furo"
 html_theme_options = {
     "navigation_with_keys": True,
     "announcement": (
-        "⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a>"
+        "⚠️  This is a beta package. Please report issues on <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>GitHub</a>."
     ),
     "source_repository": "https://github.com/MESH-Research/invenio-stats-dashboard",
     "source_branch": "main",

@@ -728,6 +728,144 @@ ensures that the templates are registered with the OpenSearch domain. and the in
 
 For more information about the index configuration and creation process, see [Setup and Migration](#setup-and-migration) below.
 
+#### Community Custom Fields
+
+The stats dashboard extension automatically provides a custom field for communities to store dashboard layout configurations. This allows each community to have its own customized dashboard layout while maintaining a consistent global configuration.
+
+##### `stats:dashboard_layout`
+
+The custom field stores a JSON object with the following structure:
+
+```python
+{
+    "global": {
+        "tabs": [
+            {
+                "name": "content",
+                "label": "Content",
+                "rows": [
+                    {
+                        "name": "date-range-selector",
+                        "components": [
+                            {"component": "DateRangeSelector", "width": 16}
+                        ]
+                    },
+                    {
+                        "name": "single-stats",
+                        "components": [
+                            {"component": "SingleStatRecordCount", "width": 3},
+                            {"component": "SingleStatUploaders", "width": 3},
+                            {"component": "SingleStatDataVolume", "width": 3}
+                        ]
+                    },
+                    {
+                        "name": "charts",
+                        "components": [
+                            {"component": "StatsChart", "width": 8}
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "community": {
+        "tabs": [
+            {
+                "name": "content",
+                "label": "Content",
+                "rows": [
+                    {
+                        "name": "date-range-selector",
+                        "components": [
+                            {"component": "DateRangeSelector", "width": 16}
+                        ]
+                    },
+                    {
+                        "name": "single-stats",
+                        "components": [
+                            {"component": "SingleStatRecordCount", "width": 4},
+                            {"component": "SingleStatUploaders", "width": 4},
+                            {"component": "SingleStatDataVolume", "width": 4},
+                            {"component": "SingleStatViews", "width": 4}
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+##### Integration Methods
+
+**Method 1: Automatic Integration (Recommended)**
+
+For instances without existing custom field configurations, the extension automatically provides the custom field:
+
+```python
+# No configuration needed - field is automatically available
+# Extension merges its configuration with defaults
+```
+
+**Method 2: Manual Integration**
+
+For instances with existing custom field configurations, manually integrate the stats dashboard fields:
+
+```python
+# In invenio.cfg
+from invenio_stats_dashboard.records.communities.custom_fields.custom_fields import (
+    COMMUNITY_STATS_FIELDS,
+    COMMUNITY_STATS_FIELDS_UI,
+    COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
+)
+
+# Merge namespaces
+COMMUNITIES_NAMESPACES = {
+    "your_namespace": "https://your-site.org/terms/",
+    **STATS_COMMUNITIES_NAMESPACES,
+}
+
+# Add custom fields
+COMMUNITIES_CUSTOM_FIELDS = [
+    # Your existing fields
+    TextCF(name="your_namespace:your_field"),
+    # Stats dashboard fields
+    *COMMUNITY_STATS_FIELDS,
+]
+
+# Add UI configuration
+COMMUNITIES_CUSTOM_FIELDS_UI = [
+    # Your existing UI config
+    {
+        "section": "Your Section",
+        "fields": [...]
+    },
+    # Stats dashboard UI config
+    COMMUNITY_STATS_FIELDS_UI,
+]
+```
+
+##### Field Initialization
+
+After configuration, initialize the custom field in the search index:
+
+```bash
+# Initialize the custom field
+invenio custom-fields communities init stats:dashboard_layout
+
+# Verify the field exists
+invenio custom-fields communities exists stats:dashboard_layout
+```
+
+#### Usage in Communities
+
+Once configured, community administrators can:
+
+1. **Access the field** in community creation/editing forms
+2. **Configure layouts** using the structured JSON format
+3. **Override defaults** by providing community-specific configurations
+4. **Maintain consistency** with global dashboard structure
+
 ### Service layer
 
 At the service layer, this module provides:
@@ -896,6 +1034,7 @@ The caching system consists of three main components:
 **Cache Key Structure:**
 
 Cache keys are generated based on:
+
 - Community ID (or "global")
 - Dashboard type (global or community)
 - Date basis ("added", "created", or "published")
