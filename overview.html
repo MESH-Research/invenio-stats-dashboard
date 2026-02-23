@@ -155,7 +155,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+     ⚠️  This is a beta package. Please report issues on <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>GitHub</a>. 
   </aside>
 </div>
 
@@ -255,7 +255,10 @@
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h1>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides responsive, performant, and highly configurable dashboards for viewing statistics. Separate dashboards are provided for the InvenioRDM instance as a whole as well as for each of its communities. The extension makes available time-series data for each community and the instance as a whole, including:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">invenio-stats-dashboard</span></code> extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides responsive, performant, and highly configurable dashboards for viewing statistics. Separate dashboards are provided for the InvenioRDM instance as a whole as well as for each of its communities.</p>
+<section id="statistic-for-display">
+<h3>Statistic for display<a class="headerlink" href="#statistic-for-display" title="Link to this heading">¶</a></h3>
+<p>The extension makes available time-series data for each community and the instance as a whole, including:</p>
 <ul class="simple">
 <li><p>running cumulative totals and delta changes for a given date range</p>
 <ul>
@@ -280,6 +283,57 @@
 </li>
 <li><p>subcounts for view/download metrics broken down by visitor country</p></li>
 </ul>
+</section>
+</section>
+<section id="usable">
+<h2>Usable<a class="headerlink" href="#usable" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Downloadable reports in JSON, CSV, XML, or XLSX formats.</p></li>
+<li><p>CLI tooling to aid with setup and maintenance.</p></li>
+</ul>
+<section id="configurable">
+<h3>Configurable<a class="headerlink" href="#configurable" title="Link to this heading">¶</a></h3>
+<p>Some additional features make the dashboards adaptable to a wide variety of InvenioRDM instances:</p>
+<ul class="simple">
+<li><p>Opt-in community dashboards</p>
+<ul>
+<li><p>Community dashboards can be enabled for all communities centrally, or they can be enabled individually via controls on each community’s settings page.</p></li>
+</ul>
+</li>
+<li><p>Fully customizable dashboard layouts</p>
+<ul>
+<li><p>Dashboard pages, page layouts, and included widgets are configurable via a config object.</p></li>
+</ul>
+</li>
+<li><p>Customizable metadata subcounts</p>
+<ul>
+<li><p>Determine which metadata fields to make available for statistics subcounts via a config variable during setup.</p></li>
+</ul>
+</li>
+<li><p>Enable either the global instance dashboard, or the community dashboards, or both.</p></li>
+</ul>
+</section>
+<section id="performant">
+<h3>Performant<a class="headerlink" href="#performant" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Only pre-calculates the statistics you need</p>
+<ul>
+<li><p>No calculation for communities with their dashboard turned off</p></li>
+</ul>
+</li>
+<li><p>Server-side pre-caching of JSON responses for display</p>
+<ul>
+<li><p>Responses are calculated once and cached in a dedicated Redis store.</p></li>
+</ul>
+</li>
+<li><p>Streamlined JSON for front end display</p>
+<ul>
+<li><p>Pre-transformed JSON responses include only the values needed by the UI widgets configured for your dashboards.</p></li>
+</ul>
+</li>
+<li><p>Client-side caching of api responses</p></li>
+</ul>
+</section>
 </section>
 <section id="architecture">
 <h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
@@ -356,20 +410,7 @@ statistics dashboard to site-wide navigation</p></li>
 </section>
 <section id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
-<p>For a new InvenioRDM instance all of the initial setup of the back-end statistics infrastructure is handled automatically when the module is installed. This includes</p>
-<ul class="simple">
-<li><p>registration of automated celery tasks</p></li>
-<li><p>registration of new stats search templates</p></li>
-<li><p>progressive aggregation of any historical statistics</p></li>
-<li><p>pre-preparation of JSON response objects for any historical statistics</p></li>
-</ul>
-<p>This initial setup is handled by the background tasks that run on a regular schedule to aggregate the statistics. If the instance has a large number of records and/or communities, this may up to a day or more to complete.</p>
-<p>In existing InvenioRDM instances, two steps needing to be performed first via CLI commands:</p>
-<ul class="simple">
-<li><p>initial indexing of the community add/remove events for existing records</p></li>
-<li><p>migration of existing view and download indices to an expanded schema (with added community and record metadata)</p></li>
-</ul>
-<p>The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.</p>
+<p>Much of the setup for invenio-stats-dashboard is handled automatically once the extension has been installed. But a few tasks need to be performed manually via CLI commands, and users may wish to configure various aspects of the package. See the (setup)[./setup.md] and (configuration)[./configuration.md] sections for details.</p>
 </section>
 <section id="faqs">
 <h2>FAQs<a class="headerlink" href="#faqs" title="Link to this heading">¶</a></h2>
@@ -443,7 +484,15 @@ statistics dashboard to site-wide navigation</p></li>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Overview</a><ul>
-<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#features">Features</a><ul>
+<li><a class="reference internal" href="#statistic-for-display">Statistic for display</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#usable">Usable</a><ul>
+<li><a class="reference internal" href="#configurable">Configurable</a></li>
+<li><a class="reference internal" href="#performant">Performant</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#architecture">Architecture</a></li>
 <li><a class="reference internal" href="#setup">Setup</a></li>
 <li><a class="reference internal" href="#faqs">FAQs</a><ul>

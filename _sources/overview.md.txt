@@ -2,7 +2,11 @@
 
 ## Features
 
-The `invenio-stats-dashboard` extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides responsive, performant, and highly configurable dashboards for viewing statistics. Separate dashboards are provided for the InvenioRDM instance as a whole as well as for each of its communities. The extension makes available time-series data for each community and the instance as a whole, including:
+The `invenio-stats-dashboard` extension provides global and community statistics recording and reporting for an InvenioRDM instance. It provides responsive, performant, and highly configurable dashboards for viewing statistics. Separate dashboards are provided for the InvenioRDM instance as a whole as well as for each of its communities.
+
+### Statistic for display
+
+The extension makes available time-series data for each community and the instance as a whole, including:
 
 - running cumulative totals and delta changes for a given date range
   - number of records and files
@@ -20,6 +24,33 @@ The `invenio-stats-dashboard` extension provides global and community statistics
   - periodical title
   - file type
 - subcounts for view/download metrics broken down by visitor country
+
+## Usable
+
+- Downloadable reports in JSON, CSV, XML, or XLSX formats.
+- CLI tooling to aid with setup and maintenance.
+
+### Configurable
+
+Some additional features make the dashboards adaptable to a wide variety of InvenioRDM instances:
+
+- Opt-in community dashboards
+  - Community dashboards can be enabled for all communities centrally, or they can be enabled individually via controls on each community's settings page.
+- Fully customizable dashboard layouts
+  - Dashboard pages, page layouts, and included widgets are configurable via a config object.
+- Customizable metadata subcounts
+  - Determine which metadata fields to make available for statistics subcounts via a config variable during setup.
+- Enable either the global instance dashboard, or the community dashboards, or both.
+
+### Performant
+
+- Only pre-calculates the statistics you need
+  - No calculation for communities with their dashboard turned off
+- Server-side pre-caching of JSON responses for display
+  - Responses are calculated once and cached in a dedicated Redis store.
+- Streamlined JSON for front end display
+  - Pre-transformed JSON responses include only the values needed by the UI widgets configured for your dashboards.
+- Client-side caching of api responses
 
 ## Architecture
 
@@ -79,21 +110,7 @@ The extension provides:
 
 ## Setup
 
-For a new InvenioRDM instance all of the initial setup of the back-end statistics infrastructure is handled automatically when the module is installed. This includes
-
-- registration of automated celery tasks
-- registration of new stats search templates
-- progressive aggregation of any historical statistics
-- pre-preparation of JSON response objects for any historical statistics
-
-This initial setup is handled by the background tasks that run on a regular schedule to aggregate the statistics. If the instance has a large number of records and/or communities, this may up to a day or more to complete.
-
-In existing InvenioRDM instances, two steps needing to be performed first via CLI commands:
-
-- initial indexing of the community add/remove events for existing records
-- migration of existing view and download indices to an expanded schema (with added community and record metadata)
-
-The module also provides a set of utility classes and functions, along with cli commands, to facilitate setup and maintenance of the statistics infrastructure.
+Much of the setup for invenio-stats-dashboard is handled automatically once the extension has been installed. But a few tasks need to be performed manually via CLI commands, and users may wish to configure various aspects of the package. See the (setup)[./setup.md] and (configuration)[./configuration.md] sections for details.
 
 ## FAQs
 

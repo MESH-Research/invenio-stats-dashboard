@@ -155,7 +155,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+     ⚠️  This is a beta package. Please report issues on <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>GitHub</a>. 
   </aside>
 </div>
 
@@ -258,6 +258,7 @@
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Invenio Stats Dashboard</a></li>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#usable">Usable</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#architecture">Architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#setup">Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#faqs">FAQs</a></li>
@@ -265,12 +266,13 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="todos.html">TODOs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="known_issues.html">Known Issues</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="known_issues.html#setup">Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="known_issues.html#ui">UI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="known_issues.html#reporting">Reporting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="known_issues.html#dependencies">Dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="known_issues.html#cli-commands">CLI Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="known_issues.html#stats-index-migration">Stats Index Migration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="known_issues.html#country-statistics">Country statistics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="known_issues.html#aggregations">Aggregations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="known_issues.html#json-response-caching">JSON Response Caching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="known_issues.html#translations">Translations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="known_issues.html#documentation">Documentation</a></li>
 </ul>
@@ -287,11 +289,11 @@
 <li class="toctree-l2"><a class="reference internal" href="setup.html#install-the-python-package">1. Install the python package.</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html#initial-configuration-for-setup">2. Initial configuration for setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html#manual-cli-steps">3. Manual CLI steps</a></li>
-<li class="toctree-l2"><a class="reference internal" href="setup.html#initial-aggregation-of-historical-data">4. Initial aggregation of historical data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="setup.html#configuration">5. Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#initial-aggregation-of-historical-data-optional">4. Initial aggregation of historical data (optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#initial-response-caching-optional">5. Initial response caching (optional)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html#enable-the-tasks-and-dashboards">6. Enable the tasks and dashboards</a></li>
-<li class="toctree-l2"><a class="reference internal" href="setup.html#automated-setup">Automated setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="setup.html#search-index-template-registration">Search index template registration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#restart-the-inveniordm-instance">7. Restart the InvenioRDM instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#automated-setup-completion">Automated setup completion</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
@@ -304,27 +306,16 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#configuration-overrides">Configuration Overrides</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#module-enable-disable">Module Enable/Disable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#scheduled-tasks-enable-disable">Scheduled Tasks Enable/Disable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#view-download-event-migration">View/Download event migration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#task-scheduling-and-aggregation">Task scheduling and aggregation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#task-locking">Task locking</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#cache-generation-scheduled-tasks">Cache generation scheduled tasks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#default-range-options">Default range options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#menu-configuration">Menu configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#dashboard-layout-and-components">Dashboard layout and components</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#routes">Routes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#templates">Templates</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#ui-configuration">UI Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#overriding-configuration-defaults">Overriding Configuration Defaults</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#basic-settings">Basic Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#subcount-configuration">Subcount Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#bulk-indexing-and-request-size-limits">Bulk Indexing and Request Size Limits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#test-data-mode">Test Data Mode</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#json-compression-configuration">JSON Compression Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#event-processing-configuration">Event Processing Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#auto-generated-configuration">Auto-Generated Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#configuration-reference">Configuration Reference</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html#community-custom-fields">Community Custom Fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#scheduled-aggregation-and-caching-tasks">Scheduled Aggregation and Caching Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#dashboard-ui">Dashboard UI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#dashboard-views">Dashboard Views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api-endpoints">API Endpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#setup-processes">Setup Processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aggregators">Aggregators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#interaction-with-config-from-other-packages">Interaction with Config from Other Packages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#content-negotiation-and-response-serializers">Content Negotiation and Response Serializers</a></li>
 </ul>
 </li>

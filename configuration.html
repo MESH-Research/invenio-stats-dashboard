@@ -155,7 +155,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+     ⚠️  This is a beta package. Please report issues on <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>GitHub</a>. 
   </aside>
 </div>
 
@@ -251,60 +251,249 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="configuration">
+          <section class="tex2jax_ignore mathjax_ignore" id="configuration">
 <h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h1>
-<section id="configuration-overrides">
-<h2>Configuration Overrides<a class="headerlink" href="#configuration-overrides" title="Link to this heading">¶</a></h2>
+<p>Much of invenio-stats-dashboard’s behaviour can be controlled or overridden by use of configuration variables. Many of these can be left at the default settings, but a few <strong>must be considered before the package is set up</strong>:</p>
+<ul class="simple">
+<li><p>(Subcount configuration)[#subcount-configuration]: These settings will determine what is stored in indexed view/download events and aggregated statistics. It determines what metadata fields will be available for subcount displays in the dashboard UI. It is also <strong>currently very difficult to change this setting after initial setup</strong>. (Although an easier path for subsequent changes is planned for future development.)</p></li>
+<li><p>(Basic settings)[#basic-settings]: You will need to enable and disable the dashboards during setup.</p></li>
+<li><p>(Scheduled task enabling/disabling)[#enable-&amp;-disable-scheduled-tasks]: These switches will also be needed during setup.</p></li>
+<li><p>(Dashboard layout and components)[#dashboard-layout-and-components]: The precise layout of your dashboard may easily be changed at any time. But your initial choice of dashboard widgets will determine <strong>what data is included in cached JSON response objects</strong> that are required for the dashboard to load in a reasonable time. After the initial cache generation, if you add components that require additional data points (subcounts or metrics) you will need to regenerate all of the cached responses using the CLI caching commands.</p></li>
+</ul>
+<p>The setup processes (index migration, add/remove event generation, aggregation, caching) are designed to run efficiently with moderate resource use. But if you encounter resource use issues (OOM errors, search indexing timeouts, etc.) you may need to tweak the variable values that control those processes.</p>
+<p>Beyond that, you are encouraged to explore all of the config variables and the flexibility they allow.</p>
+<section id="overriding-configuration-defaults">
+<h2>Overriding Configuration Defaults<a class="headerlink" href="#overriding-configuration-defaults" title="Link to this heading">¶</a></h2>
 <p>The default configuration values are defined in the module’s <code class="docutils literal notranslate"><span class="pre">config/config.py</span></code> file. These defaults can be overridden in the
-top-level <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file of an InvenioRDM instance or as environment variables.</p>
+top-level <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file of an InvenioRDM instance or as environment variables. Remember that you will need to restart your InvenioRDM app instance before changes to config variables will take effect.</p>
 </section>
+<section id="basic-settings">
+<h2>Basic Settings<a class="headerlink" href="#basic-settings" title="Link to this heading">¶</a></h2>
 <section id="module-enable-disable">
-<h2>Module Enable/Disable<a class="headerlink" href="#module-enable-disable" title="Link to this heading">¶</a></h2>
-<p>The entire community stats dashboard module can be enabled or disabled using the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_ENABLED</span></code> configuration variable:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Disable the module completely</span>
-<span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+<h3>Module Enable/Disable<a class="headerlink" href="#module-enable-disable" title="Link to this heading">¶</a></h3>
+<p>The entire community stats dashboard module can be enabled or disabled using the variable:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># to disable the extension</span>
+<span class="c1"># OR</span>
+<span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># to enable the extension</span>
 </pre></div>
 </div>
-<p>When disabled:</p>
+<p>When disabled, all extension features will be disabled, regardless of any other config variable settings:</p>
 <ul class="simple">
 <li><p><strong>Scheduled tasks will not run</strong>: No automatic aggregation or migration tasks</p></li>
-<li><p><strong>CLI commands will fail</strong>: All commands will show an error message</p></li>
-<li><p><strong>Services will not be initialized</strong>: No event tracking or statistics services</p></li>
-<li><p><strong>Menus will not be registered</strong>: No dashboard menu items</p></li>
+<li><p><strong>CLI commands will fail</strong>: All commands will show an error message unless an override option is added to the command.</p></li>
+<li><p><strong>Services will not be initialized</strong>: No event tracking or statistics services will be available.</p></li>
+<li><p><strong>Menus will not be registered</strong>: No dashboard menu items will be registered.</p></li>
 <li><p><strong>Components will not be added</strong>: No event tracking components</p></li>
 </ul>
-<p><strong>Note</strong>: This is a global on/off switch. When disabled, the module will not modify the instance in any way.</p>
+<p>The only effect of the extension on the app instance will be to register the index templates, but no indexing operations will be performed.</p>
 </section>
-<section id="scheduled-tasks-enable-disable">
-<h2>Scheduled Tasks Enable/Disable<a class="headerlink" href="#scheduled-tasks-enable-disable" title="Link to this heading">¶</a></h2>
-<p>Scheduled aggregation tasks can be controlled separately using the <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> configuration variable:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable the module but disable scheduled tasks</span>
-<span class="n">COMMUNITY_STATS_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+<section id="test-data-mode">
+<h3>Test Data Mode<a class="headerlink" href="#test-data-mode" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_USE_TEST_DATA</span></code> variable enables test data mode for development and testing purposes. When enabled, the dashboard will use synthetic data instead of making API calls to the statistics service.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_USE_TEST_DATA</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p><strong>Note</strong>: This should be set to <code class="docutils literal notranslate"><span class="pre">False</span></code> in production environments to ensure real statistics data is displayed.</p>
+</section>
+<section id="menu-configuration">
+<h3>Menu configuration<a class="headerlink" href="#menu-configuration" title="Link to this heading">¶</a></h3>
+<p>The following configuration variables enable or disable the main menu item for the global instance dashboard and the menu item for each community’s dashboard in its community details page submenu:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="sd">&quot;&quot;&quot;Enable or disable the stats menu item.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="sd">&quot;&quot;&quot;Enable or disable the Statistics tab in the community details header menu.&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<p>If desired, the following variables may be used to customize the text and position of each menu item:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;Text for the stats menu item.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_MENU_ORDER</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="sd">&quot;&quot;&quot;Order of the stats menu item in the menu.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;Text for the community stats menu item in the community details header.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_ORDER</span> <span class="o">=</span> <span class="mi">35</span>
+<span class="sd">&quot;&quot;&quot;Order of the community stats item in the community details menu</span>
+<span class="sd">(e.g. 35 = after Members in the default community details menu).&quot;&quot;&quot;</span>
+
+</pre></div>
+</div>
+<p>If more customization of the menu item is desired, you may provide a custom registration function for either menu item. The callable provided will be used in place of the default menu registration function defined in <a class="reference external" href="http://ext.py">ext.py</a>. This allows for, e.g., changing the default menu item icon.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="sd">&quot;&quot;&quot;Custom function to register the menu item. If None, uses default registration</span>
+<span class="sd">set up in ext.py. Should be a callable that takes the Flask app as its only argument.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="sd">&quot;&quot;&quot;Custom function to register the community details menu item. If None, uses</span>
+<span class="sd">default registration. Should be a callable that takes the Flask app as its only</span>
+<span class="sd">argument. When registering the item, the callable must pass</span>
+<span class="sd">expected_args=[&#39;pid_value&#39;], and it should pass icon and permissions.&quot;&quot;&quot;</span>
+
+</pre></div>
+</div>
+<p>If you wish to replace the default global or community view function with a custom one, you may point the menu to your own view function endpoint using the following variables. (This of course requires that you know what you are doing!)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENDPOINT</span> <span class="o">=</span> <span class="s2">&quot;invenio_stats_dashboard.global_stats_dashboard&quot;</span>
+<span class="sd">&quot;&quot;&quot;View function endpoint for the stats menu item.&quot;&quot;&quot;</span>
+
+<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;invenio_stats_dashboard.community_stats_dashboard&quot;</span>
+<span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;Endpoint for the community stats menu item (must accept pid_value).&quot;&quot;&quot;</span>
+
+</pre></div>
+</div>
+</section>
+</section>
+<section id="subcount-configuration">
+<h2>Subcount Configuration<a class="headerlink" href="#subcount-configuration" title="Link to this heading">¶</a></h2>
+<section id="metadata-subcounts-for-aggregations">
+<h3>Metadata subcounts for aggregations<a class="headerlink" href="#metadata-subcounts-for-aggregations" title="Link to this heading">¶</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The performance and resource demands of the community stats aggregation is affected heavily by (a) the number of subcounts you have active, and (b) the number of possible values (cardinality) in each subcount’s metadata field. Consider carefully which subcounts are most useful to your InvenioRDM instance.</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code> is one of the few config variables that <strong>must be considered carefully before the package setup processes</strong> are run. This variable defines the metadata subcounts for statistics aggregation:</p>
+<ul class="simple">
+<li><p>which metadata fields will be added to each indexed view and download event</p></li>
+<li><p>which metadata fields will be included as subcount categories in each daily aggregation document (deltas and snapshots)</p></li>
+</ul>
+<p>It also defines how the metadata from these fields will be handled by the event factories, aggregators, and JSON transformers.</p>
+<p>Its value is a dictionary shaped like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;delta_aggregation_name&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_types&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;snapshot_type&quot;</span><span class="p">:</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                <span class="p">},</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;usage_events&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;delta_aggregation_name&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_types&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;field_type&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;event_field&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_type&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;extraction_path_for_event&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;snapshot_type&quot;</span><span class="p">:</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_type.title&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">&quot;resource_type.title&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                <span class="p">},</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">},</span>
+    <span class="c1"># ... other subcount configurations</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="enabling-and-disabling-metadata-subcounts">
+<h4>Enabling and disabling metadata subcounts<a class="headerlink" href="#enabling-and-disabling-metadata-subcounts" title="Link to this heading">¶</a></h4>
+<p>Each top-level key and value defines one metadata subcount. In general, InvenioRDM instances will not need to customize the values within each subcount definition. To disable a subcount, simply remove its key and value completely (or comment it out) from the COMMUNITY_STATS_SUBCOUNTS dictionary.</p>
+<p>If you want a subcount to be available for only one category of statistics (record/file counts or view/download counts) you may replace the “records” or “usage_events” value for the subcount with an empty dictionary. To disable the “subjects” subcount for view and download statistics, for example, we would adjust the “subjects” subcount value like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;delta_aggregation_name&quot;</span><span class="p">:</span> <span class="s2">&quot;subjects&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;snapshot_type&quot;</span><span class="p">:</span> <span class="s2">&quot;top&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.id&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;metadata.subjects.scheme&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;metadata.subjects.id&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                <span class="p">},</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;usage_events&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="p">},</span>
+<span class="c1"># ... other subcounts</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="available-metadata-subcounts">
+<h4>Available metadata subcounts<a class="headerlink" href="#available-metadata-subcounts" title="Link to this heading">¶</a></h4>
+<p>The following subcounts are configured and are enabled by default unless otherwise noted:</p>
+<ul class="simple">
+<li><p>“resource_types”</p></li>
+<li><p>“access_statuses”</p></li>
+<li><p>“languages”</p></li>
+<li><p>“subjects” (disabled for usage_events)</p></li>
+<li><p>“rights”</p></li>
+<li><p>“funders”</p></li>
+<li><p>“periodicals”</p></li>
+<li><p>“publishers”</p></li>
+<li><p>“affiliations”</p></li>
+<li><p>“countries”</p></li>
+<li><p>“referrers” (disabled)</p></li>
+<li><p>“file_types”</p></li>
+</ul>
+</section>
+</section>
+<section id="metadata-breakdowns-in-the-ui">
+<h3>Metadata breakdowns in the UI<a class="headerlink" href="#metadata-breakdowns-in-the-ui" title="Link to this heading">¶</a></h3>
+<p>This variable controls which subcount breakdowns are available in the UI and how they are displayed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;languages&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;rights&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;funders&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;affiliations&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;file_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;access_statuses&quot;</span><span class="p">:</span> <span class="p">{},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="scheduled-aggregation-and-caching-tasks">
+<h2>Scheduled Aggregation and Caching Tasks<a class="headerlink" href="#scheduled-aggregation-and-caching-tasks" title="Link to this heading">¶</a></h2>
+<section id="enable-disable-scheduled-tasks">
+<h3>Enable &amp; Disable Scheduled Tasks<a class="headerlink" href="#enable-disable-scheduled-tasks" title="Link to this heading">¶</a></h3>
+<p>Scheduled aggregation and response caching tasks can be turned on and off separately, using these variables:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
 </pre></div>
 </div>
-<p>When scheduled tasks are disabled:</p>
+<p>When scheduled aggregation tasks are disabled:</p>
 <ul class="simple">
-<li><p><strong>Scheduled aggregation tasks will not run</strong>: No automatic daily/weekly aggregation</p></li>
-<li><p><strong>CLI aggregation commands will fail</strong>: <code class="docutils literal notranslate"><span class="pre">aggregate</span></code> command will show an error unless <code class="docutils literal notranslate"><span class="pre">--force</span></code> is used</p></li>
-<li><p><strong>Manual aggregation with –force</strong>: You can still run aggregation manually using <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">aggregate</span> <span class="pre">--force</span></code></p></li>
-<li><p><strong>All other functionality remains</strong>: Event tracking, migration, and other features work normally</p></li>
+<li><p><strong>The scheduled tasks will not run</strong>: No automatic hourly aggregation will be performed.</p></li>
+<li><p><strong>CLI aggregation commands will fail</strong>: The <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">aggregate-background</span></code> commands will show an error unless the <code class="docutils literal notranslate"><span class="pre">--force</span></code> flag is used.</p></li>
+<li><p><strong>Other CLI commands related to aggregation will still work</strong>: The <code class="docutils literal notranslate"><span class="pre">community-stats</span> <span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">communnity-stats</span> <span class="pre">clear-bookmarks</span></code>, <code class="docutils literal notranslate"><span class="pre">community-stats</span> <span class="pre">read</span></code> and other commands will work as normal.</p></li>
 </ul>
-<p>This allows you to enable the module for manual operations while preventing automatic background tasks. The <code class="docutils literal notranslate"><span class="pre">--force</span></code> flag bypasses the scheduled tasks check and allows manual aggregation even when scheduled tasks are disabled.</p>
-</section>
-<section id="view-download-event-migration">
-<h2>View/Download event migration<a class="headerlink" href="#view-download-event-migration" title="Link to this heading">¶</a></h2>
-<p>The following configuration variables control the default behavior of migration commands:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_REINDEXING_MAX_BATCHES</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Maximum number of batches to process per month</span>
-<span class="n">STATS_DASHBOARD_REINDEXING_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Number of events to process per batch</span>
-<span class="n">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span> <span class="o">=</span> <span class="mi">75</span>  <span class="c1"># Maximum memory usage percentage before stopping</span>
-</pre></div>
-</div>
-<p>These defaults can be overridden using the corresponding CLI options when running the <code class="docutils literal notranslate"><span class="pre">migrate-events</span></code> command.</p>
+<p>When scheduled caching tasks are disabled:</p>
+<ul class="simple">
+<li><p><strong>The scheduled tasks will not run</strong>: No automatic hourly responnse caching will be performed.</p></li>
+<li><p><strong>CLI caching commands will fail</strong>: The <code class="docutils literal notranslate"><span class="pre">invenio</span> <span class="pre">community-stats</span> <span class="pre">cache</span> <span class="pre">generate</span></code> and <code class="docutils literal notranslate"><span class="pre">generate-background</span></code> commands will show an error unless the <code class="docutils literal notranslate"><span class="pre">--force</span></code> flag is used.</p></li>
+<li><p><strong>Other CLI cache commands will still work</strong>: The <code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">info</span></code>, <code class="docutils literal notranslate"><span class="pre">cache</span> <span class="pre">clear-all</span></code>, etc. will work as normal.</p></li>
+</ul>
+<p>This allows you to enable the module for manual operations while preventing automatic background tasks.</p>
 </section>
 <section id="task-scheduling-and-aggregation">
-<h2>Task scheduling and aggregation<a class="headerlink" href="#task-scheduling-and-aggregation" title="Link to this heading">¶</a></h2>
+<h3>Task scheduling and aggregation<a class="headerlink" href="#task-scheduling-and-aggregation" title="Link to this heading">¶</a></h3>
 <p>The following configuration variables control the scheduling and behavior of aggregation tasks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
 
@@ -321,7 +510,7 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 </div>
 </section>
 <section id="task-locking">
-<h2>Task locking<a class="headerlink" href="#task-locking" title="Link to this heading">¶</a></h2>
+<h3>Task locking<a class="headerlink" href="#task-locking" title="Link to this heading">¶</a></h3>
 <p>The following configuration variables control the distributed locking mechanism for stats tasks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LOCK_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable distributed locking globally</span>
@@ -347,7 +536,7 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 </ul>
 </section>
 <section id="cache-generation-scheduled-tasks">
-<h2>Cache generation scheduled tasks<a class="headerlink" href="#cache-generation-scheduled-tasks" title="Link to this heading">¶</a></h2>
+<h3>Cache generation scheduled tasks<a class="headerlink" href="#cache-generation-scheduled-tasks" title="Link to this heading">¶</a></h3>
 <p>When <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, all aggregation tasks will run hourly. When <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the cache generations tasks will likewise run hourly. The cache generation task pre-generates cached responses for the current year for all communities and all data series categories, ensuring that dashboard page loads are fast by having the data ready in advance.</p>
 <p>The schedule includes both tasks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">celery.schedules</span><span class="w"> </span><span class="kn">import</span> <span class="n">crontab</span>
@@ -368,7 +557,7 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 </pre></div>
 </div>
 <section id="task-timing">
-<h3>Task timing<a class="headerlink" href="#task-timing" title="Link to this heading">¶</a></h3>
+<h4>Task timing<a class="headerlink" href="#task-timing" title="Link to this heading">¶</a></h4>
 <p>By default, the cache generation task runs at minute 50 every hour, which is carefully timed to:</p>
 <ul class="simple">
 <li><p>Run <strong>10 minutes after</strong> the stats aggregation task (minute 40) to ensure fresh data is available</p></li>
@@ -385,7 +574,7 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <p>You can customize the schedule by overriding <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE</span></code> and/or <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE</span></code> in your <code class="docutils literal notranslate"><span class="pre">invenio.cfg</span></code> file</p>
 </section>
 <section id="what-gets-cached">
-<h3>What gets cached<a class="headerlink" href="#what-gets-cached" title="Link to this heading">¶</a></h3>
+<h4>What gets cached<a class="headerlink" href="#what-gets-cached" title="Link to this heading">¶</a></h4>
 <p>The hourly cache task generates cached responses for:</p>
 <ul class="simple">
 <li><p><strong>All communities</strong> in your instance</p></li>
@@ -396,8 +585,45 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <p>This covers the most commonly accessed data and ensures that current year dashboard views load quickly. Historical data for previous years is cached on-demand when first accessed.</p>
 </section>
 </section>
-<section id="default-range-options">
-<h2>Default range options<a class="headerlink" href="#default-range-options" title="Link to this heading">¶</a></h2>
+</section>
+<section id="dashboard-ui">
+<h2>Dashboard UI<a class="headerlink" href="#dashboard-ui" title="Link to this heading">¶</a></h2>
+<section id="basic-ui-configuration">
+<h3>Basic UI Configuration<a class="headerlink" href="#basic-ui-configuration" title="Link to this heading">¶</a></h3>
+<p>The UI configuration for the dashboard is defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to a dictionary of configuration options.</p>
+<p>The default UI configuration is:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the global stats dashboard.&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the community stats dashboard.&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="title-and-description-display">
+<h4>Title and description display<a class="headerlink" href="#title-and-description-display" title="Link to this heading">¶</a></h4>
+<p>The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">show_title</span></code> and <code class="docutils literal notranslate"><span class="pre">show_description</span></code> options can be used to control whether the title and description are displayed for the global and community dashboards.</p>
+</section>
+<section id="default-granularity">
+<h4>Default granularity<a class="headerlink" href="#default-granularity" title="Link to this heading">¶</a></h4>
+<p>This defines the granularity level of the UI chart widgets when the dashboard first loads. By implication it also determines the starting date range (together with STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS). Available values are “day”, “week”, “month”, “quarter”, “year”.</p>
+</section>
+</section>
+<section id="default-ui-range-options">
+<h3>Default UI range options<a class="headerlink" href="#default-ui-range-options" title="Link to this heading">¶</a></h3>
 <p>The following configuration variable controls the default date range options for the dashboard. The keys represent the
 available granularity levels for the date range selector and cannot be changed. The values represent the default date
 range for each granularity level.</p>
@@ -411,30 +637,18 @@ range for each granularity level.</p>
 </pre></div>
 </div>
 </section>
-<section id="menu-configuration">
-<h2>Menu configuration<a class="headerlink" href="#menu-configuration" title="Link to this heading">¶</a></h2>
-<p>The following configuration variables control the menu integration for the global dashboard:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="sd">&quot;&quot;&quot;Enable or disable the stats menu item.&quot;&quot;&quot;</span>
-
-<span class="n">STATS_DASHBOARD_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">)</span>
-<span class="sd">&quot;&quot;&quot;Text for the stats menu item.&quot;&quot;&quot;</span>
-
-<span class="n">STATS_DASHBOARD_MENU_ORDER</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="sd">&quot;&quot;&quot;Order of the stats menu item in the menu.&quot;&quot;&quot;</span>
-
-<span class="n">STATS_DASHBOARD_MENU_ENDPOINT</span> <span class="o">=</span> <span class="s2">&quot;invenio_stats_dashboard.global_stats_dashboard&quot;</span>
-<span class="sd">&quot;&quot;&quot;Endpoint for the stats menu item.&quot;&quot;&quot;</span>
-
-<span class="n">STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="sd">&quot;&quot;&quot;Custom function to register the menu item. If None, uses default registration.</span>
-<span class="sd">Should be a callable that takes the Flask app as its only argument.&quot;&quot;&quot;</span>
+<section id="limit-on-displayed-subcount-values">
+<h3>Limit on displayed subcount values<a class="headerlink" href="#limit-on-displayed-subcount-values" title="Link to this heading">¶</a></h3>
+<p>The following configuration variables control how subcount breakdowns are generated and displayed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span> <span class="o">=</span> <span class="mi">20</span>
 </pre></div>
 </div>
+<p>This variable controls the maximum number of items returned in subcount breakdowns (e.g., “Top 20 Resource Types”). This helps prevent overwhelming the UI with too many items and improves performance.</p>
 </section>
 <section id="dashboard-layout-and-components">
-<h2>Dashboard layout and components<a class="headerlink" href="#dashboard-layout-and-components" title="Link to this heading">¶</a></h2>
-<p>The layout and components for the dashboard are configured via the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a “width” key.</p>
+<h3>Dashboard layout and components<a class="headerlink" href="#dashboard-layout-and-components" title="Link to this heading">¶</a></h3>
+<p>The layout and components for the dashboard are configured via <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code>. This is another variable that <strong>must be considered carefully before you run the initial response caching</strong> for your dashboards. While the precise layout of your dashboard may easily be changed at any time, your initial choice of dashboard widgets will determine <strong>what data is included in cached JSON response objects</strong> that are required for the dashboard to load in a reasonable time. After the initial cache generation, if you add components that require additional data points (subcounts or metrics) you will need to regenerate all of the cached responses using the CLI caching commands.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> value is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a “width” key.</p>
 <p>For example, the default global layout configuration is:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -481,8 +695,11 @@ range for each granularity level.</p>
 <p>Any additional key/value pairs in the dictionary for a component will be passed to the component class as additional props. This allows for some customization of the component without having to subclass and override the component class.</p>
 <p>The component labels used for the layout configuration are defined in the <code class="docutils literal notranslate"><span class="pre">components_map.js</span></code> file, where they are mapped to the component classes.</p>
 </section>
+</section>
+<section id="dashboard-views">
+<h2>Dashboard Views<a class="headerlink" href="#dashboard-views" title="Link to this heading">¶</a></h2>
 <section id="routes">
-<h2>Routes<a class="headerlink" href="#routes" title="Link to this heading">¶</a></h2>
+<h3>Routes<a class="headerlink" href="#routes" title="Link to this heading">¶</a></h3>
 <p>The routes for the dashboard are defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ROUTES</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to route strings.</p>
 <p>For example, the default routes are:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_ROUTES</span> <span class="o">=</span> <span class="p">{</span>
@@ -493,7 +710,7 @@ range for each granularity level.</p>
 </div>
 </section>
 <section id="templates">
-<h2>Templates<a class="headerlink" href="#templates" title="Link to this heading">¶</a></h2>
+<h3>Templates<a class="headerlink" href="#templates" title="Link to this heading">¶</a></h3>
 <p>The templates for the dashboard are defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_TEMPLATES</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to template strings.</p>
 <p>For example, the default templates are:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_TEMPLATES</span> <span class="o">=</span> <span class="p">{</span>
@@ -504,117 +721,30 @@ range for each granularity level.</p>
 </pre></div>
 </div>
 </section>
-<section id="ui-configuration">
-<h2>UI Configuration<a class="headerlink" href="#ui-configuration" title="Link to this heading">¶</a></h2>
-<p>The UI configuration for the dashboard is defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to a dictionary of configuration options.</p>
-<p>For example, the default UI configuration is:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the global stats dashboard.&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">},</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the community stats dashboard.&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">},</span>
-<span class="p">}</span>
+</section>
+<section id="api-endpoints">
+<h2>API Endpoints<a class="headerlink" href="#api-endpoints" title="Link to this heading">¶</a></h2>
+<section id="the-api-stats-endpoint">
+<h3>The api/stats endpoint<a class="headerlink" href="#the-api-stats-endpoint" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_QUERIES</span></code> variable contains the query configurations for accessing statistics data. It is automatically populated and includes configurations for different types of statistics queries.</p>
+</section>
+</section>
+<section id="setup-processes">
+<h2>Setup Processes<a class="headerlink" href="#setup-processes" title="Link to this heading">¶</a></h2>
+<section id="view-download-index-migration">
+<h3>View/Download index migration<a class="headerlink" href="#view-download-index-migration" title="Link to this heading">¶</a></h3>
+<p>The following configuration variables control the default behavior of migration commands:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_REINDEXING_MAX_BATCHES</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Maximum number of batches to process per month</span>
+<span class="n">STATS_DASHBOARD_REINDEXING_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Number of events to process per batch</span>
+<span class="n">STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT</span> <span class="o">=</span> <span class="mi">85</span>  <span class="c1"># Maximum memory usage percentage before stopping</span>
 </pre></div>
 </div>
-<section id="title-and-description-display">
-<h3>Title and description display<a class="headerlink" href="#title-and-description-display" title="Link to this heading">¶</a></h3>
-<p>The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">show_title</span></code> and <code class="docutils literal notranslate"><span class="pre">show_description</span></code> options can be used to control whether the title and description are displayed for the global and community dashboards.</p>
+<p>These defaults can be overridden using the corresponding CLI options when running the <code class="docutils literal notranslate"><span class="pre">migrate-events</span></code> command.</p>
 </section>
-</section>
-<section id="subcount-configuration">
-<h2>Subcount Configuration<a class="headerlink" href="#subcount-configuration" title="Link to this heading">¶</a></h2>
-<p>The following configuration variables control how subcount breakdowns are generated and displayed:</p>
-<section id="community-stats-top-subcount-limit">
-<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code><a class="headerlink" href="#community-stats-top-subcount-limit" title="Link to this heading">¶</a></h3>
-<p>This variable controls the maximum number of items returned in subcount breakdowns (e.g., “Top 20 Resource Types”). This helps prevent overwhelming the UI with too many items and improves performance.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span> <span class="o">=</span> <span class="mi">20</span>
-</pre></div>
-</div>
-</section>
-<section id="community-stats-subcounts">
-<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code><a class="headerlink" href="#community-stats-subcounts" title="Link to this heading">¶</a></h3>
-<p>This variable defines the configuration for different subcount breakdown types, including field mappings and display options.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">]</span>
-                <span class="p">}</span>
-            <span class="p">]</span>
-        <span class="p">}</span>
-    <span class="p">},</span>
-    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">]</span>
-                <span class="p">}</span>
-            <span class="p">]</span>
-        <span class="p">}</span>
-    <span class="p">},</span>
-    <span class="c1"># ... other subcount configurations</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="stats-dashboard-ui-subcounts">
-<h3><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code><a class="headerlink" href="#stats-dashboard-ui-subcounts" title="Link to this heading">¶</a></h3>
-<p>This variable controls which subcount breakdowns are available in the UI and how they are displayed.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;languages&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;rights&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;funders&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;affiliations&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.creators.affiliations.id&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.creators.affiliations.name&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.creators.affiliations.id&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata.creators.affiliations.name&quot;</span><span class="p">],</span>
-                <span class="p">},</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.contributors.affiliations.id&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.contributors.affiliations.name&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metadata.contributors.affiliations.id&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata.contributors.affiliations.name&quot;</span><span class="p">],</span>
-                <span class="p">}</span>
-            <span class="p">]</span>
-        <span class="p">}</span>
-    <span class="p">},</span>
-    <span class="s2">&quot;countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;file_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;access_statuses&quot;</span><span class="p">:</span> <span class="p">{},</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="bulk-indexing-and-request-size-limits">
-<h2>Bulk Indexing and Request Size Limits<a class="headerlink" href="#bulk-indexing-and-request-size-limits" title="Link to this heading">¶</a></h2>
+<section id="delta-aggregation-controls">
+<h3>Delta aggregation controls<a class="headerlink" href="#delta-aggregation-controls" title="Link to this heading">¶</a></h3>
 <section id="error-risk-and-adaptive-chunking">
-<h3>413 Error Risk and Adaptive Chunking<a class="headerlink" href="#error-risk-and-adaptive-chunking" title="Link to this heading">¶</a></h3>
+<h4>413 Error Risk and Adaptive Chunking<a class="headerlink" href="#error-risk-and-adaptive-chunking" title="Link to this heading">¶</a></h4>
 <p>When processing large datasets (such as a full year of catchup data), aggregation documents can become very large due to extensive subcount data. This can cause <strong>TransportError(413)</strong> - “Request size exceeded” errors when bulk indexing to OpenSearch/Elasticsearch.</p>
 <p><strong>Why documents get large:</strong></p>
 <ul class="simple">
@@ -664,49 +794,10 @@ If you want to reduce document sizes to improve performance:</p>
 </ul>
 </section>
 </section>
-<section id="test-data-mode">
-<h2>Test Data Mode<a class="headerlink" href="#test-data-mode" title="Link to this heading">¶</a></h2>
-<section id="stats-dashboard-use-test-data">
-<h3><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_USE_TEST_DATA</span></code><a class="headerlink" href="#stats-dashboard-use-test-data" title="Link to this heading">¶</a></h3>
-<p>This variable enables test data mode for development and testing purposes. When enabled, the dashboard will use synthetic data instead of making API calls to the statistics service.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_USE_TEST_DATA</span> <span class="o">=</span> <span class="kc">True</span>
-</pre></div>
-</div>
-<p><strong>Note</strong>: This should be set to <code class="docutils literal notranslate"><span class="pre">False</span></code> in production environments to ensure real statistics data is displayed.</p>
-</section>
-</section>
-<section id="json-compression-configuration">
-<h2>JSON Compression Configuration<a class="headerlink" href="#json-compression-configuration" title="Link to this heading">¶</a></h2>
-<section id="stats-dashboard-compress-json">
-<h3><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_COMPRESS_JSON</span></code><a class="headerlink" href="#stats-dashboard-compress-json" title="Link to this heading">¶</a></h3>
-<p>This variable controls whether the frontend requests compressed JSON from the API. This is useful for optimizing bandwidth usage and avoiding double compression when server-level compression is already configured.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_COMPRESS_JSON</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Default: False</span>
-</pre></div>
-</div>
-<p><strong>Configuration Options:</strong></p>
-<ul class="simple">
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">False</span></code> (Default)</strong>: Frontend requests plain JSON (<code class="docutils literal notranslate"><span class="pre">application/json</span></code>) and lets the server handle compression</p>
-<ul>
-<li><p>✅ <strong>Use when</strong>: Server-level compression is enabled (nginx, Apache, etc.)</p></li>
-<li><p>✅ <strong>Benefit</strong>: Avoids double compression, more efficient</p></li>
-<li><p>✅ <strong>Result</strong>: Server compresses the response using HTTP-level compression</p></li>
-</ul>
-</li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">True</span></code></strong>: Frontend requests compressed JSON (<code class="docutils literal notranslate"><span class="pre">application/json+gzip</span></code>) from the API</p>
-<ul>
-<li><p>✅ <strong>Use when</strong>: No server-level compression is configured</p></li>
-<li><p>✅ <strong>Benefit</strong>: Still get compressed responses even without server-level compression</p></li>
-<li><p>✅ <strong>Result</strong>: API compresses the response using application-level compression</p></li>
-</ul>
-</li>
-</ul>
-<p><strong>Important</strong>: When server-level compression is enabled, setting this to <code class="docutils literal notranslate"><span class="pre">True</span></code> can result in double compression, which is inefficient and may cause issues. Always set this to <code class="docutils literal notranslate"><span class="pre">False</span></code> when using nginx, Apache, or other reverse proxies with compression enabled.</p>
-</section>
-</section>
-<section id="event-processing-configuration">
-<h2>Event Processing Configuration<a class="headerlink" href="#event-processing-configuration" title="Link to this heading">¶</a></h2>
+<section id="view-download-event-processing">
+<h3>View &amp; Download Event Processing<a class="headerlink" href="#view-download-event-processing" title="Link to this heading">¶</a></h3>
 <section id="stats-events">
-<h3><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code><a class="headerlink" href="#stats-events" title="Link to this heading">¶</a></h3>
+<h4><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code><a class="headerlink" href="#stats-events" title="Link to this heading">¶</a></h4>
 <p>This variable defines the event types and their configurations for statistics processing. It controls which events are tracked and how they are processed.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_EVENTS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;file-download&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -725,19 +816,18 @@ If you want to reduce document sizes to improve performance:</p>
 </section>
 </section>
 <section id="auto-generated-configuration">
-<h2>Auto-Generated Configuration<a class="headerlink" href="#auto-generated-configuration" title="Link to this heading">¶</a></h2>
+<h3>Auto-Generated Configuration<a class="headerlink" href="#auto-generated-configuration" title="Link to this heading">¶</a></h3>
 <p>The following configuration variables are automatically generated by the module and typically do not need manual configuration:</p>
+</section>
+</section>
+<section id="aggregators">
+<h2>Aggregators<a class="headerlink" href="#aggregators" title="Link to this heading">¶</a></h2>
 <section id="community-stats-aggregations">
 <h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_AGGREGATIONS</span></code><a class="headerlink" href="#community-stats-aggregations" title="Link to this heading">¶</a></h3>
 <p>This variable contains the aggregation configurations for all statistics aggregators. It is automatically populated by the <code class="docutils literal notranslate"><span class="pre">register_aggregations()</span></code> function and includes configurations for record counts, usage statistics, and other metrics.</p>
 </section>
-<section id="community-stats-queries">
-<h3><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_QUERIES</span></code><a class="headerlink" href="#community-stats-queries" title="Link to this heading">¶</a></h3>
-<p>This variable contains the query configurations for accessing statistics data. It is automatically populated and includes configurations for different types of statistics queries.</p>
-</section>
-</section>
 <section id="configuration-reference">
-<h2>Configuration Reference<a class="headerlink" href="#configuration-reference" title="Link to this heading">¶</a></h2>
+<h3>Configuration Reference<a class="headerlink" href="#configuration-reference" title="Link to this heading">¶</a></h3>
 <p>The following table provides a complete reference of all available configuration variables:</p>
 <div class="table-wrapper colwidths-auto docutils container">
 <table class="docutils align-default">
@@ -877,11 +967,14 @@ If you want to reduce document sizes to improve performance:</p>
 </div>
 <p><strong>Note</strong>: Variables marked with <code class="docutils literal notranslate"><span class="pre">{...}</span></code> contain complex configuration objects that are documented in detail in the sections above.</p>
 </section>
+</section>
+<section id="interaction-with-config-from-other-packages">
+<h2>Interaction with Config from Other Packages<a class="headerlink" href="#interaction-with-config-from-other-packages" title="Link to this heading">¶</a></h2>
 <section id="community-custom-fields">
-<h2>Community Custom Fields<a class="headerlink" href="#community-custom-fields" title="Link to this heading">¶</a></h2>
+<h3>Community Custom Fields<a class="headerlink" href="#community-custom-fields" title="Link to this heading">¶</a></h3>
 <p>The stats dashboard extension automatically provides a custom field for communities to store dashboard layout configurations. This allows each community to have its own customized dashboard layout while maintaining a consistent global configuration.</p>
 <section id="automatic-integration">
-<h3>Automatic Integration<a class="headerlink" href="#automatic-integration" title="Link to this heading">¶</a></h3>
+<h4>Automatic Integration<a class="headerlink" href="#automatic-integration" title="Link to this heading">¶</a></h4>
 <p>The custom field is automatically integrated into InvenioRDM communities through the extension’s initialization process. The extension merges its custom field configuration with any existing community custom fields, ensuring non-destructive integration.</p>
 <p><strong>Field Details:</strong></p>
 <ul class="simple">
@@ -892,7 +985,7 @@ If you want to reduce document sizes to improve performance:</p>
 </ul>
 </section>
 <section id="field-structure">
-<h3>Field Structure<a class="headerlink" href="#field-structure" title="Link to this heading">¶</a></h3>
+<h4>Field Structure<a class="headerlink" href="#field-structure" title="Link to this heading">¶</a></h4>
 <p>The custom field stores a JSON object with the following structure:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -954,19 +1047,8 @@ If you want to reduce document sizes to improve performance:</p>
 </pre></div>
 </div>
 </section>
-<section id="schema-validation">
-<h3>Schema Validation<a class="headerlink" href="#schema-validation" title="Link to this heading">¶</a></h3>
-<p>The field uses a structured Marshmallow schema for validation:</p>
-<ul class="simple">
-<li><p><strong>Component Props</strong>: Flexible dictionary for component-specific properties</p></li>
-<li><p><strong>Components</strong>: Individual dashboard components with validation</p></li>
-<li><p><strong>Rows</strong>: Groups of components with layout information</p></li>
-<li><p><strong>Tabs</strong>: Dashboard sections containing multiple rows</p></li>
-<li><p><strong>Dashboard Types</strong>: Separate configurations for <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code> dashboards</p></li>
-</ul>
-</section>
 <section id="integration-methods">
-<h3>Integration Methods<a class="headerlink" href="#integration-methods" title="Link to this heading">¶</a></h3>
+<h4>Integration Methods<a class="headerlink" href="#integration-methods" title="Link to this heading">¶</a></h4>
 <p><strong>Method 1: Automatic Integration (Recommended)</strong></p>
 <p>For instances without existing custom field configurations, the extension automatically provides the custom field:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># No configuration needed - field is automatically available</span>
@@ -1009,45 +1091,6 @@ If you want to reduce document sizes to improve performance:</p>
 </pre></div>
 </div>
 </section>
-<section id="field-initialization">
-<h3>Field Initialization<a class="headerlink" href="#field-initialization" title="Link to this heading">¶</a></h3>
-<p>After configuration, initialize the custom field in the search index:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the custom field</span>
-invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>init<span class="w"> </span>stats:dashboard_layout
-
-<span class="c1"># Verify the field exists</span>
-invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>exists<span class="w"> </span>stats:dashboard_layout
-</pre></div>
-</div>
-</section>
-<section id="usage-in-communities">
-<h3>Usage in Communities<a class="headerlink" href="#usage-in-communities" title="Link to this heading">¶</a></h3>
-<p>Once configured, community administrators can:</p>
-<ol class="arabic simple">
-<li><p><strong>Access the field</strong> in community creation/editing forms</p></li>
-<li><p><strong>Configure layouts</strong> using the structured JSON format</p></li>
-<li><p><strong>Override defaults</strong> by providing community-specific configurations</p></li>
-<li><p><strong>Maintain consistency</strong> with global dashboard structure</p></li>
-</ol>
-</section>
-<section id="benefits">
-<h3>Benefits<a class="headerlink" href="#benefits" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p><strong>✅ Flexible Configuration</strong>: Each community can customize its dashboard layout</p></li>
-<li><p><strong>✅ Structured Validation</strong>: Prevents invalid configurations through schema validation</p></li>
-<li><p><strong>✅ Non-Destructive</strong>: Integrates with existing custom field configurations</p></li>
-<li><p><strong>✅ Searchable</strong>: Field existence can be queried (though content is not searchable)</p></li>
-<li><p><strong>✅ Extensible</strong>: Easy to add new component types or layout options</p></li>
-</ul>
-</section>
-<section id="technical-details">
-<h3>Technical Details<a class="headerlink" href="#technical-details" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p><strong>Marshmallow Schema</strong>: Uses <code class="docutils literal notranslate"><span class="pre">fields.Nested()</span></code> with structured validation</p></li>
-<li><p><strong>Elasticsearch Mapping</strong>: <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;object&quot;,</span> <span class="pre">&quot;enabled&quot;:</span> <span class="pre">false}</span></code> for retrieval without content indexing</p></li>
-<li><p><strong>Namespace</strong>: Internal <code class="docutils literal notranslate"><span class="pre">stats</span></code> namespace (no external URL required)</p></li>
-<li><p><strong>UI Widget</strong>: Custom widget for JSON configuration editing</p></li>
-</ul>
 </section>
 </section>
 <section id="content-negotiation-and-response-serializers">
@@ -1157,10 +1200,24 @@ invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Configuration</a><ul>
-<li><a class="reference internal" href="#configuration-overrides">Configuration Overrides</a></li>
+<li><a class="reference internal" href="#overriding-configuration-defaults">Overriding Configuration Defaults</a></li>
+<li><a class="reference internal" href="#basic-settings">Basic Settings</a><ul>
 <li><a class="reference internal" href="#module-enable-disable">Module Enable/Disable</a></li>
-<li><a class="reference internal" href="#scheduled-tasks-enable-disable">Scheduled Tasks Enable/Disable</a></li>
-<li><a class="reference internal" href="#view-download-event-migration">View/Download event migration</a></li>
+<li><a class="reference internal" href="#test-data-mode">Test Data Mode</a></li>
+<li><a class="reference internal" href="#menu-configuration">Menu configuration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#subcount-configuration">Subcount Configuration</a><ul>
+<li><a class="reference internal" href="#metadata-subcounts-for-aggregations">Metadata subcounts for aggregations</a><ul>
+<li><a class="reference internal" href="#enabling-and-disabling-metadata-subcounts">Enabling and disabling metadata subcounts</a></li>
+<li><a class="reference internal" href="#available-metadata-subcounts">Available metadata subcounts</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#metadata-breakdowns-in-the-ui">Metadata breakdowns in the UI</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scheduled-aggregation-and-caching-tasks">Scheduled Aggregation and Caching Tasks</a><ul>
+<li><a class="reference internal" href="#enable-disable-scheduled-tasks">Enable &amp; Disable Scheduled Tasks</a></li>
 <li><a class="reference internal" href="#task-scheduling-and-aggregation">Task scheduling and aggregation</a></li>
 <li><a class="reference internal" href="#task-locking">Task locking</a></li>
 <li><a class="reference internal" href="#cache-generation-scheduled-tasks">Cache generation scheduled tasks</a><ul>
@@ -1168,52 +1225,53 @@ invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<
 <li><a class="reference internal" href="#what-gets-cached">What gets cached</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#default-range-options">Default range options</a></li>
-<li><a class="reference internal" href="#menu-configuration">Menu configuration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboard-ui">Dashboard UI</a><ul>
+<li><a class="reference internal" href="#basic-ui-configuration">Basic UI Configuration</a><ul>
+<li><a class="reference internal" href="#title-and-description-display">Title and description display</a></li>
+<li><a class="reference internal" href="#default-granularity">Default granularity</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#default-ui-range-options">Default UI range options</a></li>
+<li><a class="reference internal" href="#limit-on-displayed-subcount-values">Limit on displayed subcount values</a></li>
 <li><a class="reference internal" href="#dashboard-layout-and-components">Dashboard layout and components</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboard-views">Dashboard Views</a><ul>
 <li><a class="reference internal" href="#routes">Routes</a></li>
 <li><a class="reference internal" href="#templates">Templates</a></li>
-<li><a class="reference internal" href="#ui-configuration">UI Configuration</a><ul>
-<li><a class="reference internal" href="#title-and-description-display">Title and description display</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#subcount-configuration">Subcount Configuration</a><ul>
-<li><a class="reference internal" href="#community-stats-top-subcount-limit"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT</span></code></a></li>
-<li><a class="reference internal" href="#community-stats-subcounts"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SUBCOUNTS</span></code></a></li>
-<li><a class="reference internal" href="#stats-dashboard-ui-subcounts"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_SUBCOUNTS</span></code></a></li>
+<li><a class="reference internal" href="#api-endpoints">API Endpoints</a><ul>
+<li><a class="reference internal" href="#the-api-stats-endpoint">The api/stats endpoint</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#bulk-indexing-and-request-size-limits">Bulk Indexing and Request Size Limits</a><ul>
+<li><a class="reference internal" href="#setup-processes">Setup Processes</a><ul>
+<li><a class="reference internal" href="#view-download-index-migration">View/Download index migration</a></li>
+<li><a class="reference internal" href="#delta-aggregation-controls">Delta aggregation controls</a><ul>
 <li><a class="reference internal" href="#error-risk-and-adaptive-chunking">413 Error Risk and Adaptive Chunking</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#test-data-mode">Test Data Mode</a><ul>
-<li><a class="reference internal" href="#stats-dashboard-use-test-data"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_USE_TEST_DATA</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#json-compression-configuration">JSON Compression Configuration</a><ul>
-<li><a class="reference internal" href="#stats-dashboard-compress-json"><code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_COMPRESS_JSON</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#event-processing-configuration">Event Processing Configuration</a><ul>
+<li><a class="reference internal" href="#view-download-event-processing">View &amp; Download Event Processing</a><ul>
 <li><a class="reference internal" href="#stats-events"><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#auto-generated-configuration">Auto-Generated Configuration</a><ul>
-<li><a class="reference internal" href="#community-stats-aggregations"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_AGGREGATIONS</span></code></a></li>
-<li><a class="reference internal" href="#community-stats-queries"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_QUERIES</span></code></a></li>
+<li><a class="reference internal" href="#auto-generated-configuration">Auto-Generated Configuration</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#aggregators">Aggregators</a><ul>
+<li><a class="reference internal" href="#community-stats-aggregations"><code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_AGGREGATIONS</span></code></a></li>
 <li><a class="reference internal" href="#configuration-reference">Configuration Reference</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#interaction-with-config-from-other-packages">Interaction with Config from Other Packages</a><ul>
 <li><a class="reference internal" href="#community-custom-fields">Community Custom Fields</a><ul>
 <li><a class="reference internal" href="#automatic-integration">Automatic Integration</a></li>
 <li><a class="reference internal" href="#field-structure">Field Structure</a></li>
-<li><a class="reference internal" href="#schema-validation">Schema Validation</a></li>
 <li><a class="reference internal" href="#integration-methods">Integration Methods</a></li>
-<li><a class="reference internal" href="#field-initialization">Field Initialization</a></li>
-<li><a class="reference internal" href="#usage-in-communities">Usage in Communities</a></li>
-<li><a class="reference internal" href="#benefits">Benefits</a></li>
-<li><a class="reference internal" href="#technical-details">Technical Details</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#content-negotiation-and-response-serializers">Content Negotiation and Response Serializers</a><ul>

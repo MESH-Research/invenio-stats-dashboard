@@ -155,7 +155,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+     ⚠️  This is a beta package. Please report issues on <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>GitHub</a>. 
   </aside>
 </div>
 
@@ -253,22 +253,11 @@
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="known-issues">
 <h1>Known Issues<a class="headerlink" href="#known-issues" title="Link to this heading">¶</a></h1>
-<p>as of 2025-09-30</p>
-<section id="setup">
-<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p>the initial catch-up aggregation is <strong>not yet automatically triggered</strong>.</p>
-<ul>
-<li><p>It can be performed manually via a series of CLI commands. See the <a class="reference internal" href="cli.html"><span class="std std-doc">CLI Commands</span></a> section for details.</p></li>
-</ul>
-</li>
-</ul>
-</section>
+<p>as of 2026-02-19</p>
 <section id="ui">
 <h2>UI<a class="headerlink" href="#ui" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Ring charts with a <strong>large “other” category</strong> are problematic.</p></li>
-<li><p>The <strong>stacked bar charts</strong> are not very readable for some data sets.</p></li>
 <li><p>The <strong>map view</strong> is not displaying the data properly.</p></li>
 <li><p>The <strong>mobile</strong> view needs to be improved</p>
 <ul>
@@ -277,25 +266,14 @@
 </li>
 </ul>
 </section>
-<section id="reporting">
-<h2>Reporting<a class="headerlink" href="#reporting" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><strong>Download of data series via the UI</strong> is not yet working.</p>
-<ul>
-<li><p>The non-JSON serializers aren’t finished yet.</p></li>
-<li><p>But the JSON download via the API is working. See the <a class="reference internal" href="api_requests.html"><span class="std std-doc">API Requests</span></a> section for details.</p></li>
-</ul>
-</li>
-</ul>
-</section>
 <section id="dependencies">
 <h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>the service component calls <strong>require PRs to be merged</strong></p>
+<li><p>The service component calls depend on code changes in InvenioRDM version 13.</p>
 <ul>
 <li><p>invenio-requests (<a class="reference external" href="https://github.com/inveniosoftware/invenio-requests/pull/457">https://github.com/inveniosoftware/invenio-requests/pull/457</a>)</p></li>
 <li><p>invenio-rdm-records (<a class="reference external" href="https://github.com/inveniosoftware/invenio-rdm-records/pull/2002">https://github.com/inveniosoftware/invenio-rdm-records/pull/2002</a>)</p></li>
-<li><p>These PRs are both approved and will be merged soon. In the meantime, a provided bash script is provided to patch the required files in your local site-packages directory. See the <a class="reference internal" href="setup.html"><span class="std std-doc">setup</span></a> section for details.</p></li>
+<li><p>For version 12 instances without these changes, a provided bash script will patch the required files in your local site-packages directory. See the <a class="reference internal" href="setup.html"><span class="std std-doc">setup</span></a> section for details.</p></li>
 </ul>
 </li>
 </ul>
@@ -310,15 +288,36 @@
 </li>
 </ul>
 </section>
+<section id="stats-index-migration">
+<h2>Stats Index Migration<a class="headerlink" href="#stats-index-migration" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The index migration operation currently will <strong>not</strong> work to move from one subcount configuration (in COMMUNITY<em>STATS_SUBCOUNTS) to another. Running the <code class="docutils literal notranslate"><span class="pre">community-stats</span> <span class="pre">usage-events</span> <span class="pre">migrate</span></code> command after a migration has been completed will not change the metadata included in already-migrated documents. If the old (pre v2.0.0) indices have already been deleted, the command will be a no-op. Even with the <code class="docutils literal notranslate"><span class="pre">--fresh-start</span></code> flag set, and the pre v2.0.0 indices still in place, the changed metadata subcount configuration will only be applied to events _in the original indices</em>. They will not be applied to additional events recorded <em>after</em> the first migration. The plan is to provide a re-migration path in future.</p></li>
+</ul>
+</section>
+<section id="country-statistics">
+<h2>Country statistics<a class="headerlink" href="#country-statistics" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Many view records currently lack country information. This needs to be resolved in order for country statistics to be meaningful.</p></li>
+</ul>
+</section>
 <section id="aggregations">
 <h2>Aggregations<a class="headerlink" href="#aggregations" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>the record delta aggregator is not working properly when using the <strong>publication date as the basis</strong> for the aggregation.</p>
+<li><p>The queries of the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index in the delta aggregators is currently <em>not</em> paginated and will miss community add/remove events above 10k total. <strong>This needs immediate attention.</strong></p></li>
+<li><p>Aggregators and views that use record publication or creation as the time basis are currently deactivated and may or may not be reimplemented.</p>
 <ul>
-<li><p>It is missing records published before the first record was created. This also throws off the record snapshot aggregator when using the publication date as the basis for the aggregation.</p></li>
+<li><p>Publication-date-based aggregations pose a particular challenge because publication dates are often back-dated prior to the current date. This would require potentially costly re-aggregation of select previous aggregations.</p></li>
 </ul>
 </li>
 <li><p>Not a problem, but need to clarify that the “affiliations” subcounts count the <em>number of creators/contributors</em> to records with the affiliation (i.e., the number of “contributions”), not the <em>number of records</em> with the affiliation.</p></li>
+<li><p>Record snapshot aggregators should use a streamed scan search and running cached totals to handle the top- subcount aggregations, like with the usage snapshot aggregator (to reduce possibility of OOM errors).</p></li>
+</ul>
+</section>
+<section id="json-response-caching">
+<h2>JSON Response Caching<a class="headerlink" href="#json-response-caching" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Currently no regular sanity checks or cleanup of cached responses.</p></li>
+<li><p>Currently no automated re-caching when a community’s dashboard layout changes</p></li>
 </ul>
 </section>
 <section id="translations">
@@ -402,12 +401,13 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Known Issues</a><ul>
-<li><a class="reference internal" href="#setup">Setup</a></li>
 <li><a class="reference internal" href="#ui">UI</a></li>
-<li><a class="reference internal" href="#reporting">Reporting</a></li>
 <li><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li><a class="reference internal" href="#cli-commands">CLI Commands</a></li>
+<li><a class="reference internal" href="#stats-index-migration">Stats Index Migration</a></li>
+<li><a class="reference internal" href="#country-statistics">Country statistics</a></li>
 <li><a class="reference internal" href="#aggregations">Aggregations</a></li>
+<li><a class="reference internal" href="#json-response-caching">JSON Response Caching</a></li>
 <li><a class="reference internal" href="#translations">Translations</a></li>
 <li><a class="reference internal" href="#documentation">Documentation</a></li>
 </ul>

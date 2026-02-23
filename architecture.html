@@ -155,7 +155,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     ⚠️  This is a pre-alpha package. Things may be broken. <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>View on GitHub</a> 
+     ⚠️  This is a beta package. Please report issues on <a href='https://github.com/MESH-Research/invenio-stats-dashboard' target='_blank'>GitHub</a>. 
   </aside>
 </div>
 
@@ -1022,6 +1022,138 @@ aggregation configurations in the <code class="docutils literal notranslate"><sp
 ensures that the templates are registered with the OpenSearch domain. and the indices are created automatically when records are first indexed.</p>
 <p>For more information about the index configuration and creation process, see <a class="reference internal" href="#setup-and-migration"><span class="xref myst">Setup and Migration</span></a> below.</p>
 </section>
+<section id="community-custom-fields">
+<h3>Community Custom Fields<a class="headerlink" href="#community-custom-fields" title="Link to this heading">¶</a></h3>
+<p>The stats dashboard extension automatically provides a custom field for communities to store dashboard layout configurations. This allows each community to have its own customized dashboard layout while maintaining a consistent global configuration.</p>
+<section id="stats-dashboard-layout">
+<h4><code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code><a class="headerlink" href="#stats-dashboard-layout" title="Link to this heading">¶</a></h4>
+<p>The custom field stores a JSON object with the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;charts&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsChart&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViews&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+                        <span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="integration-methods">
+<h4>Integration Methods<a class="headerlink" href="#integration-methods" title="Link to this heading">¶</a></h4>
+<p><strong>Method 1: Automatic Integration (Recommended)</strong></p>
+<p>For instances without existing custom field configurations, the extension automatically provides the custom field:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># No configuration needed - field is automatically available</span>
+<span class="c1"># Extension merges its configuration with defaults</span>
+</pre></div>
+</div>
+<p><strong>Method 2: Manual Integration</strong></p>
+<p>For instances with existing custom field configurations, manually integrate the stats dashboard fields:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In invenio.cfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.records.communities.custom_fields.custom_fields</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">COMMUNITY_STATS_FIELDS</span><span class="p">,</span>
+    <span class="n">COMMUNITY_STATS_FIELDS_UI</span><span class="p">,</span>
+    <span class="n">COMMUNITIES_NAMESPACES</span> <span class="k">as</span> <span class="n">STATS_COMMUNITIES_NAMESPACES</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Merge namespaces</span>
+<span class="n">COMMUNITIES_NAMESPACES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;your_namespace&quot;</span><span class="p">:</span> <span class="s2">&quot;https://your-site.org/terms/&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">STATS_COMMUNITIES_NAMESPACES</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Add custom fields</span>
+<span class="n">COMMUNITIES_CUSTOM_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Your existing fields</span>
+    <span class="n">TextCF</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;your_namespace:your_field&quot;</span><span class="p">),</span>
+    <span class="c1"># Stats dashboard fields</span>
+    <span class="o">*</span><span class="n">COMMUNITY_STATS_FIELDS</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Add UI configuration</span>
+<span class="n">COMMUNITIES_CUSTOM_FIELDS_UI</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Your existing UI config</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;section&quot;</span><span class="p">:</span> <span class="s2">&quot;Your Section&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="c1"># Stats dashboard UI config</span>
+    <span class="n">COMMUNITY_STATS_FIELDS_UI</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="field-initialization">
+<h4>Field Initialization<a class="headerlink" href="#field-initialization" title="Link to this heading">¶</a></h4>
+<p>After configuration, initialize the custom field in the search index:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the custom field</span>
+invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>init<span class="w"> </span>stats:dashboard_layout
+
+<span class="c1"># Verify the field exists</span>
+invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<span class="w"> </span>exists<span class="w"> </span>stats:dashboard_layout
+</pre></div>
+</div>
+</section>
+</section>
+<section id="usage-in-communities">
+<h3>Usage in Communities<a class="headerlink" href="#usage-in-communities" title="Link to this heading">¶</a></h3>
+<p>Once configured, community administrators can:</p>
+<ol class="arabic simple">
+<li><p><strong>Access the field</strong> in community creation/editing forms</p></li>
+<li><p><strong>Configure layouts</strong> using the structured JSON format</p></li>
+<li><p><strong>Override defaults</strong> by providing community-specific configurations</p></li>
+<li><p><strong>Maintain consistency</strong> with global dashboard structure</p></li>
+</ol>
+</section>
 </section>
 <section id="service-layer">
 <h2>Service layer<a class="headerlink" href="#service-layer" title="Link to this heading">¶</a></h2>
@@ -1321,6 +1453,13 @@ If not found:
 <li><a class="reference internal" href="#usage-deltas">Usage deltas</a></li>
 <li><a class="reference internal" href="#usage-snapshots">Usage snapshots</a></li>
 <li><a class="reference internal" href="#search-index-configuration">Search index configuration</a></li>
+<li><a class="reference internal" href="#community-custom-fields">Community Custom Fields</a><ul>
+<li><a class="reference internal" href="#stats-dashboard-layout"><code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code></a></li>
+<li><a class="reference internal" href="#integration-methods">Integration Methods</a></li>
+<li><a class="reference internal" href="#field-initialization">Field Initialization</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#usage-in-communities">Usage in Communities</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#service-layer">Service layer</a><ul>

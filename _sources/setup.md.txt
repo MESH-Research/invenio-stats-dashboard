@@ -1,7 +1,9 @@
 # Setup and Migration
 
+Much of the setup of invenio-stats-dashboard is automated. There are, however, a few manual steps required, and some optional configuration to be done. This guide will walk you through these steps.
+
 ```{warning}
-This package depends on pull requests that were merged into invenio-requests and invenio-rdm-records for InvenioRDM version 13. For version 12 instances, a bash script is provided to patch the required files in your local site-packages directory. Simply run `bash apply_patches.sh [environment_path]` from the root of the `invenio-stats-dashboard` package directory, where `[environment_path]` is the path to your python environment folder (the parent folder of `site-packages`). You can view the contents of the patched files in the `invenio_stats_dashboard/patches` directory.
+This package depends on pull requests that were merged into invenio-requests and invenio-rdm-records for InvenioRDM version 13 (see (known issues)[./known_issues.html#dependencies]). For version 12 instances, a bash script is provided to patch the required files in your local site-packages directory. Simply run `bash apply_patches.sh [environment_path]` from the root of the `invenio-stats-dashboard` package directory, where `[environment_path]` is the path to your python environment folder (the parent folder of `site-packages`). You can view the contents of the patched files in the `invenio_stats_dashboard/patches` directory.
 ```
 
 ## Setup overview
@@ -13,7 +15,7 @@ This package depends on pull requests that were merged into invenio-requests and
    b. Index community addition events for all existing records (via CLI command)
    c. Migrate and enrich the existing view and download events (via CLI command)
 4. OPTIONAL: Manually run the catch-up aggregations (via CLI command)
-5. Configure package settings and page templates as desired.
+5. OPTIONAL: Manually run the initial response pre-caching (via CLI command)
 6. Set config variables to begin normal operation
 7. Restart the InvenioRDM instance
 
@@ -31,7 +33,9 @@ uv add invenio-stats-dashboard
 
 ## 2. Initial configuration for setup
 
-The first step is to ensure that the following config variables are set to their default settings as follows:
+After installing the package, the next step is to customize your configuration by overriding default values (from invenio_stats_dashboard.config.config) in your invenio.cfg file. Full configuration documentation are available in the (configuration)[./configuration.md] section. Some of these settings do not affect extension setup, but a few values must be set at the beginning.
+
+First, you must ensure that the following control variables are set to their default values. These settings allow the initial setup to proceed without yet displaying the dashboards or their menu links:
 
 - `COMMUNITY_STATS_ENABLED = True`
 - `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False`
@@ -40,30 +44,53 @@ The first step is to ensure that the following config variables are set to their
 - `STATS_DASHBOARD_ENABLED_GLOBAL = False`
 - `STATS_DASHBOARD_ENABLED_COMMUNITY = False`
 
-These settings allow the initial setup to proceed without yet displaying the dashboards or their menu links.
+Any changes to the default configuration for metadata subcount breakdowns. In particular, ensure that you have made your desired changes to the following variables:
 
-```{note}
-Since the included search index tamplates all use the new-style index templates, you must ensure that STATS_REGISTER_INDEX_TEMPLATES is set to True. This is currently *not* the default for InvenioRDM instances, but it should not interfere with any other packages. The only other index templates currently registered are those from the `invenio-stats` module, which are overridden by the `invenio-stats-dashboard` extension.
+| Variable                     | Purpose                                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| COMMUNITY_STATS_SUBCOUNTS    | Main configuration for which metadata fields to use in aggregated subcount statistics.          |
+| STATS_DASHBOARD_UI_SUBCOUNTS | Which metadata subcounts should be available to the dashboard UI.                               |
+| STATS_DASHBOARD_LAYOUT       | Pages and page layout for the dashboard UI, including config settings for each React component. |
+
+The UI layout configuration may seem less important to configure at this point, and it can be changed later on. Note, though, that the contents of the pre-compiled JSON responses cached for each community depend in part on which subcounts and widgets are included in your layout.
+
+```{danger}
+Changes to COMMUNITY_STATS_SUBCOUNTS currently **cannot** be made after the initial migration of stats indices and catchup aggregation operations. The index migration *may* be performed again from scratch if (a) you have not deleted the original stats indices, and (b) you have not recorded additional view and download events. After this, you will still need to re-aggregate all existing statistics from scratch. A post-setup re-migration and re-aggregation path is planned for the future.
+```
+
+Some other variables control the behaviour of setup migration and aggregation behaviour. These have sane defaults, but you may want to customize them for your system resources:
+
+| Variable                                      | Purpose                                                                                                                                                                                                                                                                       |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| COMMUNITY_STATS_CATCHUP_INTERVAL              | How many days of historical data to aggregate in a single aggregator run. If un-aggregated past data exists for more days than this, the aggregator will place a bookmark at the last aggregated date and wait to complete the catch-up operation on the next aggregator run. |
+| STATS_DASHBOARD_REINDEXING_MAX_BATCHES        | Maximum number of ???                                                                                                                                                                                                                                                         |
+| STATS_DASHBOARD_REINDEXING_BATCH_SIZE         | Batch size to be used in paged search index requests while migrating existing view and download stats to the enriched indices.                                                                                                                                                |
+| STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT | Memory use threshold to be used to throttle stats index migration operations                                                                                                                                                                                                  |
+
+```{warning}
+Since the included search index tamplates all use the new-style index templates, you **must** also ensure that STATS_REGISTER_INDEX_TEMPLATES is set to True. This is currently *not* the default for InvenioRDM instances, but it should not interfere with any other packages. The only other index templates currently registered are those from the `invenio-stats` module, which are overridden by the `invenio-stats-dashboard` extension.
 ```
 
 ## 3. Manual CLI steps
 
-Three setup tasks must be performed manually via CLI commands. The first must be performed for any installation. The second and third are necessary **only for existing InvenioRDM instances** that already have records and view/download statistics:
+Once the basic config variables are set to their setup values, three tasks must be performed manually via CLI commands, detailed below:
 
 a. initialize the stats-dashboard custom fields
 b. index community addition events for all existing records
 c. migrate the existing view and download events to the new index templates and enrich them with community and record metadata
 
-These tasks must be performed manually via CLI commands detailed below. They require zero downtime and can be performed in the background on a running InvenioRDM instance.
+The first of these tasks must be performed for any installation. The second and third are necessary **only for existing InvenioRDM instances** that already have records and view/download statistics.
+
+These tasks require zero downtime and can be performed in the background on a running InvenioRDM instance.
 
 ### Initialize community custom fields
 
-The extension adds two custom fields to the community metadata schema:
+First, two custom fields must be initialized. The extension adds new fields to the community metadata schema:
 
 - `stats:dashboard_layout` allows communities to store dashboard layout configurations to override instance-wide defaults.
 - `stats:dashboard_enabled` allows communities to enable or disable their dashboards on an individual basis (if the package is configured to allow it).
 
-These fields must be initialized in the search index before they can be used:
+To initialize these fields, execute the following command inside your instance's ui container:
 
 ```bash
 # Initialize the custom field
@@ -73,11 +100,11 @@ invenio custom-fields communities init stats:dashboard_layout
 invenio custom-fields communities exists stats:dashboard_layout
 ```
 
-The toggle for enabling and disabling a community's dashboard is automatically integrated into community creation and editing forms _if_ you have configured community dashboards to be opt-in (`STATS_DASHBOARD_COMMUNITY_OPT_IN = True`). ???
+The toggle for enabling and disabling a community's dashboard is automatically integrated into community creation and editing forms _if_ you have configured community dashboards to be opt-in (`STATS_DASHBOARD_COMMUNITY_OPT_IN = True`).
 
 ### Initial indexing of community addition events
 
-When the `invenio-stats-dashboard` extension is loaded, it registers a template for a dedicated search index to store data about when each record was added to or removed from a community. From that point on, new add/remove events are indexed automatically by service components. But if an InvenioRDM instance already includes records, past add/remove events must be created retroactively for existing records. Inside the ui app container, run this CLI command:
+The next step is to run a CLI command that indexes "add" events retroactively for existing records. When the `invenio-stats-dashboard` extension is loaded, it registers a template for a dedicated search index to store data about when each record was added to or removed from a community. From that point on, new add/remove events are indexed automatically by service components. But if an InvenioRDM instance already includes records, past add/remove events must be created retroactively for existing records. Inside the ui app container, run this CLI command:
 
 ```shell
 invenio community-stats community-events generate
@@ -97,7 +124,11 @@ This command by default runs as a live process in the container (usually the ui 
 
 ### Initial migration of existing view/download events
 
-Before any statistics can be aggregated, the `invenio-stats-dashboard` package must also migrate all existing view and download events in the search index to new indices, using expanded field mappings. These schemas provided by the `invenio-stats` package (and customized by the `invenio-app-rdm` package ???) are expanded with additional fields for
+```{note}
+This migration step must be run **after** the previous step (indexing of initial community events) has finished.
+```
+
+Before any statistics can be aggregated, the `invenio-stats-dashboard` package must also migrate all existing view and download events in the search index to new indices, using expanded field mappings. These schemas provided by the `invenio-stats` package (and customized by the `invenio-rdm-records` package) are expanded with additional fields for:
 
 - record community inclusion (at the time of the event), and
 - record metadata to be made available as subcount breakdowns in statistics (as configured).
@@ -156,9 +187,11 @@ If you wish to clear the bookmarks for a particular month, you can use the `inve
 
 To clear the bookmarks for all months, you can use the `invenio community-stats usage-events clear-bookmarks` CLI command.
 
-## 4. Initial aggregation of historical data
+## 4. Initial aggregation of historical data (optional)
 
-???configure subcounts firstkk
+```{note}
+This migration step must be run **after** the previous steps (indexing of initial community events) have finished.
+```
 
 The extension will perform the initial aggregation of historical statistics automatically as part of the scheduled aggregation tasks. This can be a long process, especially for large instances, so a utility CLI command to perform the catch-up aggregation manually. In the ui app container, one may run
 
@@ -166,27 +199,48 @@ The extension will perform the initial aggregation of historical statistics auto
 invenio community-stats aggregate
 ```
 
-This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. For details, see the [CLI commands](#cli-commands) section below.
+This gives the instance maintainer more control over the process and can still run in the background while the instance is in use. Optional command-line parameters allow specifying a time-frame, a specific aggregator, or specific communities. For details, see the [CLI commands](./cli.html) section below.
 
 ```{note}
 **Monitoring Progress**: You can monitor the progress of the catch-up aggregation using the `invenio community-stats status` command. This command shows the current state of all aggregation indices, including bookmark dates, document counts, and visual completeness bars. For more details, see the [CLI commands](#cli-commands) section below.
 ```
 
-## 5. Configuration
+## 5. Initial response caching (optional)
+
+```{note}
+This step must be run **after** aggregation (section 4) has produced data. Response caching pre-generates the JSON responses used by the dashboard to allow short load times.
+```
+
+The extension will perform initial response caching automatically as part of the scheduled cache tasks. This can be a long process, especially for large instances or many communities, so a CLI command is provided to run the initial cache generation manually. In the ui app container, you may run:
+
+```shell
+invenio community-stats cache generate --all-years
+```
+
+This pre-generates cached responses for all data series categories (record_delta, usage_delta, etc.) for all communities and the global instance, for every year since community creation. Optional command-line parameters allow limiting by community (`--community-id`, `--community-slug`), by year (`--year`, `--years`), or running asynchronously via Celery (`--async`). For details, see the [CLI cache commands](./cli.html#cache-generate) section.
+
+```{note}
+You can use `invenio community-stats cache generate --dry-run` to see which communities and years would be processed without writing cache entries. The `cache info` and `cache list` commands can also provide progress information while the caching operation is running.
+```
 
 ## 6. Enable the tasks and dashboards
+
+Once you are ready to begin the scheduled background tasks for normal operation and expose the dashboard menu items (if desired), you can update these config variables.
 
 - `COMMUNITY_STATS_ENABLED` = `True`
 - `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` = `True`
 - `COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED` = `True`
 - `STATS_DASHBOARD_MENU_ENABLED` = `True` (if desired)
+- `STATS_DASHBOARD_COMMUNITY_MENU_ENABLED` = `True` (if desired)
 
-## Automated setup
+```{note}
+Until the instance/community's initial aggregations and response caching are finished, an "in progress" message will be shown on the dashboard. In large instances this state can continue for several hours.
+```
 
-After these tasks are completed, the extension will be ready to perform the remaining setup actions automatically. The catch-up aggregation of historical statistics will then be performed automatically as part of the scheduled aggregation tasks. Since this can, however, be a long process, especially for large instances, a utility CLI command to perform the catch-up aggregation manually is also provided.
+## 7. Restart the InvenioRDM instance
 
-## Search index template registration
+The final config changes will not take effect, and the scheduled tasks will not begin to run, until the InvenioRDM instance has been restarted.
 
-If the `invenio-stats-dashboard` extension is installed on a new InvenioRDM instance, the `invenio-stats` module will automatically register the extension's search index templates with the OpenSearch domain. But `invenio-stats` does not automatically do this registration for existing InvenioRDM instances, i.e. if the main OpenSearch index setup has already been performed. So the `invenio-stats-dashboard` extension will check at application startup to ensure that the extension's search index templates are registered with the OpenSearch domain. If they are not, it registers them with the `invenio-search` module and puts them to OpenSearch. The aggregation indices will then be created automatically when the first records are indexed.
+## Automated setup completion
 
-Registration of the expanded index templates for view and download events happens automatically as part of the usage event migration process.
+After these tasks are completed, the extension will be ready to perform the remaining setup actions automatically. The catch-up aggregation of historical statistics will then be performed automatically as part of the scheduled aggregation tasks; since this can be a long process, especially for large instances, a CLI command is also provided to run the catch-up aggregation manually (see section 4). Likewise, initial response caching will be performed by the scheduled cache tasks, but you may run `invenio community-stats cache generate --all-years` manually for faster initial dashboard readiness (see section 5).
