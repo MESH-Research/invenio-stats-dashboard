@@ -275,13 +275,42 @@ c. Migrate and enrich the existing view and download events (via CLI command)</p
 </section>
 <section id="install-the-python-package">
 <h2>1. Install the python package.<a class="headerlink" href="#install-the-python-package" title="Link to this heading">¶</a></h2>
-<p>In your InvenioRDM instance directory run one of the following commands, depending on whether you are using <code class="docutils literal notranslate"><span class="pre">pipenv</span></code> or <code class="docutils literal notranslate"><span class="pre">uv</span></code> for environment management:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pipenv<span class="w"> </span>install<span class="w"> </span>invenio-stats-dashboard
+<p>Until invenio-stats-dashboard is published to PyPI, it can be installed from github.</p>
+<section id="with-pipenv">
+<h3>With pipenv<a class="headerlink" href="#with-pipenv" title="Link to this heading">¶</a></h3>
+<p>Using pipenv you can run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pipenv<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;invenio-stats-dashboard @ git+https://github.com/MESH-Research/invenio-stats-dashboard.git&quot;</span>
 </pre></div>
 </div>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>invenio-stats-dashboard
+<p>or add the package to your Pipfile under [packages]:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">invenio</span><span class="o">-</span><span class="n">stats</span><span class="o">-</span><span class="n">dashboard</span> <span class="o">=</span> <span class="p">{</span><span class="n">git</span> <span class="o">=</span> <span class="s2">&quot;https://github.com/MESH-Research/invenio-stats-dashboard.git&quot;</span><span class="p">}</span><span class="s1">&#39;. Then run `pipenv install`.</span>
 </pre></div>
 </div>
+</section>
+<section id="with-uv">
+<h3>With uv<a class="headerlink" href="#with-uv" title="Link to this heading">¶</a></h3>
+<p>If you are using uv, you can run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span><span class="s2">&quot;invenio-stats-dashboard @ git+https://github.com/MESH-Research/invenio-stats-dashboard.git&quot;</span>
+</pre></div>
+</div>
+<p>or add it as a dependency in your <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;invenio-stats-dashboard @ git+https://github.com/MESH-Research/invenio-stats-dashboard.git&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>and then run <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span></code> or <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> as usual.</p>
+<!-- In your InvenioRDM instance directory run one of the following commands, depending on whether you are using `pipenv` or `uv` for environment management: -->
+<!---->
+<!-- ```shell -->
+<!-- pipenv install invenio-stats-dashboard -->
+<!-- ``` -->
+<!---->
+<!-- ```shell -->
+<!-- uv add invenio-stats-dashboard -->
+<!-- ``` -->
+<!---->
+</section>
 </section>
 <section id="initial-configuration-for-setup">
 <h2>2. Initial configuration for setup<a class="headerlink" href="#initial-configuration-for-setup" title="Link to this heading">¶</a></h2>
@@ -576,7 +605,11 @@ invenio<span class="w"> </span>custom-fields<span class="w"> </span>communities<
             <ul>
 <li><a class="reference internal" href="#">Setup and Migration</a><ul>
 <li><a class="reference internal" href="#setup-overview">Setup overview</a></li>
-<li><a class="reference internal" href="#install-the-python-package">1. Install the python package.</a></li>
+<li><a class="reference internal" href="#install-the-python-package">1. Install the python package.</a><ul>
+<li><a class="reference internal" href="#with-pipenv">With pipenv</a></li>
+<li><a class="reference internal" href="#with-uv">With uv</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#initial-configuration-for-setup">2. Initial configuration for setup</a></li>
 <li><a class="reference internal" href="#manual-cli-steps">3. Manual CLI steps</a><ul>
 <li><a class="reference internal" href="#initialize-community-custom-fields">Initialize community custom fields</a></li>

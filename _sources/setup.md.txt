@@ -21,15 +21,50 @@ This package depends on pull requests that were merged into invenio-requests and
 
 ## 1. Install the python package.
 
-In your InvenioRDM instance directory run one of the following commands, depending on whether you are using `pipenv` or `uv` for environment management:
+Until invenio-stats-dashboard is published to PyPI, it can be installed from github.
+
+### With pipenv
+
+Using pipenv you can run:
 
 ```shell
-pipenv install invenio-stats-dashboard
+pipenv install "invenio-stats-dashboard @ git+https://github.com/MESH-Research/invenio-stats-dashboard.git"
 ```
 
-```shell
-uv add invenio-stats-dashboard
+or add the package to your Pipfile under [packages]:
+
 ```
+invenio-stats-dashboard = {git = "https://github.com/MESH-Research/invenio-stats-dashboard.git"}'. Then run `pipenv install`.
+```
+
+### With uv
+
+If you are using uv, you can run:
+
+```shell
+uv add "invenio-stats-dashboard @ git+https://github.com/MESH-Research/invenio-stats-dashboard.git"
+```
+
+or add it as a dependency in your `pyproject.toml` file:
+
+```
+dependencies = [
+    "invenio-stats-dashboard @ git+https://github.com/MESH-Research/invenio-stats-dashboard.git",
+]
+```
+
+and then run `uv sync` or `uv pip install -e .` as usual.
+
+<!-- In your InvenioRDM instance directory run one of the following commands, depending on whether you are using `pipenv` or `uv` for environment management: -->
+<!---->
+<!-- ```shell -->
+<!-- pipenv install invenio-stats-dashboard -->
+<!-- ``` -->
+<!---->
+<!-- ```shell -->
+<!-- uv add invenio-stats-dashboard -->
+<!-- ``` -->
+<!---->
 
 ## 2. Initial configuration for setup
 
