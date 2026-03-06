@@ -52,12 +52,26 @@ from ..tasks.cache_tasks import CachedResponsesGenerationTask
 from .component_metrics import COMPONENT_METRICS_REGISTRY
 
 COMMUNITY_STATS_ENABLED = True
-COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
-COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
+"""Enable or disable all invenio-stats-dashboard features."""
 
-STATS_DASHBOARD_ENABLED_GLOBAL = True
-STATS_DASHBOARD_ENABLED_COMMUNITY = True
+COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
+"""Enable or disable the execution of scheduled aggregation tasks."""
+COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
+"""Enable or disable the execution of scheduled JSON response caching tasks."""
+
+STATS_DASHBOARD_ENABLED_GLOBAL = False
+"""Enable display of the global stats dashboard."""
+STATS_DASHBOARD_ENABLED_COMMUNITY = False
+"""Enable display of community stats dashboards."""
+
 STATS_DASHBOARD_COMMUNITY_OPT_IN = True
+"""Only display dashboards for communities that have enabled them on their
+settings page. `False` means that community dashboards (if enabled globally) will
+appear for all communities."""
+
+STATS_DASHBOARD_USE_TEST_DATA = False
+"""Enable or disable test data mode. When True, the dashboard will use sample data
+instead of making API calls."""
 
 STATS_DASHBOARD_OPTIMIZE_DATA_SERIES = True
 """Whether to optimize data series by default.
@@ -229,7 +243,7 @@ STATS_DASHBOARD_COMMUNITY_MENU_TEXT = _("Statistics")
 """Text for the community stats menu item in the community details header."""
 
 STATS_DASHBOARD_COMMUNITY_MENU_ORDER = 35
-"""Order of the community stats item in the community details menu 
+"""Order of the community stats item in the community details menu
 (e.g. 35 = after Members in the default community details menu)."""
 
 STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT = (
@@ -240,12 +254,8 @@ STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT = (
 STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION = None
 """Custom function to register the community details menu item. If None, uses
 default registration. Should be a callable that takes the Flask app as its only
-argument. When registering the item, the callable must pass 
+argument. When registering the item, the callable must pass
 expected_args=['pid_value'], and it should pass icon and permissions."""
-
-STATS_DASHBOARD_USE_TEST_DATA = False
-"""Enable or disable test data mode. When True, the dashboard will use sample data
-instead of making API calls."""
 
 STATS_DASHBOARD_LAYOUT = {
     "global_layout": {
@@ -961,6 +971,9 @@ STATS_DASHBOARD_LAYOUT = {
 
 
 COMMUNITY_STATS_QUERIES = {
+    # NOTE: stats based on created and published dates are deprecated
+    # for the time being.
+    #
     # "community-record-delta-created": {
     #     "cls": CommunityRecordDeltaResultsQuery,
     #     "permission_factory": CommunityStatsPermissionFactory,
@@ -1155,13 +1168,48 @@ STATS_EVENTS = {
     },
 }
 
+# Number of top records to collect for "top" type subcounts
+COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
+
+# View/download event reindexing
 STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000
 STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 5000
 STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 85
 
-# Number of top records to collect for "top" type subcounts
-COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
+# Adaptive chunking for aggregation (base aggregator)
+# These variables are part of the adaptive protection against
+# out-of-memory errors and bulk indexing errors.
+# DO NOT CHANGE THESE WITHOUT UNDERSTANDING THE CODE THAT USES THEM
+COMMUNITY_STATS_INITIAL_CHUNK_SIZE = 50
+"""Initial bulk-index chunk size. Reduced on timeout, grown on success."""
+COMMUNITY_STATS_MIN_CHUNK_SIZE = 1
+COMMUNITY_STATS_MAX_CHUNK_SIZE = 100
+COMMUNITY_STATS_CHUNK_REDUCTION_FACTOR = 0.7
+"""Factor to reduce chunk size after a timeout (e.g. 0.7 = 30% reduction)."""
+COMMUNITY_STATS_CHUNK_GROWTH_FACTOR = 1.05
+"""Factor to increase chunk size after successful bulk index."""
+COMMUNITY_STATS_BULK_INDEX_TIMEOUT = 300
+"""Bulk index and search timeout in seconds."""
 
+# Usage snapshot aggregation memory and tuning (usage_snapshot_aggs.py)
+# These variables are part of the adaptive protection against
+# out-of-memory errors in usage snapshot aggregations particularly.
+# DO NOT CHANGE THESE WITHOUT UNDERSTANDING THE CODE THAT USES THEM
+COMMUNITY_STATS_WS_OVERHEAD = 1.1
+"""Overhead factor for working-set size estimates."""
+COMMUNITY_STATS_SCAN_OVERHEAD = 0.85
+COMMUNITY_STATS_BULK_OVERHEAD = 1.3
+COMMUNITY_STATS_DELTA_OVERHEAD = 1.2
+COMMUNITY_STATS_MEM_SAFETY_FACTOR = 1.2
+"""Safety factor for memory threshold checks."""
+COMMUNITY_STATS_TOP_GROWTH_FACTOR = 3.0
+COMMUNITY_STATS_TOP_GROWTH_FLOOR_FACTOR = 5.0
+COMMUNITY_STATS_TOP_HARD_CAP_PER_KEY = 10000
+COMMUNITY_STATS_TOP_DISCOVERY_DECAY = 0.3
+COMMUNITY_STATS_AVG_DELTA_BYTES = 10240
+"""Average bytes per delta document for size estimates."""
+COMMUNITY_STATS_INMEMORY_MULTIPLIER = 4.0
+"""Multiplier for serialized size to approximate in-memory footprint."""
 
 COMMUNITY_STATS_SUBCOUNTS = {
     "resource_types": {
@@ -1530,11 +1578,8 @@ COMMUNITY_STATS_SUBCOUNTS = {
 }
 
 # JSON compression configuration
-# When True: Frontend requests compressed JSON (application/json+gzip) from the API
-# When False: Frontend requests plain JSON (application/json) and lets server
-#   handle compression
-# Set to False when server-level compression (nginx, Apache) is enabled to avoid
-#   double compression
+# DEPRECATED: We always rely on server-level compression after the response
+# has been returned by the app.
 STATS_DASHBOARD_COMPRESS_JSON = False
 
 # Client-side IndexedDB cache compression configuration

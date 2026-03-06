@@ -1,60 +1,260 @@
-## Configuration
+# Configuration
 
-### Configuration Overrides
+Much of invenio-stats-dashboard's behaviour can be controlled or overridden by use of configuration variables. Many of these can be left at the default settings, but a few **must be considered before the package is set up**:
+
+- (Subcount configuration)[#subcount-configuration]: These settings will determine what is stored in indexed view/download events and aggregated statistics. It determines what metadata fields will be available for subcount displays in the dashboard UI. It is also **currently very difficult to change this setting after initial setup**. (Although an easier path for subsequent changes is planned for future development.)
+- (Basic settings)[#basic-settings]: You will need to enable and disable the dashboards during setup.
+- (Scheduled task enabling/disabling)[#enable-&-disable-scheduled-tasks]: These switches will also be needed during setup.
+- (Dashboard layout and components)[#dashboard-layout-and-components]: The precise layout of your dashboard may easily be changed at any time. But your initial choice of dashboard widgets will determine **what data is included in cached JSON response objects** that are required for the dashboard to load in a reasonable time. After the initial cache generation, if you add components that require additional data points (subcounts or metrics) you will need to regenerate all of the cached responses using the CLI caching commands.
+
+The setup processes (index migration, add/remove event generation, aggregation, caching) are designed to run efficiently with moderate resource use. But if you encounter resource use issues (OOM errors, search indexing timeouts, etc.) you may need to tweak the variable values that control those processes.
+
+Beyond that, you are encouraged to explore all of the config variables and the flexibility they allow.
+
+## Overriding Configuration Defaults
 
 The default configuration values are defined in the module's `config/config.py` file. These defaults can be overridden in the
-top-level `invenio.cfg` file of an InvenioRDM instance or as environment variables.
+top-level `invenio.cfg` file of an InvenioRDM instance or as environment variables. Remember that you will need to restart your InvenioRDM app instance before changes to config variables will take effect.
+
+## Basic Settings
 
 ### Module Enable/Disable
 
-The entire community stats dashboard module can be enabled or disabled using the `COMMUNITY_STATS_ENABLED` configuration variable:
+The entire community stats dashboard module can be enabled or disabled using the variable:
 
 ```python
-# Disable the module completely
-COMMUNITY_STATS_ENABLED = False
+COMMUNITY_STATS_ENABLED = False  # to disable the extension
+# OR
+COMMUNITY_STATS_ENABLED = True  # to enable the extension
 ```
 
-When disabled:
+When disabled, all extension features will be disabled, regardless of any other config variable settings:
 
 - **Scheduled tasks will not run**: No automatic aggregation or migration tasks
-- **CLI commands will fail**: All commands will show an error message
-- **Services will not be initialized**: No event tracking or statistics services
-- **Menus will not be registered**: No dashboard menu items
+- **CLI commands will fail**: All commands will show an error message unless an override option is added to the command.
+- **Services will not be initialized**: No event tracking or statistics services will be available.
+- **Menus will not be registered**: No dashboard menu items will be registered.
 - **Components will not be added**: No event tracking components
 
-**Note**: This is a global on/off switch. When disabled, the module will not modify the instance in any way.
+The only effect of the extension on the app instance will be to register the index templates, but no indexing operations will be performed.
 
-### Scheduled Tasks Enable/Disable
+### Test Data Mode
 
-Scheduled aggregation tasks can be controlled separately using the `COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED` configuration variable:
+The `STATS_DASHBOARD_USE_TEST_DATA` variable enables test data mode for development and testing purposes. When enabled, the dashboard will use synthetic data instead of making API calls to the statistics service.
 
 ```python
-# Enable the module but disable scheduled tasks
-COMMUNITY_STATS_ENABLED = True
+STATS_DASHBOARD_USE_TEST_DATA = True
+```
+
+**Note**: This should be set to `False` in production environments to ensure real statistics data is displayed.
+
+### Menu configuration
+
+The following configuration variables enable or disable the main menu item for the global instance dashboard and the menu item for each community's dashboard in its community details page submenu:
+
+```python
+STATS_DASHBOARD_MENU_ENABLED = True
+"""Enable or disable the stats menu item."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_ENABLED = True
+"""Enable or disable the Statistics tab in the community details header menu."""
+```
+
+If desired, the following variables may be used to customize the text and position of each menu item:
+
+```python
+STATS_DASHBOARD_MENU_TEXT = _("Statistics")
+"""Text for the stats menu item."""
+
+STATS_DASHBOARD_MENU_ORDER = 1
+"""Order of the stats menu item in the menu."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_TEXT = _("Statistics")
+"""Text for the community stats menu item in the community details header."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_ORDER = 35
+"""Order of the community stats item in the community details menu
+(e.g. 35 = after Members in the default community details menu)."""
+
+```
+
+If more customization of the menu item is desired, you may provide a custom registration function for either menu item. The callable provided will be used in place of the default menu registration function defined in ext.py. This allows for, e.g., changing the default menu item icon.
+
+```python
+STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the menu item. If None, uses default registration
+set up in ext.py. Should be a callable that takes the Flask app as its only argument.
+"""
+
+STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION = None
+"""Custom function to register the community details menu item. If None, uses
+default registration. Should be a callable that takes the Flask app as its only
+argument. When registering the item, the callable must pass
+expected_args=['pid_value'], and it should pass icon and permissions."""
+
+```
+
+If you wish to replace the default global or community view function with a custom one, you may point the menu to your own view function endpoint using the following variables. (This of course requires that you know what you are doing!)
+
+```python
+STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
+"""View function endpoint for the stats menu item."""
+
+STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT = (
+    "invenio_stats_dashboard.community_stats_dashboard"
+)
+"""Endpoint for the community stats menu item (must accept pid_value)."""
+
+```
+
+## Subcount Configuration
+
+### Metadata subcounts for aggregations
+
+```{warning}
+The performance and resource demands of the community stats aggregation is affected heavily by (a) the number of subcounts you have active, and (b) the number of possible values (cardinality) in each subcount's metadata field. Consider carefully which subcounts are most useful to your InvenioRDM instance.
+```
+
+`COMMUNITY_STATS_SUBCOUNTS` is one of the few config variables that **must be considered carefully before the package setup processes** are run. This variable defines the metadata subcounts for statistics aggregation:
+
+- which metadata fields will be added to each indexed view and download event
+- which metadata fields will be included as subcount categories in each daily aggregation document (deltas and snapshots)
+
+It also defines how the metadata from these fields will be handled by the event factories, aggregators, and JSON transformers.
+
+Its value is a dictionary shaped like this:
+
+```python
+COMMUNITY_STATS_SUBCOUNTS = {
+    "resource_types": {
+        "records": {
+            "delta_aggregation_name": "resource_types",
+            "snapshot_type": "all",
+            "source_fields": [
+                {
+                    "field": "metadata.resource_type.id",
+                    "label_field": "metadata.resource_type.title",
+                    "label_source_includes": [
+                        "metadata.resource_type.title",
+                        "metadata.resource_type.id",
+                    ],
+                },
+            ],
+        },
+        "usage_events": {
+            "delta_aggregation_name": "resource_types",
+            "field_type": dict[str, Any] | None,
+            "event_field": "resource_type",
+            "extraction_path_for_event": "metadata.resource_type",
+            "snapshot_type": "all",
+            "source_fields": [
+                {
+                    "field": "resource_type.id",
+                    "label_field": "resource_type.title",
+                    "label_source_includes": [
+                        "resource_type.title",
+                        "resource_type.id",
+                    ],
+                },
+            ],
+        },
+    },
+    # ... other subcount configurations
+}
+```
+
+#### Enabling and disabling metadata subcounts
+
+Each top-level key and value defines one metadata subcount. In general, InvenioRDM instances will not need to customize the values within each subcount definition. To disable a subcount, simply remove its key and value completely (or comment it out) from the COMMUNITY_STATS_SUBCOUNTS dictionary.
+
+If you want a subcount to be available for only one category of statistics (record/file counts or view/download counts) you may replace the "records" or "usage_events" value for the subcount with an empty dictionary. To disable the "subjects" subcount for view and download statistics, for example, we would adjust the "subjects" subcount value like this:
+
+```python
+COMMUNITY_STATS_SUBCOUNTS = {
+    "subjects": {
+        "records": {
+            "delta_aggregation_name": "subjects",
+            "snapshot_type": "top",
+            "source_fields": [
+                {
+                    "field": "metadata.subjects.id",
+                    "label_field": "metadata.subjects.subject",
+                    "label_source_includes": [
+                        "metadata.subjects.subject",
+                        "metadata.subjects.scheme",
+                        "metadata.subjects.id",
+                    ],
+                },
+            ],
+        },
+        "usage_events": {},
+    },
+# ... other subcounts
+}
+```
+
+#### Available metadata subcounts
+
+The following subcounts are configured and are enabled by default unless otherwise noted:
+
+- "resource_types"
+- "access_statuses"
+- "languages"
+- "subjects" (disabled for usage_events)
+- "rights"
+- "funders"
+- "periodicals"
+- "publishers"
+- "affiliations"
+- "countries"
+- "referrers" (disabled)
+- "file_types"
+
+### Metadata breakdowns in the UI
+
+This variable controls which subcount breakdowns are available in the UI and how they are displayed.
+
+```python
+STATS_DASHBOARD_UI_SUBCOUNTS = {
+    "resource_types": {},
+    "subjects": {},
+    "languages": {},
+    "rights": {},
+    "funders": {},
+    "periodicals": {},
+    "publishers": {},
+    "affiliations": {},
+    "countries": {},
+    "referrers": {},
+    "file_types": {},
+    "access_statuses": {},
+}
+```
+
+## Scheduled Aggregation and Caching Tasks
+
+### Enable & Disable Scheduled Tasks
+
+Scheduled aggregation and response caching tasks can be turned on and off separately, using these variables:
+
+```python
 COMMUNITY_STATS_SCHEDULED_AGG_TASKS_ENABLED = False
 COMMUNITY_STATS_SCHEDULED_CACHE_TASKS_ENABLED = False
 ```
 
-When scheduled tasks are disabled:
+When scheduled aggregation tasks are disabled:
 
-- **Scheduled aggregation tasks will not run**: No automatic daily/weekly aggregation
-- **CLI aggregation commands will fail**: `aggregate` command will show an error unless `--force` is used
-- **Manual aggregation with --force**: You can still run aggregation manually using `invenio community-stats aggregate --force`
-- **All other functionality remains**: Event tracking, migration, and other features work normally
+- **The scheduled tasks will not run**: No automatic hourly aggregation will be performed.
+- **CLI aggregation commands will fail**: The `invenio community-stats aggregate` and `aggregate-background` commands will show an error unless the `--force` flag is used.
+- **Other CLI commands related to aggregation will still work**: The `community-stats status`, `communnity-stats clear-bookmarks`, `community-stats read` and other commands will work as normal.
 
-This allows you to enable the module for manual operations while preventing automatic background tasks. The `--force` flag bypasses the scheduled tasks check and allows manual aggregation even when scheduled tasks are disabled.
+When scheduled caching tasks are disabled:
 
-### View/Download event migration
+- **The scheduled tasks will not run**: No automatic hourly responnse caching will be performed.
+- **CLI caching commands will fail**: The `invenio community-stats cache generate` and `generate-background` commands will show an error unless the `--force` flag is used.
+- **Other CLI cache commands will still work**: The `cache info`, `cache clear-all`, etc. will work as normal.
 
-The following configuration variables control the default behavior of migration commands:
-
-```python
-STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000  # Maximum number of batches to process per month
-STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000  # Number of events to process per batch
-STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 75  # Maximum memory usage percentage before stopping
-```
-
-These defaults can be overridden using the corresponding CLI options when running the `migrate-events` command.
+This allows you to enable the module for manual operations while preventing automatic background tasks.
 
 ### Task scheduling and aggregation
 
@@ -150,7 +350,46 @@ The hourly cache task generates cached responses for:
 
 This covers the most commonly accessed data and ensures that current year dashboard views load quickly. Historical data for previous years is cached on-demand when first accessed.
 
-### Default range options
+## Dashboard UI
+
+### Basic UI Configuration
+
+The UI configuration for the dashboard is defined by the `STATS_DASHBOARD_UI_CONFIG` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to a dictionary of configuration options.
+
+The default UI configuration is:
+
+```python
+STATS_DASHBOARD_UI_CONFIG = {
+    "global": {
+        "title": _("Statistics"),
+        "description": _("This is the global stats dashboard."),
+        "maxHistoryYears": 15,
+        "default_granularity": "month",
+        "show_title": True,
+        "show_description": False,
+    },
+    "community": {
+        "title": _("Statistics"),
+        "description": _("This is the community stats dashboard."),
+        "maxHistoryYears": 15,
+        "default_granularity": "month",
+        "show_title": True,
+        "show_description": False,
+    },
+}
+```
+
+#### Title and description display
+
+The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.
+
+The `show_title` and `show_description` options can be used to control whether the title and description are displayed for the global and community dashboards.
+
+#### Default granularity
+
+This defines the granularity level of the UI chart widgets when the dashboard first loads. By implication it also determines the starting date range (together with STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS). Available values are "day", "week", "month", "quarter", "year".
+
+### Default UI range options
 
 The following configuration variable controls the default date range options for the dashboard. The keys represent the
 available granularity levels for the date range selector and cannot be changed. The values represent the default date
@@ -166,31 +405,21 @@ STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS = {
 }
 ```
 
-### Menu configuration
+### Limit on displayed subcount values
 
-The following configuration variables control the menu integration for the global dashboard:
+The following configuration variables control how subcount breakdowns are generated and displayed:
 
 ```python
-STATS_DASHBOARD_MENU_ENABLED = True
-"""Enable or disable the stats menu item."""
-
-STATS_DASHBOARD_MENU_TEXT = _("Statistics")
-"""Text for the stats menu item."""
-
-STATS_DASHBOARD_MENU_ORDER = 1
-"""Order of the stats menu item in the menu."""
-
-STATS_DASHBOARD_MENU_ENDPOINT = "invenio_stats_dashboard.global_stats_dashboard"
-"""Endpoint for the stats menu item."""
-
-STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION = None
-"""Custom function to register the menu item. If None, uses default registration.
-Should be a callable that takes the Flask app as its only argument."""
+COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
 ```
+
+This variable controls the maximum number of items returned in subcount breakdowns (e.g., "Top 20 Resource Types"). This helps prevent overwhelming the UI with too many items and improves performance.
 
 ### Dashboard layout and components
 
-The layout and components for the dashboard are configured via the `STATS_DASHBOARD_LAYOUT` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a "width" key.
+The layout and components for the dashboard are configured via `STATS_DASHBOARD_LAYOUT`. This is another variable that **must be considered carefully before you run the initial response caching** for your dashboards. While the precise layout of your dashboard may easily be changed at any time, your initial choice of dashboard widgets will determine **what data is included in cached JSON response objects** that are required for the dashboard to load in a reasonable time. After the initial cache generation, if you add components that require additional data points (subcounts or metrics) you will need to regenerate all of the cached responses using the CLI caching commands.
+
+The `STATS_DASHBOARD_LAYOUT` value is a dictionary that maps dashboard types (currently `global` and `community`) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a "width" key.
 
 For example, the default global layout configuration is:
 
@@ -242,6 +471,8 @@ Any additional key/value pairs in the dictionary for a component will be passed 
 
 The component labels used for the layout configuration are defined in the `components_map.js` file, where they are mapped to the component classes.
 
+## Dashboard Views
+
 ### Routes
 
 The routes for the dashboard are defined by the `STATS_DASHBOARD_ROUTES` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to route strings.
@@ -269,120 +500,27 @@ STATS_DASHBOARD_TEMPLATES = {
 }
 ```
 
-### UI Configuration
+## API Endpoints
 
-The UI configuration for the dashboard is defined by the `STATS_DASHBOARD_UI_CONFIG` configuration variable. This is a dictionary that maps dashboard types (currently `global` and `community`) to a dictionary of configuration options.
+### The api/stats endpoint
 
-For example, the default UI configuration is:
+The `COMMUNITY_STATS_QUERIES` variable contains the query configurations for accessing statistics data. It is automatically populated and includes configurations for different types of statistics queries.
 
-```python
-STATS_DASHBOARD_UI_CONFIG = {
-    "global": {
-        "title": _("Statistics"),
-        "description": _("This is the global stats dashboard."),
-        "maxHistoryYears": 15,
-        "default_granularity": "month",
-        "show_title": True,
-        "show_description": False,
-    },
-    "community": {
-        "title": _("Statistics"),
-        "description": _("This is the community stats dashboard."),
-        "maxHistoryYears": 15,
-        "default_granularity": "month",
-        "show_title": True,
-        "show_description": False,
-    },
-}
-```
+## Setup Processes
 
-#### Title and description display
+### View/Download index migration
 
-The title and description display in different places for the global and community dashboards. For the global dashboard, the title and description are displayed in the page subheader, while for the community dashboard they display at the top of the dashboard sidebar.
-
-The `show_title` and `show_description` options can be used to control whether the title and description are displayed for the global and community dashboards.
-
-### Subcount Configuration
-
-The following configuration variables control how subcount breakdowns are generated and displayed:
-
-#### `COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT`
-
-This variable controls the maximum number of items returned in subcount breakdowns (e.g., "Top 20 Resource Types"). This helps prevent overwhelming the UI with too many items and improves performance.
+The following configuration variables control the default behavior of migration commands:
 
 ```python
-COMMUNITY_STATS_TOP_SUBCOUNT_LIMIT = 20
+STATS_DASHBOARD_REINDEXING_MAX_BATCHES = 1000  # Maximum number of batches to process per month
+STATS_DASHBOARD_REINDEXING_BATCH_SIZE = 1000  # Number of events to process per batch
+STATS_DASHBOARD_REINDEXING_MAX_MEMORY_PERCENT = 85  # Maximum memory usage percentage before stopping
 ```
 
-#### `COMMUNITY_STATS_SUBCOUNTS`
+These defaults can be overridden using the corresponding CLI options when running the `migrate-events` command.
 
-This variable defines the configuration for different subcount breakdown types, including field mappings and display options.
-
-```python
-COMMUNITY_STATS_SUBCOUNTS = {
-    "resource_types": {
-        "records": {
-            "source_fields": [
-                {
-                    "field": "metadata.resource_type.id",
-                    "label_field": "metadata.resource_type.title",
-                    "label_source_includes": ["metadata.resource_type.id", "metadata.resource_type.title"]
-                }
-            ]
-        }
-    },
-    "subjects": {
-        "records": {
-            "source_fields": [
-                {
-                    "field": "metadata.subjects.subject",
-                    "label_field": "metadata.subjects.subject",
-                    "label_source_includes": ["metadata.subjects.subject"]
-                }
-            ]
-        }
-    },
-    # ... other subcount configurations
-}
-```
-
-#### `STATS_DASHBOARD_UI_SUBCOUNTS`
-
-This variable controls which subcount breakdowns are available in the UI and how they are displayed.
-
-```python
-STATS_DASHBOARD_UI_SUBCOUNTS = {
-    "resource_types": {},
-    "subjects": {},
-    "languages": {},
-    "rights": {},
-    "funders": {},
-    "periodicals": {},
-    "publishers": {},
-    "affiliations": {
-        "records": {
-            "source_fields": [
-                {
-                    "field": "metadata.creators.affiliations.id",
-                    "label_field": "metadata.creators.affiliations.name",
-                    "label_source_includes": ["metadata.creators.affiliations.id", "metadata.creators.affiliations.name"],
-                },
-                {
-                    "field": "metadata.contributors.affiliations.id",
-                    "label_field": "metadata.contributors.affiliations.name",
-                    "label_source_includes": ["metadata.contributors.affiliations.id", "metadata.contributors.affiliations.name"],
-                }
-            ]
-        }
-    },
-    "countries": {},
-    "referrers": {},
-    "file_types": {},
-    "access_statuses": {},
-}
-```
-
-### Bulk Indexing and Request Size Limits
+### Delta aggregation controls
 
 #### 413 Error Risk and Adaptive Chunking
 
@@ -439,43 +577,7 @@ If you want to reduce document sizes to improve performance:
 - Remove unused subcount categories from `COMMUNITY_STATS_SUBCOUNTS`
 - Use fewer subcount fields in your configuration
 
-### Test Data Mode
-
-#### `STATS_DASHBOARD_USE_TEST_DATA`
-
-This variable enables test data mode for development and testing purposes. When enabled, the dashboard will use synthetic data instead of making API calls to the statistics service.
-
-```python
-STATS_DASHBOARD_USE_TEST_DATA = True
-```
-
-**Note**: This should be set to `False` in production environments to ensure real statistics data is displayed.
-
-### JSON Compression Configuration
-
-#### `STATS_DASHBOARD_COMPRESS_JSON`
-
-This variable controls whether the frontend requests compressed JSON from the API. This is useful for optimizing bandwidth usage and avoiding double compression when server-level compression is already configured.
-
-```python
-STATS_DASHBOARD_COMPRESS_JSON = False  # Default: False
-```
-
-**Configuration Options:**
-
-- **`False` (Default)**: Frontend requests plain JSON (`application/json`) and lets the server handle compression
-  - ✅ **Use when**: Server-level compression is enabled (nginx, Apache, etc.)
-  - ✅ **Benefit**: Avoids double compression, more efficient
-  - ✅ **Result**: Server compresses the response using HTTP-level compression
-
-- **`True`**: Frontend requests compressed JSON (`application/json+gzip`) from the API
-  - ✅ **Use when**: No server-level compression is configured
-  - ✅ **Benefit**: Still get compressed responses even without server-level compression
-  - ✅ **Result**: API compresses the response using application-level compression
-
-**Important**: When server-level compression is enabled, setting this to `True` can result in double compression, which is inefficient and may cause issues. Always set this to `False` when using nginx, Apache, or other reverse proxies with compression enabled.
-
-### Event Processing Configuration
+### View & Download Event Processing
 
 #### `STATS_EVENTS`
 
@@ -500,13 +602,11 @@ STATS_EVENTS = {
 
 The following configuration variables are automatically generated by the module and typically do not need manual configuration:
 
+## Aggregators
+
 #### `COMMUNITY_STATS_AGGREGATIONS`
 
 This variable contains the aggregation configurations for all statistics aggregators. It is automatically populated by the `register_aggregations()` function and includes configurations for record counts, usage statistics, and other metrics.
-
-#### `COMMUNITY_STATS_QUERIES`
-
-This variable contains the query configurations for accessing statistics data. It is automatically populated and includes configurations for different types of statistics queries.
 
 ### Configuration Reference
 
@@ -547,6 +647,8 @@ The following table provides a complete reference of all available configuration
 | `COMMUNITIES_CUSTOM_FIELDS_UI`                  | `{...}`                                            | Community custom fields UI configuration (auto-merged by extension)                                                                               |
 
 **Note**: Variables marked with `{...}` contain complex configuration objects that are documented in detail in the sections above.
+
+## Interaction with Config from Other Packages
 
 ### Community Custom Fields
 
@@ -627,16 +729,6 @@ The custom field stores a JSON object with the following structure:
 }
 ```
 
-#### Schema Validation
-
-The field uses a structured Marshmallow schema for validation:
-
-- **Component Props**: Flexible dictionary for component-specific properties
-- **Components**: Individual dashboard components with validation
-- **Rows**: Groups of components with layout information
-- **Tabs**: Dashboard sections containing multiple rows
-- **Dashboard Types**: Separate configurations for `global` and `community` dashboards
-
 #### Integration Methods
 
 **Method 1: Automatic Integration (Recommended)**
@@ -686,43 +778,7 @@ COMMUNITIES_CUSTOM_FIELDS_UI = [
 ]
 ```
 
-#### Field Initialization
-
-After configuration, initialize the custom field in the search index:
-
-```bash
-# Initialize the custom field
-invenio custom-fields communities init stats:dashboard_layout
-
-# Verify the field exists
-invenio custom-fields communities exists stats:dashboard_layout
-```
-
-#### Usage in Communities
-
-Once configured, community administrators can:
-
-1. **Access the field** in community creation/editing forms
-2. **Configure layouts** using the structured JSON format
-3. **Override defaults** by providing community-specific configurations
-4. **Maintain consistency** with global dashboard structure
-
-#### Benefits
-
-- **✅ Flexible Configuration**: Each community can customize its dashboard layout
-- **✅ Structured Validation**: Prevents invalid configurations through schema validation
-- **✅ Non-Destructive**: Integrates with existing custom field configurations
-- **✅ Searchable**: Field existence can be queried (though content is not searchable)
-- **✅ Extensible**: Easy to add new component types or layout options
-
-#### Technical Details
-
-- **Marshmallow Schema**: Uses `fields.Nested()` with structured validation
-- **Elasticsearch Mapping**: `{"type": "object", "enabled": false}` for retrieval without content indexing
-- **Namespace**: Internal `stats` namespace (no external URL required)
-- **UI Widget**: Custom widget for JSON configuration editing
-
-### Content Negotiation and Response Serializers
+## Content Negotiation and Response Serializers
 
 The API supports multiple response formats through content negotiation. The `COMMUNITY_STATS_SERIALIZERS` configuration controls which serializers are available for different content types. The frontend's compression behavior is controlled by the `STATS_DASHBOARD_COMPRESS_JSON` configuration variable (see [JSON Compression Configuration](#json-compression-configuration) above).
 

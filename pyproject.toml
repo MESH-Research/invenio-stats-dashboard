@@ -4,7 +4,7 @@ requires = ["babel>2.8", "setuptools>=61", "wheel"]
 
 [project]
 name = "invenio-stats-dashboard"
-version = "0.1.0-alpha1"
+version = "0.5.0"
 description = "Invenio Stats Dashboard"
 readme = "README.md"
 keywords = ["dashboard", "invenio", "stats"]
@@ -64,17 +64,16 @@ optional-dependencies.tests = [
 ]
 urls.Homepage = "https://github.com/MESH-Research/invenio-stats-dashboard"
 scripts.community-stats = "invenio_stats_dashboard.cli:cli"
-[project.entry-points]
-"invenio_base.api_apps".invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
-"flask.commands".community-stats = "invenio_stats_dashboard.cli:cli"
-"invenio_base.blueprints".invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_blueprint"
-"invenio_assets.webpack".invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
-"invenio_base.finalize_app".invenio_stats_dashboard = "invenio_stats_dashboard.ext:finalize_app"
-"invenio_base.api_blueprints".invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_api_blueprint"
-"invenio_base.apps".invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
-"invenio_celery.tasks".invenio_stats_dashboard = "invenio_stats_dashboard.tasks.aggregation_tasks"
-"invenio_celery.tasks".invenio_stats_dashboard_caching = "invenio_stats_dashboard.tasks.cache_tasks"
-"invenio_celery.tasks".invenio_stats_dashboard_reindexing = "invenio_stats_dashboard.tasks.usage_reindexing_tasks"
+entry-points."flask.commands".community-stats = "invenio_stats_dashboard.cli:cli"
+entry-points."invenio_assets.webpack".invenio_stats_dashboard_theme = "invenio_stats_dashboard.webpack:theme"
+entry-points."invenio_base.api_apps".invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
+entry-points."invenio_base.api_blueprints".invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_api_blueprint"
+entry-points."invenio_base.apps".invenio_stats_dashboard = "invenio_stats_dashboard.ext:InvenioStatsDashboard"
+entry-points."invenio_base.blueprints".invenio_stats_dashboard = "invenio_stats_dashboard.views.views:create_blueprint"
+entry-points."invenio_base.finalize_app".invenio_stats_dashboard = "invenio_stats_dashboard.ext:finalize_app"
+entry-points."invenio_celery.tasks".invenio_stats_dashboard = "invenio_stats_dashboard.tasks.aggregation_tasks"
+entry-points."invenio_celery.tasks".invenio_stats_dashboard_caching = "invenio_stats_dashboard.tasks.cache_tasks"
+entry-points."invenio_celery.tasks".invenio_stats_dashboard_reindexing = "invenio_stats_dashboard.tasks.usage_reindexing_tasks"
 
 # invenio-rdm-records = {path = "../invenio-rdm-records", editable = true}
 # invenio-requests = {path = "../invenio-requests", editable = true}
