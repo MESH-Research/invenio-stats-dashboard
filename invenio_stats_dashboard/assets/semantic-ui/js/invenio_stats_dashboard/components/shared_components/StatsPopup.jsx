@@ -14,7 +14,7 @@ const StatsPopup = ({ number, compactThreshold }) => {
   return localizedNumber !== compactNumber ? (
     <div>
       <span
-        tabindex="0"
+        tabIndex="0"
         role="button"
         className="popup-trigger compact-number"
         aria-expanded="false"

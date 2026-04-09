@@ -120,7 +120,7 @@ const StatsDashboardPage = ({
 	console.log("agg_in_progress", agg_in_progress);
 	console.log("caching_in_progress", caching_in_progress);
 
-	const noDataText = !!first_run_incomplete
+	const noDataText = first_run_incomplete
 		? "Initial calculation of statistics is still in progress. Check back again in a few hours."
 		: !!agg_in_progress || !!caching_in_progress
 			? "A calculation operation is currently in progress. Check back again later."
@@ -233,7 +233,7 @@ const StatsDashboardPage = ({
 						<Message.Header>
 							{!!first_run_incomplete && (!stats || !!statsAreEmpty)
 								? i18next.t("No Data Available")
-								: !!first_run_incomplete
+								: first_run_incomplete
 									? i18next.t("Statistics Calculation In Progress")
 									: i18next.t("No Data Available")}
 						</Message.Header>

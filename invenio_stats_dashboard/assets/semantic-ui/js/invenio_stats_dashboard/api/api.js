@@ -95,6 +95,7 @@ const updateState = (
 					isLoading: false,
 					isUpdating: true,
 				});
+				break;
 			case "error":
 				onStateChange({
 					...baseState,
@@ -291,7 +292,7 @@ const fetchStatsWithYearlyBlocks = async ({
 
 		// We actually fetched/retrieved blocks, so update timestamps
 		const fetchTimestamp = Date.now();
-		const resultState = !!blocksAreStale ? "stale_and_updating" : "data_loaded";
+		const resultState = blocksAreStale ? "stale_and_updating" : "data_loaded";
 		updateState(onStateChange, isMounted, resultState, updatedStats, {
 			lastUpdated: fetchTimestamp,
 			currentYearLastUpdated: currentYearLastUpdated,

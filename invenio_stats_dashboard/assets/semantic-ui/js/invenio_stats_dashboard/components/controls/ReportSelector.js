@@ -201,7 +201,6 @@ const ReportSelector = ({ defaultFormat }) => {
 						className="stats-dashboard-report-button mt-10"
 						content={i18next.t("Download")}
 						onClick={handleReportDownload}
-						className="mt-10"
 						icon={"download"}
 						labelPosition="right"
 						disabled={isDownloading}

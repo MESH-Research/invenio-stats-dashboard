@@ -40,7 +40,7 @@ const CommunityStatsDashboardLayout = ({
 		dashboardType,
 	];
 
-	return !!dashboardEnabled ? (
+	return dashboardEnabled ? (
 		<StatsDashboardLayout
 			dashboardConfig={dashboardConfig}
 			dashboardType={dashboardType}

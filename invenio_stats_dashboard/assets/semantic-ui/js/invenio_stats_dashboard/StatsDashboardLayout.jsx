@@ -79,7 +79,7 @@ const StatsDashboardLayout = ({
 	const [actionMenuOpen, setActionMenuOpen] = useState(true);
 
 	const handleTabChange = (_, data) => {
-		const target = !!data.value ? data.value : data.name;
+		const target = data.value ? data.value : data.name;
 		setSelectedTab(target);
 	};
 
@@ -339,7 +339,7 @@ const StatsDashboardLayout = ({
 						<div id="mobile-action-menu-toggle">
 							<Button icon onClick={() => setActionMenuOpen(!actionMenuOpen)}>
 								<Icon
-									name={!!actionMenuOpen ? "chevron down" : "chevron up"}
+									name={actionMenuOpen ? "chevron down" : "chevron up"}
 									className="fitted"
 								/>
 							</Button>

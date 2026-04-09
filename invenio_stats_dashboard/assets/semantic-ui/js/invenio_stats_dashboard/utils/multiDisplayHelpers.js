@@ -29,7 +29,7 @@ function makeLinkURL(searchPath, community, item) {
 		return null;
 	}
 
-	const searchUrl = !!community
+	const searchUrl = community
 		? `${community.links.self_html}/records`
 		: "/search";
 

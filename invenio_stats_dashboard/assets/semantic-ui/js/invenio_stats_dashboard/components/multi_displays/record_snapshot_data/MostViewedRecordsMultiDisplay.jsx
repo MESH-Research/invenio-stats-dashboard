@@ -28,7 +28,7 @@ const MostViewedRecordsMultiDisplay = ({
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	const fetchUrl = !!community ? community?.links?.records : "/api/records";
+	const fetchUrl = community ? community?.links?.records : "/api/records";
 
 	useEffect(() => {
 		const loadMostViewedRecords = async () => {

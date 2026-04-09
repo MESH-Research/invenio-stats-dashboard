@@ -4,8 +4,8 @@
 
 - Build: `make`
 - Python Dependencies: `uv add <package>` (dev) / `uv sync --all-extras` (prod)
-- JS Dependencies: `npm install`
-- Lint: `ruff .` (Python) / `npm run lint` (JS)
+- JS Dependencies: `pnpm install` (from this package root; `preinstall` enforces pnpm only)
+- Lint: `ruff .` (Python)
 - Test: `./run-tests.sh` (Python with Docker) / `./run-js-tests.sh` (JS)
 
 ## Code Style

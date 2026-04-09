@@ -105,7 +105,7 @@ const StatsMultiDisplay = ({
 
 	const handleViewChange = (e, mode) => {
 		e.stopPropagation();
-		if (!!collapsed) {
+		if (collapsed) {
 			setCollapsed(false);
 		}
 		setViewMode(mode);
@@ -113,7 +113,7 @@ const StatsMultiDisplay = ({
 
 	const handleOpenClose = () => {
 		setCollapsed(!collapsed);
-		if (!!neverOpened) {
+		if (neverOpened) {
 			setNeverOpened(false);
 		}
 	};
@@ -292,7 +292,7 @@ const StatsMultiDisplay = ({
 			)}
 			<Segment
 				attached
-				className={`stats-multi-display-segment pr-0 pl-0 pb-0 pt-0 ${collapsed ? "collapsed" : ""} ${!!neverOpened ? "never-opened" : ""}`}
+				className={`stats-multi-display-segment pr-0 pl-0 pb-0 pt-0 ${collapsed ? "collapsed" : ""} ${neverOpened ? "never-opened" : ""}`}
 			>
 				{isLoading ? (
 					<div className="stats-loading-container">

@@ -1,9 +1,20 @@
 {
   "name": "invenio-stats-dashboard",
   "version": "1.0.0",
-  "description": "JavaScript testing environment for invenio-stats-dashboard",
+  "description": "JavaScript testing environment for invenio-stats-dashboard. Install with pnpm only (matches KCWorks root policy).",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=10.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "fsevents"
+    ]
+  },
   "devDependencies": {
     "@babel/core": "^7.26.10",
+    "@babel/eslint-parser": "7.26.10",
     "@babel/preset-env": "^7.21.4",
     "@babel/preset-react": "^7.18.6",
     "@testing-library/jest-dom": "^5.16.5",
@@ -13,6 +24,10 @@
     "babel-jest": "^29.5.0",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "eslint": "8.57.1",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "4.6.2",
     "i18next": "^20.6.1",
     "i18next-browser-languagedetector": "^6.1.8",
     "identity-obj-proxy": "^3.0.0",
@@ -27,6 +42,8 @@
     "semantic-ui-react": "^2.1.4"
   },
   "scripts": {
+    "lint": "eslint --max-warnings 0 --ext .js,.jsx invenio_stats_dashboard/assets/semantic-ui/js invenio_stats_dashboard/assets/semantic-ui/templates invenio_stats_dashboard/assets/semantic-ui/translations/invenio_stats_dashboard",
+    "preinstall": "npx only-allow pnpm",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
