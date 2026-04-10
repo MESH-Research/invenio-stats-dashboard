@@ -8,7 +8,8 @@ version = "0.5.0"
 description = "Invenio Stats Dashboard"
 readme = "README.md"
 keywords = ["dashboard", "invenio", "stats"]
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "MESH Research", email = "info@meshresearch.net" }]
 requires-python = ">=3.12"
 classifiers = [
