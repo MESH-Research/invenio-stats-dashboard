@@ -33,6 +33,9 @@ from .services.components import (
 )
 from .services.service import CommunityStatsService
 from .services.usage_reindexing import EventReindexingService
+from .templates.template_filters.community_dashboard_enabled import (
+    community_stats_dashboard_enabled,
+)
 
 
 def _ensure_templates_registered(app: Flask) -> None:
@@ -125,6 +128,8 @@ class InvenioStatsDashboard:
             self.service = CommunityStatsService(app)
             self.event_reindexing_service = EventReindexingService(app)
             app.extensions["invenio-stats-dashboard"] = self
+
+        self.init_template_filters(app)
 
     def _get_effective_cf(self, app: Flask) -> list:
         """Get communities custom fields configuration.
@@ -323,6 +328,16 @@ class InvenioStatsDashboard:
             corrected_components = DefaultRecordsComponents.copy()
             corrected_components.extend(components_list)
             return corrected_components
+
+    def init_template_filters(self, app) -> None:
+        """Register the package's jinja template filters.
+
+        Args:
+            app: Flask application
+        """
+        app.jinja_env.filters["community_stats_dashboard_enabled"] = (
+            community_stats_dashboard_enabled
+        )
 
 
 def finalize_app(app):
