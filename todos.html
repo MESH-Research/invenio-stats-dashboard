@@ -254,87 +254,87 @@
           <section class="tex2jax_ignore mathjax_ignore" id="todos">
 <h1>TODOs<a class="headerlink" href="#todos" title="Link to this heading">¶</a></h1>
 <ul class="contains-task-list simple">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> general code cleanup</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">general code cleanup</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> decide whether to rename the package <code class="docutils literal notranslate"><span class="pre">invenio-community-stats</span></code></p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">decide whether to rename the package <code class="docutils literal notranslate"><span class="pre">invenio-community-stats</span></code></p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> dependencies</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">dependencies</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> ensure that dependent PRs are merged in invenio-requests and invenio-rdm-records</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">ensure that dependent PRs are merged in invenio-requests and invenio-rdm-records</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> add config flag to switch UI between test data and production data</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> testing</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">add config flag to switch UI between test data and production data</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">testing</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> move all tests from centralized KCWorks test suite into this package</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> fix failing python tests</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> fix failing javascript tests</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> expand test coverage</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">move all tests from centralized KCWorks test suite into this package</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">fix failing python tests</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">fix failing javascript tests</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">expand test coverage</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> search indexing</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">search indexing</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> make view and download event factories use the subcounts configuration</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> rework index keys to harmonize across different aggregators</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add dynamic creation of index templates based on subcount configurations</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">make view and download event factories use the subcounts configuration</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">rework index keys to harmonize across different aggregators</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add dynamic creation of index templates based on subcount configurations</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> aggregation</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">aggregation</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> refactor CommunityUsageSnapshotAggregator for the enriched event document structure</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> get tests for aggregator classes working</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> get tests for queries working with refactored code</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> set up a check in aggregator classes to ensure that view/download event migration has been completed before running the aggregator tasks</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> set up automatic triggering of the startup tasks (index community events, migrate usage events) when the aggregators first run</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add opensearch health and memory usage checks to the aggregator classes (as in the reindexing service) and quit out gracefully if necessary</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> evaluate the viability of the “published” record aggregators (currently not working because of inherent issue of published dates being retroactive)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">refactor CommunityUsageSnapshotAggregator for the enriched event document structure</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">ensure CommunityUsageDeltaAggregator can handle large volumes of records gracefully (paginate the query, batch the aggregations)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">get tests for aggregator classes working</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">get tests for queries working with refactored code</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">set up a check in aggregator classes to ensure that view/download event migration has been completed before running the aggregator tasks</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">set up automatic triggering of the startup tasks (index community events, migrate usage events) when the aggregators first run</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add opensearch health and memory usage checks to the aggregator classes (as in the reindexing service) and quit out gracefully if necessary</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">evaluate the viability of the “published” record aggregators (currently not working because of inherent issue of published dates being retroactive)</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> UI components</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">UI components</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> add proper loading states to the dashboard components</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> add an updated timestamp to the dashboard views</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> fix state problems with chart views</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add custom date range picker to the dashboard views</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add ReactOverridable support for each of the React components</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add mechanism for adding custom React components to the dashboard views (entry point providing file paths and component labels, to be imported in components_map.js?)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> evaluate whether additional default components are needed</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add <code class="docutils literal notranslate"><span class="pre">invenio-communities</span></code> custom field to provide per-community configuration of the dashboard layout</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">add proper loading states to the dashboard components</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">add an updated timestamp to the dashboard views</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">fix state problems with chart views</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add custom date range picker to the dashboard views</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add ReactOverridable support for each of the React components</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add mechanism for adding custom React components to the dashboard views (entry point providing file paths and component labels, to be imported in components_map.js?)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">evaluate whether additional default components are needed</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add <code class="docutils literal notranslate"><span class="pre">invenio-communities</span></code> custom field to provide per-community configuration of the dashboard layout</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> client-side data handling</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">client-side data handling</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add client-side caching of the stats data to display while new data is loading (current implementation with IndexedDB is not working)</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> update client-side data transformer to use the configurable subcounts (redundant with move to back-end data series production)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add client-side caching of the stats data to display while new data is loading (current implementation with IndexedDB is not working)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">update client-side data transformer to use the configurable subcounts (redundant with move to back-end data series production)</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> UI theming</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">UI theming</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> move default CSS into this package</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox"> finish basic theming of the global dashboard view</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> harmonize default CSS with InvenioRDM defaults</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> improve mobile responsiveness of the dashboard views</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">move default CSS into this package</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" checked="checked" disabled="disabled" type="checkbox">finish basic theming of the global dashboard view</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">harmonize default CSS with InvenioRDM defaults</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">improve mobile responsiveness of the dashboard views</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> API requests</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">API requests</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> implement back-end production of data series</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> implement back-end caching of data series</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> add cli commands for clearing cache and checking cache status</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> implement security policy for API queries</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">implement back-end production of data series</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">implement back-end caching of data series</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">add cli commands for clearing cache and checking cache status</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">implement security policy for API queries</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> reporting</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">reporting</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> implement download of data series in various formats</p></li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> enable data series download from dashboard widget</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">implement download of data series in various formats</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">enable data series download from dashboard widget</p></li>
 </ul>
 </li>
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> improve documentation</p>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">improve documentation</p>
 <ul class="contains-task-list">
-<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> general check for accuracy after refactoring and expansion</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">general check for accuracy after refactoring and expansion</p></li>
 </ul>
 </li>
 </ul>
