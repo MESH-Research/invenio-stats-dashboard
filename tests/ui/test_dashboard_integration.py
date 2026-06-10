@@ -8,9 +8,12 @@
 
 from collections.abc import Callable
 
+import pytest
+
 from tests.conftest import RunningApp
 
 
+@pytest.mark.usefixtures("bypass_silent_sso_redirect")
 class TestDashboardViewsIntegration:
     """Integration tests for dashboard UI views with custom fields."""
 
