@@ -1987,6 +1987,7 @@ class TestAPIRequestCommunityStats:
         self,
         running_app,
         db,
+        reindex_resource_types,
         minimal_community_factory,
         minimal_published_record_factory,
         user_factory,
