@@ -9,6 +9,6 @@
 {% set active_community_header_menu_item = "stats" %}
 {%- block page_body %}
     {{ super() }}
-    {{ stats_dashboard(dashboard_config, community=community) }}
+    {{ stats_dashboard(dashboard_config, community=community_ui) }}
 {%- endblock page_body -%}
 

@@ -212,7 +212,8 @@ def community_stats_dashboard(
                 "use_test_data": test_data_flag,
                 **current_app.config["STATS_DASHBOARD_UI_CONFIG"]["community"],
             },
-            community=community_ui,
+            community=community,
+            community_ui=community_ui,
             permissions=permissions,
         )
     )
