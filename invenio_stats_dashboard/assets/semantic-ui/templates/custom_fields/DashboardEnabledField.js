@@ -24,8 +24,16 @@ const DashboardEnabledField = ({
   helpText,
   ...restProps
 }) => {
+  const descriptionId = description ? `${fieldPath}-description` : null;
+  const helpTextId = helpText ? `${fieldPath}-helptext` : null;
+  const describedby = [descriptionId, helpTextId].filter(Boolean).join(" ");
   return (
     <Form.Field id={fieldPath} name={fieldPath}>
+      {!!description && (
+        <label id={descriptionId} className="helptext label mb-5">
+          {description}
+        </label>
+      )}
       <BooleanCheckbox
         fieldPath={fieldPath}
         label={label}
@@ -33,11 +41,10 @@ const DashboardEnabledField = ({
         falseLabel={falseLabel}
         icon={icon}
         required={false}
-        description={description}
-        aria-describedby={`${fieldPath}-help-text`}
+        aria-describedby={describedby}
       />
       {!!helpText && (
-        <label id={`${fieldPath}-help-text`} className="helptext label">
+        <label id={`${fieldPath}-help-text`} className="helptext label mt-5">
           {helpText}
         </label>
       )}
