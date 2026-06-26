@@ -49,6 +49,7 @@ from tests.conftest import RunningApp
     "celery_worker",
     "requests_mock",
     "search_clear",
+    "reindex_resource_types",
 )
 class TestCommunitiesEventsComponentsIncluded:
     """Test the RecordCommunitiesEventsComponent.
@@ -668,6 +669,7 @@ class TestCommunitiesEventsComponentsRemoved(TestCommunitiesEventsComponentsIncl
     "celery_worker",
     "requests_mock",
     "search_clear",
+    "reindex_resource_types",
 )
 class TestCommunitiesEventsComponentsNewVersion(
     TestCommunitiesEventsComponentsIncluded
@@ -815,6 +817,7 @@ class TestCommunitiesEventsComponentsNewVersion(
     "celery_worker",
     "requests_mock",
     "search_clear",
+    "reindex_resource_types",
 )
 class TestCommunitiesEventsComponentsRestored(TestCommunitiesEventsComponentsIncluded):
     """Test the component that tracks record restoration for communities.
