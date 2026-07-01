@@ -18,6 +18,7 @@ from invenio_search.proxies import current_search, current_search_client
 from invenio_theme.proxies import current_theme_icons
 
 from .config import config
+from .menus import register_menus
 from .records.communities.custom_fields.custom_fields import (
     COMMUNITIES_NAMESPACES as STATS_COMMUNITIES_NAMESPACES,
 )
@@ -342,85 +343,5 @@ class InvenioStatsDashboard:
 
 def finalize_app(app):
     """Finalize app."""
-    _register_menus(app)
+    register_menus(app)
     _ensure_templates_registered(app)
-
-
-def _register_menus(app):
-    """Register menu."""
-    # Check if stats and menu entry are enabled (unchanged from original)
-    if not app.config.get("COMMUNITY_STATS_ENABLED", True):
-        return
-
-    # Check for custom registration functions
-    if app.config.get("STATS_DASHBOARD_MENU_ENABLED", True):
-        custom_func = app.config.get("STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION")
-        if custom_func is not None:
-            if callable(custom_func):
-                custom_func(app)
-            else:
-                app.logger.warning(
-                    "STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION is not callable, "
-                    "using default menu registration"
-                )
-                _register_default_menu(app)
-        else:
-            _register_default_menu(app)
-
-    if app.config.get("STATS_DASHBOARD_COMMUNITY_MENU_ENABLED", True):
-        custom_func = app.config.get(
-            "STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION"
-        )
-        if custom_func is not None:
-            if callable(custom_func):
-                custom_func(app)
-            else:
-                app.logger.warning(
-                    "STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION is not callable, "
-                    "using default community menu registration"
-                )
-                _register_default_community_menu(app)
-        else:
-            _register_default_community_menu(app)
-
-
-def _register_default_menu(app):
-    """Register the default stats menu item (main nav)."""
-    current_menu.submenu("main.stats").register(
-        endpoint=app.config.get(
-            "STATS_DASHBOARD_MENU_ENDPOINT",
-            "invenio_stats_dashboard.global_stats_dashboard",
-        ),
-        text=app.config.get(
-            "STATS_DASHBOARD_MENU_TEXT",
-            _(
-                "%(icon)s Insights",
-                icon=LazyString(
-                    lambda: f'<i class="{current_theme_icons.chart_line}"></i>'
-                ),
-            ),
-        ),
-        order=app.config.get("STATS_DASHBOARD_MENU_ORDER", 1),
-    )
-
-
-def _register_default_community_menu(app):
-    """Register the Statistics tab on the community details header menu."""
-    current_menu.submenu("communities").submenu("stats").register(
-        endpoint=app.config.get(
-            "STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT",
-            "invenio_stats_dashboard.community_stats_dashboard",
-        ),
-        text=app.config.get(
-            "STATS_DASHBOARD_COMMUNITY_MENU_TEXT",
-            _("Statistics"),
-        ),
-        order=app.config.get("STATS_DASHBOARD_COMMUNITY_MENU_ORDER", 35),
-        # expected_args: URL args the endpoint needs; used by flask-menu to build
-        # item.url (e.g. url_for(endpoint, pid_value=...)) when rendering the menu.
-        expected_args=["pid_value"],
-        icon="chart line",
-        # permissions: key in the community details permissions dict; item is shown
-        # only if permissions[permissions] is truthy.
-        permissions="can_read",
-    )
