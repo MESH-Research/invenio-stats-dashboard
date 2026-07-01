@@ -270,7 +270,8 @@ class TestCommunityStatsDashboardTemplate:
             rendered = render_template(
                 "invenio_communities/details/stats/index.html",
                 dashboard_config=dashboard_config,
-                community=community_ui,
+                community=community,
+                community_ui=community_ui,
                 permissions=permissions,
             )
             assert rendered is not None
@@ -331,33 +332,34 @@ class TestCommunityStatsDashboardTemplate:
     ) -> None:
         """Test that template calls super() for page_body block."""
         app = running_app.app
-        
+
         community = minimal_community_factory(slug="test-community")
         dashboard_config = {"dashboard_type": "community", "dashboard_enabled": True}
-        
+
         communities_routes = app.config.get("COMMUNITIES_ROUTES", {})
         community_route = communities_routes.get(
             "about", "/collections/<pid_value>/about"
         ).replace("<pid_value>", str(community.id))
-        
+
         with app.test_request_context(path=community_route):
             g.identity = system_identity
             g._menu_kwargs = {"pid_value": str(community.id)}
-            
+
             community_item = current_communities.service.read(
                 system_identity, id_=community.id
             )
             permissions = community_item.has_permissions_to(HEADER_PERMISSIONS)
             serializer = UICommunityJSONSerializer()
             community_ui = serializer.dump_obj(community.to_dict())
-            
+
             rendered = render_template(
                 "invenio_communities/details/stats/index.html",
                 dashboard_config=dashboard_config,
-                community=community_ui,
+                community_ui=community_ui,
+                community=community,
                 permissions=permissions,
             )
-        
+
         assert 'id="stats-dashboard"' in rendered
         assert rendered is not None and len(rendered) > 100
 
@@ -488,7 +490,8 @@ class TestDashboardTemplateIntegration:
             rendered = render_template(
                 "invenio_communities/details/stats/index.html",
                 dashboard_config=dashboard_config,
-                community=community_ui,
+                community_ui=community_ui,
+                community=community,
                 permissions=permissions,
             )
             assert rendered is not None
