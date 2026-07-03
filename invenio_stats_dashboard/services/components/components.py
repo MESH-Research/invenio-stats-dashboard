@@ -619,13 +619,13 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
     Intended for use with the RecordCommunitiesService from invenio-rdm-records.
     """
 
-    def add(
+    def add_community(
         self,
         identity: Identity,
         record: RDMRecord,
         communities: list[dict[str, Any]],
-        uow: UnitOfWork,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Record addition of a record in the record metadata."""
         community_ids = [community["id"] for community in communities]
 
@@ -643,7 +643,7 @@ class RecordCommunityEventTrackingComponent(ServiceComponent):
         community_id: str,
         record_ids: list[str],
         set_default: dict,
-        uow: UnitOfWork,
+        **kwargs: Any,
     ) -> None:
         """Record addition of each record in the community events index."""
         for record_id in record_ids:
