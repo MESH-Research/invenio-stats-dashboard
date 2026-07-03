@@ -242,7 +242,7 @@ class CommunityRecordDeltaAggregatorTestBase:
         self.client = current_search_client
         community = minimal_community_factory(slug="knowledge-commons")
         community_id = community.id
-        u = user_factory(email="test@example.com")
+        u = user_factory(email="test@example.com", oauth_id=None)
         user_email = u.user.email
 
         self._setup_records(
@@ -648,22 +648,26 @@ class TestCommunityRecordAddedDeltaAggregatorOptIn(
         requests_mock.real_http = True
         self.app = running_app.app
         self.client = current_search_client
-        community1 = minimal_community_factory(slug="community1")
+        owner = user_factory(email="owner@example.com", oauth_id=None)
+        owner_id = owner.id
+        community1 = minimal_community_factory(slug="community1", owner=owner_id)
         community_1_id = community1.id
 
         community2 = minimal_community_factory(
             slug="community2",
             custom_fields={"stats:dashboard_enabled": False},
+            owner=owner_id,
         )
         community_2_id = community2.id
 
         community3 = minimal_community_factory(
             slug="community3",
             custom_fields={"stats:dashboard_enabled": True},
+            owner=owner_id,
         )
         community_3_id = community3.id
 
-        u = user_factory(email="test@example.com")
+        u = user_factory(email="test@example.com", oauth_id=None)
         user_email = u.user.email
 
         self._setup_records(
@@ -968,7 +972,10 @@ class TestCommunityRecordSnapshotCreatedAggregator:
         requests_mock.real_http = True
         u = user_factory(email="test@example.com")
         user_email = u.user.email
-        community = minimal_community_factory(slug="knowledge-commons")
+        community = minimal_community_factory(
+            slug="knowledge-commons",
+            owner=u.user.id,
+        )
         community_id = community.id
 
         self._setup_records(
@@ -1549,7 +1556,7 @@ class TestCommunityUsageAggregators:
         Returns:
             Tuple of the user's id and email address
         """
-        u = user_factory(email="test@example.com")
+        u = user_factory(email="test@example.com", oauth_id=None)
         user_id = u.user.id
         user_email = u.user.email
         return user_id, user_email
@@ -2333,7 +2340,7 @@ class TestCommunityUsageAggregators:
         """
         extra_community = minimal_community_factory(
             metadata={"title": "Extra Community"},
-            members={"owner": [str(user_id)]},
+            owner=user_id,
         )
 
         metadata: dict = sample_metadata_journal_article3_pdf

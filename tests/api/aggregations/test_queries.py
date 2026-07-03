@@ -1619,7 +1619,10 @@ class TestCommunityUsageDeltaQuery:
         self.app = running_app.app
         u = user_factory(email="test@example.com")
         user_email = u.user.email
-        community = minimal_community_factory(slug="knowledge-commons")
+        community = minimal_community_factory(
+            slug="knowledge-commons",
+            owner=u.user.id,
+        )
         community_id = community.id
 
         self._setup_records(
