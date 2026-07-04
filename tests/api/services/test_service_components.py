@@ -807,6 +807,7 @@ class TestCommunitiesEventsComponentsNewVersion(
 @pytest.mark.usefixtures(
     "running_app",
     "db",
+    "reindex_resource_types",
     "minimal_community_factory",
     "minimal_published_record_factory",
     "minimal_draft_record_factory",
