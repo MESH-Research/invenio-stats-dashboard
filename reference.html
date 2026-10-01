@@ -496,10 +496,10 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks.aggregation_tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">aggregate_community_record_stats</span>
 
 <span class="c1"># Run asynchronously</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">aggregate_community_record_stats</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">community_id</span><span class="o">=</span><span class="s2">&quot;my-community&quot;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">aggregate_community_record_stats</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">community_id</span><span class="o">=</span><span class="s2">"my-community"</span><span class="p">)</span>
 
 <span class="c1"># Run synchronously</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">aggregate_community_record_stats</span><span class="p">(</span><span class="n">community_id</span><span class="o">=</span><span class="s2">&quot;my-community&quot;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">aggregate_community_record_stats</span><span class="p">(</span><span class="n">community_id</span><span class="o">=</span><span class="s2">"my-community"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -586,16 +586,16 @@
 <h3>Community Events<a class="headerlink" href="#community-events" title="Link to this heading">¶</a></h3>
 <p>Community membership events are stored in the <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;event_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;add&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;event_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_created_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_published_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;is_deleted&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;deleted_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-04&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"community_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1234567890"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"event_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"add"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"event_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_created_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2020-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_published_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2020-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"is_deleted"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"deleted_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-04"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"updated_timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -604,16 +604,16 @@
 <h3>Usage Events<a class="headerlink" href="#usage-events" title="Link to this heading">¶</a></h3>
 <p>Enriched usage events include community and metadata information:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;community_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;community-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;community-2&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;resource_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;publication-article&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;access_status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;en&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Computer Science&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;publisher&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example Publisher&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;National Science Foundation&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;University of Example&quot;</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1234567890"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"community_ids"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"community-1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"community-2"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"resource_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"publication-article"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"access_status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"open"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"languages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"en"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"subjects"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"Computer Science"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"publisher"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Example Publisher"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"funders"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"National Science Foundation"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"affiliations"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"University of Example"</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>

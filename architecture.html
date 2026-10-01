@@ -295,16 +295,16 @@
 <p>Events with a <code class="docutils literal notranslate"><span class="pre">community_id</span></code> of “global” are also used to mark the addition and removal of records to/from the global repository instance. This may seem redundant, but it allows aggregator classes to use the same logic in aggregating community stats and stats for the global instance. These global events are are also especially useful when aggregating statistics based on the record’s publication date (which presents problems for a simple range query from the record index) as well as preserving the correct historical record counts after a record is deleted.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">stats-community-events</span></code> index is configured by the index template at <code class="docutils literal notranslate"><span class="pre">search_indices/stats_community_events/os-v2/stats-community-events-v1.0.0.json</span></code>. Each event is shaped like this:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;event_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;add&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;event_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_created_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;record_published_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;is_deleted&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;deleted_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-04&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"community_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1234567890"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"event_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"add"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"event_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_created_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2020-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"record_published_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2020-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"is_deleted"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"deleted_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-04"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"updated_timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -492,79 +492,79 @@ may also want to display a time series of a community’s contents based on when
 </ul>
 <p>Each document is shaped like this (the documents for the three different record delta indices have an identical shape, but the counts will differ):</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"community_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"files"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"parents"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"metadata_only"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"with_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"records"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"metadata_only"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"with_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;period_start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;period_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;uploaders&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">"period_start"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"period_end"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"uploaders"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"subcounts"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"resource_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dataset&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dataset&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"dataset"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Dataset"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"files"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">},</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;research_paper&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Research Paper&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"research_paper"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Research Paper"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"files"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"access_statuses"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"languages"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"affiliations"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"funders"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"subjects"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"publishers"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"periodicals"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"file_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pdf"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;removed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="nt">"removed"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"records"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="w">  </span><span class="nt">"updated_timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -624,66 +624,66 @@ may also want to display a time series of a community’s contents based on when
 </ul>
 <p>Each document is shaped like this (the documents for the three different record snapshot indices have an identical shape, but the counts will differ):</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;snapshot_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;total_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"community_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"snapshot_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"total_records"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"metadata_only"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"with_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;total_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"total_parents"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"metadata_only"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"with_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;total_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"total_files"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;total_uploaders&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">"total_uploaders"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"subcounts"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"access_statuses"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"open"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Open"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"records"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"metadata_only"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"with_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;metadata_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;with_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"parents"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"metadata_only"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"with_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"files"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"file_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PDF&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;added&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pdf"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PDF"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"added"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;removed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;data_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="nt">"removed"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"data_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="nt">"languages"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"resource_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"affiliations"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"funders"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"periodicals"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"publishers"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"subjects"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;updated_timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span>
+<span class="w">  </span><span class="nt">"updated_timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -769,58 +769,58 @@ may also want to display a time series of a community’s contents based on when
 </ul>
 <p>Each document is shaped like this:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;period_start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;period_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;totals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"community_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"period_start"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"period_end"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"totals"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"view"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="nt">"download"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"total_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">"subcounts"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"access_statuses"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"open"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Open"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"view"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"download"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"total_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;file_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="nt">"resource_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"rights"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"funders"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"periodicals"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"languages"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"subjects"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"publishers"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"file_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"affiliations"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"countries"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"referrers"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -919,97 +919,97 @@ document includes:</p>
 </ul>
 <p>Each document is shaped like this:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;community_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;global&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;snapshot_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-01-01T00:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;totals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">  </span><span class="nt">"community_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"snapshot_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2021-01-01T00:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"totals"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"view"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="nt">"download"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"total_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;subcounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;access_statuses&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">"subcounts"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"access_statuses"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Open&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"open"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Open"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"view"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">        </span><span class="nt">"download"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"total_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;languages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;rights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;resource_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;affiliations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;by_view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"languages"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"rights"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"resource_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"affiliations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"by_view"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;013v4ng57&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;University of California, Berkeley&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">          </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"013v4ng57"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"University of California, Berkeley"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"view"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">},</span>
-<span class="w">          </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">          </span><span class="nt">"download"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"total_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">],</span>
-<span class="w">      </span><span class="nt">&quot;by_download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="nt">"by_download"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;013v4ng58&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;National Science Foundation&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">          </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"013v4ng58"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"National Science Foundation"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"view"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">},</span>
-<span class="w">          </span><span class="nt">&quot;download&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;total_events&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;total_volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_files&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_parents&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_records&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;unique_visitors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">          </span><span class="nt">"download"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"total_events"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"total_volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_files"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_parents"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_records"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"unique_visitors"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">]</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;funders&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;periodicals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;publishers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;subjects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;countries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">    </span><span class="nt">&quot;referrers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="nt">"funders"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"periodicals"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"publishers"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"subjects"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"countries"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"referrers"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1029,55 +1029,55 @@ ensures that the templates are registered with the OpenSearch domain. and the in
 <h4><code class="docutils literal notranslate"><span class="pre">stats:dashboard_layout</span></code><a class="headerlink" href="#stats-dashboard-layout" title="Link to this heading">¶</a></h4>
 <p>The custom field stores a JSON object with the following structure:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"content"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Content"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"date-range-selector"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"DateRangeSelector"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"single-stats"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatUploaders"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatDataVolume"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;charts&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsChart&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"charts"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"StatsChart"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">}</span>
                 <span class="p">]</span>
             <span class="p">}</span>
         <span class="p">]</span>
     <span class="p">},</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"content"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Content"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"date-range-selector"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"DateRangeSelector"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViews&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"single-stats"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatUploaders"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatDataVolume"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatViews"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">}</span>
                 <span class="p">]</span>
@@ -1107,14 +1107,14 @@ ensures that the templates are registered with the OpenSearch domain. and the in
 
 <span class="c1"># Merge namespaces</span>
 <span class="n">COMMUNITIES_NAMESPACES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;your_namespace&quot;</span><span class="p">:</span> <span class="s2">&quot;https://your-site.org/terms/&quot;</span><span class="p">,</span>
+    <span class="s2">"your_namespace"</span><span class="p">:</span> <span class="s2">"https://your-site.org/terms/"</span><span class="p">,</span>
     <span class="o">**</span><span class="n">STATS_COMMUNITIES_NAMESPACES</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c1"># Add custom fields</span>
 <span class="n">COMMUNITIES_CUSTOM_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
     <span class="c1"># Your existing fields</span>
-    <span class="n">TextCF</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;your_namespace:your_field&quot;</span><span class="p">),</span>
+    <span class="n">TextCF</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"your_namespace:your_field"</span><span class="p">),</span>
     <span class="c1"># Stats dashboard fields</span>
     <span class="o">*</span><span class="n">COMMUNITY_STATS_FIELDS</span><span class="p">,</span>
 <span class="p">]</span>
@@ -1123,8 +1123,8 @@ ensures that the templates are registered with the OpenSearch domain. and the in
 <span class="n">COMMUNITIES_CUSTOM_FIELDS_UI</span> <span class="o">=</span> <span class="p">[</span>
     <span class="c1"># Your existing UI config</span>
     <span class="p">{</span>
-        <span class="s2">&quot;section&quot;</span><span class="p">:</span> <span class="s2">&quot;Your Section&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+        <span class="s2">"section"</span><span class="p">:</span> <span class="s2">"Your Section"</span><span class="p">,</span>
+        <span class="s2">"fields"</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
     <span class="p">},</span>
     <span class="c1"># Stats dashboard UI config</span>
     <span class="n">COMMUNITY_STATS_FIELDS_UI</span><span class="p">,</span>

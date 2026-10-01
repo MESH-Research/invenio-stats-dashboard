@@ -299,50 +299,50 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <h3>Menu configuration<a class="headerlink" href="#menu-configuration" title="Link to this heading">¶</a></h3>
 <p>The following configuration variables enable or disable the main menu item for the global instance dashboard and the menu item for each community’s dashboard in its community details page submenu:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="sd">&quot;&quot;&quot;Enable or disable the stats menu item.&quot;&quot;&quot;</span>
+<span class="sd">"""Enable or disable the stats menu item."""</span>
 
 <span class="n">STATS_DASHBOARD_COMMUNITY_MENU_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="sd">&quot;&quot;&quot;Enable or disable the Statistics tab in the community details header menu.&quot;&quot;&quot;</span>
+<span class="sd">"""Enable or disable the Statistics tab in the community details header menu."""</span>
 </pre></div>
 </div>
 <p>If desired, the following variables may be used to customize the text and position of each menu item:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">)</span>
-<span class="sd">&quot;&quot;&quot;Text for the stats menu item.&quot;&quot;&quot;</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">"Statistics"</span><span class="p">)</span>
+<span class="sd">"""Text for the stats menu item."""</span>
 
 <span class="n">STATS_DASHBOARD_MENU_ORDER</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="sd">&quot;&quot;&quot;Order of the stats menu item in the menu.&quot;&quot;&quot;</span>
+<span class="sd">"""Order of the stats menu item in the menu."""</span>
 
-<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">)</span>
-<span class="sd">&quot;&quot;&quot;Text for the community stats menu item in the community details header.&quot;&quot;&quot;</span>
+<span class="n">STATS_DASHBOARD_COMMUNITY_MENU_TEXT</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">"Statistics"</span><span class="p">)</span>
+<span class="sd">"""Text for the community stats menu item in the community details header."""</span>
 
 <span class="n">STATS_DASHBOARD_COMMUNITY_MENU_ORDER</span> <span class="o">=</span> <span class="mi">35</span>
-<span class="sd">&quot;&quot;&quot;Order of the community stats item in the community details menu</span>
-<span class="sd">(e.g. 35 = after Members in the default community details menu).&quot;&quot;&quot;</span>
+<span class="sd">"""Order of the community stats item in the community details menu</span>
+<span class="sd">(e.g. 35 = after Members in the default community details menu)."""</span>
 
 </pre></div>
 </div>
 <p>If more customization of the menu item is desired, you may provide a custom registration function for either menu item. The callable provided will be used in place of the default menu registration function defined in <a class="reference external" href="http://ext.py">ext.py</a>. This allows for, e.g., changing the default menu item icon.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_REGISTRATION_FUNCTION</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="sd">&quot;&quot;&quot;Custom function to register the menu item. If None, uses default registration</span>
+<span class="sd">"""Custom function to register the menu item. If None, uses default registration</span>
 <span class="sd">set up in ext.py. Should be a callable that takes the Flask app as its only argument.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="n">STATS_DASHBOARD_COMMUNITY_MENU_REGISTRATION_FUNCTION</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="sd">&quot;&quot;&quot;Custom function to register the community details menu item. If None, uses</span>
+<span class="sd">"""Custom function to register the community details menu item. If None, uses</span>
 <span class="sd">default registration. Should be a callable that takes the Flask app as its only</span>
 <span class="sd">argument. When registering the item, the callable must pass</span>
-<span class="sd">expected_args=[&#39;pid_value&#39;], and it should pass icon and permissions.&quot;&quot;&quot;</span>
+<span class="sd">expected_args=['pid_value'], and it should pass icon and permissions."""</span>
 
 </pre></div>
 </div>
 <p>If you wish to replace the default global or community view function with a custom one, you may point the menu to your own view function endpoint using the following variables. (This of course requires that you know what you are doing!)</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENDPOINT</span> <span class="o">=</span> <span class="s2">&quot;invenio_stats_dashboard.global_stats_dashboard&quot;</span>
-<span class="sd">&quot;&quot;&quot;View function endpoint for the stats menu item.&quot;&quot;&quot;</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_MENU_ENDPOINT</span> <span class="o">=</span> <span class="s2">"invenio_stats_dashboard.global_stats_dashboard"</span>
+<span class="sd">"""View function endpoint for the stats menu item."""</span>
 
 <span class="n">STATS_DASHBOARD_COMMUNITY_MENU_ENDPOINT</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s2">&quot;invenio_stats_dashboard.community_stats_dashboard&quot;</span>
+    <span class="s2">"invenio_stats_dashboard.community_stats_dashboard"</span>
 <span class="p">)</span>
-<span class="sd">&quot;&quot;&quot;Endpoint for the community stats menu item (must accept pid_value).&quot;&quot;&quot;</span>
+<span class="sd">"""Endpoint for the community stats menu item (must accept pid_value)."""</span>
 
 </pre></div>
 </div>
@@ -364,34 +364,34 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <p>It also defines how the metadata from these fields will be handled by the event factories, aggregators, and JSON transformers.</p>
 <p>Its value is a dictionary shaped like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;delta_aggregation_name&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_types&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;snapshot_type&quot;</span><span class="p">:</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"resource_types"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"records"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"delta_aggregation_name"</span><span class="p">:</span> <span class="s2">"resource_types"</span><span class="p">,</span>
+            <span class="s2">"snapshot_type"</span><span class="p">:</span> <span class="s2">"all"</span><span class="p">,</span>
+            <span class="s2">"source_fields"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span>
-                        <span class="s2">&quot;metadata.resource_type.title&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;metadata.resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="s2">"field"</span><span class="p">:</span> <span class="s2">"metadata.resource_type.id"</span><span class="p">,</span>
+                    <span class="s2">"label_field"</span><span class="p">:</span> <span class="s2">"metadata.resource_type.title"</span><span class="p">,</span>
+                    <span class="s2">"label_source_includes"</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"metadata.resource_type.title"</span><span class="p">,</span>
+                        <span class="s2">"metadata.resource_type.id"</span><span class="p">,</span>
                     <span class="p">],</span>
                 <span class="p">},</span>
             <span class="p">],</span>
         <span class="p">},</span>
-        <span class="s2">&quot;usage_events&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;delta_aggregation_name&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_types&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;field_type&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s2">&quot;event_field&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_type&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;extraction_path_for_event&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.resource_type&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;snapshot_type&quot;</span><span class="p">:</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"usage_events"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"delta_aggregation_name"</span><span class="p">:</span> <span class="s2">"resource_types"</span><span class="p">,</span>
+            <span class="s2">"field_type"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"event_field"</span><span class="p">:</span> <span class="s2">"resource_type"</span><span class="p">,</span>
+            <span class="s2">"extraction_path_for_event"</span><span class="p">:</span> <span class="s2">"metadata.resource_type"</span><span class="p">,</span>
+            <span class="s2">"snapshot_type"</span><span class="p">:</span> <span class="s2">"all"</span><span class="p">,</span>
+            <span class="s2">"source_fields"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_type.id&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;resource_type.title&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span>
-                        <span class="s2">&quot;resource_type.title&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;resource_type.id&quot;</span><span class="p">,</span>
+                    <span class="s2">"field"</span><span class="p">:</span> <span class="s2">"resource_type.id"</span><span class="p">,</span>
+                    <span class="s2">"label_field"</span><span class="p">:</span> <span class="s2">"resource_type.title"</span><span class="p">,</span>
+                    <span class="s2">"label_source_includes"</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"resource_type.title"</span><span class="p">,</span>
+                        <span class="s2">"resource_type.id"</span><span class="p">,</span>
                     <span class="p">],</span>
                 <span class="p">},</span>
             <span class="p">],</span>
@@ -406,23 +406,23 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <p>Each top-level key and value defines one metadata subcount. In general, InvenioRDM instances will not need to customize the values within each subcount definition. To disable a subcount, simply remove its key and value completely (or comment it out) from the COMMUNITY_STATS_SUBCOUNTS dictionary.</p>
 <p>If you want a subcount to be available for only one category of statistics (record/file counts or view/download counts) you may replace the “records” or “usage_events” value for the subcount with an empty dictionary. To disable the “subjects” subcount for view and download statistics, for example, we would adjust the “subjects” subcount value like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;records&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;delta_aggregation_name&quot;</span><span class="p">:</span> <span class="s2">&quot;subjects&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;snapshot_type&quot;</span><span class="p">:</span> <span class="s2">&quot;top&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"subjects"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"records"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"delta_aggregation_name"</span><span class="p">:</span> <span class="s2">"subjects"</span><span class="p">,</span>
+            <span class="s2">"snapshot_type"</span><span class="p">:</span> <span class="s2">"top"</span><span class="p">,</span>
+            <span class="s2">"source_fields"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.id&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_field&quot;</span><span class="p">:</span> <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;label_source_includes&quot;</span><span class="p">:</span> <span class="p">[</span>
-                        <span class="s2">&quot;metadata.subjects.subject&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;metadata.subjects.scheme&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;metadata.subjects.id&quot;</span><span class="p">,</span>
+                    <span class="s2">"field"</span><span class="p">:</span> <span class="s2">"metadata.subjects.id"</span><span class="p">,</span>
+                    <span class="s2">"label_field"</span><span class="p">:</span> <span class="s2">"metadata.subjects.subject"</span><span class="p">,</span>
+                    <span class="s2">"label_source_includes"</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"metadata.subjects.subject"</span><span class="p">,</span>
+                        <span class="s2">"metadata.subjects.scheme"</span><span class="p">,</span>
+                        <span class="s2">"metadata.subjects.id"</span><span class="p">,</span>
                     <span class="p">],</span>
                 <span class="p">},</span>
             <span class="p">],</span>
         <span class="p">},</span>
-        <span class="s2">&quot;usage_events&quot;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s2">"usage_events"</span><span class="p">:</span> <span class="p">{},</span>
     <span class="p">},</span>
 <span class="c1"># ... other subcounts</span>
 <span class="p">}</span>
@@ -452,18 +452,18 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <h3>Metadata breakdowns in the UI<a class="headerlink" href="#metadata-breakdowns-in-the-ui" title="Link to this heading">¶</a></h3>
 <p>This variable controls which subcount breakdowns are available in the UI and how they are displayed.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_SUBCOUNTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;languages&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;rights&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;funders&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;periodicals&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;publishers&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;affiliations&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;countries&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;referrers&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;file_types&quot;</span><span class="p">:</span> <span class="p">{},</span>
-    <span class="s2">&quot;access_statuses&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"resource_types"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"subjects"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"languages"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"rights"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"funders"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"periodicals"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"publishers"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"affiliations"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"countries"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"referrers"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"file_types"</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">"access_statuses"</span><span class="p">:</span> <span class="p">{},</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -498,14 +498,14 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
 
 <span class="n">COMMUNITY_STATS_CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"stats-aggregate-community-record-stats"</span><span class="p">:</span> <span class="p">{</span>
         <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>
     <span class="p">},</span>
 <span class="p">}</span>
-<span class="sd">&quot;&quot;&quot;Celery beat schedule for aggregation tasks.&quot;&quot;&quot;</span>
+<span class="sd">"""Celery beat schedule for aggregation tasks."""</span>
 
 <span class="n">COMMUNITY_STATS_CATCHUP_INTERVAL</span> <span class="o">=</span> <span class="mi">365</span>
-<span class="sd">&quot;&quot;&quot;Maximum number of days to catch up when aggregating historical data.&quot;&quot;&quot;</span>
+<span class="sd">"""Maximum number of days to catch up when aggregating historical data."""</span>
 </pre></div>
 </div>
 </section>
@@ -513,16 +513,16 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <h3>Task locking<a class="headerlink" href="#task-locking" title="Link to this heading">¶</a></h3>
 <p>The following configuration variables control the distributed locking mechanism for stats tasks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LOCK_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable distributed locking globally</span>
-    <span class="s2">&quot;aggregation&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable locking for aggregation tasks</span>
-        <span class="s2">&quot;lock_timeout&quot;</span><span class="p">:</span> <span class="mi">86400</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (24 hours)</span>
-        <span class="s2">&quot;lock_name&quot;</span><span class="p">:</span> <span class="s2">&quot;community_stats_aggregation&quot;</span><span class="p">,</span>  <span class="c1"># Lock name</span>
+    <span class="s2">"enabled"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable distributed locking globally</span>
+    <span class="s2">"aggregation"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"enabled"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable locking for aggregation tasks</span>
+        <span class="s2">"lock_timeout"</span><span class="p">:</span> <span class="mi">86400</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (24 hours)</span>
+        <span class="s2">"lock_name"</span><span class="p">:</span> <span class="s2">"community_stats_aggregation"</span><span class="p">,</span>  <span class="c1"># Lock name</span>
     <span class="p">},</span>
-    <span class="s2">&quot;response_caching&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable locking for cache generation tasks</span>
-        <span class="s2">&quot;lock_timeout&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (1 hour)</span>
-        <span class="s2">&quot;lock_name&quot;</span><span class="p">:</span> <span class="s2">&quot;community_stats_cache_generation&quot;</span><span class="p">,</span>  <span class="c1"># Lock name</span>
+    <span class="s2">"response_caching"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"enabled"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable/disable locking for cache generation tasks</span>
+        <span class="s2">"lock_timeout"</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>  <span class="c1"># Lock timeout in seconds (1 hour)</span>
+        <span class="s2">"lock_name"</span><span class="p">:</span> <span class="s2">"community_stats_cache_generation"</span><span class="p">,</span>  <span class="c1"># Lock name</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -543,15 +543,15 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <span class="kn">from</span><span class="w"> </span><span class="nn">invenio_stats_dashboard.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CommunityStatsAggregationTask</span>
 
 <span class="n">COMMUNITY_STATS_CELERYBEAT_AGG_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;stats-aggregate-community-record-stats&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"stats-aggregate-community-record-stats"</span><span class="p">:</span> <span class="p">{</span>
         <span class="o">**</span><span class="n">CommunityStatsAggregationTask</span><span class="p">,</span>  <span class="c1"># Runs at minute 40</span>
     <span class="p">},</span>
 <span class="p">}</span>
 
 <span class="n">COMMUNITY_STATS_CELERYBEAT_CACHE_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;stats-cache-hourly-generation&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.tasks.generate_hourly_cache_task&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;schedule&quot;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s2">&quot;50&quot;</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">),</span>  <span class="c1"># Runs at minute 50</span>
+    <span class="s2">"stats-cache-hourly-generation"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"task"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard.tasks.generate_hourly_cache_task"</span><span class="p">,</span>
+        <span class="s2">"schedule"</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s2">"50"</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="s2">"*"</span><span class="p">),</span>  <span class="c1"># Runs at minute 50</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -593,21 +593,21 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 <p>The UI configuration for the dashboard is defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to a dictionary of configuration options.</p>
 <p>The default UI configuration is:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the global stats dashboard.&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">"Statistics"</span><span class="p">),</span>
+        <span class="s2">"description"</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">"This is the global stats dashboard."</span><span class="p">),</span>
+        <span class="s2">"maxHistoryYears"</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">"default_granularity"</span><span class="p">:</span> <span class="s2">"month"</span><span class="p">,</span>
+        <span class="s2">"show_title"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">"show_description"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">},</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Statistics&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This is the community stats dashboard.&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">"Statistics"</span><span class="p">),</span>
+        <span class="s2">"description"</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">"This is the community stats dashboard."</span><span class="p">),</span>
+        <span class="s2">"maxHistoryYears"</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">"default_granularity"</span><span class="p">:</span> <span class="s2">"month"</span><span class="p">,</span>
+        <span class="s2">"show_title"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">"show_description"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -628,11 +628,11 @@ top-level <code class="docutils literal notranslate"><span class="pre">invenio.c
 available granularity levels for the date range selector and cannot be changed. The values represent the default date
 range for each granularity level.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_DEFAULT_RANGE_OPTIONS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;day&quot;</span><span class="p">:</span> <span class="s2">&quot;30days&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;week&quot;</span><span class="p">:</span> <span class="s2">&quot;12weeks&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;month&quot;</span><span class="p">:</span> <span class="s2">&quot;12months&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;quarter&quot;</span><span class="p">:</span> <span class="s2">&quot;4quarters&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;year&quot;</span><span class="p">:</span> <span class="s2">&quot;5years&quot;</span><span class="p">,</span>
+    <span class="s2">"day"</span><span class="p">:</span> <span class="s2">"30days"</span><span class="p">,</span>
+    <span class="s2">"week"</span><span class="p">:</span> <span class="s2">"12weeks"</span><span class="p">,</span>
+    <span class="s2">"month"</span><span class="p">:</span> <span class="s2">"12months"</span><span class="p">,</span>
+    <span class="s2">"quarter"</span><span class="p">:</span> <span class="s2">"4quarters"</span><span class="p">,</span>
+    <span class="s2">"year"</span><span class="p">:</span> <span class="s2">"5years"</span><span class="p">,</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -651,37 +651,37 @@ range for each granularity level.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> value is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to layout configurations. Each layout configuration is a dictionary that maps dashboard sections to a list of components to display in that section. Rows can be specified to group components together, and component widths can be specified with a “width” key.</p>
 <p>For example, the default global layout configuration is:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"content"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Content"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}],</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"date-range-selector"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"DateRangeSelector"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">}],</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"single-stats"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatUploaders"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatDataVolume"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
                         <span class="p">],</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;charts&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsChart&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"charts"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"StatsChart"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
                         <span class="p">],</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;tables&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ResourceTypesTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;AccessStatusTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;RightsTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;AffiliationsTable&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"tables"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"ResourceTypesTable"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"AccessStatusTable"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"RightsTable"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"AffiliationsTable"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
                         <span class="p">],</span>
                     <span class="p">},</span>
                 <span class="p">],</span>
@@ -703,8 +703,8 @@ range for each granularity level.</p>
 <p>The routes for the dashboard are defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_ROUTES</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to route strings.</p>
 <p>For example, the default routes are:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_ROUTES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="s2">&quot;/stats&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="s2">&quot;/communities/&lt;community_id&gt;/stats&quot;</span><span class="p">,</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="s2">"/stats"</span><span class="p">,</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="s2">"/communities/&lt;community_id&gt;/stats"</span><span class="p">,</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -714,9 +714,9 @@ range for each granularity level.</p>
 <p>The templates for the dashboard are defined by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_TEMPLATES</span></code> configuration variable. This is a dictionary that maps dashboard types (currently <code class="docutils literal notranslate"><span class="pre">global</span></code> and <code class="docutils literal notranslate"><span class="pre">community</span></code>) to template strings.</p>
 <p>For example, the default templates are:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_TEMPLATES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;macro&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard/macros/stats_dashboard_macro.html&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard/stats_dashboard.html&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard/community_stats_dashboard.html&quot;</span><span class="p">,</span>
+    <span class="s2">"macro"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard/macros/stats_dashboard_macro.html"</span><span class="p">,</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard/stats_dashboard.html"</span><span class="p">,</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard/community_stats_dashboard.html"</span><span class="p">,</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -800,15 +800,15 @@ If you want to reduce document sizes to improve performance:</p>
 <h4><code class="docutils literal notranslate"><span class="pre">STATS_EVENTS</span></code><a class="headerlink" href="#stats-events" title="Link to this heading">¶</a></h4>
 <p>This variable defines the event types and their configurations for statistics processing. It controls which events are tracked and how they are processed.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_EVENTS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;file-download&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_robots&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_machines&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.anonymize_user&quot;</span><span class="p">,</span>
+    <span class="s2">"file-download"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"processor"</span><span class="p">:</span> <span class="s2">"invenio_stats.processors.flag_robots"</span><span class="p">,</span>
+        <span class="s2">"processor"</span><span class="p">:</span> <span class="s2">"invenio_stats.processors.flag_machines"</span><span class="p">,</span>
+        <span class="s2">"processor"</span><span class="p">:</span> <span class="s2">"invenio_stats.processors.anonymize_user"</span><span class="p">,</span>
     <span class="p">},</span>
-    <span class="s2">&quot;record-view&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_robots&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.flag_machines&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;processor&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats.processors.anonymize_user&quot;</span><span class="p">,</span>
+    <span class="s2">"record-view"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"processor"</span><span class="p">:</span> <span class="s2">"invenio_stats.processors.flag_robots"</span><span class="p">,</span>
+        <span class="s2">"processor"</span><span class="p">:</span> <span class="s2">"invenio_stats.processors.flag_machines"</span><span class="p">,</span>
+        <span class="s2">"processor"</span><span class="p">:</span> <span class="s2">"invenio_stats.processors.anonymize_user"</span><span class="p">,</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -988,55 +988,55 @@ If you want to reduce document sizes to improve performance:</p>
 <h4>Field Structure<a class="headerlink" href="#field-structure" title="Link to this heading">¶</a></h4>
 <p>The custom field stores a JSON object with the following structure:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"content"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Content"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"date-range-selector"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"DateRangeSelector"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"single-stats"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatUploaders"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatDataVolume"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;charts&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsChart&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"charts"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"StatsChart"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">}</span>
                 <span class="p">]</span>
             <span class="p">}</span>
         <span class="p">]</span>
     <span class="p">},</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Content&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"content"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Content"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;date-range-selector&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;DateRangeSelector&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"date-range-selector"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"DateRangeSelector"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;single-stats&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatUploaders&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDataVolume&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
-                            <span class="p">{</span><span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViews&quot;</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"single-stats"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatUploaders"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatDataVolume"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+                            <span class="p">{</span><span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatViews"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">}</span>
                 <span class="p">]</span>
@@ -1066,14 +1066,14 @@ If you want to reduce document sizes to improve performance:</p>
 
 <span class="c1"># Merge namespaces</span>
 <span class="n">COMMUNITIES_NAMESPACES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;your_namespace&quot;</span><span class="p">:</span> <span class="s2">&quot;https://your-site.org/terms/&quot;</span><span class="p">,</span>
+    <span class="s2">"your_namespace"</span><span class="p">:</span> <span class="s2">"https://your-site.org/terms/"</span><span class="p">,</span>
     <span class="o">**</span><span class="n">STATS_COMMUNITIES_NAMESPACES</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c1"># Add custom fields</span>
 <span class="n">COMMUNITIES_CUSTOM_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
     <span class="c1"># Your existing fields</span>
-    <span class="n">TextCF</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;your_namespace:your_field&quot;</span><span class="p">),</span>
+    <span class="n">TextCF</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"your_namespace:your_field"</span><span class="p">),</span>
     <span class="c1"># Stats dashboard fields</span>
     <span class="o">*</span><span class="n">COMMUNITY_STATS_FIELDS</span><span class="p">,</span>
 <span class="p">]</span>
@@ -1082,8 +1082,8 @@ If you want to reduce document sizes to improve performance:</p>
 <span class="n">COMMUNITIES_CUSTOM_FIELDS_UI</span> <span class="o">=</span> <span class="p">[</span>
     <span class="c1"># Your existing UI config</span>
     <span class="p">{</span>
-        <span class="s2">&quot;section&quot;</span><span class="p">:</span> <span class="s2">&quot;Your Section&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+        <span class="s2">"section"</span><span class="p">:</span> <span class="s2">"Your Section"</span><span class="p">,</span>
+        <span class="s2">"fields"</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
     <span class="p">},</span>
     <span class="c1"># Stats dashboard UI config</span>
     <span class="n">COMMUNITY_STATS_FIELDS_UI</span><span class="p">,</span>
@@ -1097,21 +1097,21 @@ If you want to reduce document sizes to improve performance:</p>
 <h2>Content Negotiation and Response Serializers<a class="headerlink" href="#content-negotiation-and-response-serializers" title="Link to this heading">¶</a></h2>
 <p>The API supports multiple response formats through content negotiation. The <code class="docutils literal notranslate"><span class="pre">COMMUNITY_STATS_SERIALIZERS</span></code> configuration controls which serializers are available for different content types. The frontend’s compression behavior is controlled by the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_COMPRESS_JSON</span></code> configuration variable (see <a class="reference internal" href="#json-compression-configuration"><span class="xref myst">JSON Compression Configuration</span></a> above).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SERIALIZERS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;application/json&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.serializers:StatsJSONSerializer&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;community-record-delta-created&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="s2">"application/json"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"serializer"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard.resources.serializers:StatsJSONSerializer"</span><span class="p">,</span>
+        <span class="s2">"enabled_for"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"community-record-delta-created"</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="p">},</span>
-    <span class="s2">&quot;application/json+gzip&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.data_series_serializers:GzipStatsJSONSerializer&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">,</span> <span class="s2">&quot;usage-delta-series&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="s2">"application/json+gzip"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"serializer"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard.resources.data_series_serializers:GzipStatsJSONSerializer"</span><span class="p">,</span>
+        <span class="s2">"enabled_for"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"usage-snapshot-series"</span><span class="p">,</span> <span class="s2">"usage-delta-series"</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="p">},</span>
-    <span class="s2">&quot;application/json+br&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.data_series_serializers:BrotliStatsJSONSerializer&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">,</span> <span class="s2">&quot;usage-delta-series&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="s2">"application/json+br"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"serializer"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard.resources.data_series_serializers:BrotliStatsJSONSerializer"</span><span class="p">,</span>
+        <span class="s2">"enabled_for"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"usage-snapshot-series"</span><span class="p">,</span> <span class="s2">"usage-delta-series"</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="p">},</span>
-    <span class="s2">&quot;text/csv&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;invenio_stats_dashboard.resources.data_series_serializers:DataSeriesCSVSerializer&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">,</span> <span class="s2">&quot;usage-delta-series&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="s2">"text/csv"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"serializer"</span><span class="p">:</span> <span class="s2">"invenio_stats_dashboard.resources.data_series_serializers:DataSeriesCSVSerializer"</span><span class="p">,</span>
+        <span class="s2">"enabled_for"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"usage-snapshot-series"</span><span class="p">,</span> <span class="s2">"usage-delta-series"</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1127,9 +1127,9 @@ If you want to reduce document sizes to improve performance:</p>
 <section id="custom-serializers">
 <h3>Custom Serializers<a class="headerlink" href="#custom-serializers" title="Link to this heading">¶</a></h3>
 <p>You can add custom serializers by extending the configuration:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SERIALIZERS</span><span class="p">[</span><span class="s2">&quot;application/custom&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;serializer&quot;</span><span class="p">:</span> <span class="s2">&quot;your_module.serializers:CustomSerializer&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;enabled_for&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;usage-snapshot-series&quot;</span><span class="p">]</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">COMMUNITY_STATS_SERIALIZERS</span><span class="p">[</span><span class="s2">"application/custom"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"serializer"</span><span class="p">:</span> <span class="s2">"your_module.serializers:CustomSerializer"</span><span class="p">,</span>
+    <span class="s2">"enabled_for"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"usage-snapshot-series"</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>

@@ -543,7 +543,7 @@ Generating<span class="w"> </span>cache...
 $<span class="w"> </span>invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>generate<span class="w"> </span>--community-id<span class="w"> </span><span class="m">123</span><span class="w"> </span>--year<span class="w"> </span><span class="m">2023</span><span class="w"> </span>--async
 Generating<span class="w"> </span>cache...
 ✅<span class="w"> </span>Cache<span class="w"> </span>generation<span class="w"> </span>started<span class="w"> </span><span class="k">in</span><span class="w"> </span>background
-📋<span class="w"> </span>Task<span class="w"> </span>IDs:<span class="w"> </span><span class="o">[</span><span class="s1">&#39;abc123-def456-ghi789&#39;</span>,<span class="w"> </span><span class="s1">&#39;jkl012-mno345-pqr678&#39;</span><span class="o">]</span>
+📋<span class="w"> </span>Task<span class="w"> </span>IDs:<span class="w"> </span><span class="o">[</span><span class="s1">'abc123-def456-ghi789'</span>,<span class="w"> </span><span class="s1">'jkl012-mno345-pqr678'</span><span class="o">]</span>
 📊<span class="w"> </span>Total<span class="w"> </span>tasks:<span class="w"> </span><span class="m">8</span>
 </pre></div>
 </div>
@@ -588,16 +588,16 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span
 This command removes all cached statistics entries that match the given Redis key pattern. It shows a preview of what will be cleared before performing the operation. Use with caution as this can delete multiple entries.</p>
 <p><strong>Examples:</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clear all global stats cache entries</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*global*&quot;</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">"*global*"</span>
 
 <span class="c1"># Clear all 2023 data cache entries</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*2023*&quot;</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">"*2023*"</span>
 
 <span class="c1"># Clear all record delta cache entries</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*record_delta*&quot;</span>
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">"*record_delta*"</span>
 
 <span class="c1"># Clear without confirmation prompt</span>
-invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">&quot;*global*&quot;</span><span class="w"> </span>--force
+invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span class="w"> </span>clear-pattern<span class="w"> </span><span class="s2">"*global*"</span><span class="w"> </span>--force
 </pre></div>
 </div>
 <p><strong>Pattern Examples:</strong></p>
@@ -644,7 +644,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>cache<span
 </div>
 <p><strong>Error Handling:</strong>
 If required arguments are missing, Click will display an error message like:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Error</span><span class="p">:</span> <span class="n">Missing</span> <span class="n">argument</span> <span class="s1">&#39;COMMUNITY_ID&#39;</span><span class="o">.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Error</span><span class="p">:</span> <span class="n">Missing</span> <span class="n">argument</span> <span class="s1">'COMMUNITY_ID'</span><span class="o">.</span>
 <span class="n">Usage</span><span class="p">:</span> <span class="n">invenio</span> <span class="n">community</span><span class="o">-</span><span class="n">stats</span> <span class="n">cache</span> <span class="n">clear</span><span class="o">-</span><span class="n">item</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">COMMUNITY_ID</span> <span class="n">STAT_NAME</span>
 </pre></div>
 </div>
@@ -824,7 +824,7 @@ invenio<span class="w"> </span>community-stats<span class="w"> </span>destroy-in
 <span class="c1"># Destroy all indices non-interactively</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>destroy-indices<span class="w"> </span>--yes-i-know
 
-<span class="c1"># Force deletion even if some indices don&#39;t exist</span>
+<span class="c1"># Force deletion even if some indices don't exist</span>
 invenio<span class="w"> </span>community-stats<span class="w"> </span>destroy-indices<span class="w"> </span>--yes-i-know<span class="w"> </span>--force
 </pre></div>
 </div>

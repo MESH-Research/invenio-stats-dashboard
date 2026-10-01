@@ -296,24 +296,24 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 <h3>Layout Configuration Structure<a class="headerlink" href="#layout-configuration-structure" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_LAYOUT</span></code> configuration follows this structure:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;tab_identifier&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Tab Display Name&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;semantic-ui-icon-name&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;date_range_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;Date range description&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"tab_identifier"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Tab Display Name"</span><span class="p">,</span>
+                <span class="s2">"icon"</span><span class="p">:</span> <span class="s2">"semantic-ui-icon-name"</span><span class="p">,</span>
+                <span class="s2">"date_range_phrase"</span><span class="p">:</span> <span class="s2">"Date range description"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;row_identifier&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"row_identifier"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
                             <span class="p">{</span>
-                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ComponentName&quot;</span><span class="p">,</span>
-                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>  <span class="c1"># Grid width (1-16)</span>
-                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
-                                    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Component Title&quot;</span><span class="p">,</span>
-                                    <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
-                                    <span class="s2">&quot;pageSize&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                                <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"ComponentName"</span><span class="p">,</span>
+                                <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>  <span class="c1"># Grid width (1-16)</span>
+                                <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span>
+                                    <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Component Title"</span><span class="p">,</span>
+                                    <span class="s2">"height"</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+                                    <span class="s2">"pageSize"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
                                     <span class="c1"># ... other component-specific props</span>
                                 <span class="p">}</span>
                             <span class="p">}</span>
@@ -362,12 +362,12 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 </ul>
 <p>The “display separately” filter in each one can be configured to allow dynamic display of any breakdown configured for the extension. We could allow only breakdowns by resource type, file type, and funder, for example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ContentStatsChart&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Cumulative Content Totals&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;display_subcounts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;resource_types&quot;</span><span class="p">,</span> <span class="s2">&quot;file_types&quot;</span><span class="p">,</span> <span class="s2">&quot;funders&quot;</span><span class="p">],</span>
+    <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"ContentStatsChart"</span><span class="p">,</span>
+    <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"height"</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Cumulative Content Totals"</span><span class="p">,</span>
+        <span class="s2">"display_subcounts"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"resource_types"</span><span class="p">,</span> <span class="s2">"file_types"</span><span class="p">,</span> <span class="s2">"funders"</span><span class="p">],</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -387,13 +387,13 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 <li><p>displaying only the top 10 items</p></li>
 </ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ResourceTypesMultiDisplay&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
-    <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Top Resource Types&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;pageSize&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
-        <span class="s2">&quot;available_views&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;default_view&quot;</span><span class="p">:</span> <span class="s2">&quot;pie&quot;</span><span class="p">,</span>
+    <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"ResourceTypesMultiDisplay"</span><span class="p">,</span>
+    <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Top Resource Types"</span><span class="p">,</span>
+        <span class="s2">"pageSize"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="s2">"available_views"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"bar"</span><span class="p">,</span> <span class="s2">"list"</span><span class="p">],</span>
+        <span class="s2">"default_view"</span><span class="p">:</span> <span class="s2">"pie"</span><span class="p">,</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -427,14 +427,14 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 </ul>
 <p>This can be added to the layout like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;StatsMap&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
-    <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Top Countries by Visits&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
-        <span class="s2">&quot;minHeight&quot;</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
-        <span class="s2">&quot;zoom&quot;</span><span class="p">:</span> <span class="mf">1.3</span><span class="p">,</span>
-        <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+    <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"StatsMap"</span><span class="p">,</span>
+    <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Top Countries by Visits"</span><span class="p">,</span>
+        <span class="s2">"height"</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="s2">"minHeight"</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="s2">"zoom"</span><span class="p">:</span> <span class="mf">1.3</span><span class="p">,</span>
+        <span class="s2">"center"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
     <span class="p">},</span>
 <span class="p">}</span>
 </pre></div>
@@ -473,21 +473,21 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 <h2>Global UI Configuration<a class="headerlink" href="#global-ui-configuration" title="Link to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD_UI_CONFIG</span></code> variable controls dashboard-wide settings:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_UI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Statistics&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Dashboard description&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Statistics"</span><span class="p">,</span>
+        <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Dashboard description"</span><span class="p">,</span>
+        <span class="s2">"maxHistoryYears"</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">"default_granularity"</span><span class="p">:</span> <span class="s2">"month"</span><span class="p">,</span>
+        <span class="s2">"show_title"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">"show_description"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">},</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Community Statistics&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Community dashboard description&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;maxHistoryYears&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-        <span class="s2">&quot;default_granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;month&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;show_title&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;show_description&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Community Statistics"</span><span class="p">,</span>
+        <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Community dashboard description"</span><span class="p">,</span>
+        <span class="s2">"maxHistoryYears"</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s2">"default_granularity"</span><span class="p">:</span> <span class="s2">"month"</span><span class="p">,</span>
+        <span class="s2">"show_title"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">"show_description"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -505,40 +505,40 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 <h3>Customization Examples<a class="headerlink" href="#customization-examples" title="Link to this heading">¶</a></h3>
 <p><strong>Example 1: Custom Global Dashboard Layout</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"global"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;overview&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Overview&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;chart bar&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;date_range_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;Data as of&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"overview"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Overview"</span><span class="p">,</span>
+                <span class="s2">"icon"</span><span class="p">:</span> <span class="s2">"chart bar"</span><span class="p">,</span>
+                <span class="s2">"date_range_phrase"</span><span class="p">:</span> <span class="s2">"Data as of"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;key-metrics&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"key-metrics"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
                             <span class="p">{</span>
-                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCountCumulative&quot;</span><span class="p">,</span>
-                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
-                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Total Records&quot;</span><span class="p">,</span> <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;file&quot;</span><span class="p">}</span>
+                                <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCountCumulative"</span><span class="p">,</span>
+                                <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                                <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Total Records"</span><span class="p">,</span> <span class="s2">"icon"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">}</span>
                             <span class="p">},</span>
                             <span class="p">{</span>
-                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViewsCumulative&quot;</span><span class="p">,</span>
-                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
-                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Total Views&quot;</span><span class="p">,</span> <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;eye&quot;</span><span class="p">}</span>
+                                <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatViewsCumulative"</span><span class="p">,</span>
+                                <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                                <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Total Views"</span><span class="p">,</span> <span class="s2">"icon"</span><span class="p">:</span> <span class="s2">"eye"</span><span class="p">}</span>
                             <span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;content-breakdown&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"content-breakdown"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
                             <span class="p">{</span>
-                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;ResourceTypesMultiDisplay&quot;</span><span class="p">,</span>
-                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
-                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
-                                    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Content by Type&quot;</span><span class="p">,</span>
-                                    <span class="s2">&quot;pageSize&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
-                                    <span class="s2">&quot;available_views&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;pie&quot;</span><span class="p">,</span> <span class="s2">&quot;bar&quot;</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">],</span>
-                                    <span class="s2">&quot;default_view&quot;</span><span class="p">:</span> <span class="s2">&quot;pie&quot;</span>
+                                <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"ResourceTypesMultiDisplay"</span><span class="p">,</span>
+                                <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                                <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span>
+                                    <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Content by Type"</span><span class="p">,</span>
+                                    <span class="s2">"pageSize"</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+                                    <span class="s2">"available_views"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"pie"</span><span class="p">,</span> <span class="s2">"bar"</span><span class="p">,</span> <span class="s2">"list"</span><span class="p">],</span>
+                                    <span class="s2">"default_view"</span><span class="p">:</span> <span class="s2">"pie"</span>
                                 <span class="p">}</span>
                             <span class="p">}</span>
                         <span class="p">]</span>
@@ -552,21 +552,21 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 </div>
 <p><strong>Example 2: Community Dashboard Layout</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">STATS_DASHBOARD_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;community&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;tabs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"community"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"tabs"</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;community-stats&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Community Statistics&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;date_range_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;Community activity during&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"community-stats"</span><span class="p">,</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"Community Statistics"</span><span class="p">,</span>
+                <span class="s2">"icon"</span><span class="p">:</span> <span class="s2">"users"</span><span class="p">,</span>
+                <span class="s2">"date_range_phrase"</span><span class="p">:</span> <span class="s2">"Community activity during"</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;metrics&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"metrics"</span><span class="p">,</span>
+                        <span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
                             <span class="p">{</span>
-                                <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span>
-                                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
-                                <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Records Added&quot;</span><span class="p">,</span> <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;plus&quot;</span><span class="p">}</span>
+                                <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span>
+                                <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                                <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Records Added"</span><span class="p">,</span> <span class="s2">"icon"</span><span class="p">:</span> <span class="s2">"plus"</span><span class="p">}</span>
                             <span class="p">}</span>
                         <span class="p">]</span>
                     <span class="p">}</span>
@@ -579,40 +579,40 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 </div>
 <p><strong>Example 3: Customizing Component Widths</strong></p>
 <p>Components use a 16-column grid system. You can control layout by adjusting widths:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
-        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatRecordCount&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Takes 1/4 of the row</span>
-        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Records&quot;</span><span class="p">}</span>
+        <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatRecordCount"</span><span class="p">,</span>
+        <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Takes 1/4 of the row</span>
+        <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Records"</span><span class="p">}</span>
     <span class="p">},</span>
     <span class="p">{</span>
-        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatViews&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>  <span class="c1"># Takes 1/2 of the row</span>
-        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Views&quot;</span><span class="p">}</span>
+        <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatViews"</span><span class="p">,</span>
+        <span class="s2">"width"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>  <span class="c1"># Takes 1/2 of the row</span>
+        <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Views"</span><span class="p">}</span>
     <span class="p">},</span>
     <span class="p">{</span>
-        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;SingleStatDownloads&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Takes 1/4 of the row</span>
-        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Downloads&quot;</span><span class="p">}</span>
+        <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"SingleStatDownloads"</span><span class="p">,</span>
+        <span class="s2">"width"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Takes 1/4 of the row</span>
+        <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Downloads"</span><span class="p">}</span>
     <span class="p">}</span>
 <span class="p">]</span>
 </pre></div>
 </div>
 <p><strong>Example 4: Configuring Line Chart Display Modes</strong></p>
 <p>You can control the default display mode for line charts with multiple series:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;components&quot;</span><span class="p">:</span> <span class="p">[</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">"components"</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
-        <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;TrafficStatsChart&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
-        <span class="s2">&quot;props&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Daily Usage Statistics&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
-            <span class="s2">&quot;chartType&quot;</span><span class="p">:</span> <span class="s2">&quot;line&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;defaultLineDisplay&quot;</span><span class="p">:</span> <span class="s2">&quot;overlapping&quot;</span><span class="p">,</span>  <span class="c1"># Chart-level default</span>
-            <span class="s2">&quot;display_subcounts&quot;</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s2">&quot;resource_types&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;defaultLineDisplay&quot;</span><span class="p">:</span> <span class="s2">&quot;stacked&quot;</span><span class="p">},</span>    <span class="c1"># Per-subcount override</span>
-                <span class="s2">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;defaultLineDisplay&quot;</span><span class="p">:</span> <span class="s2">&quot;overlapping&quot;</span><span class="p">},</span>       <span class="c1"># Explicit per-subcount setting</span>
-                <span class="s2">&quot;funders&quot;</span><span class="p">:</span> <span class="p">{}</span>  <span class="c1"># Uses chart-level default</span>
+        <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"TrafficStatsChart"</span><span class="p">,</span>
+        <span class="s2">"width"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="s2">"props"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Daily Usage Statistics"</span><span class="p">,</span>
+            <span class="s2">"height"</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span>
+            <span class="s2">"chartType"</span><span class="p">:</span> <span class="s2">"line"</span><span class="p">,</span>
+            <span class="s2">"defaultLineDisplay"</span><span class="p">:</span> <span class="s2">"overlapping"</span><span class="p">,</span>  <span class="c1"># Chart-level default</span>
+            <span class="s2">"display_subcounts"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"resource_types"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"defaultLineDisplay"</span><span class="p">:</span> <span class="s2">"stacked"</span><span class="p">},</span>    <span class="c1"># Per-subcount override</span>
+                <span class="s2">"subjects"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"defaultLineDisplay"</span><span class="p">:</span> <span class="s2">"overlapping"</span><span class="p">},</span>       <span class="c1"># Explicit per-subcount setting</span>
+                <span class="s2">"funders"</span><span class="p">:</span> <span class="p">{}</span>  <span class="c1"># Uses chart-level default</span>
             <span class="p">}</span>
         <span class="p">}</span>
     <span class="p">}</span>
@@ -636,8 +636,8 @@ the <code class="docutils literal notranslate"><span class="pre">STATS_DASHBOARD
 <section id="adding-dashboard-views-to-other-pages">
 <h2>Adding dashboard views to other pages<a class="headerlink" href="#adding-dashboard-views-to-other-pages" title="Link to this heading">¶</a></h2>
 <p>The default global and community dashboard templates are based on a Jinja2 template macro that can also be included in other templates to display an embedded dashboard view:</p>
-<div class="highlight-html notranslate"><div class="highlight"><pre><span></span>{%- extends &quot;invenio_theme/page.html&quot; %}
-{%- import &quot;invenio_stats_dashboard/stats_dashboard.html&quot; as stats_dashboard %}
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span>{%- extends "invenio_theme/page.html" %}
+{%- import "invenio_stats_dashboard/stats_dashboard.html" as stats_dashboard %}
 
 {%- block page_body %}
   {{ stats_dashboard.stats_dashboard(dashboard_config, community=community) }}
