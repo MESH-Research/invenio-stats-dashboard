@@ -959,9 +959,11 @@ def enable_dashboards_command(
             record events. Optional. Defaults to 0.
         verbose: Display verbose output. Optional. Defaults to False.
     """
-    print("==================================")
-    print("Enabling stats dashboards for selected communities")
-    print("==================================")
+    # flush=True: CliRunner TextIOWrappers are block-buffered; if a service
+    # rebinds sys.stdout mid-command, unflushed banner lines are lost.
+    print("==================================", flush=True)
+    print("Enabling stats dashboards for selected communities", flush=True)
+    print("==================================", flush=True)
 
     try:
         if (
@@ -1005,13 +1007,14 @@ def enable_dashboards_command(
                 print(f"{len(failures)} communities could not be enabled")
                 pprint(failures)
 
-            print("==================================")
-            print(f"Enabled dashboards for {len(successes)}")
-            print(f"Failed to enable dashboards for {len(failures)}")
+            print("==================================", flush=True)
+            print(f"Enabled dashboards for {len(successes)}", flush=True)
+            print(f"Failed to enable dashboards for {len(failures)}", flush=True)
         else:
             print(
                 "No community ids or selection criteria provided. Could "
-                "not perform any updates."
+                "not perform any updates.",
+                flush=True,
             )
     except Exception:
         print("Something went wrong:")
