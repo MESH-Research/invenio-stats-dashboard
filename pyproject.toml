@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["babel>2.8", "setuptools>=61", "wheel"]
+requires = ["babel>2.8", "setuptools>=83", "wheel"]
 
 [project]
 name = "invenio-stats-dashboard"
@@ -27,19 +27,18 @@ classifiers = [
 ]
 dependencies = [
   "arrow>=1.3",
-  "brotli>=1",
+  "brotli>=1.2",
   "flask-sqlalchemy",
   "glom>=23",
   "halo>=0.0.31",
   "openpyxl>=3.1",
-  "orjson>=3.11.3",
+  "orjson>=3.11.9",
   "psutil>=6",
   "pydantic>=2.11.7",
   "tqdm>=4.66",
 ]
-
 optional-dependencies.dev = [
-  "black>=25.1",
+  "black>=26.5.1",
   "bump-my-version==1.5.1",
   "mypy>=1.8",
   "ruff>=0.3",
@@ -82,19 +81,16 @@ entry-points."invenio_celery.tasks".invenio_stats_dashboard_reindexing = "inveni
 
 # invenio-rdm-records = {path = "../invenio-rdm-records", editable = true}
 # invenio-requests = {path = "../invenio-requests", editable = true}
-
 [tool.setuptools]
 packages = ["invenio_stats_dashboard"]
 zip-safe = false
+package-data."*" = ["*"]
 
-[tool.setuptools.package-data]
-"*" = ["*"]
-
-[tool.uv.sources]
+[tool.uv]
+sources = {}
 
 [tool.ruff]
 target-version = "py312"
-
 line-length = 88
 # temporarily removed C for complexity checks
 lint.select = ["B", "D", "DOC", "E", "F", "I", "UP"]
@@ -128,8 +124,35 @@ skip = [
   "__pycache__", # Skip cache directories
 ]
 
-[tool.pytest.ini_options]
-addopts = """
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+warn_no_return = false
+ignore_missing_imports = true
+follow_imports = "skip"
+allow_untyped_globals = true
+exclude = [
+  "^tests/",
+  "^invenio_stats_dashboard/search_indices/search_templates/.*/os-v2/",
+  "^invenio_stats_dashboard/patches/",
+]
+
+[[tool.mypy.overrides]]
+module = "invenio_stats_dashboard.search_indices.search_templates.*"
+ignore_errors = true
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[tool.pytest]
+ini_options.addopts = """
 --ruff --doctest-modules
 --log-cli-level=DEBUG
 --ignore=docs
@@ -137,10 +160,10 @@ addopts = """
 --ignore=invenio_stats_dashboard/patches
 --cov=invenio_stats_dashboard --cov-report=term-missing
 """
-norecursedirs = []
-log_cli_level = "DEBUG"
-isort_show_files = true
-plugins = [
+ini_options.norecursedirs = []
+ini_options.log_cli_level = "DEBUG"
+ini_options.isort_show_files = true
+ini_options.plugins = [
   "tests.fixtures.files",
   "tests.fixtures.mail",
   "tests.fixtures.communities",
@@ -163,35 +186,8 @@ plugins = [
   "tests.pytest_plugins.pytest_live_status",
 ]
 
-[tool.coverage.run]
-omit = ["tests/*"]
-
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-check_untyped_defs = true
-disallow_untyped_decorators = false
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = false
-warn_no_return = false
-ignore_missing_imports = true
-follow_imports = "skip"
-allow_untyped_globals = true
-exclude = [
-  '^tests/',
-  '^invenio_stats_dashboard/search_indices/search_templates/.*/os-v2/',
-  '^invenio_stats_dashboard/patches/',
-]
-
-[[tool.mypy.overrides]]
-module = "invenio_stats_dashboard.search_indices.search_templates.*"
-ignore_errors = true
-ignore_missing_imports = true
-follow_imports = "skip"
+[tool.coverage]
+run.omit = ["tests/*"]
 
 [tool.bumpversion]
 current_version = "0.5.0"
@@ -207,7 +203,6 @@ message = "Bump version: {current_version} → {new_version}"
 # pyproject.toml project.version and tool.bumpversion.current_version are
 # updated automatically by bump-my-version's update_config_file; listing them
 # here double-applies a whole-file search and fails on the second entry.
-
 [[tool.bumpversion.files]]
 filename = "invenio_stats_dashboard/__init__.py"
 search = '__version__ = "{current_version}"'
