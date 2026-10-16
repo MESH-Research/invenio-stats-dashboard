@@ -237,17 +237,17 @@ const StatsDashboardLayout = ({
         <Grid.Row>
           <Grid.Column
             width={3}
-            className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0 computer widescreen large screen only`}
+            className={`${sidebarClassNames} stats-dashboard-sidebar rel-mt-0 computer only`}
           >
             {showTitle && (
-              <h2 className="stats-dashboard-header computer widescreen large screen only">
+              <h2 className="stats-dashboard-header computer only">
                 {dashboardConfig.title || i18next.t("Statistics")}
               </h2>
             )}
             <Menu
               fluid
               vertical
-              className="stats-dashboard-sidebar-menu rel-mt-2 rel-mb-2 theme-primary-menu computer widescreen large screen only"
+              className="stats-dashboard-sidebar-menu rel-mt-2 rel-mb-2 theme-primary-menu computer only"
             >
               {availableTabs.map((tab) => (
                 <Menu.Item
