@@ -21,8 +21,8 @@ theme = WebpackThemeBundle(
                 ),
             },
             dependencies={
-                "echarts": "^5.4.2",
-                "echarts-for-react": "^3.0.2",
+                "echarts": "^6.1.0",
+                "echarts-for-react": "3.0.6",
                 "pako": "^2.1.0",
             },
             aliases={
