@@ -3641,6 +3641,7 @@ class TestAggregatorIgnoreBookmark:
         self,
         running_app,
         db,
+        create_stats_indices,
         search_clear,
         minimal_community_factory,
         minimal_published_record_factory,

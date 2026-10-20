@@ -459,6 +459,7 @@ class TestEventReindexingService:
         minimal_community_factory,
         minimal_published_record_factory,
         user_factory,
+        create_stats_indices,
         put_old_stats_templates,
         celery_worker,
         requests_mock,
