@@ -90,17 +90,28 @@ def test_index_templates_registered(running_app, create_stats_indices, search_cl
     assert list(indices.keys()) == ["stats-community-records-snapshot-added-2024"]
     assert len(indices) == 1
 
-    # Check that the index template exists
+    # Check that the index templates for the active prefix are registered.
+    # Compare by name rather than total wildcard hits so leftover templates
+    # from another SEARCH_INDEX_PREFIX (e.g. kcworks-) do not fail the count.
     templates = client.indices.get_index_template("*stats-community-records*")
-    assert len(templates["index_templates"]) == 2
-    usage_templates = client.indices.get_index_template("*stats-community-usage*")
-    assert len(usage_templates["index_templates"]) == 2
+    records_names = {t["name"] for t in templates["index_templates"]}
+    assert {
+        prefix_index("stats-community-records-delta-added-v1.0.0"),
+        prefix_index("stats-community-records-snapshot-added-v1.0.0"),
+    } <= records_names
 
-    # Check that the community events index template exists
+    usage_templates = client.indices.get_index_template("*stats-community-usage*")
+    usage_names = {t["name"] for t in usage_templates["index_templates"]}
+    assert {
+        prefix_index("stats-community-usage-delta-v1.0.0"),
+        prefix_index("stats-community-usage-snapshot-v1.0.0"),
+    } <= usage_names
+
     community_events_templates = client.indices.get_index_template(
         "*stats-community-events*"
     )
-    assert len(community_events_templates["index_templates"]) == 1
+    events_names = {t["name"] for t in community_events_templates["index_templates"]}
+    assert {prefix_index("stats-community-events-v1.0.0")} <= events_names
 
     # Check that the alias exists and points to the index
     aliases = client.indices.get_alias("*stats-community-records-snapshot-added*")
