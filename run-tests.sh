@@ -204,7 +204,8 @@ fi
 echo "Starting the services"
 eval "$(uv run ${env_file_arg} docker-services-cli --filepath .venv/lib/python3.12/site-packages/docker_services_cli/docker-services.yml up --db ${DB:-postgresql} --cache ${CACHE:-redis} --search opensearch --mq ${MQ:-rabbitmq} --env)"
 
-# Unset the environment variables that docker-services-cli set so that the values from tests/.env are used instead of those defaults from docker-services.yml
+# Unset so `uv --env-file tests/.env` can supply DB URI (uv will not
+# override existing shell vars). Fixtures default if `.env` omits it.
 unset SQLALCHEMY_DATABASE_URI
 unset INVENIO_SQLALCHEMY_DATABASE_URI
 
